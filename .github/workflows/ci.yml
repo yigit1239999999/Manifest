@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# A failing job blocks deployment when this workflow is set as a
+# required status check in the repository's branch protection rules.
+jobs:
+  verify:
+    name: Lint, test & build
+    runs-on: ubuntu-latest
+    env:
+      # Placeholder values — CI never connects to a real database.
+      # The build and tests run fully offline with mocked data.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
+      AUTH_SECRET: ci-placeholder-secret-not-used-for-real-auth
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit & integration tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
