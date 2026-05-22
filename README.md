@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PetTrack
 
-## Getting Started
+A warm, multi-tenant CRM for veterinary practices. Each clinic signs up to its
+own private workspace and manages clients (pet owners) and their pets.
 
-First, run the development server:
+Built with Next.js 16 (App Router), TypeScript, Prisma 7, Auth.js, and
+Tailwind CSS v4.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Clinic sign-up / sign-in — every clinic's data is isolated by `clinicId`
+- Clients — create, search, view, edit, and delete pet owners
+- Pets — full CRUD, each pet linked to its owner (Owner → Pet)
+- Clinic overview with counts and recent activity
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Requirements
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js 20+
+- A PostgreSQL database (e.g. Supabase)
 
-## Learn More
+## Setup
 
-To learn more about Next.js, take a look at the following resources:
+1. Install dependencies:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npm install
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Create a `.env` file (see `.env.example`):
 
-## Deploy on Vercel
+   ```bash
+   # Pooled connection — used by the running app
+   DATABASE_URL="postgresql://…@…:6543/postgres?pgbouncer=true"
+   # Direct connection — used for schema migrations
+   DIRECT_URL="postgresql://…@…:5432/postgres"
+   # Generate with: openssl rand -base64 32
+   AUTH_SECRET="…"
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   With Supabase, copy both connection strings from
+   **Connect → ORMs → Prisma** in the dashboard.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. Push the schema to your database:
+
+   ```bash
+   npx prisma db push
+   ```
+
+4. Start the app:
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000).
+
+## Scripts
+
+- `npm run dev` — start the development server
+- `npm run build` — production build
+- `npm run db:push` — sync the Prisma schema to the database
+- `npm run db:studio` — open Prisma Studio to inspect data
+
+## Verifying multi-tenancy
+
+Sign up two separate clinics. Each one only ever sees its own clients and
+pets — every query is scoped by the signed-in user's `clinicId`.
