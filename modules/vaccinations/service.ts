@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { VaccinationInput } from "./schema";
 
@@ -8,6 +9,7 @@ export async function createVaccination(
   input: VaccinationInput,
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "vaccinations.write");
   const pet = await prisma.pet.findFirst({
     where: { id: input.petId, clinicId: ctx.clinicId },
     select: { id: true },
@@ -41,6 +43,7 @@ export async function createVaccination(
 }
 
 export async function deleteVaccination(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "vaccinations.write");
   const existing = await prisma.vaccination.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, petId: true },

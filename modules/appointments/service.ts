@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { AppointmentInput } from "./schema";
 
@@ -17,6 +18,7 @@ export async function createAppointment(
   input: AppointmentInput,
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "appointments.write");
   const pet = await resolvePet(input.petId, ctx.clinicId);
 
   const appointment = await prisma.appointment.create({
@@ -49,6 +51,7 @@ export async function updateAppointment(
   input: AppointmentInput,
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "appointments.write");
   const existing = await prisma.appointment.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
@@ -83,6 +86,7 @@ export async function updateAppointment(
 }
 
 export async function cancelAppointment(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "appointments.write");
   const existing = await prisma.appointment.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, petId: true },

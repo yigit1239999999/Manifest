@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { PrescriptionInput } from "./schema";
 
@@ -8,6 +9,7 @@ export async function createPrescription(
   input: PrescriptionInput,
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "prescriptions.write");
   const pet = await prisma.pet.findFirst({
     where: { id: input.petId, clinicId: ctx.clinicId },
     select: { id: true },
@@ -49,6 +51,7 @@ export async function updatePrescriptionStatus(
   status: "ACTIVE" | "COMPLETED" | "CANCELLED",
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "prescriptions.write");
   const existing = await prisma.prescription.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, petId: true },

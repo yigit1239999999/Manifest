@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { DiagnosticInput } from "./schema";
 
@@ -8,6 +9,7 @@ export async function createDiagnostic(
   input: DiagnosticInput,
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "diagnostics.write");
   const pet = await prisma.pet.findFirst({
     where: { id: input.petId, clinicId: ctx.clinicId },
     select: { id: true },
@@ -39,6 +41,7 @@ export async function createDiagnostic(
 }
 
 export async function deleteDiagnostic(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "diagnostics.write");
   const existing = await prisma.diagnostic.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, petId: true },

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { PetInput } from "./schema";
 
@@ -14,6 +15,7 @@ async function assertOwnerInClinic(ownerId: string, clinicId: string) {
 }
 
 export async function createPet(input: PetInput, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "pets.write");
   await assertOwnerInClinic(input.ownerId, ctx.clinicId);
 
   const pet = await prisma.pet.create({
@@ -31,6 +33,7 @@ export async function createPet(input: PetInput, ctx: ActionContext) {
 }
 
 export async function updatePet(id: string, input: PetInput, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "pets.write");
   const existing = await prisma.pet.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
@@ -52,6 +55,7 @@ export async function updatePet(id: string, input: PetInput, ctx: ActionContext)
 }
 
 export async function archivePet(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "pets.archive");
   const existing = await prisma.pet.findFirst({
     where: { id, clinicId: ctx.clinicId, archivedAt: null },
     select: { id: true, ownerId: true },
@@ -77,6 +81,7 @@ export async function markPetDeceased(
   deceasedAt: Date,
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "pets.write");
   const existing = await prisma.pet.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },

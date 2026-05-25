@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { ReminderInput } from "./schema";
 
 export async function createReminder(input: ReminderInput, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "reminders.write");
   const client = await prisma.client.findFirst({
     where: { id: input.clientId, clinicId: ctx.clinicId },
     select: { id: true },
@@ -46,6 +48,7 @@ export async function markReminderStatus(
   status: "PENDING" | "SENT" | "ACKNOWLEDGED" | "DISMISSED",
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "reminders.write");
   const existing = await prisma.reminder.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },

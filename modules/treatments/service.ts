@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { TreatmentInput } from "./schema";
 
@@ -8,6 +9,7 @@ export async function createTreatment(
   input: TreatmentInput,
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "treatments.write");
   const pet = await prisma.pet.findFirst({
     where: { id: input.petId, clinicId: ctx.clinicId },
     select: { id: true },
@@ -39,6 +41,7 @@ export async function createTreatment(
 }
 
 export async function deleteTreatment(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "treatments.write");
   const existing = await prisma.treatment.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, petId: true },

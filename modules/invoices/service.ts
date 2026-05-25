@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { conflict, notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { InvoiceInput, PaymentInput } from "./schema";
 
@@ -12,6 +13,7 @@ function lineTotals(lines: InvoiceInput["lines"]) {
 }
 
 export async function createInvoice(input: InvoiceInput, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "invoices.write");
   const client = await prisma.client.findFirst({
     where: { id: input.clientId, clinicId: ctx.clinicId },
     select: { id: true },
@@ -64,6 +66,7 @@ export async function createInvoice(input: InvoiceInput, ctx: ActionContext) {
 }
 
 export async function recordPayment(input: PaymentInput, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "payments.write");
   const invoice = await prisma.invoice.findFirst({
     where: { id: input.invoiceId, clinicId: ctx.clinicId },
     include: { payments: true },
@@ -107,6 +110,7 @@ export async function recordPayment(input: PaymentInput, ctx: ActionContext) {
 }
 
 export async function voidInvoice(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "invoices.void");
   const existing = await prisma.invoice.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, clientId: true },

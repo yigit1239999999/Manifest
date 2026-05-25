@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { NoteInput } from "./schema";
 
 export async function createNote(input: NoteInput, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "notes.write");
   if (!input.petId && !input.clientId) {
     throw validationFailed({
       _form: ["Bir hasta veya müşteri belirtmelisin."],
@@ -50,6 +52,7 @@ export async function createNote(input: NoteInput, ctx: ActionContext) {
 }
 
 export async function deleteNote(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "notes.write");
   const existing = await prisma.note.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, petId: true, clientId: true },
@@ -68,6 +71,7 @@ export async function deleteNote(id: string, ctx: ActionContext) {
 }
 
 export async function togglePinned(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "notes.write");
   const existing = await prisma.note.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, pinned: true },

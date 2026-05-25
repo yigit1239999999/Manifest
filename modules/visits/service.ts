@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { VisitInput } from "./schema";
 
@@ -14,6 +15,7 @@ async function resolvePetAndOwner(petId: string, clinicId: string) {
 }
 
 export async function createVisit(input: VisitInput, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "visits.write");
   const pet = await resolvePetAndOwner(input.petId, ctx.clinicId);
 
   const { petId, vetId, ...rest } = input;
@@ -42,6 +44,7 @@ export async function updateVisit(
   input: VisitInput,
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "visits.write");
   const existing = await prisma.visit.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
@@ -72,6 +75,7 @@ export async function updateVisit(
 }
 
 export async function archiveVisit(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "visits.write");
   const existing = await prisma.visit.findFirst({
     where: { id, clinicId: ctx.clinicId, archivedAt: null },
     select: { id: true, petId: true },

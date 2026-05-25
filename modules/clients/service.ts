@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { ClientInput } from "./schema";
 
 export async function createClient(input: ClientInput, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "clients.write");
   const client = await prisma.client.create({
     data: { ...input, clinicId: ctx.clinicId },
   });
@@ -24,6 +26,7 @@ export async function updateClient(
   input: ClientInput,
   ctx: ActionContext,
 ) {
+  requirePermission(ctx.userRole, "clients.write");
   const existing = await prisma.client.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
@@ -43,6 +46,7 @@ export async function updateClient(
 }
 
 export async function archiveClient(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "clients.archive");
   const existing = await prisma.client.findFirst({
     where: { id, clinicId: ctx.clinicId, archivedAt: null },
     select: { id: true },
@@ -63,6 +67,7 @@ export async function archiveClient(id: string, ctx: ActionContext) {
 }
 
 export async function restoreClient(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "clients.archive");
   const existing = await prisma.client.findFirst({
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
