@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { PawPrint } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 export default async function AuthLayout({
   children,
@@ -8,22 +10,23 @@ export default async function AuthLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  if (session?.user) {
-    redirect("/");
-  }
+  if (session?.user) redirect("/");
+
+  const t = await getTranslations("app");
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-12">
+      <div className="absolute right-4 top-4">
+        <LocaleSwitcher />
+      </div>
       <div className="flex items-center gap-2.5">
         <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <PawPrint className="size-6" />
         </span>
-        <span className="text-xl font-semibold tracking-tight">PetTrack</span>
+        <span className="text-xl font-semibold tracking-tight">{t("name")}</span>
       </div>
       {children}
-      <p className="text-xs text-muted-foreground">
-        A calmer CRM for veterinary teams.
-      </p>
+      <p className="text-xs text-muted-foreground">{t("tagline")}</p>
     </div>
   );
 }

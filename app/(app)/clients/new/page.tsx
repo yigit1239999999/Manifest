@@ -1,29 +1,20 @@
-import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+import { requireSession } from "@/lib/session";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
-import { Card, CardContent } from "@/components/ui/card";
-import { OwnerForm } from "@/components/owner-form";
-import { createOwner } from "../actions";
+import { ClientForm } from "@/components/forms/client-form";
 
-export const metadata: Metadata = {
-  title: "New client — PetTrack",
-};
-
-export default function NewClientPage() {
+export default async function NewClientPage() {
+  await requireSession();
+  const [t, tCommon] = await Promise.all([
+    getTranslations("client"),
+    getTranslations("common"),
+  ]);
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <BackLink href="/clients" label="Back to clients" />
-        <PageHeader
-          title="New client"
-          description="Add a pet owner to your clinic."
-        />
-      </div>
-      <Card className="max-w-2xl">
-        <CardContent className="pt-6">
-          <OwnerForm action={createOwner} />
-        </CardContent>
-      </Card>
+    <div className="flex flex-col gap-4">
+      <BackLink href="/clients" label={tCommon("back")} />
+      <PageHeader title={t("new")} />
+      <ClientForm />
     </div>
   );
 }

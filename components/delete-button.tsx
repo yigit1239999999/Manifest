@@ -8,13 +8,13 @@ export function DeleteButton({
   label = "Delete",
   confirmText,
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<unknown>;
   label?: string;
   confirmText: string;
 }) {
   return (
     <form
-      action={action}
+      action={action as (formData: FormData) => Promise<void>}
       onSubmit={(e) => {
         if (!window.confirm(confirmText)) {
           e.preventDefault();

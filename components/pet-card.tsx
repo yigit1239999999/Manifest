@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { SpeciesIcon } from "@/components/species-icon";
-import { petAge, speciesLabel } from "@/lib/format";
+import { petAge } from "@/lib/format";
 
-export function PetCard({
+export async function PetCard({
   pet,
 }: {
   pet: {
@@ -13,8 +14,9 @@ export function PetCard({
     birthDate: Date | null;
   };
 }) {
+  const t = await getTranslations("enum.species");
   const age = petAge(pet.birthDate);
-  const meta = [speciesLabel(pet.species), pet.breed, age].filter(Boolean);
+  const meta = [t(pet.species as never), pet.breed, age].filter(Boolean);
 
   return (
     <Link

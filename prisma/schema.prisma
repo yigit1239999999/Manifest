@@ -1,5 +1,8 @@
-// PetTrack — veterinary CRM
-// Multi-tenant: every record belongs to a Clinic.
+// PetTrack — full-scale veterinary CRM + pet management
+// Multi-tenant: every tenant-scoped record belongs to a Clinic via `clinicId`.
+//
+// Money is stored as integer cents (`*Cents`) to avoid float/Decimal pitfalls.
+// Soft delete is via `archivedAt DateTime?` on entities where history matters.
 
 generator client {
   provider = "prisma-client"
@@ -10,88 +13,137 @@ datasource db {
   provider = "postgresql"
 }
 
-model Clinic {
-  id        String   @id @default(cuid())
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ===========================================================================
+// Tenant root
+// ===========================================================================
 
-  users  User[]
-  owners Owner[]
-  pets   Pet[]
+model Clinic {
+  id         String   @id @default(cuid())
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  city       String?
+  postalCode String?
+  country    String?
+  timezone   String   @default("UTC")
+  currency   String   @default("USD")
+  settings   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  users         User[]
+  clients       Client[]
+  pets          Pet[]
+  visits        Visit[]
+  appointments  Appointment[]
+  vaccinations  Vaccination[]
+  prescriptions Prescription[]
+  treatments    Treatment[]
+  diagnostics   Diagnostic[]
+  notes         Note[]
+  reminders     Reminder[]
+  invoices      Invoice[]
+  documents     Document[]
+  auditLogs     AuditLog[]
+
+  @@map("clinics")
+}
+
+// ===========================================================================
+// Users (clinic staff)
+// ===========================================================================
+
+enum UserRole {
+  ADMIN
+  VETERINARIAN
+  VET_TECH
+  RECEPTIONIST
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
+  id           String    @id @default(cuid())
+  clinicId     String
+  clinic       Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   name         String
-  role         Role     @default(ADMIN)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(VETERINARIAN)
+  phone        String?
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  clinicId String
-  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-
-  @@index([clinicId])
-}
-
-model Owner {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String?
-  phone     String?
-  address   String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  clinicId String
-  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  pets     Pet[]
+  visitsAsVet       Visit[]        @relation("VetForVisit")
+  appointmentsAsVet Appointment[]  @relation("VetForAppointment")
+  prescriptionsBy   Prescription[] @relation("PrescribedBy")
+  treatmentsBy      Treatment[]    @relation("TreatmentBy")
+  vaccinationsBy    Vaccination[]  @relation("VaccinationBy")
+  notesBy           Note[]         @relation("NoteAuthor")
+  documentsBy       Document[]     @relation("DocumentUploadedBy")
+  auditLogs         AuditLog[]     @relation("AuditActor")
 
   @@index([clinicId])
+  @@map("users")
 }
 
-model Pet {
-  id          String    @id @default(cuid())
-  name        String
-  species     Species
-  breed       String?
-  sex         Sex       @default(UNKNOWN)
-  birthDate   DateTime?
-  color       String?
-  weightKg    Float?
-  microchipId String?
-  notes       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+// ===========================================================================
+// Clients (pet owners) — the CPM side
+// ===========================================================================
 
-  ownerId  String
-  owner    Owner  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  clinicId String
-  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+enum ContactMethod {
+  EMAIL
+  PHONE
+  SMS
+}
+
+model Client {
+  id               String         @id @default(cuid())
+  clinicId         String
+  clinic           Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String?
+  secondaryPhone   String?
+  address          String?
+  city             String?
+  postalCode       String?
+  country          String?
+  preferredContact ContactMethod?
+  marketingOptIn   Boolean        @default(false)
+  notes            String?
+  archivedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  pets         Pet[]
+  appointments Appointment[]
+  visits       Visit[]
+  invoices     Invoice[]
+  notes_rel    Note[]
+  documents    Document[]
+  reminders    Reminder[]
 
   @@index([clinicId])
-  @@index([ownerId])
+  @@index([clinicId, lastName, firstName])
+  @@map("clients")
 }
 
-enum Role {
-  ADMIN
-  VET
-  STAFF
-}
+// ===========================================================================
+// Pets (patients) — the CRM side
+// ===========================================================================
 
 enum Species {
   DOG
   CAT
   BIRD
   RABBIT
+  RODENT
   REPTILE
+  FISH
+  EXOTIC
   OTHER
 }
 
@@ -99,4 +151,501 @@ enum Sex {
   MALE
   FEMALE
   UNKNOWN
+}
+
+model Pet {
+  id                String    @id @default(cuid())
+  clinicId          String
+  clinic            Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  ownerId           String
+  owner             Client    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name              String
+  species           Species
+  breed             String?
+  sex               Sex       @default(UNKNOWN)
+  neutered          Boolean   @default(false)
+  birthDate         DateTime?
+  color             String?
+  weightKg          Float?
+  microchipId       String?
+  insuranceProvider String?
+  insurancePolicy   String?
+  photoUrl          String?
+  alerts            String?
+  deceased          Boolean   @default(false)
+  deceasedAt        DateTime?
+  archivedAt        DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  visits        Visit[]
+  appointments  Appointment[]
+  vaccinations  Vaccination[]
+  prescriptions Prescription[]
+  treatments    Treatment[]
+  diagnostics   Diagnostic[]
+  notes_rel     Note[]
+  documents     Document[]
+  reminders     Reminder[]
+  invoiceLines  InvoiceLine[]
+
+  @@index([clinicId])
+  @@index([clinicId, ownerId])
+  @@index([clinicId, name])
+  @@map("pets")
+}
+
+// ===========================================================================
+// Appointments
+// ===========================================================================
+
+enum VisitType {
+  WELLNESS_CHECK
+  VACCINATION
+  SICK_VISIT
+  EMERGENCY
+  SURGERY
+  DENTAL
+  GROOMING
+  FOLLOWUP
+  TELEHEALTH
+  OTHER
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  clinicId        String
+  clinic          Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  petId           String
+  pet             Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+  clientId        String
+  client          Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  vetId           String?
+  vet             User?             @relation("VetForAppointment", fields: [vetId], references: [id], onDelete: SetNull)
+  startsAt        DateTime
+  durationMinutes Int               @default(30)
+  type            VisitType         @default(WELLNESS_CHECK)
+  status          AppointmentStatus @default(SCHEDULED)
+  reason          String?
+  notes           String?
+  visit           Visit?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([clinicId, startsAt])
+  @@index([clinicId, vetId, startsAt])
+  @@index([clinicId, petId])
+  @@map("appointments")
+}
+
+// ===========================================================================
+// Visits (encounters) — the heart of the medical history
+// ===========================================================================
+
+model Visit {
+  id                 String       @id @default(cuid())
+  clinicId           String
+  clinic             Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  petId              String
+  pet                Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+  clientId           String
+  client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  vetId              String?
+  vet                User?        @relation("VetForVisit", fields: [vetId], references: [id], onDelete: SetNull)
+  appointmentId      String?      @unique
+  appointment        Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  visitedAt          DateTime     @default(now())
+  type               VisitType    @default(WELLNESS_CHECK)
+  chiefComplaint     String?
+  // SOAP
+  subjective         String?
+  objective          String?
+  assessment         String?
+  plan               String?
+  // Vitals
+  weightKg           Float?
+  temperatureC       Float?
+  heartRateBpm       Int?
+  respiratoryRateBpm Int?
+  followupAt         DateTime?
+  totalCents         Int?
+  archivedAt         DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  vaccinations  Vaccination[]
+  prescriptions Prescription[]
+  treatments    Treatment[]
+  diagnostics   Diagnostic[]
+  documents     Document[]
+  invoiceLines  InvoiceLine[]
+
+  @@index([clinicId, visitedAt])
+  @@index([clinicId, petId, visitedAt])
+  @@index([clinicId, clientId])
+  @@map("visits")
+}
+
+// ===========================================================================
+// Vaccinations
+// ===========================================================================
+
+model Vaccination {
+  id               String    @id @default(cuid())
+  clinicId         String
+  clinic           Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  petId            String
+  pet              Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  visitId          String?
+  visit            Visit?    @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  administeredById String?
+  administeredBy   User?     @relation("VaccinationBy", fields: [administeredById], references: [id], onDelete: SetNull)
+  name             String
+  manufacturer     String?
+  lotNumber        String?
+  administeredAt   DateTime  @default(now())
+  nextDueAt        DateTime?
+  site             String?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([clinicId, petId, administeredAt])
+  @@index([clinicId, nextDueAt])
+  @@map("vaccinations")
+}
+
+// ===========================================================================
+// Prescriptions
+// ===========================================================================
+
+enum PrescriptionStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Prescription {
+  id             String             @id @default(cuid())
+  clinicId       String
+  clinic         Clinic             @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  petId          String
+  pet            Pet                @relation(fields: [petId], references: [id], onDelete: Cascade)
+  visitId        String?
+  visit          Visit?             @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  prescribedById String?
+  prescribedBy   User?              @relation("PrescribedBy", fields: [prescribedById], references: [id], onDelete: SetNull)
+  medicationName String
+  dosage         String
+  frequency      String
+  route          String?
+  durationDays   Int?
+  refills        Int                @default(0)
+  startedAt      DateTime           @default(now())
+  endedAt        DateTime?
+  status         PrescriptionStatus @default(ACTIVE)
+  instructions   String?
+  notes          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([clinicId, petId])
+  @@index([clinicId, status])
+  @@map("prescriptions")
+}
+
+// ===========================================================================
+// Treatments / Procedures
+// ===========================================================================
+
+model Treatment {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  petId           String
+  pet             Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  visitId         String?
+  visit           Visit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  performedById   String?
+  performedBy     User?    @relation("TreatmentBy", fields: [performedById], references: [id], onDelete: SetNull)
+  name            String
+  code            String?
+  performedAt     DateTime @default(now())
+  durationMinutes Int?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([clinicId, petId, performedAt])
+  @@map("treatments")
+}
+
+// ===========================================================================
+// Diagnostics (lab / imaging)
+// ===========================================================================
+
+enum DiagnosticType {
+  BLOOD
+  URINE
+  FECAL
+  CYTOLOGY
+  CULTURE
+  XRAY
+  ULTRASOUND
+  MRI
+  CT
+  ECG
+  ENDOSCOPY
+  OTHER
+}
+
+model Diagnostic {
+  id             String         @id @default(cuid())
+  clinicId       String
+  clinic         Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  petId          String
+  pet            Pet            @relation(fields: [petId], references: [id], onDelete: Cascade)
+  visitId        String?
+  visit          Visit?         @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  type           DiagnosticType
+  name           String
+  performedAt    DateTime       @default(now())
+  result         String?
+  resultData     Json?
+  interpretation String?
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([clinicId, petId, performedAt])
+  @@map("diagnostics")
+}
+
+// ===========================================================================
+// Notes (timeline entries)
+// ===========================================================================
+
+enum NoteKind {
+  GENERAL
+  PHONE_CALL
+  EMAIL
+  SMS
+  INTERNAL
+  EVENT
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  petId     String?
+  pet       Pet?     @relation(fields: [petId], references: [id], onDelete: Cascade)
+  kind      NoteKind @default(GENERAL)
+  body      String
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clinicId, petId, createdAt])
+  @@index([clinicId, clientId, createdAt])
+  @@map("notes")
+}
+
+// ===========================================================================
+// Reminders
+// ===========================================================================
+
+enum ReminderType {
+  VACCINATION_DUE
+  CHECKUP
+  FOLLOWUP
+  BIRTHDAY
+  CUSTOM
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  ACKNOWLEDGED
+  DISMISSED
+}
+
+model Reminder {
+  id        String         @id @default(cuid())
+  clinicId  String
+  clinic    Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  petId     String?
+  pet       Pet?           @relation(fields: [petId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type      ReminderType
+  title     String
+  body      String?
+  dueAt     DateTime
+  status    ReminderStatus @default(PENDING)
+  sentAt    DateTime?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([clinicId, dueAt])
+  @@index([clinicId, status])
+  @@map("reminders")
+}
+
+// ===========================================================================
+// Invoices & payments
+// ===========================================================================
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIAL
+  PAID
+  VOID
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  clinicId     String
+  clinic       Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clientId     String
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  number       String
+  status       InvoiceStatus @default(DRAFT)
+  issuedAt     DateTime      @default(now())
+  dueAt        DateTime?
+  paidAt       DateTime?
+  subtotalCents Int          @default(0)
+  taxCents      Int          @default(0)
+  totalCents    Int          @default(0)
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  lines    InvoiceLine[]
+  payments Payment[]
+
+  @@unique([clinicId, number])
+  @@index([clinicId, status])
+  @@index([clinicId, clientId])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id             String   @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  petId          String?
+  pet            Pet?     @relation(fields: [petId], references: [id], onDelete: SetNull)
+  visitId        String?
+  visit          Visit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  description    String
+  quantity       Int      @default(1)
+  unitPriceCents Int
+  totalCents     Int
+  createdAt      DateTime @default(now())
+
+  @@index([invoiceId])
+  @@map("invoice_lines")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  CHECK
+  OTHER
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amountCents Int
+  method      PaymentMethod
+  paidAt      DateTime      @default(now())
+  reference   String?
+  notes       String?
+  createdAt   DateTime      @default(now())
+
+  @@index([invoiceId])
+  @@map("payments")
+}
+
+// ===========================================================================
+// Documents
+// ===========================================================================
+
+model Document {
+  id           String   @id @default(cuid())
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  petId        String?
+  pet          Pet?     @relation(fields: [petId], references: [id], onDelete: Cascade)
+  clientId     String?
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  visitId      String?
+  visit        Visit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  uploadedById String?
+  uploadedBy   User?    @relation("DocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  name         String
+  description  String?
+  url          String
+  mimeType     String?
+  sizeBytes    Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([clinicId, petId])
+  @@index([clinicId, clientId])
+  @@map("documents")
+}
+
+// ===========================================================================
+// Audit log — who changed what, when
+// ===========================================================================
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  ARCHIVE
+  RESTORE
+  SIGNIN
+  SIGNOUT
+  SIGNUP
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  clinicId   String
+  clinic     Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  actorId    String?
+  actor      User?       @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action     AuditAction
+  entityType String
+  entityId   String
+  changes    Json?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([clinicId, createdAt])
+  @@index([clinicId, entityType, entityId, createdAt])
+  @@index([clinicId, actorId, createdAt])
+  @@map("audit_logs")
 }

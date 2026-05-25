@@ -1,4 +1,14 @@
-import { Bird, Cat, Dog, PawPrint, Rabbit, Turtle } from "lucide-react";
+import {
+  Bird,
+  Cat,
+  Dog,
+  Fish,
+  Mouse,
+  PawPrint,
+  Rabbit,
+  Sparkles,
+  Turtle,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -6,7 +16,10 @@ const ICONS: Record<string, LucideIcon> = {
   CAT: Cat,
   BIRD: Bird,
   RABBIT: Rabbit,
+  RODENT: Mouse,
   REPTILE: Turtle,
+  FISH: Fish,
+  EXOTIC: Sparkles,
   OTHER: PawPrint,
 };
 

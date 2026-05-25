@@ -1,163 +1,213 @@
 import Link from "next/link";
-import { ArrowRight, PawPrint, Plus, Users } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import {
+  CalendarClock,
+  ClipboardList,
+  PawPrint,
+  Pill,
+  Receipt,
+  Stethoscope,
+  Users,
+} from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { firstName, speciesLabel } from "@/lib/format";
+import { dashboardInsights } from "@/modules/dashboard/queries";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
-import { SpeciesIcon } from "@/components/species-icon";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { firstName, formatDateTime, formatMoney } from "@/lib/format";
 
-function StatCard({
-  href,
-  icon: Icon,
-  label,
-  value,
-}: {
-  href: string;
-  icon: LucideIcon;
-  label: string;
-  value: number;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/30"
-    >
-      <span className="flex size-12 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-        <Icon className="size-6" />
-      </span>
-      <div className="flex flex-col">
-        <span className="text-2xl font-semibold text-foreground">{value}</span>
-        <span className="text-sm text-muted-foreground">{label}</span>
-      </div>
-      <ArrowRight className="ml-auto size-5 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-    </Link>
-  );
-}
-
-export default async function OverviewPage() {
+export default async function DashboardPage() {
   const session = await requireSession();
-  const clinicId = session.user.clinicId;
-
-  const [ownerCount, petCount, recentOwners, recentPets] = await Promise.all([
-    prisma.owner.count({ where: { clinicId } }),
-    prisma.pet.count({ where: { clinicId } }),
-    prisma.owner.findMany({
-      where: { clinicId },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: { _count: { select: { pets: true } } },
-    }),
-    prisma.pet.findMany({
-      where: { clinicId },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: { owner: { select: { firstName: true, lastName: true } } },
+  const [t, tSpecies, tVisitType, insights, clinic] = await Promise.all([
+    getTranslations("dashboard"),
+    getTranslations("enum.species"),
+    getTranslations("enum.visitType"),
+    dashboardInsights(session.user.clinicId),
+    prisma.clinic.findUnique({
+      where: { id: session.user.clinicId },
+      select: { currency: true },
     }),
   ]);
+  const currency = clinic?.currency ?? "USD";
+
+  const metrics = [
+    { key: "clients" as const, icon: Users, value: insights.counts.clients, href: "/clients", hint: undefined as string | undefined },
+    { key: "pets" as const, icon: PawPrint, value: insights.counts.pets, href: "/pets", hint: undefined },
+    { key: "visits" as const, icon: Stethoscope, value: insights.counts.visits, href: "/visits", hint: undefined },
+    {
+      key: "upcomingAppointments" as const,
+      icon: CalendarClock,
+      value: insights.counts.upcomingAppointments,
+      href: "/appointments",
+      hint: undefined,
+    },
+    {
+      key: "activePrescriptions" as const,
+      icon: Pill,
+      value: insights.counts.activePrescriptions,
+      href: "/prescriptions",
+      hint: undefined,
+    },
+    {
+      key: "outstandingInvoices" as const,
+      icon: Receipt,
+      value: insights.counts.outstandingInvoices,
+      href: "/invoices",
+      hint: formatMoney(insights.outstandingInvoiceCents, currency),
+    },
+    {
+      key: "pendingReminders" as const,
+      icon: ClipboardList,
+      value: insights.counts.pendingReminders,
+      href: "/reminders",
+      hint: undefined,
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <PageHeader
-        title={`Welcome back, ${firstName(session.user.name ?? "there")}`}
-        description="A snapshot of your clinic today."
-      >
-        <Link
-          href="/clients/new"
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Plus />
-          New client
-        </Link>
-        <Link href="/pets/new" className={buttonVariants()}>
-          <Plus />
-          New pet
-        </Link>
-      </PageHeader>
+        title={t("greeting", { name: firstName(session.user.name ?? "") })}
+        description={t("subtitle")}
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <StatCard href="/clients" icon={Users} label="Clients" value={ownerCount} />
-        <StatCard
-          href="/pets"
-          icon={PawPrint}
-          label="Pets in care"
-          value={petCount}
-        />
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+        {metrics.map(({ key, icon: Icon, value, href, hint }) => (
+          <Link
+            key={key}
+            href={href}
+            className="rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/30"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t(`metrics.${key}` as never)}
+              </span>
+              <Icon className="size-4 text-muted-foreground" />
+            </div>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
+            {hint && (
+              <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+            )}
+          </Link>
+        ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="text-base">Recent clients</CardTitle>
-            <Link
-              href="/clients"
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              View all
-            </Link>
+          <CardHeader>
+            <CardTitle>{t("sections.upcomingAppointments")}</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col">
-            {recentOwners.length === 0 ? (
-              <p className="py-6 text-sm text-muted-foreground">
-                No clients yet. Add your first one to get started.
+          <CardContent>
+            {insights.upcomingAppointments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t("empty.appointments")}
               </p>
             ) : (
-              recentOwners.map((owner) => (
-                <Link
-                  key={owner.id}
-                  href={`/clients/${owner.id}`}
-                  className="flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted"
-                >
-                  <span className="truncate text-sm font-medium text-foreground">
-                    {owner.firstName} {owner.lastName}
-                  </span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {owner._count.pets}{" "}
-                    {owner._count.pets === 1 ? "pet" : "pets"}
-                  </span>
-                </Link>
-              ))
+              <ul className="flex flex-col gap-1">
+                {insights.upcomingAppointments.map((a) => (
+                  <li key={a.id}>
+                    <Link
+                      href={`/appointments/${a.id}`}
+                      className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-muted"
+                    >
+                      <span className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {a.pet.name} · {a.client.firstName} {a.client.lastName}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDateTime(a.startsAt)}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="text-base">Recent pets</CardTitle>
-            <Link
-              href="/pets"
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              View all
-            </Link>
+          <CardHeader>
+            <CardTitle>{t("sections.recentVisits")}</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col">
-            {recentPets.length === 0 ? (
-              <p className="py-6 text-sm text-muted-foreground">
-                No pets yet. Add a pet once you have a client.
+          <CardContent>
+            {insights.recentVisits.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("empty.visits")}</p>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {insights.recentVisits.map((v) => (
+                  <li key={v.id}>
+                    <Link
+                      href={`/visits/${v.id}`}
+                      className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-muted"
+                    >
+                      <span className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {v.pet.name} · {v.client.firstName} {v.client.lastName}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDateTime(v.visitedAt)} · {tVisitType(v.type)}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("sections.upcomingVaccinations")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {insights.upcomingVaccinations.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t("empty.vaccinations")}
               </p>
             ) : (
-              recentPets.map((pet) => (
-                <Link
-                  key={pet.id}
-                  href={`/pets/${pet.id}`}
-                  className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted"
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                    <SpeciesIcon species={pet.species} className="size-4" />
-                  </span>
-                  <span className="truncate text-sm font-medium text-foreground">
-                    {pet.name}
-                  </span>
-                  <span className="ml-auto shrink-0 truncate text-xs text-muted-foreground">
-                    {speciesLabel(pet.species)} · {pet.owner.firstName}{" "}
-                    {pet.owner.lastName}
-                  </span>
-                </Link>
-              ))
+              <ul className="flex flex-col gap-1">
+                {insights.upcomingVaccinations.map((v) => (
+                  <li
+                    key={v.id}
+                    className="flex items-center justify-between rounded-xl px-2 py-2"
+                  >
+                    <span className="text-sm font-medium">
+                      {v.pet?.name ?? "?"} — {v.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {v.nextDueAt ? formatDateTime(v.nextDueAt) : "—"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("sections.petsBySpecies")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col gap-1">
+              {insights.petsBySpecies.map((g) => (
+                <li
+                  key={g.species}
+                  className="flex items-center justify-between"
+                >
+                  <span className="text-sm">{tSpecies(g.species as never)}</span>
+                  <Badge variant="secondary">{g.count}</Badge>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       </div>

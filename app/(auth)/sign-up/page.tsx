@@ -1,5 +1,4 @@
-import Link from "next/link";
-import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import {
   Card,
   CardContent,
@@ -7,32 +6,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SignUpForm } from "@/components/sign-up-form";
+import { SignUpForm } from "@/components/forms/sign-up-form";
 
-export const metadata: Metadata = {
-  title: "Create your clinic — PetTrack",
-};
-
-export default function SignUpPage() {
+export default async function SignUpPage() {
+  const t = await getTranslations("auth");
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Start your clinic workspace</CardTitle>
-        <CardDescription>
-          Create an account — your clinic&apos;s data stays private to your team.
-        </CardDescription>
+        <CardTitle>{t("createClinicAccount")}</CardTitle>
+        <CardDescription>{t("signUp")}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent>
         <SignUpForm />
-        <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link
-            href="/sign-in"
-            className="font-medium text-primary hover:underline"
-          >
-            Sign in
-          </Link>
-        </p>
       </CardContent>
     </Card>
   );

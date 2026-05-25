@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { ChevronRight, Plus, Users } from "lucide-react";
+import { Users, Plus } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
-import { initials } from "@/lib/format";
+import { listClients } from "@/modules/clients/queries";
 import { PageHeader } from "@/components/page-header";
-import { Card } from "@/components/ui/card";
+import { SearchForm } from "@/components/search-form";
+import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { EmptyState } from "@/components/empty-state";
-import { SearchForm } from "@/components/search-form";
 
 export default async function ClientsPage({
   searchParams,
@@ -17,90 +16,75 @@ export default async function ClientsPage({
 }) {
   const session = await requireSession();
   const { q } = await searchParams;
-  const query = (q ?? "").trim();
-
-  const owners = await prisma.owner.findMany({
-    where: {
-      clinicId: session.user.clinicId,
-      ...(query
-        ? {
-            OR: [
-              { firstName: { contains: query, mode: "insensitive" } },
-              { lastName: { contains: query, mode: "insensitive" } },
-              { email: { contains: query, mode: "insensitive" } },
-              { phone: { contains: query, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-    include: { _count: { select: { pets: true } } },
-  });
+  const [t, tCommon, clients] = await Promise.all([
+    getTranslations("client"),
+    getTranslations("common"),
+    listClients({ clinicId: session.user.clinicId, search: q ?? null }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Clients"
-        description="Pet owners registered with your clinic."
-      >
+      <PageHeader title={t("title")} description={t("subtitle")}>
         <Link href="/clients/new" className={buttonVariants()}>
           <Plus />
-          New client
+          {t("new")}
         </Link>
       </PageHeader>
 
-      <SearchForm
-        action="/clients"
-        placeholder="Search by name, email, phone…"
-        defaultValue={query}
-      />
+      <SearchForm action="/clients" placeholder={t("search")} defaultValue={q} />
 
-      {owners.length === 0 ? (
-        query ? (
-          <EmptyState
-            icon={Users}
-            title="No matching clients"
-            description={`Nothing matches “${query}”. Try a different search.`}
-          />
-        ) : (
-          <EmptyState
-            icon={Users}
-            title="No clients yet"
-            description="Add your first pet owner to start building your clinic's records."
-            action={
-              <Link href="/clients/new" className={buttonVariants()}>
-                <Plus />
-                New client
-              </Link>
-            }
-          />
-        )
+      {clients.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title={q ? t("emptySearch") : t("empty")}
+          description=""
+        />
       ) : (
-        <Card className="divide-y divide-border overflow-hidden">
-          {owners.map((owner) => (
-            <Link
-              key={owner.id}
-              href={`/clients/${owner.id}`}
-              className="flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-muted/60"
-            >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
-                {initials(`${owner.firstName} ${owner.lastName}`)}
-              </span>
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium text-foreground">
-                  {owner.firstName} {owner.lastName}
-                </span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {owner.email || owner.phone || "No contact details"}
-                </span>
-              </div>
-              <Badge variant="primary" className="ml-auto shrink-0">
-                {owner._count.pets} {owner._count.pets === 1 ? "pet" : "pets"}
-              </Badge>
-              <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" />
-            </Link>
-          ))}
-        </Card>
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 font-medium">{t("firstName")}</th>
+                <th className="px-4 py-3 font-medium">{t("email")}</th>
+                <th className="px-4 py-3 font-medium">{t("phone")}</th>
+                <th className="px-4 py-3 text-right font-medium">
+                  {tCommon("details")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {clients.map((c) => (
+                <tr key={c.id} className="hover:bg-muted/30">
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    <Link
+                      href={`/clients/${c.id}`}
+                      className="hover:underline"
+                    >
+                      {c.firstName} {c.lastName}
+                    </Link>
+                    <Badge variant="secondary" className="ml-2">
+                      {t("petsCount", { count: c._count.pets })}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {c.email ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {c.phone ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/clients/${c.id}`}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      {tCommon("open")} →
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

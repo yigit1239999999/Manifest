@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { PawPrint, Plus } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
-import { petAge, speciesLabel } from "@/lib/format";
+import { listPets } from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
-import { buttonVariants } from "@/components/ui/button";
-import { EmptyState } from "@/components/empty-state";
 import { SearchForm } from "@/components/search-form";
+import { EmptyState } from "@/components/empty-state";
 import { SpeciesIcon } from "@/components/species-icon";
+import { buttonVariants } from "@/components/ui/button";
+import { petAge } from "@/lib/format";
 
 export default async function PetsPage({
   searchParams,
@@ -16,68 +17,34 @@ export default async function PetsPage({
 }) {
   const session = await requireSession();
   const { q } = await searchParams;
-  const query = (q ?? "").trim();
-
-  const pets = await prisma.pet.findMany({
-    where: {
-      clinicId: session.user.clinicId,
-      ...(query
-        ? {
-            OR: [
-              { name: { contains: query, mode: "insensitive" } },
-              { breed: { contains: query, mode: "insensitive" } },
-              { owner: { firstName: { contains: query, mode: "insensitive" } } },
-              { owner: { lastName: { contains: query, mode: "insensitive" } } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { name: "asc" },
-    include: {
-      owner: { select: { firstName: true, lastName: true } },
-    },
-  });
+  const [t, tSpecies, pets] = await Promise.all([
+    getTranslations("pet"),
+    getTranslations("enum.species"),
+    listPets({ clinicId: session.user.clinicId, search: q ?? null }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Pets" description="Every patient in your clinic's care.">
+      <PageHeader title={t("title")} description={t("subtitle")}>
         <Link href="/pets/new" className={buttonVariants()}>
           <Plus />
-          New pet
+          {t("new")}
         </Link>
       </PageHeader>
 
-      <SearchForm
-        action="/pets"
-        placeholder="Search by name, breed, owner…"
-        defaultValue={query}
-      />
+      <SearchForm action="/pets" placeholder={t("search")} defaultValue={q} />
 
       {pets.length === 0 ? (
-        query ? (
-          <EmptyState
-            icon={PawPrint}
-            title="No matching pets"
-            description={`Nothing matches “${query}”. Try a different search.`}
-          />
-        ) : (
-          <EmptyState
-            icon={PawPrint}
-            title="No pets yet"
-            description="Register your first patient to start tracking their care."
-            action={
-              <Link href="/pets/new" className={buttonVariants()}>
-                <Plus />
-                New pet
-              </Link>
-            }
-          />
-        )
+        <EmptyState
+          icon={PawPrint}
+          title={q ? t("emptySearch") : t("empty")}
+          description=""
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {pets.map((pet) => {
             const meta = [
-              speciesLabel(pet.species),
+              tSpecies(pet.species as never),
               pet.breed,
               petAge(pet.birthDate),
             ].filter(Boolean);
@@ -101,7 +68,7 @@ export default async function PetsPage({
                   </div>
                 </div>
                 <div className="border-t border-border pt-2.5 text-xs text-muted-foreground">
-                  Owner:{" "}
+                  {t("owner")}:{" "}
                   <span className="font-medium text-foreground">
                     {pet.owner.firstName} {pet.owner.lastName}
                   </span>
