@@ -8,7 +8,7 @@ import {
   Stethoscope,
   Users,
 } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { dashboardInsights } from "@/modules/dashboard/queries";
@@ -19,12 +19,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { ColumnBars, HorizontalBars } from "@/components/charts";
 import { firstName, formatDateTime, formatMoney } from "@/lib/format";
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const [t, tSpecies, tVisitType, insights, clinic] = await Promise.all([
+  const [t, tSpecies, tVisitType, insights, clinic, locale] = await Promise.all([
     getTranslations("dashboard"),
     getTranslations("enum.species"),
     getTranslations("enum.visitType"),
@@ -33,13 +33,35 @@ export default async function DashboardPage() {
       where: { id: session.user.clinicId },
       select: { currency: true },
     }),
+    getLocale(),
   ]);
   const currency = clinic?.currency ?? "USD";
 
+  const weekFmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" });
+  const monthFmt = new Intl.DateTimeFormat(locale, { month: "short" });
+
   const metrics = [
-    { key: "clients" as const, icon: Users, value: insights.counts.clients, href: "/clients", hint: undefined as string | undefined },
-    { key: "pets" as const, icon: PawPrint, value: insights.counts.pets, href: "/pets", hint: undefined },
-    { key: "visits" as const, icon: Stethoscope, value: insights.counts.visits, href: "/visits", hint: undefined },
+    {
+      key: "clients" as const,
+      icon: Users,
+      value: insights.counts.clients,
+      href: "/clients",
+      hint: undefined as string | undefined,
+    },
+    {
+      key: "pets" as const,
+      icon: PawPrint,
+      value: insights.counts.pets,
+      href: "/pets",
+      hint: undefined,
+    },
+    {
+      key: "visits" as const,
+      icon: Stethoscope,
+      value: insights.counts.visits,
+      href: "/visits",
+      hint: undefined,
+    },
     {
       key: "upcomingAppointments" as const,
       icon: CalendarClock,
@@ -70,6 +92,27 @@ export default async function DashboardPage() {
     },
   ];
 
+  const visitsLast12WeeksData = insights.visitsLast12Weeks.map((w) => ({
+    label: weekFmt.format(w.weekStart),
+    value: w.count,
+  }));
+
+  const revenueLast6MonthsData = insights.revenueLast6Months.map((m) => ({
+    label: monthFmt.format(m.monthStart),
+    value: m.cents,
+    display: formatMoney(m.cents, currency),
+  }));
+
+  const speciesBars = insights.petsBySpecies.map((g) => ({
+    label: tSpecies(g.species as never),
+    value: g.count,
+  }));
+
+  const visitTypeBars = insights.visitsByType.map((g) => ({
+    label: tVisitType(g.type as never),
+    value: g.count,
+  }));
+
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -99,6 +142,27 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("sections.visitsLast12Weeks")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ColumnBars data={visitsLast12WeeksData} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("sections.revenueLast6Months")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ColumnBars
+              data={revenueLast6MonthsData}
+              formatValue={(v) => formatMoney(v, currency)}
+            />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>{t("sections.upcomingAppointments")}</CardTitle>
@@ -165,6 +229,24 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>{t("sections.petsBySpecies")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HorizontalBars data={speciesBars} emptyLabel={t("empty.visits")} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("sections.visitsByType")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HorizontalBars data={visitTypeBars} emptyLabel={t("empty.visits")} />
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
             <CardTitle>{t("sections.upcomingVaccinations")}</CardTitle>
           </CardHeader>
           <CardContent>
@@ -189,25 +271,6 @@ export default async function DashboardPage() {
                 ))}
               </ul>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("sections.petsBySpecies")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="flex flex-col gap-1">
-              {insights.petsBySpecies.map((g) => (
-                <li
-                  key={g.species}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-sm">{tSpecies(g.species as never)}</span>
-                  <Badge variant="secondary">{g.count}</Badge>
-                </li>
-              ))}
-            </ul>
           </CardContent>
         </Card>
       </div>
