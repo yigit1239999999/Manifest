@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 
 export interface ListAppointmentsArgs {
   clinicId: string;
@@ -11,34 +12,34 @@ export interface ListAppointmentsArgs {
   take?: number;
 }
 
+function buildApptWhere(
+  args: Omit<ListAppointmentsArgs, "take">,
+): Prisma.AppointmentWhereInput {
+  return {
+    clinicId: args.clinicId,
+    ...(args.petId ? { petId: args.petId } : {}),
+    ...(args.clientId ? { clientId: args.clientId } : {}),
+    ...(args.vetId ? { vetId: args.vetId } : {}),
+    ...(args.statuses && args.statuses.length > 0
+      ? { status: { in: args.statuses as never } }
+      : {}),
+    ...(args.from || args.to
+      ? {
+          startsAt: {
+            ...(args.from ? { gte: args.from } : {}),
+            ...(args.to ? { lte: args.to } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 export async function listAppointments({
-  clinicId,
-  from,
-  to,
-  petId,
-  clientId,
-  vetId,
-  statuses,
   take = 200,
+  ...args
 }: ListAppointmentsArgs) {
   return prisma.appointment.findMany({
-    where: {
-      clinicId,
-      ...(petId ? { petId } : {}),
-      ...(clientId ? { clientId } : {}),
-      ...(vetId ? { vetId } : {}),
-      ...(statuses && statuses.length > 0
-        ? { status: { in: statuses as never } }
-        : {}),
-      ...(from || to
-        ? {
-            startsAt: {
-              ...(from ? { gte: from } : {}),
-              ...(to ? { lte: to } : {}),
-            },
-          }
-        : {}),
-    },
+    where: buildApptWhere(args),
     orderBy: { startsAt: "asc" },
     take,
     include: {
@@ -47,6 +48,35 @@ export async function listAppointments({
       vet: { select: { id: true, name: true } },
     },
   });
+}
+
+export interface PagedAppointmentsArgs
+  extends Omit<ListAppointmentsArgs, "take"> {
+  page?: number;
+  perPage?: number;
+}
+
+export async function listAppointmentsPage({
+  page = 1,
+  perPage = 25,
+  ...args
+}: PagedAppointmentsArgs) {
+  const where = buildApptWhere(args);
+  const [items, total] = await Promise.all([
+    prisma.appointment.findMany({
+      where,
+      orderBy: { startsAt: "asc" },
+      skip: (page - 1) * perPage,
+      take: perPage,
+      include: {
+        pet: { select: { id: true, name: true, species: true } },
+        client: { select: { id: true, firstName: true, lastName: true } },
+        vet: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.appointment.count({ where }),
+  ]);
+  return { items, total, page, perPage };
 }
 
 export async function getAppointmentById(clinicId: string, id: string) {

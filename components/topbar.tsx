@@ -4,6 +4,7 @@ import { signOutAction } from "@/modules/auth/actions";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CommandPalette } from "@/components/command-palette";
 import { initials } from "@/lib/format";
 
 export async function Topbar({
@@ -22,6 +23,7 @@ export async function Topbar({
       </span>
 
       <div className="flex items-center gap-3">
+        <CommandPalette />
         <ThemeToggle />
         <LocaleSwitcher />
         <div className="flex items-center gap-2.5">

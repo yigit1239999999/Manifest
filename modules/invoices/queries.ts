@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 
 export interface ListInvoicesArgs {
   clinicId: string;
@@ -7,20 +8,24 @@ export interface ListInvoicesArgs {
   take?: number;
 }
 
+function buildInvoiceWhere(
+  args: Omit<ListInvoicesArgs, "take">,
+): Prisma.InvoiceWhereInput {
+  return {
+    clinicId: args.clinicId,
+    ...(args.clientId ? { clientId: args.clientId } : {}),
+    ...(args.statuses && args.statuses.length > 0
+      ? { status: { in: args.statuses as never } }
+      : {}),
+  };
+}
+
 export async function listInvoices({
-  clinicId,
-  clientId,
-  statuses,
   take = 100,
+  ...args
 }: ListInvoicesArgs) {
   return prisma.invoice.findMany({
-    where: {
-      clinicId,
-      ...(clientId ? { clientId } : {}),
-      ...(statuses && statuses.length > 0
-        ? { status: { in: statuses as never } }
-        : {}),
-    },
+    where: buildInvoiceWhere(args),
     orderBy: { issuedAt: "desc" },
     take,
     include: {
@@ -28,6 +33,33 @@ export async function listInvoices({
       _count: { select: { lines: true, payments: true } },
     },
   });
+}
+
+export interface PagedInvoicesArgs extends Omit<ListInvoicesArgs, "take"> {
+  page?: number;
+  perPage?: number;
+}
+
+export async function listInvoicesPage({
+  page = 1,
+  perPage = 25,
+  ...args
+}: PagedInvoicesArgs) {
+  const where = buildInvoiceWhere(args);
+  const [items, total] = await Promise.all([
+    prisma.invoice.findMany({
+      where,
+      orderBy: { issuedAt: "desc" },
+      skip: (page - 1) * perPage,
+      take: perPage,
+      include: {
+        client: { select: { id: true, firstName: true, lastName: true } },
+        _count: { select: { lines: true, payments: true } },
+      },
+    }),
+    prisma.invoice.count({ where }),
+  ]);
+  return { items, total, page, perPage };
 }
 
 export async function getInvoiceById(clinicId: string, id: string) {
