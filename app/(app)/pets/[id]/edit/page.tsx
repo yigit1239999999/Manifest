@@ -23,17 +23,19 @@ export default async function EditPetPage({
   if (!pet) notFound();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <BackLink href={`/pets/${pet.id}`} label={tCommon("back")} />
       <PageHeader title={t("edit")} description={pet.name} />
-      <PetForm
-        pet={pet}
-        owners={owners.map((o) => ({
-          id: o.id,
-          firstName: o.firstName,
-          lastName: o.lastName,
-        }))}
-      />
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <PetForm
+          pet={pet}
+          owners={owners.map((o) => ({
+            id: o.id,
+            firstName: o.firstName,
+            lastName: o.lastName,
+          }))}
+        />
+      </div>
     </div>
   );
 }

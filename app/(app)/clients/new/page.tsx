@@ -11,10 +11,12 @@ export default async function NewClientPage() {
     getTranslations("common"),
   ]);
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <BackLink href="/clients" label={tCommon("back")} />
       <PageHeader title={t("new")} />
-      <ClientForm />
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <ClientForm />
+      </div>
     </div>
   );
 }

@@ -21,13 +21,15 @@ export default async function EditClientPage({
   if (!client) notFound();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <BackLink href={`/clients/${client.id}`} label={tCommon("back")} />
       <PageHeader
         title={t("edit")}
         description={`${client.firstName} ${client.lastName}`}
       />
-      <ClientForm client={client} />
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <ClientForm client={client} />
+      </div>
     </div>
   );
 }

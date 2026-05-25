@@ -29,14 +29,16 @@ export default async function EditVisitPage({
   if (!visit) notFound();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <BackLink href={`/visits/${visit.id}`} label={tCommon("back")} />
       <PageHeader title={t("edit")} />
-      <VisitForm
-        visit={visit}
-        pets={pets.map((p) => ({ id: p.id, name: p.name }))}
-        vets={vets}
-      />
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <VisitForm
+          visit={visit}
+          pets={pets.map((p) => ({ id: p.id, name: p.name }))}
+          vets={vets}
+        />
+      </div>
     </div>
   );
 }

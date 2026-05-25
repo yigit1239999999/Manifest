@@ -29,14 +29,16 @@ export default async function EditAppointmentPage({
   if (!appointment) notFound();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <BackLink href={`/appointments/${appointment.id}`} label={tCommon("back")} />
       <PageHeader title={t("edit")} />
-      <AppointmentForm
-        appointment={appointment}
-        pets={pets.map((p) => ({ id: p.id, name: p.name }))}
-        vets={vets}
-      />
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <AppointmentForm
+          appointment={appointment}
+          pets={pets.map((p) => ({ id: p.id, name: p.name }))}
+          vets={vets}
+        />
+      </div>
     </div>
   );
 }

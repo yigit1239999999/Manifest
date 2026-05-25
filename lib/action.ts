@@ -62,13 +62,16 @@ export function action<TArgs extends unknown[], TReturn extends FormState | void
         return appErrorToFormState(error) as TReturn | FormState;
       }
 
+      const message = error instanceof Error ? error.message : String(error);
       log.error("action.uncaught", {
-        err: error instanceof Error ? error.message : String(error),
+        err: message,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return { error: "Beklenmedik bir hata oluştu. Lütfen tekrar deneyin." } as
-        | TReturn
-        | FormState;
+      const userMessage =
+        process.env.NODE_ENV === "development"
+          ? `Dev hata: ${message}`
+          : "Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.";
+      return { error: userMessage } as TReturn | FormState;
     }
   };
 }

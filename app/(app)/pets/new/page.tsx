@@ -24,7 +24,7 @@ export default async function NewPetPage({
   ]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <BackLink href="/pets" label={tCommon("back")} />
       <PageHeader title={t("new")} />
       {owners.length === 0 ? (
@@ -39,14 +39,16 @@ export default async function NewPetPage({
           }
         />
       ) : (
-        <PetForm
-          owners={owners.map((o) => ({
-            id: o.id,
-            firstName: o.firstName,
-            lastName: o.lastName,
-          }))}
-          defaultOwnerId={ownerId}
-        />
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <PetForm
+            owners={owners.map((o) => ({
+              id: o.id,
+              firstName: o.firstName,
+              lastName: o.lastName,
+            }))}
+            defaultOwnerId={ownerId}
+          />
+        </div>
       )}
     </div>
   );

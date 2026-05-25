@@ -25,14 +25,16 @@ export default async function NewVisitPage({
   ]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <BackLink href="/visits" label={tCommon("back")} />
       <PageHeader title={t("new")} />
-      <VisitForm
-        pets={pets.map((p) => ({ id: p.id, name: p.name }))}
-        vets={vets}
-        defaultPetId={petId}
-      />
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <VisitForm
+          pets={pets.map((p) => ({ id: p.id, name: p.name }))}
+          vets={vets}
+          defaultPetId={petId}
+        />
+      </div>
     </div>
   );
 }
