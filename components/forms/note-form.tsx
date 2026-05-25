@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,12 +18,17 @@ interface Props {
 export function NoteForm({ petId, clientId }: Props) {
   const t = useTranslations("note");
   const tKind = useTranslations("enum.noteKind");
+  const tCommon = useTranslations("common");
   const [state, formAction] = useActionState(createNoteAction, {});
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (state.success) formRef.current?.reset();
-  }, [state.success]);
+    if (state.success) {
+      formRef.current?.reset();
+      toast.success(tCommon("saved"));
+    }
+    if (state.error) toast.error(state.error);
+  }, [state.success, state.error, tCommon]);
 
   return (
     <form action={formAction} ref={formRef} className="flex flex-col gap-3">

@@ -1,24 +1,69 @@
 @import "tailwindcss";
 
+/* Dark mode opts in via [data-theme="dark"] on <html>. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme {
-  --color-background: #f6f4ef;
-  --color-foreground: #1f1d1a;
-  --color-card: #ffffff;
-  --color-card-foreground: #1f1d1a;
-  --color-muted: #ece8e0;
-  --color-muted-foreground: #756f64;
-  --color-border: #e4dfd4;
-  --color-input: #e0dacd;
-  --color-primary: #0f7a6e;
-  --color-primary-foreground: #ffffff;
-  --color-primary-hover: #0c655b;
-  --color-accent: #e6f3f0;
-  --color-accent-foreground: #0b5d54;
-  --color-ring: #0f7a6e;
-  --color-destructive: #c24a3f;
-  --color-destructive-foreground: #ffffff;
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-fg);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-fg);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-fg);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-fg);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-fg);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --animate-in: in 200ms ease-out both;
+  --animate-fade-in: fade-in 200ms ease-out both;
+}
+
+:root,
+:where([data-theme="light"]) {
+  --bg: #f6f4ef;
+  --fg: #1f1d1a;
+  --card: #ffffff;
+  --card-fg: #1f1d1a;
+  --muted: #ece8e0;
+  --muted-fg: #756f64;
+  --border: #e4dfd4;
+  --input: #e0dacd;
+  --primary: #0f7a6e;
+  --primary-fg: #ffffff;
+  --primary-hover: #0c655b;
+  --accent: #e6f3f0;
+  --accent-fg: #0b5d54;
+  --ring: #0f7a6e;
+  --destructive: #c24a3f;
+  --destructive-fg: #ffffff;
+}
+
+[data-theme="dark"] {
+  --bg: #0f1411;
+  --fg: #f1efe9;
+  --card: #161c18;
+  --card-fg: #f1efe9;
+  --muted: #1f2521;
+  --muted-fg: #a8a39a;
+  --border: #283029;
+  --input: #1c2320;
+  --primary: #34c0a8;
+  --primary-fg: #04140f;
+  --primary-hover: #5cd6c0;
+  --accent: #173730;
+  --accent-fg: #b6e3d6;
+  --ring: #34c0a8;
+  --destructive: #e6675a;
+  --destructive-fg: #1f0a08;
 }
 
 @layer base {
@@ -27,5 +72,26 @@
   }
   body {
     font-family: var(--font-sans);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
   }
+  /* Smooth color transitions when switching themes — but skip on first paint
+     so the system-preference detection script doesn't flash. */
+  html[data-theme] body,
+  html[data-theme] [data-theme-transition] {
+    transition:
+      background-color 200ms ease,
+      color 200ms ease,
+      border-color 200ms ease;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }

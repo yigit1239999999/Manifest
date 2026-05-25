@@ -38,7 +38,12 @@
     "details": "Detaylar",
     "language": "Dil",
     "createdAt": "Oluşturuldu",
-    "updatedAt": "Güncellendi"
+    "updatedAt": "Güncellendi",
+    "saved": "Kaydedildi",
+    "created": "Oluşturuldu",
+    "archived": "Arşivlendi",
+    "deleted": "Silindi",
+    "theme": "Tema"
   },
   "auth": {
     "signIn": "Giriş",
@@ -107,6 +112,16 @@
     "petsCount": "{count, plural, =0 {Hasta yok} one {1 hasta} other {# hasta}}",
     "viewProfile": "Profili gör",
     "details": "İletişim bilgileri",
+    "sections": {
+      "identity": "Kimlik",
+      "identityHint": "Bu müşterinin kayıtlarda nasıl göründüğü.",
+      "contact": "İletişim",
+      "contactHint": "Müşteriye nasıl ulaşıldığı — özel kalır.",
+      "address": "Adres",
+      "addressHint": "Ev ziyaretleri ve yazışmalar için faydalı.",
+      "preferences": "Tercihler ve notlar",
+      "preferencesHint": "Nasıl iletişim tercih ettikleri ve hatırlanması gereken bağlam."
+    },
     "tabs": {
       "overview": "Genel",
       "pets": "Hastalar",
@@ -138,6 +153,16 @@
     "alerts": "Tıbbi uyarılar",
     "owner": "Sahibi",
     "notes": "Notlar",
+    "sections": {
+      "identity": "Kimlik",
+      "identityHint": "Temel hasta bilgileri.",
+      "physical": "Fiziksel",
+      "physicalHint": "Görünür özellikler ve giriş anındaki vital bulgular.",
+      "medical": "Tıbbi",
+      "medicalHint": "Her vizit gözükmesi gereken tanımlayıcılar, sigorta ve uyarılar.",
+      "notes": "Notlar",
+      "notesHint": "Klinik ekibinin bilmesi gereken her şey."
+    },
     "deceased": "Vefat etti",
     "deceasedAt": "Vefat tarihi",
     "markDeceased": "Vefat etti olarak işaretle",

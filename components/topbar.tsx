@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { signOutAction } from "@/modules/auth/actions";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { initials } from "@/lib/format";
 
 export async function Topbar({
@@ -21,6 +22,7 @@ export async function Topbar({
       </span>
 
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <LocaleSwitcher />
         <div className="flex items-center gap-2.5">
           <span className="flex size-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">

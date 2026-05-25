@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import type { Client, Pet } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export function ReminderForm({
   const tType = useTranslations("enum.reminderType");
   const tClient = useTranslations("client");
   const tPet = useTranslations("pet");
+  const tCommon = useTranslations("common");
   const [state, formAction] = useActionState(createReminderAction, {});
   const formRef = useRef<HTMLFormElement>(null);
   const defaultDue = useMemo(
@@ -38,8 +40,12 @@ export function ReminderForm({
   );
 
   useEffect(() => {
-    if (state.success) formRef.current?.reset();
-  }, [state.success]);
+    if (state.success) {
+      formRef.current?.reset();
+      toast.success(tCommon("saved"));
+    }
+    if (state.error) toast.error(state.error);
+  }, [state.success, state.error, tCommon]);
 
   return (
     <form

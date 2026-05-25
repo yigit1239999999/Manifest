@@ -38,7 +38,12 @@
     "details": "Details",
     "language": "Language",
     "createdAt": "Created",
-    "updatedAt": "Updated"
+    "updatedAt": "Updated",
+    "saved": "Saved",
+    "created": "Created",
+    "archived": "Archived",
+    "deleted": "Deleted",
+    "theme": "Theme"
   },
   "auth": {
     "signIn": "Sign in",
@@ -107,6 +112,16 @@
     "petsCount": "{count, plural, =0 {No pets} one {1 pet} other {# pets}}",
     "viewProfile": "View profile",
     "details": "Contact details",
+    "sections": {
+      "identity": "Identity",
+      "identityHint": "How this client is named in your records.",
+      "contact": "Contact",
+      "contactHint": "How you reach them — kept private.",
+      "address": "Address",
+      "addressHint": "Useful for home visits and correspondence.",
+      "preferences": "Preferences & notes",
+      "preferencesHint": "How they like to be contacted and any context worth remembering."
+    },
     "tabs": {
       "overview": "Overview",
       "pets": "Pets",
@@ -138,6 +153,16 @@
     "alerts": "Medical alerts",
     "owner": "Owner",
     "notes": "Notes",
+    "sections": {
+      "identity": "Identity",
+      "identityHint": "Basic patient details.",
+      "physical": "Physical",
+      "physicalHint": "Visible attributes and vitals at intake.",
+      "medical": "Medical",
+      "medicalHint": "Identifiers, insurance and alerts that should be visible at every visit.",
+      "notes": "Notes",
+      "notesHint": "Anything else the clinical team should know."
+    },
     "deceased": "Deceased",
     "deceasedAt": "Date of passing",
     "markDeceased": "Mark as deceased",

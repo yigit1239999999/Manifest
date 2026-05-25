@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -20,12 +21,17 @@ export function PrescriptionForm({
 }) {
   const t = useTranslations("prescription");
   const tStatus = useTranslations("enum.prescriptionStatus");
+  const tCommon = useTranslations("common");
   const [state, formAction] = useActionState(createPrescriptionAction, {});
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (state.success) formRef.current?.reset();
-  }, [state.success]);
+    if (state.success) {
+      formRef.current?.reset();
+      toast.success(tCommon("saved"));
+    }
+    if (state.error) toast.error(state.error);
+  }, [state.success, state.error, tCommon]);
 
   return (
     <form
