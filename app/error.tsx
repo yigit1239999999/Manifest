@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +15,7 @@ export default function AppError({
   const t = useTranslations("error");
 
   useEffect(() => {
+    Sentry.captureException(error, { tags: { boundary: "app.error" } });
     console.error("app.error", { message: error.message, digest: error.digest });
   }, [error]);
 

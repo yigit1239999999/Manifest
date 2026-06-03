@@ -1,0 +1,13 @@
+import * as Sentry from "@sentry/nextjs";
+
+// Only initialize when a DSN is configured. Without one, Sentry.* calls
+// elsewhere in the code are still safe (they degrade to no-ops).
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    release: process.env.VERCEL_GIT_COMMIT_SHA,
+    tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 0,
+    debug: false,
+  });
+}
