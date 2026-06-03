@@ -14,7 +14,7 @@ export async function createDiagnostic(
     where: { id: input.petId, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!pet) throw validationFailed({ petId: ["Hasta bulunamadı."] });
+  if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
 
   const diagnostic = await prisma.diagnostic.create({
     data: {
@@ -46,7 +46,7 @@ export async function deleteDiagnostic(id: string, ctx: ActionContext) {
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, petId: true },
   });
-  if (!existing) throw notFound("Test", id);
+  if (!existing) throw notFound("diagnostic", id);
 
   await prisma.diagnostic.delete({ where: { id } });
   await writeAudit({

@@ -1,5 +1,6 @@
 // Typed domain errors. Services throw AppError; the server-action wrapper
-// converts them to FormState. Anything not an AppError is unexpected.
+// translates `messageKey` against the user's locale and converts the
+// result into a FormState. Anything that isn't an AppError is unexpected.
 
 export type ErrorCode =
   | "VALIDATION_FAILED"
@@ -12,27 +13,58 @@ export type ErrorCode =
 export class AppError extends Error {
   constructor(
     public readonly code: ErrorCode,
-    message: string,
+    /** next-intl key, resolved by lib/action's `appErrorToFormState`. */
+    public readonly messageKey: string,
+    /** Interpolation vars for the i18n key. Keep them JSON-serialisable. */
+    public readonly messageVars?: Record<string, string | number>,
+    /** Structured payload (e.g. fieldErrors for VALIDATION_FAILED). */
     public readonly details?: Record<string, unknown>,
   ) {
-    super(message);
+    // Fallback message used when running outside a translator (logs / tests).
+    super(messageKey);
     this.name = "AppError";
   }
 }
 
-export const notFound = (entity: string, id?: string): AppError =>
-  new AppError(
-    "NOT_FOUND",
-    id ? `${entity} (${id}) bulunamadı.` : `${entity} bulunamadı.`,
-  );
+/**
+ * `entity` is one of the keys under `error.entity.*` in the messages
+ * catalogue (e.g. "client", "pet"). The wrapper resolves the noun for
+ * the active locale and slots it into the "{entity} not found." template.
+ */
+export const notFound = (
+  entity: keyof EntityNouns,
+  id?: string,
+): AppError =>
+  new AppError("NOT_FOUND", "error.notFound", {
+    entityKey: `error.entity.${entity}`,
+    id: id ?? "",
+  });
 
 export const validationFailed = (
   fieldErrors: Record<string, string[]>,
 ): AppError =>
-  new AppError("VALIDATION_FAILED", "Lütfen formu kontrol et.", { fieldErrors });
+  new AppError("VALIDATION_FAILED", "error.validationFailed", undefined, {
+    fieldErrors,
+  });
 
-export const forbidden = (message = "Bu işlem için yetkin yok."): AppError =>
-  new AppError("FORBIDDEN", message);
+export const forbidden = (messageKey = "error.forbidden"): AppError =>
+  new AppError("FORBIDDEN", messageKey);
 
-export const conflict = (message: string): AppError =>
-  new AppError("CONFLICT", message);
+export const conflict = (messageKey: string): AppError =>
+  new AppError("CONFLICT", messageKey);
+
+// Compile-time roster of every entity key that lives under
+// `error.entity.*` in messages/{en,tr}.json. Keep these in sync.
+export type EntityNouns = {
+  client: true;
+  pet: true;
+  visit: true;
+  appointment: true;
+  vaccination: true;
+  prescription: true;
+  treatment: true;
+  diagnostic: true;
+  note: true;
+  reminder: true;
+  invoice: true;
+};

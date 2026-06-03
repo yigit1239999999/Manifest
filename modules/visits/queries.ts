@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PAGE_SIZES } from "@/lib/pagination";
 import type { Prisma } from "@/generated/prisma/client";
 
 export interface ListVisitsArgs {
@@ -34,7 +35,7 @@ function buildVisitWhere(args: Omit<ListVisitsArgs, "take">): Prisma.VisitWhereI
   };
 }
 
-export async function listVisits({ take = 100, ...args }: ListVisitsArgs) {
+export async function listVisits({ take = PAGE_SIZES.LIST, ...args }: ListVisitsArgs) {
   return prisma.visit.findMany({
     where: buildVisitWhere(args),
     orderBy: { visitedAt: "desc" },
@@ -54,7 +55,7 @@ export interface PagedVisitsArgs extends Omit<ListVisitsArgs, "take"> {
 
 export async function listVisitsPage({
   page = 1,
-  perPage = 25,
+  perPage = PAGE_SIZES.DEFAULT,
   ...args
 }: PagedVisitsArgs) {
   const where = buildVisitWhere(args);
@@ -102,7 +103,7 @@ export async function countVisits(clinicId: string) {
   });
 }
 
-export async function recentVisits(clinicId: string, take = 5) {
+export async function recentVisits(clinicId: string, take = PAGE_SIZES.PREVIEW) {
   return prisma.visit.findMany({
     where: {
       clinicId,

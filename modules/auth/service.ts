@@ -6,7 +6,7 @@ import type { SignUpInput } from "./schema";
 
 export async function createClinicWithOwner(input: SignUpInput) {
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
-  if (existing) throw conflict("Bu email zaten kullanılıyor.");
+  if (existing) throw conflict("error.conflict.emailInUse");
 
   const passwordHash = await bcrypt.hash(input.password, 10);
 

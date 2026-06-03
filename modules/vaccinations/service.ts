@@ -14,7 +14,7 @@ export async function createVaccination(
     where: { id: input.petId, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!pet) throw validationFailed({ petId: ["Hasta bulunamadı."] });
+  if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
 
   const vaccination = await prisma.vaccination.create({
     data: {
@@ -48,7 +48,7 @@ export async function deleteVaccination(id: string, ctx: ActionContext) {
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, petId: true },
   });
-  if (!existing) throw notFound("Aşı", id);
+  if (!existing) throw notFound("vaccination", id);
 
   await prisma.vaccination.delete({ where: { id } });
   await writeAudit({

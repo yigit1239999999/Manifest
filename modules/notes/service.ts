@@ -9,7 +9,7 @@ export async function createNote(input: NoteInput, ctx: ActionContext) {
   requirePermission(ctx.userRole, "notes.write");
   if (!input.petId && !input.clientId) {
     throw validationFailed({
-      _form: ["Bir hasta veya müşteri belirtmelisin."],
+      _form: ["error.validation.noteTarget"],
     });
   }
 
@@ -18,7 +18,7 @@ export async function createNote(input: NoteInput, ctx: ActionContext) {
       where: { id: input.petId, clinicId: ctx.clinicId },
       select: { id: true, ownerId: true },
     });
-    if (!pet) throw validationFailed({ petId: ["Hasta bulunamadı."] });
+    if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
     if (!input.clientId) input.clientId = pet.ownerId;
   }
   if (input.clientId) {
@@ -26,7 +26,7 @@ export async function createNote(input: NoteInput, ctx: ActionContext) {
       where: { id: input.clientId, clinicId: ctx.clinicId },
       select: { id: true },
     });
-    if (!client) throw validationFailed({ clientId: ["Müşteri bulunamadı."] });
+    if (!client) throw validationFailed({ clientId: ["error.validation.clientRequired"] });
   }
 
   const note = await prisma.note.create({
@@ -57,7 +57,7 @@ export async function deleteNote(id: string, ctx: ActionContext) {
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, petId: true, clientId: true },
   });
-  if (!existing) throw notFound("Not", id);
+  if (!existing) throw notFound("note", id);
 
   await prisma.note.delete({ where: { id } });
   await writeAudit({
@@ -76,7 +76,7 @@ export async function togglePinned(id: string, ctx: ActionContext) {
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, pinned: true },
   });
-  if (!existing) throw notFound("Not", id);
+  if (!existing) throw notFound("note", id);
 
   await prisma.note.update({
     where: { id },

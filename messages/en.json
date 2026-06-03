@@ -472,9 +472,38 @@
   },
   "error": {
     "generic": "Something went wrong. Please try again.",
-    "notFound": "Not found.",
+    "notFound": "{entity} not found.",
+    "validationFailed": "Please check the form and try again.",
     "forbidden": "You don't have permission for this.",
     "tryAgain": "Try again",
-    "goHome": "Go home"
+    "goHome": "Go home",
+    "entity": {
+      "client": "Client",
+      "pet": "Patient",
+      "visit": "Visit",
+      "appointment": "Appointment",
+      "vaccination": "Vaccination",
+      "prescription": "Prescription",
+      "treatment": "Treatment",
+      "diagnostic": "Diagnostic",
+      "note": "Note",
+      "reminder": "Reminder",
+      "invoice": "Invoice"
+    },
+    "conflict": {
+      "invoiceDuplicate": "Invoice number is already in use.",
+      "emailInUse": "This email is already in use."
+    },
+    "auth": {
+      "signupFailed": "Sign-up failed. Please try again.",
+      "invalidCredentials": "Email or password is incorrect."
+    },
+    "validation": {
+      "ownerNotInClinic": "This owner isn't in your clinic.",
+      "petNotInClinic": "This patient isn't in your clinic.",
+      "clientRequired": "Client not found.",
+      "petRequired": "Patient not found.",
+      "noteTarget": "Pick a patient or a client to attach the note to."
+    }
   }
 }

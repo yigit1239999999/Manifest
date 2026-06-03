@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PAGE_SIZES } from "@/lib/pagination";
 import type { Prisma } from "@/generated/prisma/client";
 
 export interface ListInvoicesArgs {
@@ -23,7 +24,7 @@ function buildInvoiceWhere(
 }
 
 export async function listInvoices({
-  take = 100,
+  take = PAGE_SIZES.LIST,
   ...args
 }: ListInvoicesArgs) {
   return prisma.invoice.findMany({
@@ -44,7 +45,7 @@ export interface PagedInvoicesArgs extends Omit<ListInvoicesArgs, "take"> {
 
 export async function listInvoicesPage({
   page = 1,
-  perPage = 25,
+  perPage = PAGE_SIZES.DEFAULT,
   ...args
 }: PagedInvoicesArgs) {
   const where = buildInvoiceWhere(args);

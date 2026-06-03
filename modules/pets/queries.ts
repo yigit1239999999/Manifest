@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PAGE_SIZES } from "@/lib/pagination";
 import type { Prisma } from "@/generated/prisma/client";
 
 export interface ListPetsArgs {
@@ -49,7 +50,7 @@ function buildPetWhere(args: {
   };
 }
 
-export async function listPets({ take = 200, ...args }: ListPetsArgs) {
+export async function listPets({ take = PAGE_SIZES.DROPDOWN, ...args }: ListPetsArgs) {
   return prisma.pet.findMany({
     where: buildPetWhere(args),
     orderBy: { createdAt: "desc" },
@@ -67,7 +68,7 @@ export interface PagedPetsArgs extends Omit<ListPetsArgs, "take"> {
 
 export async function listPetsPage({
   page = 1,
-  perPage = 24,
+  perPage = PAGE_SIZES.PETS,
   ...args
 }: PagedPetsArgs) {
   const where = buildPetWhere(args);
@@ -119,7 +120,7 @@ export async function countPets(clinicId: string) {
 export async function quickSearchPets(
   clinicId: string,
   term: string,
-  take = 5,
+  take = PAGE_SIZES.COMMAND_PALETTE,
 ) {
   if (term.length < 2) return [];
   return prisma.pet.findMany({

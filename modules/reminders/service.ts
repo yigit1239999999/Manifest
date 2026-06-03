@@ -11,14 +11,14 @@ export async function createReminder(input: ReminderInput, ctx: ActionContext) {
     where: { id: input.clientId, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!client) throw validationFailed({ clientId: ["Müşteri bulunamadı."] });
+  if (!client) throw validationFailed({ clientId: ["error.validation.clientRequired"] });
 
   if (input.petId) {
     const pet = await prisma.pet.findFirst({
       where: { id: input.petId, clinicId: ctx.clinicId, ownerId: input.clientId },
       select: { id: true },
     });
-    if (!pet) throw validationFailed({ petId: ["Hasta bulunamadı."] });
+    if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
   }
 
   const reminder = await prisma.reminder.create({
@@ -53,7 +53,7 @@ export async function markReminderStatus(
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!existing) throw notFound("Hatırlatma", id);
+  if (!existing) throw notFound("reminder", id);
 
   await prisma.reminder.update({
     where: { id },

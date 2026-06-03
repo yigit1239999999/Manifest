@@ -32,7 +32,7 @@ export async function updateClient(
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!existing) throw notFound("Müşteri", id);
+  if (!existing) throw notFound("client", id);
 
   return withAudited(
     {
@@ -53,7 +53,7 @@ export async function archiveClient(id: string, ctx: ActionContext) {
     where: { id, clinicId: ctx.clinicId, archivedAt: null },
     select: { id: true },
   });
-  if (!existing) throw notFound("Müşteri", id);
+  if (!existing) throw notFound("client", id);
 
   await withAudited(
     {
@@ -77,7 +77,7 @@ export async function restoreClient(id: string, ctx: ActionContext) {
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!existing) throw notFound("Müşteri", id);
+  if (!existing) throw notFound("client", id);
 
   await withAudited(
     {

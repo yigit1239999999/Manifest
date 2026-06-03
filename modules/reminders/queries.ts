@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import { PAGE_SIZES } from "@/lib/pagination";
 
 export async function listReminders({
   clinicId,
   statuses = ["PENDING", "SENT"],
-  take = 100,
+  take = PAGE_SIZES.LIST,
 }: {
   clinicId: string;
   statuses?: string[];

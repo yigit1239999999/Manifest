@@ -18,13 +18,13 @@ export async function createInvoice(input: InvoiceInput, ctx: ActionContext) {
     where: { id: input.clientId, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!client) throw validationFailed({ clientId: ["Müşteri bulunamadı."] });
+  if (!client) throw validationFailed({ clientId: ["error.validation.clientRequired"] });
 
   const existing = await prisma.invoice.findFirst({
     where: { clinicId: ctx.clinicId, number: input.number },
     select: { id: true },
   });
-  if (existing) throw conflict("Bu fatura numarası kullanılıyor.");
+  if (existing) throw conflict("error.conflict.invoiceDuplicate");
 
   const subtotal = lineTotals(input.lines);
   const tax = input.taxCents ?? 0;
@@ -75,7 +75,7 @@ export async function recordPayment(input: PaymentInput, ctx: ActionContext) {
     where: { id: input.invoiceId, clinicId: ctx.clinicId },
     select: { id: true, totalCents: true, status: true },
   });
-  if (!guard) throw notFound("Fatura", input.invoiceId);
+  if (!guard) throw notFound("invoice", input.invoiceId);
 
   // Serializable ensures concurrent payments compute paidSoFar against
   // the post-insert truth, not a stale snapshot. Postgres will retry /
@@ -140,7 +140,7 @@ export async function voidInvoice(id: string, ctx: ActionContext) {
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, clientId: true },
   });
-  if (!existing) throw notFound("Fatura", id);
+  if (!existing) throw notFound("invoice", id);
 
   await withAudited(
     {

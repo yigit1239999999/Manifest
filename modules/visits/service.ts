@@ -10,7 +10,7 @@ async function resolvePetAndOwner(petId: string, clinicId: string) {
     where: { id: petId, clinicId, archivedAt: null },
     select: { id: true, ownerId: true },
   });
-  if (!pet) throw validationFailed({ petId: ["Bu hasta bu klinikte bulunamadı."] });
+  if (!pet) throw validationFailed({ petId: ["error.validation.petNotInClinic"] });
   return pet;
 }
 
@@ -50,7 +50,7 @@ export async function updateVisit(
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!existing) throw notFound("Vizit", id);
+  if (!existing) throw notFound("visit", id);
 
   const pet = await resolvePetAndOwner(input.petId, ctx.clinicId);
   const { petId, vetId, ...rest } = input;
@@ -83,7 +83,7 @@ export async function archiveVisit(id: string, ctx: ActionContext) {
     where: { id, clinicId: ctx.clinicId, archivedAt: null },
     select: { id: true, petId: true },
   });
-  if (!existing) throw notFound("Vizit", id);
+  if (!existing) throw notFound("visit", id);
 
   await withAudited(
     {

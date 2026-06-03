@@ -6,13 +6,17 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
+import { PAGE_SIZES } from "@/lib/pagination";
 
 export default async function AuditPage() {
   const session = await requireSession();
   const [t, tAction, entries] = await Promise.all([
     getTranslations("audit"),
     getTranslations("enum.auditAction"),
-    listAuditEntries({ clinicId: session.user.clinicId, take: 200 }),
+    listAuditEntries({
+      clinicId: session.user.clinicId,
+      take: PAGE_SIZES.AUDIT,
+    }),
   ]);
 
   return (

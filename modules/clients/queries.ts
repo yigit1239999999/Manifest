@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
+import { PAGE_SIZES } from "@/lib/pagination";
 
 export interface ListClientsArgs {
   clinicId: string;
@@ -32,7 +33,7 @@ function buildClientWhere(args: {
 
 /** Unpaginated list, used for select dropdowns. Caps at `take` rows. */
 export async function listClients({
-  take = 200,
+  take = PAGE_SIZES.DROPDOWN,
   ...args
 }: ListClientsArgs) {
   return prisma.client.findMany({
@@ -53,7 +54,7 @@ export interface PagedClientsArgs extends Omit<ListClientsArgs, "take"> {
 /** Paginated list, used by the clients table page. */
 export async function listClientsPage({
   page = 1,
-  perPage = 25,
+  perPage = PAGE_SIZES.DEFAULT,
   ...args
 }: PagedClientsArgs) {
   const where = buildClientWhere(args);
@@ -93,7 +94,7 @@ export async function countClients(clinicId: string) {
 export async function quickSearchClients(
   clinicId: string,
   term: string,
-  take = 5,
+  take = PAGE_SIZES.COMMAND_PALETTE,
 ) {
   if (term.length < 2) return [];
   return prisma.client.findMany({

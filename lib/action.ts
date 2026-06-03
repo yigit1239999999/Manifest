@@ -1,8 +1,8 @@
 // Server-action wrapper.
 //
 // `action()` adds session loading, structured logging, and AppError →
-// FormState conversion to every server action. Next's `redirect()` and
-// `notFound()` propagate untouched.
+// FormState conversion (with i18n) to every server action. Next's
+// `redirect()` and `notFound()` propagate untouched.
 //
 // Usage:
 //
@@ -18,6 +18,7 @@
 //   );
 
 import type { ZodError, ZodType } from "zod";
+import { getTranslations } from "next-intl/server";
 import { AppError } from "./errors";
 import { logger } from "./logger";
 import { requireSession } from "./session";
@@ -49,7 +50,11 @@ export function action<TArgs extends unknown[], TReturn extends FormState | void
         userName: session.user.name ?? "",
         userRole: session.user.role ?? "",
       };
-      log = logger.child({ action: name, clinicId: ctx.clinicId, userId: ctx.userId });
+      log = logger.child({
+        action: name,
+        clinicId: ctx.clinicId,
+        userId: ctx.userId,
+      });
       log.info("action.start");
       const result = await handler(ctx, ...args);
       log.info("action.end");
@@ -58,8 +63,12 @@ export function action<TArgs extends unknown[], TReturn extends FormState | void
       if (isNextControlFlow(error)) throw error;
 
       if (error instanceof AppError) {
-        log.warn("action.app_error", { code: error.code, message: error.message });
-        return appErrorToFormState(error) as TReturn | FormState;
+        log.warn("action.app_error", {
+          code: error.code,
+          messageKey: error.messageKey,
+        });
+        const state = await appErrorToFormState(error);
+        return state as TReturn | FormState;
       }
 
       const message = error instanceof Error ? error.message : String(error);
@@ -67,10 +76,7 @@ export function action<TArgs extends unknown[], TReturn extends FormState | void
         err: message,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      const userMessage =
-        process.env.NODE_ENV === "development"
-          ? `Dev hata: ${message}`
-          : "Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.";
+      const userMessage = await uncaughtMessage(message);
       return { error: userMessage } as TReturn | FormState;
     }
   };
@@ -103,9 +109,49 @@ function isNextControlFlow(error: unknown): boolean {
   return digest.startsWith("NEXT_REDIRECT") || digest === "NEXT_NOT_FOUND";
 }
 
-function appErrorToFormState(error: AppError): FormState {
+async function appErrorToFormState(error: AppError): Promise<FormState> {
   if (error.code === "VALIDATION_FAILED" && error.details?.fieldErrors) {
-    return { fieldErrors: error.details.fieldErrors as Record<string, string[]> };
+    const raw = error.details.fieldErrors as Record<string, string[]>;
+    try {
+      const t = await getTranslations();
+      const translated: Record<string, string[]> = {};
+      for (const [field, messages] of Object.entries(raw)) {
+        translated[field] = messages.map((m) =>
+          m.startsWith("error.") ? t(m) : m,
+        );
+      }
+      return { fieldErrors: translated };
+    } catch {
+      return { fieldErrors: raw };
+    }
   }
-  return { error: error.message };
+
+  try {
+    const t = await getTranslations();
+    const vars: Record<string, string | number> = { ...error.messageVars };
+    // If the helper passed `entityKey` (e.g. "error.entity.pet") we
+    // resolve it to the localised noun first so it can slot into the
+    // sentence template.
+    if (typeof error.messageVars?.entityKey === "string") {
+      vars.entity = t(error.messageVars.entityKey);
+    }
+    const message = t(error.messageKey, vars);
+    return { error: message };
+  } catch {
+    // No request scope (e.g. when called from a worker): fall back to
+    // the message key so at least something readable surfaces.
+    return { error: error.messageKey };
+  }
+}
+
+async function uncaughtMessage(devMessage: string): Promise<string> {
+  if (process.env.NODE_ENV === "development") {
+    return `Dev hata: ${devMessage}`;
+  }
+  try {
+    const t = await getTranslations();
+    return t("errors.generic");
+  } catch {
+    return "Something went wrong. Please try again.";
+  }
 }

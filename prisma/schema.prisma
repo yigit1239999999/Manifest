@@ -126,6 +126,9 @@ model Client {
   appointments Appointment[]
   visits       Visit[]
   invoices     Invoice[]
+  /// Note rows whose `clientId` points here. Named `_rel` because the
+  /// short field name `notes` is reserved further down on Clinic (which
+  /// would create a naming conflict in the generated Prisma client).
   notes_rel    Note[]
   documents    Document[]
   reminders    Reminder[]
@@ -189,6 +192,8 @@ model Pet {
   prescriptions Prescription[]
   treatments    Treatment[]
   diagnostics   Diagnostic[]
+  /// Note rows whose `petId` points here. Named `_rel` to avoid the
+  /// Prisma naming clash with Clinic.notes.
   notes_rel     Note[]
   documents     Document[]
   reminders     Reminder[]

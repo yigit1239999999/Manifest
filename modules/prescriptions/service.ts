@@ -14,7 +14,7 @@ export async function createPrescription(
     where: { id: input.petId, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!pet) throw validationFailed({ petId: ["Hasta bulunamadı."] });
+  if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
 
   const prescription = await prisma.prescription.create({
     data: {
@@ -56,7 +56,7 @@ export async function updatePrescriptionStatus(
     where: { id, clinicId: ctx.clinicId },
     select: { id: true, petId: true },
   });
-  if (!existing) throw notFound("Reçete", id);
+  if (!existing) throw notFound("prescription", id);
 
   await prisma.prescription.update({
     where: { id },

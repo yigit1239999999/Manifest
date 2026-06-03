@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PAGE_SIZES } from "@/lib/pagination";
 
 export interface ListAuditArgs {
   clinicId: string;
@@ -13,7 +14,7 @@ export async function listAuditEntries({
   entityType,
   entityId,
   actorId,
-  take = 100,
+  take = PAGE_SIZES.LIST,
 }: ListAuditArgs) {
   return prisma.auditLog.findMany({
     where: {

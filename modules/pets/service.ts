@@ -11,7 +11,7 @@ async function assertOwnerInClinic(ownerId: string, clinicId: string) {
     select: { id: true },
   });
   if (!owner)
-    throw validationFailed({ ownerId: ["Bu sahip bu klinikte bulunamadı."] });
+    throw validationFailed({ ownerId: ["error.validation.ownerNotInClinic"] });
 }
 
 export async function createPet(input: PetInput, ctx: ActionContext) {
@@ -36,7 +36,7 @@ export async function updatePet(id: string, input: PetInput, ctx: ActionContext)
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!existing) throw notFound("Hasta", id);
+  if (!existing) throw notFound("pet", id);
 
   await assertOwnerInClinic(input.ownerId, ctx.clinicId);
 
@@ -59,7 +59,7 @@ export async function archivePet(id: string, ctx: ActionContext) {
     where: { id, clinicId: ctx.clinicId, archivedAt: null },
     select: { id: true, ownerId: true },
   });
-  if (!existing) throw notFound("Hasta", id);
+  if (!existing) throw notFound("pet", id);
 
   await withAudited(
     {
@@ -84,7 +84,7 @@ export async function markPetDeceased(
     where: { id, clinicId: ctx.clinicId },
     select: { id: true },
   });
-  if (!existing) throw notFound("Hasta", id);
+  if (!existing) throw notFound("pet", id);
 
   await withAudited(
     {

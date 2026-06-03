@@ -471,10 +471,39 @@
     }
   },
   "error": {
-    "generic": "Bir hata oluştu. Tekrar deneyin.",
-    "notFound": "Bulunamadı.",
+    "generic": "Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.",
+    "notFound": "{entity} bulunamadı.",
+    "validationFailed": "Lütfen formu kontrol et.",
     "forbidden": "Bu işlem için yetkin yok.",
     "tryAgain": "Tekrar dene",
-    "goHome": "Ana sayfa"
+    "goHome": "Ana sayfa",
+    "entity": {
+      "client": "Müşteri",
+      "pet": "Hasta",
+      "visit": "Vizit",
+      "appointment": "Randevu",
+      "vaccination": "Aşı",
+      "prescription": "Reçete",
+      "treatment": "Tedavi",
+      "diagnostic": "Test",
+      "note": "Not",
+      "reminder": "Hatırlatma",
+      "invoice": "Fatura"
+    },
+    "conflict": {
+      "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",
+      "emailInUse": "Bu email zaten kullanılıyor."
+    },
+    "auth": {
+      "signupFailed": "Kayıt sırasında bir hata oluştu. Tekrar deneyin.",
+      "invalidCredentials": "Email veya şifre hatalı."
+    },
+    "validation": {
+      "ownerNotInClinic": "Bu sahip bu klinikte bulunamadı.",
+      "petNotInClinic": "Bu hasta bu klinikte bulunamadı.",
+      "clientRequired": "Müşteri bulunamadı.",
+      "petRequired": "Hasta bulunamadı.",
+      "noteTarget": "Bir hasta veya müşteri belirtmelisin."
+    }
   }
 }

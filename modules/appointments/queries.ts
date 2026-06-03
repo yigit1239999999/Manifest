@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PAGE_SIZES } from "@/lib/pagination";
 import type { Prisma } from "@/generated/prisma/client";
 
 export interface ListAppointmentsArgs {
@@ -39,7 +40,7 @@ function buildApptWhere(
 }
 
 export async function listAppointments({
-  take = 200,
+  take = PAGE_SIZES.DROPDOWN,
   ...args
 }: ListAppointmentsArgs) {
   return prisma.appointment.findMany({
@@ -62,7 +63,7 @@ export interface PagedAppointmentsArgs
 
 export async function listAppointmentsPage({
   page = 1,
-  perPage = 25,
+  perPage = PAGE_SIZES.DEFAULT,
   ...args
 }: PagedAppointmentsArgs) {
   const where = buildApptWhere(args);
@@ -95,7 +96,7 @@ export async function getAppointmentById(clinicId: string, id: string) {
   });
 }
 
-export async function upcomingAppointments(clinicId: string, take = 5) {
+export async function upcomingAppointments(clinicId: string, take = PAGE_SIZES.PREVIEW) {
   return prisma.appointment.findMany({
     where: {
       clinicId,
