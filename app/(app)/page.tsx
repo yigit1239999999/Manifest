@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
 import { dashboardInsights } from "@/modules/dashboard/queries";
+import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PageHeader } from "@/components/page-header";
 import {
   Card,
@@ -24,18 +24,14 @@ import { firstName, formatDateTime, formatMoney } from "@/lib/format";
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const [t, tSpecies, tVisitType, insights, clinic, locale] = await Promise.all([
+  const [t, tSpecies, tVisitType, insights, currency, locale] = await Promise.all([
     getTranslations("dashboard"),
     getTranslations("enum.species"),
     getTranslations("enum.visitType"),
     dashboardInsights(session.user.clinicId),
-    prisma.clinic.findUnique({
-      where: { id: session.user.clinicId },
-      select: { currency: true },
-    }),
+    getClinicCurrency(session.user.clinicId),
     getLocale(),
   ]);
-  const currency = clinic?.currency ?? "USD";
 
   const weekFmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" });
   const monthFmt = new Intl.DateTimeFormat(locale, { month: "short" });

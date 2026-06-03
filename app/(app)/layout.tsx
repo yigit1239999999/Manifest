@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getClinicSettings } from "@/modules/clinics/queries";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
 
@@ -14,10 +14,7 @@ export default async function AppLayout({
     redirect("/sign-in");
   }
 
-  const clinic = await prisma.clinic.findUnique({
-    where: { id: session.user.clinicId },
-    select: { name: true },
-  });
+  const clinic = await getClinicSettings(session.user.clinicId);
 
   return (
     <div className="flex min-h-screen">

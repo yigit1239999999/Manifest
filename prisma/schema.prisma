@@ -135,6 +135,9 @@ model Client {
 
   @@index([clinicId])
   @@index([clinicId, lastName, firstName])
+  @@index([clinicId, email])
+  @@index([clinicId, phone])
+  @@index([clinicId, archivedAt])
   @@map("clients")
 }
 
@@ -202,6 +205,8 @@ model Pet {
   @@index([clinicId])
   @@index([clinicId, ownerId])
   @@index([clinicId, name])
+  @@index([clinicId, microchipId])
+  @@index([clinicId, archivedAt])
   @@map("pets")
 }
 
@@ -255,6 +260,7 @@ model Appointment {
   @@index([clinicId, startsAt])
   @@index([clinicId, vetId, startsAt])
   @@index([clinicId, petId])
+  @@index([clinicId, status, startsAt])
   @@map("appointments")
 }
 
@@ -303,6 +309,7 @@ model Visit {
   @@index([clinicId, visitedAt])
   @@index([clinicId, petId, visitedAt])
   @@index([clinicId, clientId])
+  @@index([clinicId, archivedAt])
   @@map("visits")
 }
 

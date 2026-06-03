@@ -5,7 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { getVisitById } from "@/modules/visits/queries";
 import { archiveVisitAction } from "@/modules/visits/actions";
-import { prisma } from "@/lib/prisma";
+import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
@@ -44,7 +44,7 @@ export default async function VisitPage({
     tRx,
     tTreatment,
     tDiag,
-    clinic,
+    currency,
   ] = await Promise.all([
     getVisitById(clinicId, id),
     getTranslations("visit"),
@@ -54,10 +54,7 @@ export default async function VisitPage({
     getTranslations("prescription"),
     getTranslations("treatment"),
     getTranslations("diagnostic"),
-    prisma.clinic.findUnique({
-      where: { id: clinicId },
-      select: { currency: true },
-    }),
+    getClinicCurrency(clinicId),
   ]);
 
   if (!visit) notFound();
@@ -127,7 +124,7 @@ export default async function VisitPage({
               label={t("totalCost")}
               value={
                 visit.totalCents != null
-                  ? formatMoney(visit.totalCents, clinic?.currency ?? "USD")
+                  ? formatMoney(visit.totalCents, currency)
                   : "—"
               }
             />

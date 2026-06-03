@@ -3,8 +3,8 @@ import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { getInvoiceById } from "@/modules/invoices/queries";
 import { voidInvoiceAction } from "@/modules/invoices/actions";
+import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PaymentForm } from "@/components/forms/payment-form";
-import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
@@ -24,19 +24,15 @@ export default async function InvoicePage({
 }) {
   const { id } = await params;
   const session = await requireSession();
-  const [invoice, t, tCommon, tStatus, tMethod, clinic] = await Promise.all([
+  const [invoice, t, tCommon, tStatus, tMethod, currency] = await Promise.all([
     getInvoiceById(session.user.clinicId, id),
     getTranslations("invoice"),
     getTranslations("common"),
     getTranslations("enum.invoiceStatus"),
     getTranslations("enum.paymentMethod"),
-    prisma.clinic.findUnique({
-      where: { id: session.user.clinicId },
-      select: { currency: true },
-    }),
+    getClinicCurrency(session.user.clinicId),
   ]);
   if (!invoice) notFound();
-  const currency = clinic?.currency ?? "USD";
 
   const paidSoFar = invoice.payments.reduce((s, p) => s + p.amountCents, 0);
   const remaining = invoice.totalCents - paidSoFar;

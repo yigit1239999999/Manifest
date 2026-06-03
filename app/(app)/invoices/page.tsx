@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { listInvoicesPage } from "@/modules/invoices/queries";
 import { INVOICE_STATUSES } from "@/modules/invoices/schema";
-import { prisma } from "@/lib/prisma";
+import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
@@ -21,7 +21,7 @@ export default async function InvoicesPage({
   const session = await requireSession();
   const { page: pageParam, status } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
-  const [t, tCommon, tStatus, result, clinic] = await Promise.all([
+  const [t, tCommon, tStatus, result, currency] = await Promise.all([
     getTranslations("invoice"),
     getTranslations("common"),
     getTranslations("enum.invoiceStatus"),
@@ -30,12 +30,8 @@ export default async function InvoicesPage({
       statuses: status ? [status] : null,
       page,
     }),
-    prisma.clinic.findUnique({
-      where: { id: session.user.clinicId },
-      select: { currency: true },
-    }),
+    getClinicCurrency(session.user.clinicId),
   ]);
-  const currency = clinic?.currency ?? "USD";
 
   return (
     <div className="flex flex-col gap-6">
