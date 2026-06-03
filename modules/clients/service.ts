@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "@/lib/errors";
-import { writeAudit } from "@/lib/audit";
+import { redact, writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { ClientInput } from "./schema";
@@ -16,7 +16,7 @@ export async function createClient(input: ClientInput, ctx: ActionContext) {
     action: "CREATE",
     entityType: "Client",
     entityId: client.id,
-    changes: input as unknown as Record<string, unknown>,
+    changes: redact(input),
   });
   return client;
 }
@@ -40,7 +40,7 @@ export async function updateClient(
     action: "UPDATE",
     entityType: "Client",
     entityId: id,
-    changes: input as unknown as Record<string, unknown>,
+    changes: redact(input),
   });
   return client;
 }

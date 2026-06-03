@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
-import { writeAudit } from "@/lib/audit";
+import { redact, writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { AppointmentInput } from "./schema";
@@ -41,7 +41,7 @@ export async function createAppointment(
     action: "CREATE",
     entityType: "Appointment",
     entityId: appointment.id,
-    changes: input as unknown as Record<string, unknown>,
+    changes: redact(input),
   });
   return appointment;
 }
@@ -80,7 +80,7 @@ export async function updateAppointment(
     action: "UPDATE",
     entityType: "Appointment",
     entityId: id,
-    changes: input as unknown as Record<string, unknown>,
+    changes: redact(input),
   });
   return appointment;
 }

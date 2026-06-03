@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
-import { writeAudit } from "@/lib/audit";
+import { redact, writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { PetInput } from "./schema";
@@ -27,7 +27,7 @@ export async function createPet(input: PetInput, ctx: ActionContext) {
     action: "CREATE",
     entityType: "Pet",
     entityId: pet.id,
-    changes: input as unknown as Record<string, unknown>,
+    changes: redact(input),
   });
   return pet;
 }
@@ -49,7 +49,7 @@ export async function updatePet(id: string, input: PetInput, ctx: ActionContext)
     action: "UPDATE",
     entityType: "Pet",
     entityId: id,
-    changes: input as unknown as Record<string, unknown>,
+    changes: redact(input),
   });
   return pet;
 }
