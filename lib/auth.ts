@@ -4,9 +4,12 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signInSchema } from "@/modules/auth/schema";
 
+const EIGHT_HOURS = 60 * 60 * 8;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: EIGHT_HOURS },
+  jwt: { maxAge: EIGHT_HOURS },
   pages: { signIn: "/sign-in" },
   providers: [
     Credentials({
@@ -37,15 +40,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           clinicId: user.clinicId,
           role: user.role,
+          // Captured into the JWT so the `jwt` callback can reject tokens
+          // issued before the most recent password change.
+          passwordChangedAt: user.passwordChangedAt?.getTime() ?? null,
         };
       },
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
+        // Sign-in path: copy claims into the JWT.
         token.clinicId = user.clinicId;
         token.role = user.role;
+        token.pwc = user.passwordChangedAt;
+        return token;
+      }
+
+      // Subsequent requests: cheap lookup confirms the user is still
+      // active and the password hasn't been rotated since this token
+      // was issued. Returning null invalidates the session.
+      if (!token.sub) return token;
+      const current = await prisma.user.findUnique({
+        where: { id: token.sub },
+        select: { active: true, passwordChangedAt: true },
+      });
+      if (!current || !current.active) return null;
+      if (
+        current.passwordChangedAt &&
+        token.iat != null &&
+        current.passwordChangedAt.getTime() > token.iat * 1000
+      ) {
+        return null;
       }
       return token;
     },
