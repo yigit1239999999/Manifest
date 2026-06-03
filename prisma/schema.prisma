@@ -524,22 +524,22 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id           String        @id @default(cuid())
-  clinicId     String
-  clinic       Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  clientId     String
-  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  number       String
-  status       InvoiceStatus @default(DRAFT)
-  issuedAt     DateTime      @default(now())
-  dueAt        DateTime?
-  paidAt       DateTime?
-  subtotalCents Int          @default(0)
-  taxCents      Int          @default(0)
-  totalCents    Int          @default(0)
-  notes        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  clinicId      String
+  clinic        Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  number        String
+  status        InvoiceStatus @default(DRAFT)
+  issuedAt      DateTime      @default(now())
+  dueAt         DateTime?
+  paidAt        DateTime?
+  subtotalCents Int           @default(0)
+  taxCents      Int           @default(0)
+  totalCents    Int           @default(0)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   lines    InvoiceLine[]
   payments Payment[]
