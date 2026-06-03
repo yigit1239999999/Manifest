@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
-import { redact, writeAudit } from "@/lib/audit";
+import { redact, withAudited } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { VisitInput } from "./schema";
@@ -17,26 +17,27 @@ async function resolvePetAndOwner(petId: string, clinicId: string) {
 export async function createVisit(input: VisitInput, ctx: ActionContext) {
   requirePermission(ctx.userRole, "visits.write");
   const pet = await resolvePetAndOwner(input.petId, ctx.clinicId);
-
   const { petId, vetId, ...rest } = input;
-  const visit = await prisma.visit.create({
-    data: {
-      ...rest,
+
+  return withAudited(
+    {
       clinicId: ctx.clinicId,
-      petId,
-      clientId: pet.ownerId,
-      vetId: vetId || ctx.userId,
+      actorId: ctx.userId,
+      action: "CREATE",
+      entityType: "Visit",
+      changes: redact(input),
     },
-  });
-  await writeAudit({
-    clinicId: ctx.clinicId,
-    actorId: ctx.userId,
-    action: "CREATE",
-    entityType: "Visit",
-    entityId: visit.id,
-    changes: redact(input),
-  });
-  return visit;
+    (tx) =>
+      tx.visit.create({
+        data: {
+          ...rest,
+          clinicId: ctx.clinicId,
+          petId,
+          clientId: pet.ownerId,
+          vetId: vetId || ctx.userId,
+        },
+      }),
+  );
 }
 
 export async function updateVisit(
@@ -54,24 +55,26 @@ export async function updateVisit(
   const pet = await resolvePetAndOwner(input.petId, ctx.clinicId);
   const { petId, vetId, ...rest } = input;
 
-  const visit = await prisma.visit.update({
-    where: { id },
-    data: {
-      ...rest,
-      petId,
-      clientId: pet.ownerId,
-      vetId: vetId || null,
+  return withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "UPDATE",
+      entityType: "Visit",
+      entityId: id,
+      changes: redact(input),
     },
-  });
-  await writeAudit({
-    clinicId: ctx.clinicId,
-    actorId: ctx.userId,
-    action: "UPDATE",
-    entityType: "Visit",
-    entityId: id,
-    changes: redact(input),
-  });
-  return visit;
+    (tx) =>
+      tx.visit.update({
+        where: { id },
+        data: {
+          ...rest,
+          petId,
+          clientId: pet.ownerId,
+          vetId: vetId || null,
+        },
+      }),
+  );
 }
 
 export async function archiveVisit(id: string, ctx: ActionContext) {
@@ -82,16 +85,16 @@ export async function archiveVisit(id: string, ctx: ActionContext) {
   });
   if (!existing) throw notFound("Vizit", id);
 
-  await prisma.visit.update({
-    where: { id },
-    data: { archivedAt: new Date() },
-  });
-  await writeAudit({
-    clinicId: ctx.clinicId,
-    actorId: ctx.userId,
-    action: "ARCHIVE",
-    entityType: "Visit",
-    entityId: id,
-  });
+  await withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "ARCHIVE",
+      entityType: "Visit",
+      entityId: id,
+    },
+    (tx) =>
+      tx.visit.update({ where: { id }, data: { archivedAt: new Date() } }),
+  );
   return existing;
 }

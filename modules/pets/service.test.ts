@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/prisma", () => {
+  const prismaMock = {
     pet: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -9,8 +9,13 @@ vi.mock("@/lib/prisma", () => ({
     },
     client: { findFirst: vi.fn() },
     auditLog: { create: vi.fn() },
-  },
-}));
+    $transaction: vi.fn(),
+  };
+  prismaMock.$transaction.mockImplementation(async (cb: (tx: typeof prismaMock) => Promise<unknown>) =>
+    cb(prismaMock),
+  );
+  return { prisma: prismaMock };
+});
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
@@ -42,6 +47,9 @@ const validInput = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(prisma.$transaction).mockImplementation(
+    async (cb: (tx: typeof prisma) => Promise<unknown>) => cb(prisma),
+  );
 });
 
 describe("createPet", () => {

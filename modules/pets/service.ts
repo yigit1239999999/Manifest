@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
-import { redact, writeAudit } from "@/lib/audit";
+import { redact, withAudited } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { PetInput } from "./schema";
@@ -18,18 +18,16 @@ export async function createPet(input: PetInput, ctx: ActionContext) {
   requirePermission(ctx.userRole, "pets.write");
   await assertOwnerInClinic(input.ownerId, ctx.clinicId);
 
-  const pet = await prisma.pet.create({
-    data: { ...input, clinicId: ctx.clinicId },
-  });
-  await writeAudit({
-    clinicId: ctx.clinicId,
-    actorId: ctx.userId,
-    action: "CREATE",
-    entityType: "Pet",
-    entityId: pet.id,
-    changes: redact(input),
-  });
-  return pet;
+  return withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "CREATE",
+      entityType: "Pet",
+      changes: redact(input),
+    },
+    (tx) => tx.pet.create({ data: { ...input, clinicId: ctx.clinicId } }),
+  );
 }
 
 export async function updatePet(id: string, input: PetInput, ctx: ActionContext) {
@@ -42,16 +40,17 @@ export async function updatePet(id: string, input: PetInput, ctx: ActionContext)
 
   await assertOwnerInClinic(input.ownerId, ctx.clinicId);
 
-  const pet = await prisma.pet.update({ where: { id }, data: input });
-  await writeAudit({
-    clinicId: ctx.clinicId,
-    actorId: ctx.userId,
-    action: "UPDATE",
-    entityType: "Pet",
-    entityId: id,
-    changes: redact(input),
-  });
-  return pet;
+  return withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "UPDATE",
+      entityType: "Pet",
+      entityId: id,
+      changes: redact(input),
+    },
+    (tx) => tx.pet.update({ where: { id }, data: input }),
+  );
 }
 
 export async function archivePet(id: string, ctx: ActionContext) {
@@ -62,17 +61,16 @@ export async function archivePet(id: string, ctx: ActionContext) {
   });
   if (!existing) throw notFound("Hasta", id);
 
-  await prisma.pet.update({
-    where: { id },
-    data: { archivedAt: new Date() },
-  });
-  await writeAudit({
-    clinicId: ctx.clinicId,
-    actorId: ctx.userId,
-    action: "ARCHIVE",
-    entityType: "Pet",
-    entityId: id,
-  });
+  await withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "ARCHIVE",
+      entityType: "Pet",
+      entityId: id,
+    },
+    (tx) => tx.pet.update({ where: { id }, data: { archivedAt: new Date() } }),
+  );
   return existing;
 }
 
@@ -88,16 +86,16 @@ export async function markPetDeceased(
   });
   if (!existing) throw notFound("Hasta", id);
 
-  await prisma.pet.update({
-    where: { id },
-    data: { deceased: true, deceasedAt },
-  });
-  await writeAudit({
-    clinicId: ctx.clinicId,
-    actorId: ctx.userId,
-    action: "UPDATE",
-    entityType: "Pet",
-    entityId: id,
-    changes: { deceased: true, deceasedAt },
-  });
+  await withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "UPDATE",
+      entityType: "Pet",
+      entityId: id,
+      changes: { deceased: true, deceasedAt: deceasedAt.toISOString() },
+    },
+    (tx) =>
+      tx.pet.update({ where: { id }, data: { deceased: true, deceasedAt } }),
+  );
 }

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
-import { redact, writeAudit } from "@/lib/audit";
+import { redact, withAudited } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { AppointmentInput } from "./schema";
@@ -21,29 +21,30 @@ export async function createAppointment(
   requirePermission(ctx.userRole, "appointments.write");
   const pet = await resolvePet(input.petId, ctx.clinicId);
 
-  const appointment = await prisma.appointment.create({
-    data: {
+  return withAudited(
+    {
       clinicId: ctx.clinicId,
-      petId: pet.id,
-      clientId: pet.ownerId,
-      vetId: input.vetId || null,
-      startsAt: input.startsAt,
-      durationMinutes: input.durationMinutes ?? 30,
-      type: input.type,
-      status: input.status,
-      reason: input.reason,
-      notes: input.notes,
+      actorId: ctx.userId,
+      action: "CREATE",
+      entityType: "Appointment",
+      changes: redact(input),
     },
-  });
-  await writeAudit({
-    clinicId: ctx.clinicId,
-    actorId: ctx.userId,
-    action: "CREATE",
-    entityType: "Appointment",
-    entityId: appointment.id,
-    changes: redact(input),
-  });
-  return appointment;
+    (tx) =>
+      tx.appointment.create({
+        data: {
+          clinicId: ctx.clinicId,
+          petId: pet.id,
+          clientId: pet.ownerId,
+          vetId: input.vetId || null,
+          startsAt: input.startsAt,
+          durationMinutes: input.durationMinutes ?? 30,
+          type: input.type,
+          status: input.status,
+          reason: input.reason,
+          notes: input.notes,
+        },
+      }),
+  );
 }
 
 export async function updateAppointment(
@@ -60,29 +61,31 @@ export async function updateAppointment(
 
   const pet = await resolvePet(input.petId, ctx.clinicId);
 
-  const appointment = await prisma.appointment.update({
-    where: { id },
-    data: {
-      petId: pet.id,
-      clientId: pet.ownerId,
-      vetId: input.vetId || null,
-      startsAt: input.startsAt,
-      durationMinutes: input.durationMinutes ?? 30,
-      type: input.type,
-      status: input.status,
-      reason: input.reason,
-      notes: input.notes,
+  return withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "UPDATE",
+      entityType: "Appointment",
+      entityId: id,
+      changes: redact(input),
     },
-  });
-  await writeAudit({
-    clinicId: ctx.clinicId,
-    actorId: ctx.userId,
-    action: "UPDATE",
-    entityType: "Appointment",
-    entityId: id,
-    changes: redact(input),
-  });
-  return appointment;
+    (tx) =>
+      tx.appointment.update({
+        where: { id },
+        data: {
+          petId: pet.id,
+          clientId: pet.ownerId,
+          vetId: input.vetId || null,
+          startsAt: input.startsAt,
+          durationMinutes: input.durationMinutes ?? 30,
+          type: input.type,
+          status: input.status,
+          reason: input.reason,
+          notes: input.notes,
+        },
+      }),
+  );
 }
 
 export async function cancelAppointment(id: string, ctx: ActionContext) {
@@ -93,17 +96,17 @@ export async function cancelAppointment(id: string, ctx: ActionContext) {
   });
   if (!existing) throw notFound("Randevu", id);
 
-  await prisma.appointment.update({
-    where: { id },
-    data: { status: "CANCELLED" },
-  });
-  await writeAudit({
-    clinicId: ctx.clinicId,
-    actorId: ctx.userId,
-    action: "UPDATE",
-    entityType: "Appointment",
-    entityId: id,
-    changes: { status: "CANCELLED" },
-  });
+  await withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "UPDATE",
+      entityType: "Appointment",
+      entityId: id,
+      changes: { status: "CANCELLED" },
+    },
+    (tx) =>
+      tx.appointment.update({ where: { id }, data: { status: "CANCELLED" } }),
+  );
   return existing;
 }

@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/prisma", () => {
+  const prismaMock = {
     client: {
       create: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
     },
     auditLog: { create: vi.fn() },
-  },
-}));
+    $transaction: vi.fn(),
+  };
+  // Run interactive transactions against the same mock so call assertions
+  // continue to work whether the call went through `prisma.x` or `tx.x`.
+  prismaMock.$transaction.mockImplementation(async (cb: (tx: typeof prismaMock) => Promise<unknown>) =>
+    cb(prismaMock),
+  );
+  return { prisma: prismaMock };
+});
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
@@ -44,6 +51,12 @@ const validInput = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  // Keep `prisma.$transaction(cb)` invoking the callback with the mock
+  // itself as the transaction client, so per-test mockResolvedValue calls
+  // still match whether the code path uses `prisma.x` or `tx.x`.
+  vi.mocked(prisma.$transaction).mockImplementation(
+    async (cb: (tx: typeof prisma) => Promise<unknown>) => cb(prisma),
+  );
 });
 
 describe("createClient", () => {
