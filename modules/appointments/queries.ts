@@ -17,6 +17,10 @@ function buildApptWhere(
 ): Prisma.AppointmentWhereInput {
   return {
     clinicId: args.clinicId,
+    // Cascade soft-delete: appointments fall out of view when their pet
+    // or client is archived. The row itself isn't deleted.
+    pet: { archivedAt: null },
+    client: { archivedAt: null },
     ...(args.petId ? { petId: args.petId } : {}),
     ...(args.clientId ? { clientId: args.clientId } : {}),
     ...(args.vetId ? { vetId: args.vetId } : {}),
@@ -95,6 +99,8 @@ export async function upcomingAppointments(clinicId: string, take = 5) {
   return prisma.appointment.findMany({
     where: {
       clinicId,
+      pet: { archivedAt: null },
+      client: { archivedAt: null },
       startsAt: { gte: new Date() },
       status: { in: ["SCHEDULED", "CONFIRMED"] },
     },
@@ -111,6 +117,8 @@ export async function countUpcomingAppointments(clinicId: string) {
   return prisma.appointment.count({
     where: {
       clinicId,
+      pet: { archivedAt: null },
+      client: { archivedAt: null },
       startsAt: { gte: new Date() },
       status: { in: ["SCHEDULED", "CONFIRMED"] },
     },

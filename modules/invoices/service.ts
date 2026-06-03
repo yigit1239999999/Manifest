@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { conflict, notFound, validationFailed } from "@/lib/errors";
-import { redact, withAudited, writeAudit } from "@/lib/audit";
+import { withAudited, writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { InvoiceInput, PaymentInput } from "./schema";

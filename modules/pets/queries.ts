@@ -20,7 +20,13 @@ function buildPetWhere(args: {
   const term = args.search?.trim();
   return {
     clinicId: args.clinicId,
-    ...(args.includeArchived ? {} : { archivedAt: null }),
+    ...(args.includeArchived
+      ? {}
+      : {
+          archivedAt: null,
+          // Cascade soft-delete: archived clients drop their pets too.
+          owner: { archivedAt: null },
+        }),
     ...(args.ownerId ? { ownerId: args.ownerId } : {}),
     ...(args.species ? { species: args.species as never } : {}),
     ...(term
@@ -101,7 +107,13 @@ export async function getPetById(clinicId: string, id: string) {
 }
 
 export async function countPets(clinicId: string) {
-  return prisma.pet.count({ where: { clinicId, archivedAt: null } });
+  return prisma.pet.count({
+    where: {
+      clinicId,
+      archivedAt: null,
+      owner: { archivedAt: null },
+    },
+  });
 }
 
 export async function quickSearchPets(

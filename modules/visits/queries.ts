@@ -16,6 +16,9 @@ function buildVisitWhere(args: Omit<ListVisitsArgs, "take">): Prisma.VisitWhereI
   return {
     clinicId: args.clinicId,
     archivedAt: null,
+    // Cascade soft-delete: visits hide as soon as their pet or client is archived.
+    pet: { archivedAt: null },
+    client: { archivedAt: null },
     ...(args.petId ? { petId: args.petId } : {}),
     ...(args.clientId ? { clientId: args.clientId } : {}),
     ...(args.vetId ? { vetId: args.vetId } : {}),
@@ -89,12 +92,24 @@ export async function getVisitById(clinicId: string, id: string) {
 }
 
 export async function countVisits(clinicId: string) {
-  return prisma.visit.count({ where: { clinicId, archivedAt: null } });
+  return prisma.visit.count({
+    where: {
+      clinicId,
+      archivedAt: null,
+      pet: { archivedAt: null },
+      client: { archivedAt: null },
+    },
+  });
 }
 
 export async function recentVisits(clinicId: string, take = 5) {
   return prisma.visit.findMany({
-    where: { clinicId, archivedAt: null },
+    where: {
+      clinicId,
+      archivedAt: null,
+      pet: { archivedAt: null },
+      client: { archivedAt: null },
+    },
     orderBy: { visitedAt: "desc" },
     take,
     include: {

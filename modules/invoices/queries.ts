@@ -13,6 +13,8 @@ function buildInvoiceWhere(
 ): Prisma.InvoiceWhereInput {
   return {
     clinicId: args.clinicId,
+    // Cascade soft-delete: invoices for archived clients drop out.
+    client: { archivedAt: null },
     ...(args.clientId ? { clientId: args.clientId } : {}),
     ...(args.statuses && args.statuses.length > 0
       ? { status: { in: args.statuses as never } }
@@ -80,13 +82,21 @@ export async function getInvoiceById(clinicId: string, id: string) {
 
 export async function outstandingInvoicesCount(clinicId: string) {
   return prisma.invoice.count({
-    where: { clinicId, status: { in: ["SENT", "PARTIAL"] } },
+    where: {
+      clinicId,
+      client: { archivedAt: null },
+      status: { in: ["SENT", "PARTIAL"] },
+    },
   });
 }
 
 export async function outstandingInvoiceTotal(clinicId: string): Promise<number> {
   const result = await prisma.invoice.aggregate({
-    where: { clinicId, status: { in: ["SENT", "PARTIAL"] } },
+    where: {
+      clinicId,
+      client: { archivedAt: null },
+      status: { in: ["SENT", "PARTIAL"] },
+    },
     _sum: { totalCents: true },
   });
   return result._sum.totalCents ?? 0;
