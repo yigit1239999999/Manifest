@@ -76,7 +76,11 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # This job sets NODE_ENV=production (the app runs in prod mode for the
+      # e2e pass), which makes `npm ci` omit devDependencies. The production
+      # build still needs them (e.g. @tailwindcss/postcss, typescript), so
+      # force their installation here.
+      - run: npm ci --include=dev
 
       - name: Apply migrations
         run: npm run db:migrate:deploy
