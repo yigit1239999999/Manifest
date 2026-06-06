@@ -5,10 +5,11 @@ import { defineConfig, devices } from "@playwright/test";
 // Run locally:  npm run dev   (terminal 1)
 //               npm run test:e2e   (terminal 2)
 //
-// The tests hit a running app; they expect a real database (the same
-// one your DATABASE_URL points at). The tests SHARE the dev DB by
-// default — use a dedicated test database in CI before turning these
-// on for required checks.
+// The `webServer` block below auto-starts the app when nothing is already
+// listening on `baseURL`. Locally it reuses your running `npm run dev`; in
+// CI it boots the production server (`npm run start`, which needs a prior
+// `npm run build`). Either way the tests expect a real, migrated database
+// (the same one `DATABASE_URL` points at).
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
@@ -30,4 +31,10 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
+  webServer: {
+    command: "npm run start",
+    url: baseURL,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
 });
