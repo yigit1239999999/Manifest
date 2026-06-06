@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
+import { Title as DialogTitle } from "@radix-ui/react-dialog";
 import {
   CalendarClock,
   PawPrint,
@@ -123,6 +124,9 @@ export function CommandPalette() {
         shouldFilter={false}
         className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
       >
+        {/* cmdk renders a Radix Dialog under the hood, which requires a
+            DialogTitle for screen readers. Keep it visually hidden. */}
+        <DialogTitle className="sr-only">{tCommon("search")}</DialogTitle>
         <button
           type="button"
           aria-label="Close"

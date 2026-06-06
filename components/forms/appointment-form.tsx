@@ -123,7 +123,7 @@ export function AppointmentForm({
         </Field>
       </div>
 
-      <Field label={tPet("title")} error={state.fieldErrors?.vetId}>
+      <Field label={t("vet")} error={state.fieldErrors?.vetId}>
         <Select name="vetId" defaultValue={appointment?.vetId ?? ""}>
           <option value="">—</option>
           {vets.map((v) => (

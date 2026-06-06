@@ -12,6 +12,7 @@ import {
   Pill,
   Receipt,
   Stethoscope,
+  UserCog,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,10 +29,14 @@ const NAV: { href: string; key: string; icon: typeof Home }[] = [
   { href: "/audit", key: "audit", icon: History },
 ];
 
-export function Sidebar() {
+export function Sidebar({ canManageStaff = false }: { canManageStaff?: boolean }) {
   const t = useTranslations("nav");
   const tApp = useTranslations("app");
   const pathname = usePathname();
+
+  const items = canManageStaff
+    ? [...NAV, { href: "/staff", key: "staff", icon: UserCog }]
+    : NAV;
 
   const isActive = (href: string) =>
     href === "/"
@@ -50,7 +55,7 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex flex-col gap-1">
-        {NAV.map(({ href, key, icon: Icon }) => (
+        {items.map(({ href, key, icon: Icon }) => (
           <Link
             key={href}
             href={href}

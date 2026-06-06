@@ -67,4 +67,5 @@ export type EntityNouns = {
   note: true;
   reminder: true;
   invoice: true;
+  user: true;
 };

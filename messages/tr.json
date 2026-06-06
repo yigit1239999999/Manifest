@@ -12,6 +12,7 @@
     "prescriptions": "Reçeteler",
     "reminders": "Hatırlatmalar",
     "invoices": "Faturalar",
+    "staff": "Ekip",
     "audit": "İşlem geçmişi",
     "signOut": "Çıkış"
   },
@@ -215,9 +216,30 @@
     "durationMinutes": "Süre (dk)",
     "status": "Durum",
     "type": "Tür",
+    "vet": "Veteriner",
     "reason": "Sebep",
     "notes": "Notlar",
     "cancel": "Randevuyu iptal et"
+  },
+  "staff": {
+    "title": "Ekip",
+    "subtitle": "Kliniğinizde çalışan veteriner ve personel.",
+    "new": "Yeni personel",
+    "create": "Personel ekle",
+    "empty": "Henüz personel eklenmemiş.",
+    "name": "Ad soyad",
+    "email": "Email",
+    "phone": "Telefon",
+    "role": "Rol",
+    "password": "Geçici şifre",
+    "passwordHint": "En az 8 karakter. Personel daha sonra değiştirebilir.",
+    "status": "Durum",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "deactivate": "Devre dışı bırak",
+    "activate": "Aktifleştir",
+    "you": "Sen",
+    "deactivateConfirm": "Bu personel devre dışı bırakılsın mı?"
   },
   "vaccination": {
     "title": "Aşılar",
@@ -488,7 +510,8 @@
       "diagnostic": "Test",
       "note": "Not",
       "reminder": "Hatırlatma",
-      "invoice": "Fatura"
+      "invoice": "Fatura",
+      "user": "Personel"
     },
     "conflict": {
       "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",

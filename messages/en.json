@@ -12,6 +12,7 @@
     "prescriptions": "Prescriptions",
     "reminders": "Reminders",
     "invoices": "Invoices",
+    "staff": "Team",
     "audit": "Audit log",
     "signOut": "Sign out"
   },
@@ -215,9 +216,30 @@
     "durationMinutes": "Duration (minutes)",
     "status": "Status",
     "type": "Type",
+    "vet": "Veterinarian",
     "reason": "Reason",
     "notes": "Notes",
     "cancel": "Cancel appointment"
+  },
+  "staff": {
+    "title": "Team",
+    "subtitle": "Veterinarians and staff working at your clinic.",
+    "new": "New staff member",
+    "create": "Add staff member",
+    "empty": "No staff members yet.",
+    "name": "Full name",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role",
+    "password": "Temporary password",
+    "passwordHint": "At least 8 characters. The staff member can change it later.",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "deactivate": "Deactivate",
+    "activate": "Activate",
+    "you": "You",
+    "deactivateConfirm": "Deactivate this staff member?"
   },
   "vaccination": {
     "title": "Vaccinations",
@@ -488,7 +510,8 @@
       "diagnostic": "Diagnostic",
       "note": "Note",
       "reminder": "Reminder",
-      "invoice": "Invoice"
+      "invoice": "Invoice",
+      "user": "Staff member"
     },
     "conflict": {
       "invoiceDuplicate": "Invoice number is already in use.",

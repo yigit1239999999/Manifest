@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { getClinicSettings } from "@/modules/clinics/queries";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
@@ -18,7 +19,7 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar canManageStaff={can(session.user.role, "users.manage")} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar
           clinicName={clinic?.name ?? "Your clinic"}
