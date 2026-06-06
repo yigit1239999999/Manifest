@@ -42,6 +42,12 @@ export default async function RootLayout({
       lang={locale}
       data-theme={initialTheme}
       className={`${geistSans.variable} antialiased`}
+      // ThemeInitScript runs before paint to apply the OS preference
+      // when no cookie is set, so the server-rendered data-theme will
+      // legitimately not match the hydrated value. Suppress the warning
+      // on this element only — every child still gets full hydration
+      // checks.
+      suppressHydrationWarning
     >
       <head>
         <ThemeInitScript />
