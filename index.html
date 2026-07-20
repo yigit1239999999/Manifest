@@ -136,13 +136,24 @@
   <!-- ROBOTİK TASDİK -->
   <section class="chapter">
     <h2>Robotik Tasdik</h2>
-    <p class="sub">Duygu bekleme. Sadece söyle ve dokun — tekrar inşa eder. 21'de mühürlenir.</p>
+    <p class="sub">Zikirmatik: dokun, söyle, bırak kazınsın. Halka 33'te dolar — sayaç asla durmaz.</p>
     <div class="chip-row" id="robot-picker"></div>
     <div class="chip-row" id="robot-phrases"></div>
+    <div class="chip-row robot-modes">
+      <button id="mode-tek" class="active">Tek Cümle</button>
+      <button id="mode-akis">Akış</button>
+    </div>
     <div class="robot-stage" id="robot-stage">
       <div class="phrase" id="robot-phrase"></div>
-      <div class="robot-count" id="robot-count">0</div>
-      <div class="robot-hint">dokun ve söyle</div>
+      <div class="zikir-pad" id="zikir-pad">
+        <svg class="zikir-ring" viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="54"></circle>
+          <circle class="ring-fill" id="zikir-ring" cx="60" cy="60" r="54"></circle>
+        </svg>
+        <div class="zikir-count" id="robot-count">0</div>
+      </div>
+      <div class="zikir-totals" id="zikir-totals"></div>
+      <div class="robot-hint" id="zikir-hint"></div>
     </div>
   </section>
 

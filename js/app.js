@@ -246,56 +246,89 @@ function bindFreedom() {
   });
 }
 
-/* ---------- robotik tasdik ---------- */
+/* ---------- robotik tasdik — zikirmatik ---------- */
 function renderRobot() {
   const picker = $('robot-picker'), phrases = $('robot-phrases'), stage = $('robot-stage'),
-        phraseEl = $('robot-phrase'), countEl = $('robot-count');
+        phraseEl = $('robot-phrase'), countEl = $('robot-count'),
+        pad = $('zikir-pad'), ring = $('zikir-ring'), totalsEl = $('zikir-totals');
   const cats = Object.keys(ROBOT_SETS);
-  let cat = cats[0], idx = 0, count = 0;
+  const CIRC = 2 * Math.PI * 54;
+  const CYCLE = 33;
+  let cat = cats[0], idx = 0, mode = 'tek';
+
+  /* günlük + ömürlük sayaç — zikirmatik asla sıfırlanmaz */
+  const TKEY = 'robot.tally';
+  let tally;
+  try { tally = JSON.parse(localStorage.getItem(TKEY)); } catch { tally = null; }
+  const today = Store.todayKey();
+  if (!tally || tally.day !== today) tally = { day: today, today: 0, total: (tally && tally.total) || 0 };
+  const saveTally = () => localStorage.setItem(TKEY, JSON.stringify(tally));
 
   const lines = () => ROBOT_SETS[cat].lines;
-
   const renderCats = () => {
     picker.innerHTML = cats.map(k =>
       `<button data-k="${k}" class="${k === cat ? 'active' : ''}">${ROBOT_SETS[k].label}</button>`).join('');
   };
   const renderPhrases = () => {
+    phrases.style.display = mode === 'akis' ? 'none' : '';
     phrases.innerHTML = lines().map((a, i) =>
-      `<button data-i="${i}" class="${i === idx ? 'active' : ''}">${a.split(' ').slice(0, 3).join(' ')}…</button>`).join('');
+      `<button data-i="${i}" class="${i === idx % lines().length ? 'active' : ''}">${a.split(' ').slice(0, 3).join(' ')}…</button>`).join('');
   };
-  const show = () => {
-    phraseEl.textContent = lines()[idx];
-    countEl.textContent = count;
+  const show = () => { phraseEl.textContent = lines()[idx % lines().length]; };
+  const paint = () => {
+    countEl.textContent = tally.today;
+    totalsEl.textContent = `${ZIKIR.today} ${tally.today} · ${ZIKIR.total} ${tally.total}`;
+    ring.style.strokeDashoffset = CIRC * (1 - (tally.today % CYCLE) / CYCLE);
+  };
+  const float = (text, star) => {
+    const f = document.createElement('span');
+    f.className = 'float-one' + (star ? ' star' : '');
+    f.textContent = text;
+    pad.appendChild(f);
+    setTimeout(() => f.remove(), star ? 1300 : 900);
   };
 
   picker.addEventListener('click', e => {
     const k = e.target.dataset.k;
     if (!k) return;
-    cat = k; idx = 0; count = 0;
+    cat = k; idx = 0;
     renderCats(); renderPhrases(); show();
   });
   phrases.addEventListener('click', e => {
     const i = e.target.dataset.i;
     if (i === undefined) return;
-    idx = +i; count = 0;
+    idx = +i;
     renderPhrases(); show();
   });
-  renderCats(); renderPhrases();
+  const setMode = m => {
+    mode = m;
+    $('mode-tek').classList.toggle('active', m === 'tek');
+    $('mode-akis').classList.toggle('active', m === 'akis');
+    renderPhrases(); show();
+  };
+  $('mode-tek').addEventListener('click', () => setMode('tek'));
+  $('mode-akis').addEventListener('click', () => setMode('akis'));
 
   stage.addEventListener('click', () => {
-    count++;
-    countEl.textContent = count;
+    tally.today++; tally.total++; saveTally();
+    if (mode === 'akis') { idx++; show(); }
+    paint();
     phraseEl.classList.remove('pulse');
-    void phraseEl.offsetWidth; // animasyonu yeniden tetikle
+    void phraseEl.offsetWidth;
     phraseEl.classList.add('pulse');
-    if (count === 21) {
-      phraseEl.textContent = 'Yerleşti. Cümle artık senin.';
-      setTimeout(show, 2200);
-      count = 0;
+    float('+1');
+    if (tally.today % CYCLE === 0) {
+      pad.classList.remove('cycle');
+      void pad.offsetWidth;
+      pad.classList.add('cycle');
+      float('✦', true);
     }
+    if (navigator.vibrate) navigator.vibrate(8);
   });
 
-  show();
+  ring.style.strokeDasharray = CIRC;
+  $('zikir-hint').textContent = ZIKIR.hint;
+  renderCats(); renderPhrases(); show(); paint();
 }
 
 /* ---------- hatırlıyor musun ---------- */

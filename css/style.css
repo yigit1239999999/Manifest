@@ -271,8 +271,52 @@ h2::after {
 .robot-stage .phrase { font-family: var(--serif); font-size: clamp(1.2rem, 3.8vw, 1.55rem); color: var(--ink); line-height: 1.6; }
 .robot-stage .phrase.pulse { animation: pulse .5s ease; }
 @keyframes pulse { 0% { transform: scale(1); } 40% { transform: scale(1.05); color: var(--gold-soft); } 100% { transform: scale(1); } }
-.robot-count { margin-top: 18px; font-size: 2rem; font-family: var(--serif); color: var(--gold); }
 .robot-hint { font-size: .75rem; color: var(--ink-dim); letter-spacing: .12em; text-transform: uppercase; margin-top: 6px; }
+.robot-modes { margin-top: -6px; }
+.robot-stage .phrase { min-height: 2.6em; display: grid; place-items: center; }
+
+/* zikirmatik */
+.zikir-pad {
+  position: relative; width: 172px; height: 172px; margin: 26px auto 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(240,205,138,.18), rgba(13,10,31,.92) 72%);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 10px 40px rgba(0,0,0,.45), inset 0 2px 14px rgba(232,179,75,.12);
+  display: grid; place-items: center;
+}
+.zikir-ring { position: absolute; inset: 6px; transform: rotate(-90deg); overflow: visible; }
+.ring-bg { fill: none; stroke: rgba(255,255,255,.07); stroke-width: 3; }
+.ring-fill {
+  fill: none; stroke: var(--gold); stroke-width: 3; stroke-linecap: round;
+  transition: stroke-dashoffset .35s ease;
+  filter: drop-shadow(0 0 6px rgba(232,179,75,.55));
+}
+.zikir-count {
+  font-family: var(--serif); font-size: 2.7rem; line-height: 1;
+  background: var(--foil); -webkit-background-clip: text; background-clip: text; color: transparent;
+  user-select: none;
+}
+.zikir-totals {
+  text-align: center; font-size: .76rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-dim); margin-top: 10px;
+}
+.float-one {
+  position: absolute; left: 50%; top: 10%;
+  color: var(--gold-soft); font-size: .95rem; pointer-events: none;
+  animation: floatUp .9s ease-out forwards;
+}
+.float-one.star { font-size: 1.6rem; animation-duration: 1.25s; }
+@keyframes floatUp {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(.7); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -48px) scale(1.15); }
+}
+.zikir-pad.cycle { animation: cycleFlash 1s ease; }
+@keyframes cycleFlash {
+  0% { box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+  35% { box-shadow: 0 0 64px rgba(232,179,75,.6), inset 0 0 30px rgba(232,179,75,.35); }
+  100% { box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+}
 
 /* ---------- hatırlıyor musun / iç konuşmalar ---------- */
 .memory-card {
