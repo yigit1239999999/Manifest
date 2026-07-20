@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tamamlandı ✦</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="lock-overlay" id="lock-overlay">
+  <div class="lock-card">
+    <div class="lock-sigil">✦</div>
+    <input type="password" id="lock-input" placeholder="Anahtar kelime" autocomplete="off">
+    <button class="btn" id="lock-btn">Aç</button>
+    <div class="lock-msg" id="lock-msg"></div>
+  </div>
+</div>
+
+<div class="stars" id="stars"></div>
+
+<div class="wrap">
+
+  <header>
+    <button class="gear" id="gear-btn" title="Ayarlar & Supabase">
+      <span class="sync-dot" id="sync-dot"></span> ⚙
+    </button>
+    <div class="date" id="date"></div>
+    <h1 id="greeting"></h1>
+    <div class="motto">İçeride bitti. Dışarısı sadece yetişiyor.</div>
+    <div class="streak" id="streak"></div>
+  </header>
+
+  <!-- GÜNÜN VARSAYIMI -->
+  <section>
+    <h2>Bugünün Varsayımı</h2>
+    <p class="sub">Hedef değil. Şu anki gerçeğin.</p>
+    <div class="panel">
+      <div class="quote" id="assumption-quote"></div>
+      <div class="domain" id="assumption-domain"></div>
+    </div>
+    <div class="wonderful" id="wonderful" title="Dokun — başka bir tanesi gelsin"></div>
+  </section>
+
+  <!-- I AM -->
+  <section>
+    <h2>BEN</h2>
+    <p class="sub">Self-concept çalışması. Her satırı içinden değil, içinden gelerek söyle.</p>
+    <div class="panel iam-stage" id="iam-stage"></div>
+    <p class="iam-hint" style="text-align:center" id="iam-progress"></p>
+  </section>
+
+  <!-- TAMAMLANANLAR -->
+  <section>
+    <h2>Tamamlananlar</h2>
+    <p class="sub">Bunlar dilek değil — hakkında henüz haber gelmemiş gerçekler.</p>
+    <div class="done-list" id="done-list"></div>
+  </section>
+
+  <!-- İMAJİNAL SAHNE -->
+  <section>
+    <h2>İmajinal Sahne</h2>
+    <p class="sub">Bir sahne seç. 68 saniye içinde yaşa. Analiz etme — hisset.</p>
+    <div class="chip-row" id="sats-picker"></div>
+    <div class="sats-stage" id="sats-stage"><span class="line" style="color:var(--ink-dim)">Bir sahne seç ve içine gir.</span></div>
+    <div class="center">
+      <div class="timer" id="timer" style="display:none">68</div>
+      <button class="btn" id="sats-start" style="display:none">Sahneyi Yaşa — 68 sn</button>
+    </div>
+  </section>
+
+  <!-- ROBOTİK TASDİK -->
+  <section>
+    <h2>Robotik Tasdik</h2>
+    <p class="sub">Duygu bekleme. Sadece söyle ve dokun — tekrar inşa eder. 21'de mühürlenir.</p>
+    <div class="chip-row" id="robot-picker"></div>
+    <div class="robot-stage" id="robot-stage">
+      <div class="phrase" id="robot-phrase"></div>
+      <div class="robot-count" id="robot-count">0</div>
+      <div class="robot-hint">dokun ve söyle</div>
+    </div>
+  </section>
+
+  <!-- HATIRLIYOR MUSUN -->
+  <section>
+    <h2>Hatırlıyor Musun?</h2>
+    <p class="sub">Dilek değil, anı. Bilinçaltı tarih atmaz — geçmiş gibi anlatılan şey geçmiş olur.</p>
+    <div class="memory-card" id="memory-card"></div>
+    <div class="center"><button class="btn secondary" id="memory-next">Başka Bir Anı</button></div>
+  </section>
+
+  <!-- ZİHİNSEL DİYET -->
+  <section>
+    <h2>Zihinsel Diyet</h2>
+    <p class="sub">Eski hikâyeden bir cümle yakaladın ve çevirdin mi? Sadece zaferler kaydedilir.</p>
+    <div class="diet-today" id="diet-today">0</div>
+    <div class="diet-label">bugün yakalanan &amp; çevrilen</div>
+    <div class="row">
+      <input type="text" id="diet-input" placeholder="(opsiyonel) Neyi neye çevirdin?">
+      <button class="btn" id="diet-add">Yakaladım ✓</button>
+    </div>
+  </section>
+
+  <!-- SENARYO -->
+  <section>
+    <h2>Senaryo</h2>
+    <p class="sub">Scripting: günü, olmuş bitmiş halinin ağzından yaz. Şimdiki ya da geçmiş zaman — asla gelecek.</p>
+    <textarea id="script-input" rows="4"></textarea>
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn secondary" id="script-add">Kaydet</button>
+    </div>
+    <div class="log" id="script-log"></div>
+  </section>
+
+  <!-- 3D ONAYLARI -->
+  <section>
+    <h2>3D Onayları</h2>
+    <p class="sub">Dış dünyanın iç dünyana yetişirken bıraktığı izler. Kaydet.</p>
+    <div class="row">
+      <input type="text" id="confirm-input" placeholder="Bugün 3D ne onayladı? (bir iltifat, bir sayı, bir bakış…)">
+      <button class="btn" id="confirm-add">Ekle</button>
+    </div>
+    <div class="log" id="confirm-log"></div>
+  </section>
+
+  <!-- REVİZYON -->
+  <section>
+    <h2>Revizyon</h2>
+    <p class="sub">Geçmiş sabit değildir. Günün istediğin gibi geçen halini yaz — bilinçaltı tarih atmaz.</p>
+    <textarea id="revision-input" rows="4" placeholder="Bugün aslında şöyle oldu: …"></textarea>
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn secondary" id="revision-save">Geçmişi Mühürle</button>
+    </div>
+    <div class="log" id="revision-log"></div>
+  </section>
+
+  <!-- MERDİVEN DENEYİ -->
+  <section>
+    <h2>Merdiven Deneyi</h2>
+    <p class="sub">Yasanın sana özel ispatı.</p>
+    <div class="ladder-note" id="ladder-intro"></div>
+    <div class="ladder-days" id="ladder-days"></div>
+    <div class="row">
+      <input type="text" id="ladder-input" placeholder="3D'de merdiven belirdiğinde buraya yaz — kanıt arşive girer">
+      <button class="btn" id="ladder-add">Kanıt ✓</button>
+    </div>
+    <div class="log" id="ladder-log"></div>
+  </section>
+
+  <!-- GEÇMİŞ -->
+  <section>
+    <h2>Arşiv</h2>
+    <p class="sub">Hafızan. Her kayıt, iç dünyanın dış dünyayı öncelediğinin belgesi.</p>
+    <div class="chip-row" id="history-filter">
+      <button data-f="all" class="active">Tümü</button>
+      <button data-f="confirmation">3D Onayları</button>
+      <button data-f="revision">Revizyonlar</button>
+      <button data-f="script">Senaryolar</button>
+      <button data-f="diet">Zihinsel Diyet</button>
+      <button data-f="ladder_proof">Merdiven</button>
+    </div>
+    <div class="log" id="history-log"></div>
+  </section>
+
+  <footer>
+    “Assume the feeling of the wish fulfilled.” — Neville Goddard
+  </footer>
+</div>
+
+<button class="noise-fab" id="noise-btn">3D gürültüsü mü?</button>
+<div class="modal" id="noise-modal">
+  <div class="modal-card">
+    <div class="small">İtiraz Kabul Edilmez</div>
+    <div id="noise-text"></div>
+    <div style="margin-top:28px"><button class="btn" id="noise-close">Biliyorum.</button></div>
+  </div>
+</div>
+
+<div class="modal" id="settings-modal">
+  <div class="modal-card settings">
+    <div class="small">Kalıcı Hafıza — Supabase</div>
+    <p style="font-size:.88rem;color:var(--ink-dim)">Bağlandığında tüm kayıtların (onaylar, revizyonlar, senaryolar, seriler) buluta eşitlenir ve her cihazdan görünür. Bağlı değilken her şey bu tarayıcıda saklanır.</p>
+    <label for="sb-url">Proje URL</label>
+    <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co">
+    <label for="sb-key">Anon Key</label>
+    <input type="password" id="sb-key" placeholder="eyJ…">
+    <div class="row">
+      <button class="btn" id="sb-connect">Bağlan &amp; Eşitle</button>
+      <button class="btn secondary" id="sb-disconnect">Bağlantıyı Kaldır</button>
+      <button class="btn secondary" id="settings-close">Kapat</button>
+    </div>
+    <div class="settings-status" id="settings-status"></div>
+    <div class="settings-help">
+      Kurulum (bir kere): <code>supabase.com</code> → ücretsiz proje aç →
+      SQL Editor'e repodaki <code>supabase/schema.sql</code> dosyasını yapıştır, çalıştır →
+      Project Settings → API'den <code>URL</code> ve <code>anon key</code>'i buraya gir. Bitti.
+    </div>
+  </div>
+</div>
+
+<script src="js/content.enc.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+<script src="js/vault.js"></script>
+</body>
+</html>
