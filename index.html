@@ -90,6 +90,10 @@
       <button class="btn secondary" id="talk-next">Sıradaki</button>
       <button class="btn secondary" id="talk-loop">Döngü ▶</button>
     </div>
+    <div class="row">
+      <input type="text" id="talk-input" placeholder="Duymak istediğin cümleyi yaz — kimden geliyorsa onun ağzından">
+      <button class="btn" id="talk-add">Ekle</button>
+    </div>
   </section>
 
   <!-- SAHNEYE GİRİŞ -->
@@ -162,6 +166,7 @@
   <section>
     <h2>Revizyon</h2>
     <p class="sub">Geçmiş sabit değildir. Günün istediğin gibi geçen halini yaz — bilinçaltı tarih atmaz.</p>
+    <div class="chip-row" id="revision-templates"></div>
     <textarea id="revision-input" rows="4" placeholder="Bugün aslında şöyle oldu: …"></textarea>
     <div class="row" style="justify-content:flex-end">
       <button class="btn secondary" id="revision-save">Geçmişi Mühürle</button>

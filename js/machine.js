@@ -42,6 +42,11 @@ const Machine = {
     const d = this.day();
     return Array.from({ length: n }, (_, i) => arr[(d + offset + i) % arr.length]);
   },
+  /* baz iç konuşmalar + kullanıcının kendi yazdığı kişiye özel cümleler */
+  talkPool() {
+    const custom = Store.byKind('inner_line').map(e => e.content);
+    return INNER_TALK.sohbet.lines.concat(custom);
+  },
 
   programs: {
     sabah: {
@@ -56,7 +61,7 @@ const Machine = {
           { text: 'Şimdi kim olduğunu hatırla —', t: 3, chime: true },
           ...M.rot(IAM_LINES, 3).map(l => ({ text: l, t: 4.5 })),
           { text: 'Kulak ver. Bugün senin hakkında konuşuyorlar —', t: 3, chime: true },
-          ...M.rot(INNER_TALK.sohbet.lines, 1).map(l => ({ text: l, t: 5.5 })),
+          ...M.rot(M.talkPool(), 2).map(l => ({ text: l, t: 5.5 })),
           ...M.rot(INNER_TALK.rahatlik.lines, 1, 3).map(l => ({ text: l, t: 5.5 })),
           { text: scene.label + ' — içine gir:', t: 3, chime: true },
           ...scene.lines.map(l => ({ text: l, t: 5 })),
@@ -74,7 +79,7 @@ const Machine = {
           { text: 'Kapının önündesin. İyi — çünkü içerisi seni bekliyor.', t: 4, chime: true },
           { text: 'BEN, sohbeti tereyağı gibi akıtan adamım.', t: 4.5, cls: 'big' },
           { text: 'Duy —', t: 2, chime: true },
-          ...M.rot(INNER_TALK.sohbet.lines, 3).map(l => ({ text: l, t: 4.5 })),
+          ...M.rot(M.talkPool(), 3).map(l => ({ text: l, t: 4.5 })),
           { text: 'Mühürle — içinden, robot gibi, duygu bekleme:', t: 3, chime: true },
           ...M.rot(ROBOT_SETS.sohbet.lines, 3).map(l => ({ text: l, t: 4 })),
           { text: 'Şimdi sahneyi gör —', t: 2.5, chime: true },

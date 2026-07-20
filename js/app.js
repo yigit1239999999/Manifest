@@ -9,6 +9,7 @@ const KIND_LABELS = {
   script: 'Senaryo',
   diet: 'Zihinsel Diyet',
   ladder_proof: 'Merdiven Kanıtı',
+  inner_line: 'İç Konuşma',
 };
 
 /* ---------- yıldızlar ---------- */
@@ -125,18 +126,25 @@ function renderSats() {
   });
 }
 
-/* ---------- iç konuşmalar (Neville: inner conversations) ---------- */
+/* ---------- iç konuşmalar (Neville: inner conversations + telefon tekniği) ---------- */
+function customTalkLines() { return Store.byKind('inner_line').map(e => e.content); }
+
 function renderInnerTalk() {
   const picker = $('talk-picker'), card = $('talk-card'), loopBtn = $('talk-loop');
-  const cats = Object.keys(INNER_TALK);
+  const cats = [...Object.keys(INNER_TALK), 'kisiler'];
+  const label = k => k === 'kisiler' ? 'Kişiler' : INNER_TALK[k].label;
   let cat = cats[0], i = 0, loop = null;
 
   picker.innerHTML = cats.map((k, n) =>
-    `<button data-k="${k}" class="${n === 0 ? 'active' : ''}">${INNER_TALK[k].label}</button>`).join('');
+    `<button data-k="${k}" class="${n === 0 ? 'active' : ''}">${label(k)}</button>`).join('');
+
+  const lines = () => cat === 'kisiler' ? customTalkLines() : INNER_TALK[cat].lines;
 
   const show = () => {
-    const lines = INNER_TALK[cat].lines;
-    card.innerHTML = `<span class="line">${lines[i % lines.length]}</span>`;
+    const ls = lines();
+    card.innerHTML = ls.length
+      ? `<span class="line">${ls[i % ls.length]}</span>`
+      : `<span class="line" style="color:var(--ink-dim);font-size:.95rem">${TALK_CUSTOM_HINT}</span>`;
   };
   const next = () => { i++; show(); };
   const stopLoop = () => { clearInterval(loop); loop = null; loopBtn.textContent = 'Döngü ▶'; };
@@ -154,6 +162,17 @@ function renderInnerTalk() {
     loopBtn.textContent = 'Durdur ■';
     loop = setInterval(next, 4500);
   });
+  $('talk-add').addEventListener('click', () => {
+    const v = $('talk-input').value.trim();
+    if (!v) return;
+    Store.add('inner_line', v.startsWith('“') ? v : '“' + v + '”');
+    $('talk-input').value = '';
+    cat = 'kisiler'; i = customTalkLines().length - 1;
+    [...picker.children].forEach(b => b.classList.toggle('active', b.dataset.k === 'kisiler'));
+    show();
+    renderHistory();
+  });
+  $('talk-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('talk-add').click(); });
   show();
 }
 
@@ -431,6 +450,15 @@ async function startApp() {
   bindLogSection({ inputId: 'confirm-input', btnId: 'confirm-add', logId: 'confirm-log', kind: 'confirmation', max: 30 });
   bindLogSection({ inputId: 'script-input', btnId: 'script-add', logId: 'script-log', kind: 'script', max: 10 });
   bindLogSection({ inputId: 'revision-input', btnId: 'revision-save', logId: 'revision-log', kind: 'revision', max: 10 });
+  $('revision-templates').innerHTML = REVISION_TEMPLATES.map(t =>
+    `<button data-tpl="${t}">${t.slice(0, 22)}…</button>`).join('');
+  $('revision-templates').addEventListener('click', e => {
+    const t = e.target.dataset.tpl;
+    if (!t) return;
+    const ta = $('revision-input');
+    ta.value = t; ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  });
   renderLadder();
   renderHistory();
 
