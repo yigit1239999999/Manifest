@@ -31,6 +31,17 @@
     <div class="streak" id="streak"></div>
   </header>
 
+  <!-- MAKİNE -->
+  <section>
+    <h2>Makine</h2>
+    <p class="sub">Tek dokunuş — gerisi kendiliğinden akar. Ekrana dokunmak bir sonraki faza geçirir.</p>
+    <div class="machine-grid">
+      <button class="machine-card" data-m="sabah"><b>Sabah Makinesi</b><span>~3 dk — güne o adam olarak başla</span></button>
+      <button class="machine-card" data-m="sohbet"><b>Sohbet Makinesi</b><span>~2 dk — kapı eşiğinde, girmeden hemen önce</span></button>
+      <button class="machine-card" data-m="gece"><b>Gece Makinesi</b><span>~3 dk — revizyon + ninni, içinde uyu</span></button>
+    </div>
+  </section>
+
   <!-- GÜNÜN VARSAYIMI -->
   <section>
     <h2>Bugünün Varsayımı</h2>
@@ -211,6 +222,19 @@
   </div>
 </div>
 
+<div class="machine-overlay" id="machine-overlay">
+  <div class="machine-bar"><div class="machine-bar-fill" id="machine-bar-fill"></div></div>
+  <div class="machine-top">
+    <span id="machine-title"></span>
+    <span>
+      <button class="machine-ctl" id="machine-sound">🔔</button>
+      <button class="machine-ctl" id="machine-close">✕</button>
+    </span>
+  </div>
+  <div class="machine-text" id="machine-text"></div>
+  <div class="machine-hint">dokun → ilerle</div>
+</div>
+
 <div class="modal" id="settings-modal">
   <div class="modal-card settings">
     <div class="small">Kalıcı Hafıza — Supabase</div>
@@ -235,6 +259,7 @@
 
 <script src="js/content.enc.js"></script>
 <script src="js/storage.js"></script>
+<script src="js/machine.js"></script>
 <script src="js/app.js"></script>
 <script src="js/vault.js"></script>
 </body>

@@ -238,6 +238,51 @@ textarea:focus, input:focus { outline: none; border-color: var(--gold); }
 /* ---------- geçmiş ---------- */
 .history-empty { text-align: center; color: var(--ink-dim); font-style: italic; font-family: var(--serif); padding: 20px; }
 
+/* ---------- makine ---------- */
+.machine-grid { display: grid; gap: 14px; }
+.machine-card {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 16px; padding: 22px 24px; cursor: pointer;
+  text-align: left; color: var(--ink); font-family: var(--sans);
+  transition: border-color .3s, transform .3s;
+}
+.machine-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+.machine-card b { display: block; font-size: 1.05rem; margin-bottom: 4px; color: var(--gold-soft); }
+.machine-card span { font-size: .85rem; color: var(--ink-dim); }
+.machine-card.suggested { border-color: var(--gold); box-shadow: 0 0 24px rgba(232,179,75,.15); }
+.machine-card.suggested b::after { content: ' · şimdi'; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+
+.machine-overlay {
+  position: fixed; inset: 0; z-index: 50; display: none;
+  background: linear-gradient(180deg, #08061a 0%, var(--bg-2) 60%, var(--dawn-1) 100%);
+  cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.machine-overlay.open { display: grid; grid-template-rows: auto auto 1fr auto; }
+.machine-bar { height: 3px; background: rgba(255,255,255,.08); }
+.machine-bar-fill {
+  height: 100%; width: 0; background: linear-gradient(90deg, var(--gold), var(--gold-soft));
+  transition-property: width; transition-timing-function: linear;
+}
+.machine-top {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 20px; font-size: .8rem; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-dim);
+}
+.machine-ctl {
+  background: transparent; border: none; color: var(--ink-dim);
+  font-size: 1.05rem; cursor: pointer; padding: 6px 10px;
+}
+.machine-text {
+  display: grid; place-items: center; padding: 0 28px; text-align: center;
+  font-family: var(--serif); font-size: clamp(1.3rem, 4.5vw, 1.9rem);
+  line-height: 1.8; color: var(--ink);
+}
+.machine-text .line.big { color: var(--gold-soft); font-size: clamp(1.6rem, 6vw, 2.4rem); }
+.machine-hint {
+  text-align: center; padding: 22px; font-size: .72rem;
+  letter-spacing: .2em; text-transform: uppercase; color: rgba(184,174,214,.45);
+}
+
 /* ---------- fab & modal ---------- */
 .noise-fab.left { right: auto; left: 22px; }
 .freedom-mission {

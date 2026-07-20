@@ -406,6 +406,7 @@ async function startApp() {
   renderMemory();
   bindNoise();
   bindFreedom();
+  Machine.bind();
   bindSettings();
   bindHistoryFilters();
 
