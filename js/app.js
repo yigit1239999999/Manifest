@@ -125,6 +125,87 @@ function renderSats() {
   });
 }
 
+/* ---------- iç konuşmalar (Neville: inner conversations) ---------- */
+function renderInnerTalk() {
+  const picker = $('talk-picker'), card = $('talk-card'), loopBtn = $('talk-loop');
+  const cats = Object.keys(INNER_TALK);
+  let cat = cats[0], i = 0, loop = null;
+
+  picker.innerHTML = cats.map((k, n) =>
+    `<button data-k="${k}" class="${n === 0 ? 'active' : ''}">${INNER_TALK[k].label}</button>`).join('');
+
+  const show = () => {
+    const lines = INNER_TALK[cat].lines;
+    card.innerHTML = `<span class="line">${lines[i % lines.length]}</span>`;
+  };
+  const next = () => { i++; show(); };
+  const stopLoop = () => { clearInterval(loop); loop = null; loopBtn.textContent = 'Döngü ▶'; };
+
+  picker.addEventListener('click', e => {
+    const k = e.target.dataset.k;
+    if (!k) return;
+    cat = k; i = 0;
+    [...picker.children].forEach(b => b.classList.toggle('active', b.dataset.k === k));
+    show();
+  });
+  $('talk-next').addEventListener('click', next);
+  loopBtn.addEventListener('click', () => {
+    if (loop) return stopLoop();
+    loopBtn.textContent = 'Durdur ■';
+    loop = setInterval(next, 4500);
+  });
+  show();
+}
+
+/* ---------- sahneye giriş (ön-döşeme) ---------- */
+function renderPrepave() {
+  const stage = $('prepave-stage'), btn = $('prepave-start'), timerEl = $('prepave-timer');
+  let timer = null;
+
+  btn.addEventListener('click', () => {
+    clearInterval(timer);
+    btn.style.display = 'none';
+    timerEl.style.display = '';
+    const total = PREPAVE_STEPS.reduce((s, x) => s + x.t, 0);
+    let left = total, step = 0, stepLeft = PREPAVE_STEPS[0].t;
+    const showStep = () => { stage.innerHTML = `<div class="line">${PREPAVE_STEPS[step].text}</div>`; };
+    showStep();
+    timerEl.textContent = left;
+    timer = setInterval(() => {
+      left--; stepLeft--;
+      timerEl.textContent = left > 0 ? left : '';
+      if (stepLeft <= 0 && step < PREPAVE_STEPS.length - 1) {
+        step++; stepLeft = PREPAVE_STEPS[step].t; showStep();
+      }
+      if (left <= 0) {
+        clearInterval(timer);
+        stage.innerHTML = `<div class="line" style="color:var(--gold-soft)">${PREPAVE_END}</div>`;
+        btn.style.display = '';
+        btn.textContent = 'Tekrar';
+        timerEl.style.display = 'none';
+      }
+    }, 1000);
+  });
+}
+
+/* ---------- özgürlük protokolü ---------- */
+function bindFreedom() {
+  const modal = $('freedom-modal');
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const fill = () => {
+    $('freedom-line').textContent = pick(FREEDOM_LINES);
+    $('freedom-mission').textContent = '→ ' + pick(FREEDOM_MISSIONS);
+  };
+  $('freedom-btn').addEventListener('click', () => { fill(); modal.classList.add('open'); });
+  $('freedom-other').addEventListener('click', fill);
+  $('freedom-done').addEventListener('click', () => {
+    Store.add('diet', 'Eski hikâye yakalandı → hayata döndüm.');
+    refreshDietCount();
+    renderHistory();
+    modal.classList.remove('open');
+  });
+}
+
 /* ---------- robotik tasdik ---------- */
 function renderRobot() {
   const picker = $('robot-picker'), stage = $('robot-stage'),
@@ -174,17 +255,18 @@ function renderMemory() {
 }
 
 /* ---------- zihinsel diyet ---------- */
+function refreshDietCount() {
+  $('diet-today').textContent = Store.byKind('diet').filter(e => e.day === Store.todayKey()).length;
+}
 function renderDiet() {
-  const today = () => Store.byKind('diet').filter(e => e.day === Store.todayKey()).length;
-  const update = () => { $('diet-today').textContent = today(); };
   $('diet-add').addEventListener('click', () => {
     const note = $('diet-input').value.trim();
     Store.add('diet', note || 'Yakaladım ve çevirdim.');
     $('diet-input').value = '';
-    update();
+    refreshDietCount();
     renderHistory();
   });
-  update();
+  refreshDietCount();
 }
 
 /* ---------- kayıt bölümleri (senaryo, onay, revizyon) ---------- */
@@ -318,9 +400,12 @@ async function startApp() {
   renderIam();
   renderDone();
   renderSats();
+  renderInnerTalk();
+  renderPrepave();
   renderRobot();
   renderMemory();
   bindNoise();
+  bindFreedom();
   bindSettings();
   bindHistoryFilters();
 

@@ -69,6 +69,29 @@
     </div>
   </section>
 
+  <!-- İÇ KONUŞMALAR -->
+  <section>
+    <h2>İç Konuşmalar</h2>
+    <p class="sub">Neville'in imzası: dileğin gerçekleşmiş olsaydı duyacağın cümleleri ŞİMDİ duy. Onların sesinden.</p>
+    <div class="chip-row" id="talk-picker"></div>
+    <div class="memory-card" id="talk-card"></div>
+    <div class="center">
+      <button class="btn secondary" id="talk-next">Sıradaki</button>
+      <button class="btn secondary" id="talk-loop">Döngü ▶</button>
+    </div>
+  </section>
+
+  <!-- SAHNEYE GİRİŞ -->
+  <section>
+    <h2>Sahneye Giriş</h2>
+    <p class="sub">Bir sohbete, toplantıya, ortama girmeden hemen önce: 60 saniyelik ön-döşeme. Sonuç önce, giriş sonra.</p>
+    <div class="sats-stage" id="prepave-stage"><span class="line" style="color:var(--ink-dim)">Kapının önündesin. Başlat.</span></div>
+    <div class="center">
+      <div class="timer" id="prepave-timer" style="display:none">60</div>
+      <button class="btn" id="prepave-start">Başlat — 60 sn</button>
+    </div>
+  </section>
+
   <!-- ROBOTİK TASDİK -->
   <section>
     <h2>Robotik Tasdik</h2>
@@ -168,6 +191,18 @@
 </div>
 
 <button class="noise-fab" id="noise-btn">3D gürültüsü mü?</button>
+<button class="noise-fab left" id="freedom-btn">Eski hikâye mi?</button>
+<div class="modal" id="freedom-modal">
+  <div class="modal-card">
+    <div class="small">Özgürlük Protokolü</div>
+    <div id="freedom-line"></div>
+    <div class="freedom-mission" id="freedom-mission"></div>
+    <div style="margin-top:28px">
+      <button class="btn" id="freedom-done">Hayata Döndüm ✓</button>
+      <button class="btn secondary" id="freedom-other">Başka Görev</button>
+    </div>
+  </div>
+</div>
 <div class="modal" id="noise-modal">
   <div class="modal-card">
     <div class="small">İtiraz Kabul Edilmez</div>

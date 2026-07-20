@@ -239,6 +239,12 @@ textarea:focus, input:focus { outline: none; border-color: var(--gold); }
 .history-empty { text-align: center; color: var(--ink-dim); font-style: italic; font-family: var(--serif); padding: 20px; }
 
 /* ---------- fab & modal ---------- */
+.noise-fab.left { right: auto; left: 22px; }
+.freedom-mission {
+  margin-top: 22px; padding: 16px 20px; border-radius: 14px;
+  background: rgba(232,179,75,.08); border: 1px solid var(--card-border);
+  font-size: 1rem; font-family: var(--sans); color: var(--gold-soft);
+}
 .noise-fab {
   position: fixed; right: 22px; bottom: 22px; z-index: 5;
   background: rgba(13,10,31,.85); color: var(--gold-soft);
