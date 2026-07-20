@@ -3,12 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tamamlandı ✦</title>
+<title>✦</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<!-- KAPI / KİLİT -->
 <div class="lock-overlay" id="lock-overlay">
+  <div class="door door-left"></div>
+  <div class="door door-right"></div>
   <div class="lock-card">
     <div class="lock-sigil">✦</div>
     <input type="password" id="lock-input" placeholder="Anahtar kelime" autocomplete="off">
@@ -17,22 +20,45 @@
   </div>
 </div>
 
-<div class="stars" id="stars"></div>
+<!-- GİRİŞ SEKANSI -->
+<div class="entry-overlay" id="entry-overlay">
+  <div class="entry-day" id="entry-day"></div>
+  <div class="entry-date" id="entry-date"></div>
+  <div class="entry-line" id="entry-line"></div>
+</div>
 
 <div class="wrap">
 
-  <header>
+  <!-- CANLI GÖKYÜZÜ + TAKIMYILDIZ -->
+  <header class="hero" id="hero">
+    <svg id="sky-svg" preserveAspectRatio="xMidYMid slice"></svg>
+    <div class="sky-tip" id="sky-tip"></div>
     <button class="gear" id="gear-btn" title="Ayarlar & Supabase">
       <span class="sync-dot" id="sync-dot"></span> ⚙
     </button>
-    <div class="date" id="date"></div>
-    <h1 id="greeting"></h1>
-    <div class="motto">İçeride bitti. Dışarısı sadece yetişiyor.</div>
-    <div class="streak" id="streak"></div>
+    <div class="hero-inner">
+      <div class="date" id="date"></div>
+      <h1 id="greeting"></h1>
+      <div class="motto">İçeride bitti. Dışarısı sadece yetişiyor.</div>
+      <div class="streak" id="streak"></div>
+      <div class="sky-hint" id="sky-hint"></div>
+    </div>
   </header>
 
+  <!-- KEHANET -->
+  <section class="chapter oracle-section">
+    <h2>Kehanet</h2>
+    <p class="sub" id="oracle-hint"></p>
+    <div class="oracle-wrap">
+      <div class="oracle-card" id="oracle-card">
+        <div class="oracle-face oracle-front"><span>✦</span></div>
+        <div class="oracle-face oracle-back"><div class="oracle-text"></div></div>
+      </div>
+    </div>
+  </section>
+
   <!-- MAKİNE -->
-  <section>
+  <section class="chapter">
     <h2>Makine</h2>
     <p class="sub">Tek dokunuş — gerisi kendiliğinden akar. Ekrana dokunmak bir sonraki faza geçirir.</p>
     <div class="machine-grid">
@@ -43,7 +69,7 @@
   </section>
 
   <!-- GÜNÜN VARSAYIMI -->
-  <section>
+  <section class="chapter">
     <h2>Bugünün Varsayımı</h2>
     <p class="sub">Hedef değil. Şu anki gerçeğin.</p>
     <div class="panel">
@@ -54,7 +80,7 @@
   </section>
 
   <!-- I AM -->
-  <section>
+  <section class="chapter">
     <h2>BEN</h2>
     <p class="sub">Self-concept çalışması. Her satırı içinden değil, içinden gelerek söyle.</p>
     <div class="panel iam-stage" id="iam-stage"></div>
@@ -62,14 +88,14 @@
   </section>
 
   <!-- TAMAMLANANLAR -->
-  <section>
+  <section class="chapter">
     <h2>Tamamlananlar</h2>
     <p class="sub">Bunlar dilek değil — hakkında henüz haber gelmemiş gerçekler.</p>
     <div class="done-list" id="done-list"></div>
   </section>
 
   <!-- İMAJİNAL SAHNE -->
-  <section>
+  <section class="chapter">
     <h2>İmajinal Sahne</h2>
     <p class="sub">Bir sahne seç. 68 saniye içinde yaşa. Analiz etme — hisset.</p>
     <div class="chip-row" id="sats-picker"></div>
@@ -81,7 +107,7 @@
   </section>
 
   <!-- İÇ KONUŞMALAR -->
-  <section>
+  <section class="chapter">
     <h2>İç Konuşmalar</h2>
     <p class="sub">Neville'in imzası: dileğin gerçekleşmiş olsaydı duyacağın cümleleri ŞİMDİ duy. Onların sesinden.</p>
     <div class="chip-row" id="talk-picker"></div>
@@ -97,7 +123,7 @@
   </section>
 
   <!-- SAHNEYE GİRİŞ -->
-  <section>
+  <section class="chapter">
     <h2>Sahneye Giriş</h2>
     <p class="sub">Bir sohbete, toplantıya, ortama girmeden hemen önce: 60 saniyelik ön-döşeme. Sonuç önce, giriş sonra.</p>
     <div class="sats-stage" id="prepave-stage"><span class="line" style="color:var(--ink-dim)">Kapının önündesin. Başlat.</span></div>
@@ -108,7 +134,7 @@
   </section>
 
   <!-- ROBOTİK TASDİK -->
-  <section>
+  <section class="chapter">
     <h2>Robotik Tasdik</h2>
     <p class="sub">Duygu bekleme. Sadece söyle ve dokun — tekrar inşa eder. 21'de mühürlenir.</p>
     <div class="chip-row" id="robot-picker"></div>
@@ -121,7 +147,7 @@
   </section>
 
   <!-- HATIRLIYOR MUSUN -->
-  <section>
+  <section class="chapter">
     <h2>Hatırlıyor Musun?</h2>
     <p class="sub">Dilek değil, anı. Bilinçaltı tarih atmaz — geçmiş gibi anlatılan şey geçmiş olur.</p>
     <div class="memory-card" id="memory-card"></div>
@@ -129,7 +155,7 @@
   </section>
 
   <!-- ZİHİNSEL DİYET -->
-  <section>
+  <section class="chapter">
     <h2>Zihinsel Diyet</h2>
     <p class="sub">Eski hikâyeden bir cümle yakaladın ve çevirdin mi? Sadece zaferler kaydedilir.</p>
     <div class="diet-today" id="diet-today">0</div>
@@ -141,7 +167,7 @@
   </section>
 
   <!-- SENARYO -->
-  <section>
+  <section class="chapter">
     <h2>Senaryo</h2>
     <p class="sub">Scripting: günü, olmuş bitmiş halinin ağzından yaz. Şimdiki ya da geçmiş zaman — asla gelecek.</p>
     <textarea id="script-input" rows="4"></textarea>
@@ -152,9 +178,9 @@
   </section>
 
   <!-- 3D ONAYLARI -->
-  <section>
+  <section class="chapter">
     <h2>3D Onayları</h2>
-    <p class="sub">Dış dünyanın iç dünyana yetişirken bıraktığı izler. Kaydet.</p>
+    <p class="sub">Dış dünyanın iç dünyana yetişirken bıraktığı izler. Her kayıt gökyüzüne bir yıldız ekler.</p>
     <div class="row">
       <input type="text" id="confirm-input" placeholder="Bugün 3D ne onayladı? (bir iltifat, bir sayı, bir bakış…)">
       <button class="btn" id="confirm-add">Ekle</button>
@@ -163,7 +189,7 @@
   </section>
 
   <!-- REVİZYON -->
-  <section>
+  <section class="chapter">
     <h2>Revizyon</h2>
     <p class="sub">Geçmiş sabit değildir. Günün istediğin gibi geçen halini yaz — bilinçaltı tarih atmaz.</p>
     <div class="chip-row" id="revision-templates"></div>
@@ -175,7 +201,7 @@
   </section>
 
   <!-- MERDİVEN DENEYİ -->
-  <section>
+  <section class="chapter">
     <h2>Merdiven Deneyi</h2>
     <p class="sub">Yasanın sana özel ispatı.</p>
     <div class="ladder-note" id="ladder-intro"></div>
@@ -187,8 +213,22 @@
     <div class="log" id="ladder-log"></div>
   </section>
 
+  <!-- MÜHÜRLER -->
+  <section class="chapter">
+    <h2>Mühürler</h2>
+    <p class="sub">Süreklilik hüküm demektir. Her mühür, yerleşmiş bir kimliğin damgası.</p>
+    <div class="seals-grid" id="seals-grid"></div>
+  </section>
+
+  <!-- HAFTALIK RAPOR -->
+  <section class="chapter">
+    <h2>Tutanak</h2>
+    <p class="sub">Son yedi günün resmî kaydı — iç dünyanın dış dünyaya işlediği hükümler.</p>
+    <div id="weekly-report"></div>
+  </section>
+
   <!-- GEÇMİŞ -->
-  <section>
+  <section class="chapter">
     <h2>Arşiv</h2>
     <p class="sub">Hafızan. Her kayıt, iç dünyanın dış dünyayı öncelediğinin belgesi.</p>
     <div class="chip-row" id="history-filter">
@@ -197,6 +237,7 @@
       <button data-f="revision">Revizyonlar</button>
       <button data-f="script">Senaryolar</button>
       <button data-f="diet">Zihinsel Diyet</button>
+      <button data-f="inner_line">İç Konuşmalar</button>
       <button data-f="ladder_proof">Merdiven</button>
     </div>
     <div class="log" id="history-log"></div>
@@ -209,6 +250,15 @@
 
 <button class="noise-fab" id="noise-btn">3D gürültüsü mü?</button>
 <button class="noise-fab left" id="freedom-btn">Eski hikâye mi?</button>
+
+<div class="modal" id="noise-modal">
+  <div class="modal-card">
+    <div class="small">İtiraz Kabul Edilmez</div>
+    <div id="noise-text"></div>
+    <div style="margin-top:28px"><button class="btn" id="noise-close">Biliyorum.</button></div>
+  </div>
+</div>
+
 <div class="modal" id="freedom-modal">
   <div class="modal-card">
     <div class="small">Özgürlük Protokolü</div>
@@ -218,13 +268,6 @@
       <button class="btn" id="freedom-done">Hayata Döndüm ✓</button>
       <button class="btn secondary" id="freedom-other">Başka Görev</button>
     </div>
-  </div>
-</div>
-<div class="modal" id="noise-modal">
-  <div class="modal-card">
-    <div class="small">İtiraz Kabul Edilmez</div>
-    <div id="noise-text"></div>
-    <div style="margin-top:28px"><button class="btn" id="noise-close">Biliyorum.</button></div>
   </div>
 </div>
 
@@ -244,7 +287,7 @@
 <div class="modal" id="settings-modal">
   <div class="modal-card settings">
     <div class="small">Kalıcı Hafıza — Supabase</div>
-    <p style="font-size:.88rem;color:var(--ink-dim)">Bağlandığında tüm kayıtların (onaylar, revizyonlar, senaryolar, seriler) buluta eşitlenir ve her cihazdan görünür. Bağlı değilken her şey bu tarayıcıda saklanır.</p>
+    <p style="font-size:.88rem;color:var(--ink-dim)">Bağlandığında tüm kayıtların buluta eşitlenir ve her cihazdan görünür. Bağlı değilken her şey bu tarayıcıda saklanır.</p>
     <label for="sb-url">Proje URL</label>
     <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co">
     <label for="sb-key">Anon Key</label>
@@ -258,13 +301,16 @@
     <div class="settings-help">
       Kurulum (bir kere): <code>supabase.com</code> → ücretsiz proje aç →
       SQL Editor'e repodaki <code>supabase/schema.sql</code> dosyasını yapıştır, çalıştır →
-      Project Settings → API'den <code>URL</code> ve <code>anon key</code>'i buraya gir. Bitti.
+      site adresinin sonuna <code>#sb=&lt;url&gt;|&lt;key&gt;</code> ekleyip bir kere aç.
     </div>
   </div>
 </div>
 
 <script src="js/content.enc.js"></script>
 <script src="js/storage.js"></script>
+<script src="js/sky.js"></script>
+<script src="js/oracle.js"></script>
+<script src="js/report.js"></script>
 <script src="js/machine.js"></script>
 <script src="js/app.js"></script>
 <script src="js/vault.js"></script>

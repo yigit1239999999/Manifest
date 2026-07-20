@@ -6,7 +6,7 @@ Neville Goddard'ın Law of Assumption prensipleri ve r/NevilleGoddard'ın klasik
 
 ## Mahremiyet modeli
 
-- **Kişisel içerik repoda yoktur.** Çapalar, sahneler, tasdikler — hepsi `js/content.enc.js` içinde AES-256-GCM ile mühürlüdür (PBKDF2, 300.000 iterasyon). Repoyu ya da siteyi gezen biri yalnızca bir kilit ekranı ve anlamsız şifreli veri görür.
+- **Kişisel içerik repoda yoktur.** Çapalar, sahneler, tasdikler — hepsi `js/content.enc.js` içinde AES-256-GCM ile mühürlüdür (PBKDF2, yüksek iterasyon). Repoyu ya da siteyi gezen biri yalnızca bir kilit ekranı ve anlamsız şifreli veri görür.
 - Site açılışta **anahtar kelime** ister; doğru girildiğinde içerik tarayıcıda çözülür ve o cihazda hatırlanır.
 - Kayıtlar (onaylar, revizyonlar, senaryolar…) Supabase'e gider; erişim anon key'ledir ve key repoya asla commit'lenmez — `#sb=` kurulum linkiyle cihaza bir kere tanımlanır.
 

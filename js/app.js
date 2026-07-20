@@ -3,6 +3,18 @@
 const $ = id => document.getElementById(id);
 const trDate = iso => new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
 
+/* öncelik ağırlıklı havuz: öğe, domain ağırlığı kadar tekrarlanır
+   (özgürlük > sohbet/dostluk > iş > para — hiçbir içerik dışarıda kalmaz) */
+function weightedPool(items, domainOf) {
+  const w = window.PRIORITY_WEIGHTS || {};
+  const pool = [];
+  for (const it of items) {
+    const n = w[domainOf(it)] ?? 2;
+    for (let k = 0; k < n; k++) pool.push(it);
+  }
+  return pool;
+}
+
 const KIND_LABELS = {
   confirmation: '3D Onayı',
   revision: 'Revizyon',
@@ -12,16 +24,24 @@ const KIND_LABELS = {
   inner_line: 'İç Konuşma',
 };
 
-/* ---------- yıldızlar ---------- */
-function renderStars() {
-  const box = $('stars');
-  for (let i = 0; i < 70; i++) {
-    const s = document.createElement('span');
-    s.style.left = Math.random() * 100 + '%';
-    s.style.top = Math.random() * 60 + '%';
-    s.style.animationDelay = (Math.random() * 4) + 's';
-    box.appendChild(s);
-  }
+/* ---------- giriş sekansı ---------- */
+function playEntry() {
+  const ov = $('entry-overlay');
+  const dayNum = Math.floor(Date.now() / 864e5);
+  const pool = weightedPool(ANCHORS, a => a.key);
+  $('entry-day').textContent = `${ENTRY.day_word} ${Store.streak() || 1}`;
+  $('entry-date').textContent = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  $('entry-line').textContent = '“' + pool[dayNum % pool.length].quote + '”';
+  ov.classList.add('show');
+  setTimeout(() => ov.remove(), 3600);
+}
+
+/* ---------- bölümler kaydırdıkça belirir ---------- */
+function revealChapters() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.chapter').forEach(s => obs.observe(s));
 }
 
 /* ---------- baş ---------- */
@@ -42,10 +62,11 @@ function renderHeader() {
   $('streak').textContent = `✦ ${n}. gün — durumun içinde yaşıyorsun`;
 }
 
-/* ---------- günün varsayımı + wonderful ---------- */
+/* ---------- günün varsayımı + wonderful (öncelik ağırlıklı) ---------- */
 function renderAssumption() {
   const dayNum = Math.floor(Date.now() / 864e5);
-  const a = ANCHORS[dayNum % ANCHORS.length];
+  const pool = weightedPool(ANCHORS, x => x.key);
+  const a = pool[dayNum % pool.length];
   $('assumption-quote').textContent = '“' + a.quote + '”';
   $('assumption-domain').textContent = a.domain;
 
@@ -303,7 +324,7 @@ function renderDiet() {
 }
 
 /* ---------- kayıt bölümleri (senaryo, onay, revizyon) ---------- */
-function bindLogSection({ inputId, btnId, logId, kind, max }) {
+function bindLogSection({ inputId, btnId, logId, kind, max, onAdd }) {
   const render = () => {
     const items = Store.byKind(kind).slice(-max).reverse();
     $(logId).innerHTML = items.map(i =>
@@ -316,6 +337,7 @@ function bindLogSection({ inputId, btnId, logId, kind, max }) {
     $(inputId).value = '';
     render();
     renderHistory();
+    if (onAdd) onAdd();
   });
   const input = $(inputId);
   if (input.tagName === 'INPUT') {
@@ -343,7 +365,10 @@ function renderLadder() {
     Store.addUnique('ladder', d, { label: LADDER_INFO.nightLabel });
     render();
   });
-  bindLogSection({ inputId: 'ladder-input', btnId: 'ladder-add', logId: 'ladder-log', kind: 'ladder_proof', max: 5 });
+  bindLogSection({
+    inputId: 'ladder-input', btnId: 'ladder-add', logId: 'ladder-log', kind: 'ladder_proof', max: 5,
+    onAdd: () => { Sky.birth(); Report.renderWeekly(); },
+  });
   render();
 }
 
@@ -428,7 +453,6 @@ function bindSettings() {
 
 /* ---------- açılış — kasa çözüldükten sonra vault.js çağırır ---------- */
 async function startApp() {
-  renderStars();
   renderAssumption();
   renderIam();
   renderDone();
@@ -446,8 +470,17 @@ async function startApp() {
   await Store.init();
 
   renderHeader();
+  playEntry();
+  $('sky-hint').textContent = SKY_HINT;
+  Sky.render();
+  Oracle.render();
+  Report.render();
+  revealChapters();
   renderDiet();
-  bindLogSection({ inputId: 'confirm-input', btnId: 'confirm-add', logId: 'confirm-log', kind: 'confirmation', max: 30 });
+  bindLogSection({
+    inputId: 'confirm-input', btnId: 'confirm-add', logId: 'confirm-log', kind: 'confirmation', max: 30,
+    onAdd: () => { Sky.birth(); Report.renderWeekly(); },
+  });
   bindLogSection({ inputId: 'script-input', btnId: 'script-add', logId: 'script-log', kind: 'script', max: 10 });
   bindLogSection({ inputId: 'revision-input', btnId: 'revision-save', logId: 'revision-log', kind: 'revision', max: 10 });
   $('revision-templates').innerHTML = REVISION_TEMPLATES.map(t =>

@@ -37,8 +37,8 @@ const Vault = {
     const msg = document.getElementById('lock-msg');
 
     const succeed = () => {
-      overlay.classList.add('unlocked');
-      setTimeout(() => overlay.remove(), 700);
+      overlay.classList.add('unlocked'); // kapılar açılır
+      setTimeout(() => overlay.remove(), 1250);
       startApp();
     };
 

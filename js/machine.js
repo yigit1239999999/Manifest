@@ -53,8 +53,12 @@ const Machine = {
       title: 'Sabah Makinesi',
       build() {
         const M = Machine, d = M.day();
-        const anchor = ANCHORS[d % ANCHORS.length];
-        const scene = Object.values(SCENES).filter(s => s.label !== 'Ninni Modu')[d % 7];
+        const anchorPool = weightedPool(ANCHORS, a => a.key);
+        const anchor = anchorPool[d % anchorPool.length];
+        const sceneDomain = { promo: 'promo', money: 'money', friends: 'friends', anadolu: 'anadolu', respect: 'respect', freedom: 'freedom', muhabbet: 'talker' };
+        const sceneKeys = Object.keys(SCENES).filter(k => k !== 'lullaby');
+        const scenePool = weightedPool(sceneKeys, k => sceneDomain[k]);
+        const scene = SCENES[scenePool[d % scenePool.length]];
         return [
           { text: 'Her şey zaten oldu.', t: 4, chime: true, cls: 'big' },
           { text: '“' + anchor.quote + '”', t: 8 },
@@ -143,6 +147,7 @@ const Machine = {
     clearTimeout(this.stepTimer);
     this.done = true;
     Store.add('machine', this.programKey);
+    if (window.Report) Report.render(); // mühür ilerlemesi anında güncellensin
     const n = Store.streak();
     this.el('machine-text').innerHTML =
       `<div class="line big">✦</div><div class="line" style="animation-delay:.6s">Makine tamamlandı — ${n}. gün. Durumun içindesin.</div>`;
