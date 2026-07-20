@@ -75,6 +75,8 @@ const Machine = {
           { text: 'BEN, sohbeti tereyağı gibi akıtan adamım.', t: 4.5, cls: 'big' },
           { text: 'Duy —', t: 2, chime: true },
           ...M.rot(INNER_TALK.sohbet.lines, 3).map(l => ({ text: l, t: 4.5 })),
+          { text: 'Mühürle — içinden, robot gibi, duygu bekleme:', t: 3, chime: true },
+          ...M.rot(ROBOT_SETS.sohbet.lines, 3).map(l => ({ text: l, t: 4 })),
           { text: 'Şimdi sahneyi gör —', t: 2.5, chime: true },
           ...SCENES.muhabbet.lines.map(l => ({ text: l, t: 4.5 })),
           ...PREPAVE_STEPS.map(s => ({ text: s.text, t: 7 })),

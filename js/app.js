@@ -208,25 +208,39 @@ function bindFreedom() {
 
 /* ---------- robotik tasdik ---------- */
 function renderRobot() {
-  const picker = $('robot-picker'), stage = $('robot-stage'),
+  const picker = $('robot-picker'), phrases = $('robot-phrases'), stage = $('robot-stage'),
         phraseEl = $('robot-phrase'), countEl = $('robot-count');
-  let idx = 0, count = 0;
+  const cats = Object.keys(ROBOT_SETS);
+  let cat = cats[0], idx = 0, count = 0;
 
-  picker.innerHTML = ROBOT_AFFIRMATIONS.map((a, i) =>
-    `<button data-i="${i}" class="${i === 0 ? 'active' : ''}">${a.split(' ').slice(0, 3).join(' ')}…</button>`).join('');
+  const lines = () => ROBOT_SETS[cat].lines;
 
+  const renderCats = () => {
+    picker.innerHTML = cats.map(k =>
+      `<button data-k="${k}" class="${k === cat ? 'active' : ''}">${ROBOT_SETS[k].label}</button>`).join('');
+  };
+  const renderPhrases = () => {
+    phrases.innerHTML = lines().map((a, i) =>
+      `<button data-i="${i}" class="${i === idx ? 'active' : ''}">${a.split(' ').slice(0, 3).join(' ')}…</button>`).join('');
+  };
   const show = () => {
-    phraseEl.textContent = ROBOT_AFFIRMATIONS[idx];
+    phraseEl.textContent = lines()[idx];
     countEl.textContent = count;
   };
 
   picker.addEventListener('click', e => {
+    const k = e.target.dataset.k;
+    if (!k) return;
+    cat = k; idx = 0; count = 0;
+    renderCats(); renderPhrases(); show();
+  });
+  phrases.addEventListener('click', e => {
     const i = e.target.dataset.i;
     if (i === undefined) return;
     idx = +i; count = 0;
-    [...picker.children].forEach(b => b.classList.toggle('active', b.dataset.i === i));
-    show();
+    renderPhrases(); show();
   });
+  renderCats(); renderPhrases();
 
   stage.addEventListener('click', () => {
     count++;
