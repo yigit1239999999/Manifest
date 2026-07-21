@@ -15,6 +15,13 @@ const Oracle = {
     MEMORY_LINES.forEach(l => out.push(l));
     WONDERFUL_LINES.forEach(l => out.push('“' + l + '”'));
     Store.byKind('inner_line').forEach(e => { out.push(e.content); out.push(e.content); });
+    // aktif manifestler ve onlara üretilen affirmasyonlar — 2× ağırlık
+    if (window.Manifests) {
+      Manifests.active().forEach(m => { out.push('“' + m.content + '”'); out.push('“' + m.content + '”'); });
+    }
+    Store.byKind('affirm_gen')
+      .filter(e => e.meta && e.meta.role === 'affirmation')
+      .forEach(e => out.push(e.content));
     return out;
   },
 

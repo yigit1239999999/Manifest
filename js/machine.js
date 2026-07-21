@@ -42,10 +42,12 @@ const Machine = {
     const d = this.day();
     return Array.from({ length: n }, (_, i) => arr[(d + offset + i) % arr.length]);
   },
-  /* baz iç konuşmalar + kullanıcının kendi yazdığı kişiye özel cümleler */
+  /* baz iç konuşmalar + kullanıcının cümleleri + Claude'un manifest başına ürettikleri */
   talkPool() {
     const custom = Store.byKind('inner_line').map(e => e.content);
-    return INNER_TALK.sohbet.lines.concat(custom);
+    const generated = Store.byKind('affirm_gen')
+      .filter(e => e.meta && e.meta.role === 'inner').map(e => e.content);
+    return INNER_TALK.sohbet.lines.concat(custom, generated);
   },
 
   programs: {
@@ -112,10 +114,25 @@ const Machine = {
   /* ---------- oynatıcı ---------- */
   el(id) { return document.getElementById(id); },
 
+  /* Atölye sahneleri gibi anlık programlar için: başlık + adımlar + bitiş kancası */
+  runCustom(title, lines, onFinish) {
+    this.programKey = 'custom';
+    this.customFinish = onFinish || null;
+    this.steps = lines.map((l, i) => ({ text: l, t: 6, chime: i === 0 }));
+    this.idx = -1;
+    this.done = false;
+    this.el('machine-title').textContent = title;
+    this.el('machine-overlay').classList.add('open');
+    this.el('machine-bar-fill').style.width = '0%';
+    this.syncSoundBtn();
+    this.next();
+  },
+
   run(key) {
     const prog = this.programs[key];
     if (!prog) return;
     this.programKey = key;
+    this.customFinish = null;
     this.steps = prog.build();
     this.idx = -1;
     this.done = false;
@@ -147,6 +164,7 @@ const Machine = {
     clearTimeout(this.stepTimer);
     this.done = true;
     Store.add('machine', this.programKey);
+    if (this.customFinish) { try { this.customFinish(); } catch { /* kanca hatası akışı bozmasın */ } }
     if (window.Report) Report.render(); // mühür ilerlemesi anında güncellensin
     const n = Store.streak();
     this.el('machine-text').innerHTML =

@@ -57,6 +57,19 @@
     </div>
   </section>
 
+  <!-- ATÖLYE -->
+  <section class="chapter">
+    <h2>Atölye</h2>
+    <p class="sub" id="atelier-hint"></p>
+    <div id="today-work"></div>
+    <div class="chip-row" id="manifest-domains"></div>
+    <div class="row">
+      <input type="text" id="manifest-input">
+      <button class="btn" id="manifest-add">Manifesti Yaz ✦</button>
+    </div>
+    <div class="dossier-list" id="dossier-list"></div>
+  </section>
+
   <!-- MAKİNE -->
   <section class="chapter">
     <h2>Makine</h2>
@@ -224,6 +237,13 @@
     <div class="log" id="ladder-log"></div>
   </section>
 
+  <!-- GERÇEKLEŞENLER SALONU -->
+  <section class="chapter">
+    <h2>Gerçekleşenler Salonu</h2>
+    <p class="sub">Yasanın imzaladığı eserler. Her biri bir zamanlar sadece bir cümleydi.</p>
+    <div class="salon-list" id="salon-list"></div>
+  </section>
+
   <!-- MÜHÜRLER -->
   <section class="chapter">
     <h2>Mühürler</h2>
@@ -244,6 +264,7 @@
     <p class="sub">Hafızan. Her kayıt, iç dünyanın dış dünyayı öncelediğinin belgesi.</p>
     <div class="chip-row" id="history-filter">
       <button data-f="all" class="active">Tümü</button>
+      <button data-f="manifest">Manifestler</button>
       <button data-f="confirmation">3D Onayları</button>
       <button data-f="revision">Revizyonlar</button>
       <button data-f="script">Senaryolar</button>
@@ -282,6 +303,19 @@
   </div>
 </div>
 
+<div class="modal" id="ceremony-modal">
+  <div class="modal-card ceremony">
+    <div class="small">Teslim Töreni</div>
+    <div class="ceremony-sigil">✦</div>
+    <div id="ceremony-goal" class="ceremony-goal"></div>
+    <div id="ceremony-line" class="ceremony-line"></div>
+    <div style="margin-top:28px">
+      <button class="btn" id="ceremony-seal">Mühürle ✦</button>
+      <button class="btn secondary" id="ceremony-cancel">Henüz Değil</button>
+    </div>
+  </div>
+</div>
+
 <div class="machine-overlay" id="machine-overlay">
   <div class="machine-bar"><div class="machine-bar-fill" id="machine-bar-fill"></div></div>
   <div class="machine-top">
@@ -303,6 +337,9 @@
     <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co">
     <label for="sb-key">Anon Key</label>
     <input type="password" id="sb-key" placeholder="eyJ…">
+    <label for="claude-key">Claude API Key — Atölye üretimi (opsiyonel)</label>
+    <input type="password" id="claude-key" placeholder="sk-ant-…">
+    <div class="settings-help" style="margin-top:6px">Key yalnızca bu tarayıcıda saklanır ve doğrudan api.anthropic.com'a gider. Almak için: <code>console.anthropic.com</code> → API Keys.</div>
     <div class="row">
       <button class="btn" id="sb-connect">Bağlan &amp; Eşitle</button>
       <button class="btn secondary" id="sb-disconnect">Bağlantıyı Kaldır</button>
@@ -319,10 +356,12 @@
 
 <script src="js/content.enc.js"></script>
 <script src="js/storage.js"></script>
+<script src="js/claude.js"></script>
 <script src="js/sky.js"></script>
 <script src="js/oracle.js"></script>
 <script src="js/report.js"></script>
 <script src="js/machine.js"></script>
+<script src="js/manifests.js"></script>
 <script src="js/app.js"></script>
 <script src="js/vault.js"></script>
 </body>

@@ -13,8 +13,16 @@ const Sky = {
 
   proofEntries() {
     return Store.entries
-      .filter(e => e.kind === 'confirmation' || e.kind === 'ladder_proof')
+      .filter(e => e.kind === 'confirmation' || e.kind === 'ladder_proof' || e.kind === 'manifest_done')
       .sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+  },
+
+  /* manifest_done yıldızının tooltip metni: id değil, dileğin kendisi */
+  proofText(e) {
+    if (e.kind !== 'manifest_done') return e.content;
+    const goal = (e.meta && e.meta.goal) ||
+      (Store.byKind('manifest').find(m => m.id === e.content) || {}).content || '';
+    return '✦ Gerçekleşti: ' + goal;
   },
 
   /* konum id'den deterministik ORAN olarak gelir; her ekranda aynı düzen, hep görünür */
@@ -61,7 +69,8 @@ const Sky = {
 
   starSvg(e, i, total, born) {
     const { x, y } = this.pos(e);
-    const r = 2 + (i / Math.max(1, total - 1)) * 2.2; // yeniler daha parlak/büyük
+    let r = 2 + (i / Math.max(1, total - 1)) * 2.2; // yeniler daha parlak/büyük
+    if (e.kind === 'manifest_done') r *= 1.9;       // teslim edilen manifest: büyük yıldız
     return `<g class="proof-star ${born ? 'born' : ''}" data-id="${e.id}" transform="translate(${x},${y})">
       <circle r="${r * 4}" fill="transparent"></circle>
       <circle r="${r}" fill="#f0cd8a"></circle>
@@ -104,7 +113,7 @@ const Sky = {
       if (!g) { tip.classList.remove('show'); return; }
       const e = proofs.find(p => p.id === g.dataset.id);
       if (!e) return;
-      tip.innerHTML = `<span class="when">${new Date(e.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</span>${e.content}`;
+      tip.innerHTML = `<span class="when">${new Date(e.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</span>${this.proofText(e)}`;
       tip.classList.add('show');
       const rect = svg.getBoundingClientRect();
       const x = Math.min(Math.max(ev.clientX - rect.left, 90), rect.width - 90);

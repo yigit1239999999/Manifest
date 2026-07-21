@@ -22,6 +22,7 @@ const KIND_LABELS = {
   diet: 'Zihinsel Diyet',
   ladder_proof: 'Merdiven Kanıtı',
   inner_line: 'İç Konuşma',
+  manifest: 'Manifest',
 };
 
 /* ---------- giriş sekansı ---------- */
@@ -251,10 +252,19 @@ function renderRobot() {
   const picker = $('robot-picker'), phrases = $('robot-phrases'), stage = $('robot-stage'),
         phraseEl = $('robot-phrase'), countEl = $('robot-count'),
         pad = $('zikir-pad'), ring = $('zikir-ring'), totalsEl = $('zikir-totals');
-  const cats = Object.keys(ROBOT_SETS);
   const CIRC = 2 * Math.PI * 54;
   const CYCLE = 33;
-  let cat = cats[0], idx = 0, mode = 'tek';
+
+  /* kanallar: sabit setler + Claude'un ürettiği manifest satırları (varsa) */
+  const sets = () => {
+    const gen = Store.byKind('affirm_gen')
+      .filter(e => e.meta && (e.meta.role === 'affirmation' || e.meta.role === 'iam'))
+      .map(e => e.content);
+    return gen.length
+      ? { manifestlerim: { label: 'Manifestlerim ✦', lines: gen.slice().reverse() }, ...ROBOT_SETS }
+      : { ...ROBOT_SETS };
+  };
+  let cat = Object.keys(sets())[0], idx = 0, mode = 'tek';
 
   /* günlük + ömürlük sayaç — zikirmatik asla sıfırlanmaz */
   const TKEY = 'robot.tally';
@@ -264,10 +274,12 @@ function renderRobot() {
   if (!tally || tally.day !== today) tally = { day: today, today: 0, total: (tally && tally.total) || 0 };
   const saveTally = () => localStorage.setItem(TKEY, JSON.stringify(tally));
 
-  const lines = () => ROBOT_SETS[cat].lines;
+  const lines = () => (sets()[cat] || Object.values(sets())[0]).lines;
   const renderCats = () => {
-    picker.innerHTML = cats.map(k =>
-      `<button data-k="${k}" class="${k === cat ? 'active' : ''}">${ROBOT_SETS[k].label}</button>`).join('');
+    const s = sets();
+    if (!s[cat]) { cat = Object.keys(s)[0]; idx = 0; }
+    picker.innerHTML = Object.keys(s).map(k =>
+      `<button data-k="${k}" class="${k === cat ? 'active' : ''}">${s[k].label}</button>`).join('');
   };
   const renderPhrases = () => {
     phrases.style.display = mode === 'akis' ? 'none' : '';
@@ -329,6 +341,9 @@ function renderRobot() {
   ring.style.strokeDasharray = CIRC;
   $('zikir-hint').textContent = ZIKIR.hint;
   renderCats(); renderPhrases(); show(); paint();
+
+  /* Atölye yeni satır ürettiğinde kanalları tazele */
+  window.refreshRobot = () => { renderCats(); renderPhrases(); show(); };
 }
 
 /* ---------- hatırlıyor musun ---------- */
@@ -452,9 +467,15 @@ function bindSettings() {
     const c = Store.cfg();
     $('sb-url').value = c ? c.url : '';
     $('sb-key').value = c ? c.key : '';
+    $('claude-key').value = ClaudeGen.key();
     status.textContent = '';
     status.className = 'settings-status';
     modal.classList.add('open');
+  });
+  $('claude-key').addEventListener('change', () => {
+    ClaudeGen.setKey($('claude-key').value);
+    status.textContent = ClaudeGen.ready() ? 'Claude anahtarı kaydedildi — Atölye üretmeye hazır.' : 'Claude anahtarı kaldırıldı.';
+    status.className = 'settings-status ok';
   });
   $('settings-close').addEventListener('click', () => modal.classList.remove('open'));
 
@@ -508,6 +529,8 @@ async function startApp() {
   Sky.render();
   Oracle.render();
   Report.render();
+  Manifests.render();
+  if (window.refreshRobot) refreshRobot(); // Store yüklendikten sonra dinamik kanalları tazele
   revealChapters();
   renderDiet();
   bindLogSection({
