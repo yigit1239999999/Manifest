@@ -472,7 +472,8 @@ function bindSettings() {
     status.className = 'settings-status';
     modal.classList.add('open');
   });
-  $('claude-key').addEventListener('change', () => {
+  // anlık kaydet: mobilde modal blur olmadan kapatılırsa 'change' hiç tetiklenmiyor
+  $('claude-key').addEventListener('input', () => {
     ClaudeGen.setKey($('claude-key').value);
     status.textContent = ClaudeGen.ready() ? 'Claude anahtarı kaydedildi — Atölye üretmeye hazır.' : 'Claude anahtarı kaldırıldı.';
     status.className = 'settings-status ok';

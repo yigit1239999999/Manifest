@@ -38,12 +38,7 @@ const ClaudeGen = {
     'Derinleştirme istenirse: önceki satırları TEKRARLAMA; aynı hedefin daha derin, daha duyusal, daha taze katmanlarını yaz.',
   ].join('\n'),
 
-  async generate(goal, existing = []) {
-    if (!this.ready()) throw new Error('noKey');
-    const user = existing.length
-      ? `Hedef: "${goal}"\n\nDaha önce üretilenler (bunları tekrarlama, derine in):\n${existing.join('\n')}`
-      : `Hedef: "${goal}"`;
-
+  async call(body) {
     let res;
     try {
       res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -54,27 +49,63 @@ const ClaudeGen = {
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true',
         },
-        body: JSON.stringify({
-          model: 'claude-opus-4-8',
-          max_tokens: 4096,
-          system: this.SYSTEM,
-          output_config: { format: { type: 'json_schema', schema: this.SCHEMA } },
-          messages: [{ role: 'user', content: user }],
-        }),
+        body: JSON.stringify(body),
       });
     } catch {
-      throw new Error('Ağa ulaşılamadı — bağlantını kontrol et.');
+      throw new Error('Ağa ulaşılamadı — bağlantı ya da içerik engelleyici (adblock) kontrol et.');
+    }
+    if (!res.ok) {
+      let detail = '';
+      try { detail = (await res.json()).error.message || ''; } catch { /* gövde okunamadı */ }
+      const err = new Error(
+        res.status === 401 ? 'API key geçersiz görünüyor — ⚙ panelinden yeniden yapıştır. (' + detail + ')' :
+        res.status === 429 ? 'Hız sınırı — bir dakika sonra tekrar dene.' :
+        'API hatası ' + res.status + (detail ? ': ' + detail : '')
+      );
+      err.status = res.status;
+      err.detail = detail;
+      throw err;
+    }
+    return res.json();
+  },
+
+  parseLoose(text) {
+    // şema garantisi yokken: metindeki ilk { ile son } arasını JSON olarak dene
+    const a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if (a === -1 || b === -1) throw new Error('Yanıt çözümlenemedi — tekrar dene.');
+    return JSON.parse(text.slice(a, b + 1));
+  },
+
+  async generate(goal, existing = []) {
+    if (!this.ready()) throw new Error('noKey');
+    const user = existing.length
+      ? `Hedef: "${goal}"\n\nDaha önce üretilenler (bunları tekrarlama, derine in):\n${existing.join('\n')}`
+      : `Hedef: "${goal}"`;
+
+    const base = {
+      model: 'claude-opus-4-8',
+      max_tokens: 4096,
+      system: this.SYSTEM,
+      messages: [{ role: 'user', content: user }],
+    };
+
+    let data, structured = true;
+    try {
+      data = await this.call({ ...base, output_config: { format: { type: 'json_schema', schema: this.SCHEMA } } });
+    } catch (err) {
+      // yapılandırılmış çıktı bu key/model için reddedilirse: düz JSON istemiyle yedek yol
+      if (err.status === 400) {
+        structured = false;
+        data = await this.call({
+          ...base,
+          system: this.SYSTEM + '\nYanıtını YALNIZCA şu anahtarlarla saf JSON olarak ver, başka hiçbir şey yazma: {"affirmations": [...], "iam": [...], "inner_talk": [...], "scene": [...]}',
+        });
+      } else throw err;
     }
 
-    if (!res.ok) {
-      if (res.status === 401) throw new Error('API key geçersiz görünüyor (⚙ panelinden kontrol et).');
-      if (res.status === 429) throw new Error('Hız sınırı — bir dakika sonra tekrar dene.');
-      throw new Error('Üretim başarısız (' + res.status + ').');
-    }
-    const data = await res.json();
     if (data.stop_reason === 'refusal') throw new Error('Bu hedef için üretim yapılamadı — hedefi yeniden ifade et.');
     const block = (data.content || []).find(b => b.type === 'text');
-    if (!block) throw new Error('Boş yanıt geldi — tekrar dene.');
-    return JSON.parse(block.text);
+    if (!block || !block.text) throw new Error('Boş yanıt geldi — tekrar dene.');
+    return structured ? JSON.parse(block.text) : this.parseLoose(block.text);
   },
 };
