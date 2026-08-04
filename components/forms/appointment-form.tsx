@@ -56,7 +56,7 @@ export function AppointmentForm({
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={tPet("title")} error={state.fieldErrors?.petId} required>
+        <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
           <Select
             name="petId"
             defaultValue={appointment?.petId ?? defaultPetId ?? ""}
@@ -123,7 +123,7 @@ export function AppointmentForm({
         </Field>
       </div>
 
-      <Field label={tPet("title")} error={state.fieldErrors?.vetId}>
+      <Field label={t("vet")} error={state.fieldErrors?.vetId}>
         <Select name="vetId" defaultValue={appointment?.vetId ?? ""}>
           <option value="">—</option>
           {vets.map((v) => (

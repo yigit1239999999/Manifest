@@ -1,17 +1,18 @@
 {
   "app": {
     "name": "PetTrack",
-    "tagline": "Veteriner CRM & Hasta Yönetimi"
+    "tagline": "Veteriner CRM & Hayvan Yönetimi"
   },
   "nav": {
     "dashboard": "Panel",
     "clients": "Müşteriler",
-    "pets": "Hastalar",
+    "pets": "Hayvanlar",
     "visits": "Vizitler",
     "appointments": "Randevular",
     "prescriptions": "Reçeteler",
     "reminders": "Hatırlatmalar",
     "invoices": "Faturalar",
+    "staff": "Ekip",
     "audit": "İşlem geçmişi",
     "signOut": "Çıkış"
   },
@@ -29,6 +30,8 @@
     "search": "Ara…",
     "back": "Geri",
     "noResults": "Sonuç yok.",
+    "searchOrType": "Ara veya yaz…",
+    "addNew": "Ekle: \"{value}\"",
     "optional": "isteğe bağlı",
     "required": "zorunlu",
     "yes": "Evet",
@@ -65,7 +68,7 @@
     "subtitle": "Bugün neler oluyor:",
     "metrics": {
       "clients": "Müşteri",
-      "pets": "Hasta",
+      "pets": "Hayvan",
       "visits": "Vizit",
       "upcomingAppointments": "Yaklaşan",
       "activePrescriptions": "Aktif reçete",
@@ -76,7 +79,7 @@
       "upcomingAppointments": "Yaklaşan randevular",
       "recentVisits": "Son vizitler",
       "upcomingVaccinations": "Yaklaşan aşılar",
-      "petsBySpecies": "Türlere göre hastalar",
+      "petsBySpecies": "Türlere göre hayvanlar",
       "visitsByType": "Türlere göre vizitler",
       "visitsLast12Weeks": "Vizitler — son 12 hafta",
       "revenueLast6Months": "Ödenen faturalar — son 6 ay"
@@ -111,7 +114,7 @@
     "notes": "Notlar",
     "archivedTitle": "Arşivlendi",
     "archiveConfirm": "Bu müşteri arşivlensin mi?",
-    "petsCount": "{count, plural, =0 {Hasta yok} one {1 hasta} other {# hasta}}",
+    "petsCount": "{count, plural, =0 {Hayvan yok} one {1 hayvan} other {# hayvan}}",
     "viewProfile": "Profili gör",
     "details": "İletişim bilgileri",
     "sections": {
@@ -126,21 +129,22 @@
     },
     "tabs": {
       "overview": "Genel",
-      "pets": "Hastalar",
+      "pets": "Hayvanlar",
       "timeline": "Zaman çizelgesi",
       "invoices": "Faturalar"
     }
   },
   "pet": {
-    "title": "Hastalar",
+    "title": "Hayvanlar",
+    "one": "Hayvan",
     "subtitle": "Kliniğinize kayıtlı tüm hayvanlar.",
-    "new": "Yeni hasta",
-    "create": "Hasta oluştur",
+    "new": "Yeni hayvan",
+    "create": "Hayvan ekle",
     "update": "Kaydet",
-    "edit": "Hastayı düzenle",
-    "search": "Hasta ara…",
-    "empty": "Henüz hasta yok.",
-    "emptySearch": "Aramayla eşleşen hasta yok.",
+    "edit": "Hayvanı düzenle",
+    "search": "Hayvan ara…",
+    "empty": "Henüz hayvan yok.",
+    "emptySearch": "Aramayla eşleşen hayvan yok.",
     "name": "İsim",
     "species": "Tür",
     "breed": "Cins",
@@ -157,7 +161,7 @@
     "notes": "Notlar",
     "sections": {
       "identity": "Kimlik",
-      "identityHint": "Temel hasta bilgileri.",
+      "identityHint": "Temel hayvan bilgileri.",
       "physical": "Fiziksel",
       "physicalHint": "Görünür özellikler ve giriş anındaki vital bulgular.",
       "medical": "Tıbbi",
@@ -168,7 +172,7 @@
     "deceased": "Vefat etti",
     "deceasedAt": "Vefat tarihi",
     "markDeceased": "Vefat etti olarak işaretle",
-    "archiveConfirm": "Bu hasta arşivlensin mi?",
+    "archiveConfirm": "Bu hayvan arşivlensin mi?",
     "tabs": {
       "overview": "Genel",
       "timeline": "Zaman çizelgesi",
@@ -180,7 +184,7 @@
   },
   "visit": {
     "title": "Vizitler",
-    "subtitle": "Hastaların tüm muayene kayıtları.",
+    "subtitle": "Hayvanların tüm muayene kayıtları.",
     "new": "Yeni vizit",
     "create": "Viziti kaydet",
     "update": "Kaydet",
@@ -215,9 +219,30 @@
     "durationMinutes": "Süre (dk)",
     "status": "Durum",
     "type": "Tür",
+    "vet": "Veteriner",
     "reason": "Sebep",
     "notes": "Notlar",
     "cancel": "Randevuyu iptal et"
+  },
+  "staff": {
+    "title": "Ekip",
+    "subtitle": "Kliniğinizde çalışan veteriner ve personel.",
+    "new": "Yeni personel",
+    "create": "Personel ekle",
+    "empty": "Henüz personel eklenmemiş.",
+    "name": "Ad soyad",
+    "email": "Email",
+    "phone": "Telefon",
+    "role": "Rol",
+    "password": "Geçici şifre",
+    "passwordHint": "En az 8 karakter. Personel daha sonra değiştirebilir.",
+    "status": "Durum",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "deactivate": "Devre dışı bırak",
+    "activate": "Aktifleştir",
+    "you": "Sen",
+    "deactivateConfirm": "Bu personel devre dışı bırakılsın mı?"
   },
   "vaccination": {
     "title": "Aşılar",
@@ -234,7 +259,7 @@
   },
   "prescription": {
     "title": "Reçeteler",
-    "subtitle": "Hastalara verilen ilaçlar.",
+    "subtitle": "Hayvanlara verilen ilaçlar.",
     "new": "Yeni reçete",
     "create": "Reçeteyi kaydet",
     "empty": "Reçete yok.",
@@ -382,7 +407,7 @@
     "visitType": {
       "WELLNESS_CHECK": "Genel kontrol",
       "VACCINATION": "Aşı",
-      "SICK_VISIT": "Hasta muayenesi",
+      "SICK_VISIT": "Hastalık muayenesi",
       "EMERGENCY": "Acil",
       "SURGERY": "Cerrahi",
       "DENTAL": "Diş",
@@ -479,7 +504,7 @@
     "goHome": "Ana sayfa",
     "entity": {
       "client": "Müşteri",
-      "pet": "Hasta",
+      "pet": "Hayvan",
       "visit": "Vizit",
       "appointment": "Randevu",
       "vaccination": "Aşı",
@@ -488,7 +513,8 @@
       "diagnostic": "Test",
       "note": "Not",
       "reminder": "Hatırlatma",
-      "invoice": "Fatura"
+      "invoice": "Fatura",
+      "user": "Personel"
     },
     "conflict": {
       "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",
@@ -500,10 +526,11 @@
     },
     "validation": {
       "ownerNotInClinic": "Bu sahip bu klinikte bulunamadı.",
-      "petNotInClinic": "Bu hasta bu klinikte bulunamadı.",
+      "petNotInClinic": "Bu hayvan bu klinikte bulunamadı.",
       "clientRequired": "Müşteri bulunamadı.",
-      "petRequired": "Hasta bulunamadı.",
-      "noteTarget": "Bir hasta veya müşteri belirtmelisin."
+      "petRequired": "Hayvan bulunamadı.",
+      "speciesUnknown": "Geçersiz tür.",
+      "noteTarget": "Bir hayvan veya müşteri belirtmelisin."
     }
   }
 }

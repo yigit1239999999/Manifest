@@ -28,8 +28,9 @@ test.describe("Auth", () => {
       .click();
 
     await expect(page).toHaveURL("/");
+    // The dashboard greets with the user's first name ("Hi, E2E" / "Merhaba E2E").
     await expect(
-      page.getByRole("heading", { name: /e2e tester/i }),
+      page.getByRole("heading", { name: /e2e/i }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: /sign out|çıkış/i }).click();

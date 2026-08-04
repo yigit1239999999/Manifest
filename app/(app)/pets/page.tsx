@@ -52,7 +52,7 @@ export default async function PetsPage({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {result.items.map((pet) => {
               const meta = [
-                tSpecies(pet.species as never),
+                pet.customSpecies?.name ?? tSpecies(pet.species as never),
                 pet.breed,
                 petAge(pet.birthDate),
               ].filter(Boolean);

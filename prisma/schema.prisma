@@ -35,6 +35,7 @@ model Clinic {
   users         User[]
   clients       Client[]
   pets          Pet[]
+  customSpecies CustomSpecies[]
   visits        Visit[]
   appointments  Appointment[]
   vaccinations  Vaccination[]
@@ -164,16 +165,20 @@ enum Sex {
 }
 
 model Pet {
-  id                String    @id @default(cuid())
+  id                String         @id @default(cuid())
   clinicId          String
-  clinic            Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic            Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   ownerId           String
-  owner             Client    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner             Client         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   name              String
   species           Species
+  /// Clinic-defined species ("her kliniğin kendi dünyası"). When set, the
+  /// enum column holds OTHER and this row's name is the display species.
+  customSpeciesId   String?
+  customSpecies     CustomSpecies? @relation(fields: [customSpeciesId], references: [id], onDelete: SetNull)
   breed             String?
-  sex               Sex       @default(UNKNOWN)
-  neutered          Boolean   @default(false)
+  sex               Sex            @default(UNKNOWN)
+  neutered          Boolean        @default(false)
   birthDate         DateTime?
   color             String?
   weightKg          Float?
@@ -182,12 +187,12 @@ model Pet {
   insurancePolicy   String?
   photoUrl          String?
   alerts            String?
-  deceased          Boolean   @default(false)
+  deceased          Boolean        @default(false)
   deceasedAt        DateTime?
   archivedAt        DateTime?
   notes             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   visits        Visit[]
   appointments  Appointment[]
@@ -203,11 +208,28 @@ model Pet {
   invoiceLines  InvoiceLine[]
 
   @@index([clinicId])
+  @@index([customSpeciesId])
   @@index([clinicId, ownerId])
   @@index([clinicId, name])
   @@index([clinicId, microchipId])
   @@index([clinicId, archivedAt])
   @@map("pets")
+}
+
+/// Clinic-defined species beyond the built-in enum (e.g. "Kirpi", "At").
+/// Created on the fly from the pet form's species combobox.
+model CustomSpecies {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+
+  pets Pet[]
+
+  @@unique([clinicId, name])
+  @@index([clinicId])
+  @@map("custom_species")
 }
 
 // ===========================================================================

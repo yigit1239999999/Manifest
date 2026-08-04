@@ -12,6 +12,7 @@
     "prescriptions": "Prescriptions",
     "reminders": "Reminders",
     "invoices": "Invoices",
+    "staff": "Team",
     "audit": "Audit log",
     "signOut": "Sign out"
   },
@@ -29,6 +30,8 @@
     "search": "Search…",
     "back": "Back",
     "noResults": "No results.",
+    "searchOrType": "Search or type…",
+    "addNew": "Add \"{value}\"",
     "optional": "optional",
     "required": "required",
     "yes": "Yes",
@@ -65,7 +68,7 @@
     "subtitle": "Here's what's happening today.",
     "metrics": {
       "clients": "Clients",
-      "pets": "Patients",
+      "pets": "Pets",
       "visits": "Visits",
       "upcomingAppointments": "Upcoming",
       "activePrescriptions": "Active Rx",
@@ -76,7 +79,7 @@
       "upcomingAppointments": "Upcoming appointments",
       "recentVisits": "Recent visits",
       "upcomingVaccinations": "Upcoming vaccinations",
-      "petsBySpecies": "Patients by species",
+      "petsBySpecies": "Pets by species",
       "visitsByType": "Visits by type",
       "visitsLast12Weeks": "Visits — last 12 weeks",
       "revenueLast6Months": "Paid invoices — last 6 months"
@@ -132,7 +135,8 @@
     }
   },
   "pet": {
-    "title": "Patients",
+    "title": "Pets",
+    "one": "Pet",
     "subtitle": "All pets registered to your clinic.",
     "new": "New pet",
     "create": "Create pet",
@@ -157,7 +161,7 @@
     "notes": "Notes",
     "sections": {
       "identity": "Identity",
-      "identityHint": "Basic patient details.",
+      "identityHint": "Basic pet details.",
       "physical": "Physical",
       "physicalHint": "Visible attributes and vitals at intake.",
       "medical": "Medical",
@@ -180,7 +184,7 @@
   },
   "visit": {
     "title": "Visits",
-    "subtitle": "Every encounter recorded for your patients.",
+    "subtitle": "Every encounter recorded for your pets.",
     "new": "New visit",
     "create": "Create visit",
     "update": "Save visit",
@@ -215,9 +219,30 @@
     "durationMinutes": "Duration (minutes)",
     "status": "Status",
     "type": "Type",
+    "vet": "Veterinarian",
     "reason": "Reason",
     "notes": "Notes",
     "cancel": "Cancel appointment"
+  },
+  "staff": {
+    "title": "Team",
+    "subtitle": "Veterinarians and staff working at your clinic.",
+    "new": "New staff member",
+    "create": "Add staff member",
+    "empty": "No staff members yet.",
+    "name": "Full name",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role",
+    "password": "Temporary password",
+    "passwordHint": "At least 8 characters. The staff member can change it later.",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "deactivate": "Deactivate",
+    "activate": "Activate",
+    "you": "You",
+    "deactivateConfirm": "Deactivate this staff member?"
   },
   "vaccination": {
     "title": "Vaccinations",
@@ -234,7 +259,7 @@
   },
   "prescription": {
     "title": "Prescriptions",
-    "subtitle": "Medications prescribed to your patients.",
+    "subtitle": "Medications prescribed to your pets.",
     "new": "New prescription",
     "create": "Save prescription",
     "empty": "No prescriptions.",
@@ -479,7 +504,7 @@
     "goHome": "Go home",
     "entity": {
       "client": "Client",
-      "pet": "Patient",
+      "pet": "Pet",
       "visit": "Visit",
       "appointment": "Appointment",
       "vaccination": "Vaccination",
@@ -488,7 +513,8 @@
       "diagnostic": "Diagnostic",
       "note": "Note",
       "reminder": "Reminder",
-      "invoice": "Invoice"
+      "invoice": "Invoice",
+      "user": "Staff member"
     },
     "conflict": {
       "invoiceDuplicate": "Invoice number is already in use.",
@@ -500,10 +526,11 @@
     },
     "validation": {
       "ownerNotInClinic": "This owner isn't in your clinic.",
-      "petNotInClinic": "This patient isn't in your clinic.",
+      "petNotInClinic": "This pet isn't in your clinic.",
       "clientRequired": "Client not found.",
-      "petRequired": "Patient not found.",
-      "noteTarget": "Pick a patient or a client to attach the note to."
+      "petRequired": "Pet not found.",
+      "speciesUnknown": "Unknown species.",
+      "noteTarget": "Pick a pet or a client to attach the note to."
     }
   }
 }

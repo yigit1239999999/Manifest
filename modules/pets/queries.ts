@@ -57,6 +57,7 @@ export async function listPets({ take = PAGE_SIZES.DROPDOWN, ...args }: ListPets
     take,
     include: {
       owner: { select: { id: true, firstName: true, lastName: true } },
+      customSpecies: { select: { id: true, name: true } },
     },
   });
 }
@@ -80,6 +81,7 @@ export async function listPetsPage({
       take: perPage,
       include: {
         owner: { select: { id: true, firstName: true, lastName: true } },
+        customSpecies: { select: { id: true, name: true } },
       },
     }),
     prisma.pet.count({ where }),
@@ -92,6 +94,7 @@ export async function getPetById(clinicId: string, id: string) {
     where: { id, clinicId },
     include: {
       owner: true,
+      customSpecies: { select: { id: true, name: true } },
       _count: {
         select: {
           visits: true,
@@ -134,4 +137,33 @@ export async function quickSearchPets(
       owner: { select: { firstName: true, lastName: true } },
     },
   });
+}
+
+/** Clinic-defined species, alphabetical — feeds the species combobox. */
+export async function listCustomSpecies(clinicId: string) {
+  return prisma.customSpecies.findMany({
+    where: { clinicId },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+/**
+ * Distinct breeds this clinic has already used, keyed by species
+ * ("DOG" | ... | "custom:<id>"). Merged into the breed combobox so the
+ * clinic's own world grows with every pet they register.
+ */
+export async function listClinicBreedOptions(clinicId: string) {
+  const rows = await prisma.pet.findMany({
+    where: { clinicId, breed: { not: null } },
+    select: { breed: true, species: true, customSpeciesId: true },
+    distinct: ["breed", "species", "customSpeciesId"],
+    take: 1000,
+  });
+  return rows
+    .filter((r) => r.breed && r.breed.trim().length > 0)
+    .map((r) => ({
+      speciesKey: r.customSpeciesId ? `custom:${r.customSpeciesId}` : r.species,
+      breed: r.breed as string,
+    }));
 }

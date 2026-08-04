@@ -25,6 +25,7 @@ interface Props {
 export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
   const t = useTranslations("visit");
   const tType = useTranslations("enum.visitType");
+  const tPet = useTranslations("pet");
   const action = visit
     ? updateVisitAction.bind(null, visit.id)
     : createVisitAction;
@@ -39,7 +40,7 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={t("type")} error={state.fieldErrors?.petId} required>
+        <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
           <Select
             name="petId"
             defaultValue={visit?.petId ?? defaultPetId ?? ""}

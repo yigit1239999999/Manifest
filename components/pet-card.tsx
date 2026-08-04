@@ -10,13 +10,18 @@ export async function PetCard({
     id: string;
     name: string;
     species: string;
+    customSpecies?: { name: string } | null;
     breed: string | null;
     birthDate: Date | null;
   };
 }) {
   const t = await getTranslations("enum.species");
   const age = petAge(pet.birthDate);
-  const meta = [t(pet.species as never), pet.breed, age].filter(Boolean);
+  const meta = [
+    pet.customSpecies?.name ?? t(pet.species as never),
+    pet.breed,
+    age,
+  ].filter(Boolean);
 
   return (
     <Link

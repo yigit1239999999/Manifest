@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { Geist } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
-import { ThemeInitScript } from "@/components/theme-init-script";
 import { ToastProvider } from "@/components/toast-provider";
+import { getThemePreference } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,35 +22,22 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const locale = await getLocale();
-  const messages = await getMessages();
+  const [locale, messages, theme] = await Promise.all([
+    getLocale(),
+    getMessages(),
+    getThemePreference(),
+  ]);
 
-  // SSR theme: trust an explicit cookie if present; otherwise the inline
-  // script in <head> upgrades to the system preference before paint.
-  const cookieStore = await cookies();
-  const cookieTheme = cookieStore.get("theme")?.value;
-  const initialTheme =
-    cookieTheme === "dark"
-      ? "dark"
-      : cookieTheme === "light"
-        ? "light"
-        : "light";
-
+  // `data-theme` is derived purely from the cookie ("light" | "dark" |
+  // "system"), so the server and client render the same value — no
+  // hydration mismatch. CSS resolves "system" via a prefers-color-scheme
+  // media query, so there's no flash and no inline script needed.
   return (
     <html
       lang={locale}
-      data-theme={initialTheme}
+      data-theme={theme}
       className={`${geistSans.variable} antialiased`}
-      // ThemeInitScript runs before paint to apply the OS preference
-      // when no cookie is set, so the server-rendered data-theme will
-      // legitimately not match the hydrated value. Suppress the warning
-      // on this element only — every child still gets full hydration
-      // checks.
-      suppressHydrationWarning
     >
-      <head>
-        <ThemeInitScript />
-      </head>
       <body className="min-h-screen bg-background text-foreground">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
