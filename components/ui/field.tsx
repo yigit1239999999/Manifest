@@ -36,14 +36,17 @@ export function Field({
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <Label htmlFor={controlId}>
-        {label}
+      {/* Keep the required "*" OUTSIDE the <label> so it never becomes part
+          of the control's accessible name (a label-internal aria-hidden span
+          is still picked up by some name computations). */}
+      <div className="flex items-center gap-0.5">
+        <Label htmlFor={controlId}>{label}</Label>
         {required && (
-          <span className="ml-0.5 text-destructive" aria-hidden="true">
+          <span className="text-destructive" aria-hidden="true">
             *
           </span>
         )}
-      </Label>
+      </div>
       {child}
       {hint && !hasError && (
         <p className="text-xs text-muted-foreground">{hint}</p>
