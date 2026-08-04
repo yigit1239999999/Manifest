@@ -42,11 +42,12 @@ export function PetForm({
   const [state, formAction] = useActionState(action, {});
 
   // "DOG" | ... | "custom:<id>" | free text for a brand-new species.
+  // New pets start blank so the vet consciously picks a species.
   const initialSpeciesKey = pet
     ? pet.customSpeciesId
       ? `custom:${pet.customSpeciesId}`
       : pet.species
-    : "DOG";
+    : "";
   const [speciesKey, setSpeciesKey] = useState<string>(initialSpeciesKey);
 
   const speciesOptions = useMemo(
@@ -117,8 +118,9 @@ export function PetForm({
               options={speciesOptions}
               defaultValue={initialSpeciesKey}
               allowCustom
+              required
               placeholder={tCommon("searchOrType")}
-              addLabel={tCommon("addNew")}
+              addLabel={(v) => tCommon("addNew", { value: v })}
               noResultsLabel={tCommon("noResults")}
               onValueChange={setSpeciesKey}
             />
