@@ -11,12 +11,6 @@ type Theme = (typeof THEMES)[number];
 const THEME_COOKIE = "theme";
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
   if (theme === "system") {
@@ -27,15 +21,16 @@ function applyTheme(theme: Theme) {
   }
 }
 
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({
+  className,
+  initialTheme = "system",
+}: {
+  className?: string;
+  initialTheme?: Theme;
+}) {
   const t = useTranslations("common");
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof document === "undefined") return "system";
-    const stored = readCookie(THEME_COOKIE);
-    return stored && (THEMES as readonly string[]).includes(stored)
-      ? (stored as Theme)
-      : "system";
-  });
+  // Seeded from the server-read cookie so SSR and hydration agree.
+  const [theme, setThemeState] = useState<Theme>(initialTheme);
 
   // React to OS preference changes while on "system".
   useEffect(() => {
@@ -63,7 +58,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         className,
       )}
       role="group"
-      aria-label={t("language")}
+      aria-label={t("theme")}
     >
       {THEMES.map((option) => {
         const Icon = icons[option];
