@@ -1,7 +1,7 @@
 "use client";
 
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
@@ -10,16 +10,6 @@ type Theme = (typeof THEMES)[number];
 
 const THEME_COOKIE = "theme";
 const ONE_YEAR = 60 * 60 * 24 * 365;
-
-function applyTheme(theme: Theme) {
-  const root = document.documentElement;
-  if (theme === "system") {
-    const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    root.setAttribute("data-theme", dark ? "dark" : "light");
-  } else {
-    root.setAttribute("data-theme", theme);
-  }
-}
 
 export function ThemeToggle({
   className,
@@ -32,20 +22,13 @@ export function ThemeToggle({
   // Seeded from the server-read cookie so SSR and hydration agree.
   const [theme, setThemeState] = useState<Theme>(initialTheme);
 
-  // React to OS preference changes while on "system".
-  useEffect(() => {
-    if (theme !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyTheme("system");
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, [theme]);
-
   function setTheme(next: Theme) {
     setThemeState(next);
     // eslint-disable-next-line react-hooks/immutability -- document.cookie is the persistence mechanism
     document.cookie = `${THEME_COOKIE}=${next}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
-    applyTheme(next);
+    // The `data-theme` value is written verbatim (incl. "system"); CSS
+    // resolves "system" via a prefers-color-scheme media query.
+    document.documentElement.setAttribute("data-theme", next);
   }
 
   const icons = { light: Sun, dark: Moon, system: Monitor } as const;

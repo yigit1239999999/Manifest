@@ -66,6 +66,29 @@
   --destructive-fg: #1f0a08;
 }
 
+/* "system" resolves to the OS preference in pure CSS — no JS, no flash,
+   and no hydration mismatch (the same dark palette as [data-theme="dark"]). */
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    --bg: #0f1411;
+    --fg: #f1efe9;
+    --card: #161c18;
+    --card-fg: #f1efe9;
+    --muted: #1f2521;
+    --muted-fg: #a8a39a;
+    --border: #283029;
+    --input: #1c2320;
+    --primary: #34c0a8;
+    --primary-fg: #04140f;
+    --primary-hover: #5cd6c0;
+    --accent: #173730;
+    --accent-fg: #b6e3d6;
+    --ring: #34c0a8;
+    --destructive: #e6675a;
+    --destructive-fg: #1f0a08;
+  }
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
