@@ -80,6 +80,7 @@ export async function getClientById(clinicId: string, id: string) {
       pets: {
         where: { archivedAt: null },
         orderBy: { createdAt: "desc" },
+        include: { customSpecies: { select: { name: true } } },
       },
       _count: { select: { visits: true, appointments: true, invoices: true } },
     },

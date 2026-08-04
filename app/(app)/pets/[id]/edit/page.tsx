@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
-import { getPetById } from "@/modules/pets/queries";
+import {
+  getPetById,
+  listClinicBreedOptions,
+  listCustomSpecies,
+} from "@/modules/pets/queries";
 import { listClients } from "@/modules/clients/queries";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
@@ -14,12 +18,15 @@ export default async function EditPetPage({
 }) {
   const { id } = await params;
   const session = await requireSession();
-  const [pet, owners, t, tCommon] = await Promise.all([
-    getPetById(session.user.clinicId, id),
-    listClients({ clinicId: session.user.clinicId }),
-    getTranslations("pet"),
-    getTranslations("common"),
-  ]);
+  const [pet, owners, t, tCommon, customSpecies, clinicBreeds] =
+    await Promise.all([
+      getPetById(session.user.clinicId, id),
+      listClients({ clinicId: session.user.clinicId }),
+      getTranslations("pet"),
+      getTranslations("common"),
+      listCustomSpecies(session.user.clinicId),
+      listClinicBreedOptions(session.user.clinicId),
+    ]);
   if (!pet) notFound();
 
   return (
@@ -34,6 +41,8 @@ export default async function EditPetPage({
             firstName: o.firstName,
             lastName: o.lastName,
           }))}
+          customSpecies={customSpecies}
+          clinicBreeds={clinicBreeds}
         />
       </div>
     </div>

@@ -8,6 +8,7 @@ vi.mock("@/lib/prisma", () => {
       update: vi.fn(),
     },
     client: { findFirst: vi.fn() },
+    customSpecies: { findFirst: vi.fn(), create: vi.fn() },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(),
   };
@@ -31,7 +32,7 @@ const ctx = {
 const validInput = {
   ownerId: "owner-1",
   name: "Biscuit",
-  species: "DOG" as const,
+  species: "DOG",
   breed: null,
   sex: "UNKNOWN" as const,
   neutered: false,
@@ -77,8 +78,49 @@ describe("createPet", () => {
         ownerId: "owner-1",
         name: "Biscuit",
         species: "DOG",
+        customSpeciesId: null,
       }),
     });
+  });
+
+  it("creates a clinic-scoped custom species from free text", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.customSpecies.create).mockResolvedValue({ id: "cs-1" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: "Kirpi" }, ctx);
+
+    expect(prisma.customSpecies.create).toHaveBeenCalledWith({
+      data: { clinicId: "clinic-1", name: "Kirpi" },
+      select: { id: true },
+    });
+    expect(prisma.pet.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ species: "OTHER", customSpeciesId: "cs-1" }),
+    });
+  });
+
+  it("reuses an existing custom species (case-insensitive) instead of duplicating", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue({ id: "cs-9" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: "kirpi" }, ctx);
+
+    expect(prisma.customSpecies.create).not.toHaveBeenCalled();
+    expect(prisma.pet.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ species: "OTHER", customSpeciesId: "cs-9" }),
+    });
+  });
+
+  it("rejects a custom:<id> reference from another clinic", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue(null);
+
+    await expect(
+      createPet({ ...validInput, species: "custom:cs-foreign" }, ctx),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.pet.create).not.toHaveBeenCalled();
   });
 });
 

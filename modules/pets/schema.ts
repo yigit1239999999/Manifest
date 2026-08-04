@@ -25,7 +25,10 @@ export const SEXES = ["MALE", "FEMALE", "UNKNOWN"] as const;
 export const petSchema = z.object({
   ownerId: z.string().min(1, "Sahibi seç."),
   name: requiredText(1, 80, "İsim"),
-  species: requiredEnum(SPECIES),
+  // Either a built-in Species enum value, "custom:<id>" for an existing
+  // clinic-defined species, or free text naming a new one (created by the
+  // service). Resolved in `resolveSpecies`.
+  species: requiredText(1, 60, "Tür"),
   breed: optionalText(80),
   sex: requiredEnum(SEXES),
   neutered: checkbox,

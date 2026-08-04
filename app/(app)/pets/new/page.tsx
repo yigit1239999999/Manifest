@@ -3,6 +3,10 @@ import { Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { listClients } from "@/modules/clients/queries";
+import {
+  listClinicBreedOptions,
+  listCustomSpecies,
+} from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { EmptyState } from "@/components/empty-state";
@@ -16,12 +20,15 @@ export default async function NewPetPage({
 }) {
   const session = await requireSession();
   const { ownerId } = await searchParams;
-  const [t, tCommon, tClient, owners] = await Promise.all([
-    getTranslations("pet"),
-    getTranslations("common"),
-    getTranslations("client"),
-    listClients({ clinicId: session.user.clinicId }),
-  ]);
+  const [t, tCommon, tClient, owners, customSpecies, clinicBreeds] =
+    await Promise.all([
+      getTranslations("pet"),
+      getTranslations("common"),
+      getTranslations("client"),
+      listClients({ clinicId: session.user.clinicId }),
+      listCustomSpecies(session.user.clinicId),
+      listClinicBreedOptions(session.user.clinicId),
+    ]);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -47,6 +54,8 @@ export default async function NewPetPage({
               lastName: o.lastName,
             }))}
             defaultOwnerId={ownerId}
+            customSpecies={customSpecies}
+            clinicBreeds={clinicBreeds}
           />
         </div>
       )}

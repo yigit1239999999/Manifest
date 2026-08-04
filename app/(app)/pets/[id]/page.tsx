@@ -89,7 +89,7 @@ export default async function PetPage({
 
       <PageHeader
         title={pet.name}
-        description={`${tSpecies(pet.species as never)}${
+        description={`${pet.customSpecies?.name ?? tSpecies(pet.species as never)}${
           pet.breed ? ` · ${pet.breed}` : ""
         } · ${tSex(pet.sex as never)} · ${petAge(pet.birthDate) ?? "—"}`}
       >

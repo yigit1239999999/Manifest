@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { Client, Pet } from "@/generated/prisma/client";
@@ -9,18 +9,30 @@ import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Combobox } from "@/components/ui/combobox";
 import { SubmitButton } from "@/components/submit-button";
 import { SPECIES, SEXES } from "@/modules/pets/schema";
 import { createPetAction, updatePetAction } from "@/modules/pets/actions";
 import { toDateInput } from "@/lib/format";
+import { BREEDS } from "@/lib/breeds";
 
 interface Props {
   pet?: Pet;
   owners: Pick<Client, "id" | "firstName" | "lastName">[];
   defaultOwnerId?: string;
+  /** Clinic-defined species (beyond the built-in enum). */
+  customSpecies?: { id: string; name: string }[];
+  /** Breeds this clinic already used, keyed by species ("DOG" | "custom:<id>"). */
+  clinicBreeds?: { speciesKey: string; breed: string }[];
 }
 
-export function PetForm({ pet, owners, defaultOwnerId }: Props) {
+export function PetForm({
+  pet,
+  owners,
+  defaultOwnerId,
+  customSpecies = [],
+  clinicBreeds = [],
+}: Props) {
   const t = useTranslations("pet");
   const tSpecies = useTranslations("enum.species");
   const tSex = useTranslations("enum.sex");
@@ -28,6 +40,39 @@ export function PetForm({ pet, owners, defaultOwnerId }: Props) {
 
   const action = pet ? updatePetAction.bind(null, pet.id) : createPetAction;
   const [state, formAction] = useActionState(action, {});
+
+  // "DOG" | ... | "custom:<id>" | free text for a brand-new species.
+  const initialSpeciesKey = pet
+    ? pet.customSpeciesId
+      ? `custom:${pet.customSpeciesId}`
+      : pet.species
+    : "DOG";
+  const [speciesKey, setSpeciesKey] = useState<string>(initialSpeciesKey);
+
+  const speciesOptions = useMemo(
+    () => [
+      ...SPECIES.map((s) => ({ value: s, label: tSpecies(s) })),
+      ...customSpecies.map((cs) => ({ value: `custom:${cs.id}`, label: cs.name })),
+    ],
+    [customSpecies, tSpecies],
+  );
+
+  const breedOptions = useMemo(() => {
+    const catalog = BREEDS[speciesKey] ?? [];
+    const used = clinicBreeds
+      .filter((b) => b.speciesKey === speciesKey)
+      .map((b) => b.breed);
+    const seen = new Set<string>();
+    const merged: string[] = [];
+    for (const b of [...used, ...catalog]) {
+      const key = b.toLocaleLowerCase("tr");
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(b);
+      }
+    }
+    return merged.map((b) => ({ value: b, label: b }));
+  }, [speciesKey, clinicBreeds]);
 
   useEffect(() => {
     if (state.error) toast.error(state.error);
@@ -67,17 +112,16 @@ export function PetForm({ pet, owners, defaultOwnerId }: Props) {
             error={state.fieldErrors?.species}
             required
           >
-            <Select
+            <Combobox
               name="species"
-              defaultValue={pet?.species ?? "DOG"}
-              required
-            >
-              {SPECIES.map((s) => (
-                <option key={s} value={s}>
-                  {tSpecies(s)}
-                </option>
-              ))}
-            </Select>
+              options={speciesOptions}
+              defaultValue={initialSpeciesKey}
+              allowCustom
+              placeholder={tCommon("searchOrType")}
+              addLabel={tCommon("addNew")}
+              noResultsLabel={tCommon("noResults")}
+              onValueChange={setSpeciesKey}
+            />
           </Field>
         </div>
       </FormSection>
@@ -85,7 +129,15 @@ export function PetForm({ pet, owners, defaultOwnerId }: Props) {
       <FormSection title={t("sections.physical")} description={t("sections.physicalHint")}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("breed")} error={state.fieldErrors?.breed}>
-            <Input name="breed" defaultValue={pet?.breed ?? ""} />
+            <Combobox
+              key={speciesKey}
+              name="breed"
+              freeText
+              options={breedOptions}
+              defaultValue={pet?.breed ?? ""}
+              placeholder={tCommon("searchOrType")}
+              noResultsLabel={tCommon("noResults")}
+            />
           </Field>
           <Field label={t("sex")} error={state.fieldErrors?.sex} required>
             <Select name="sex" defaultValue={pet?.sex ?? "UNKNOWN"} required>

@@ -40,7 +40,7 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={tPet("title")} error={state.fieldErrors?.petId} required>
+        <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
           <Select
             name="petId"
             defaultValue={visit?.petId ?? defaultPetId ?? ""}
