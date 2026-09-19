@@ -63,9 +63,10 @@ function appointment(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(prisma.clinic.findUnique).mockResolvedValue(clinicRow as never);
-  vi.mocked(prisma.messageLog.create).mockImplementation(
-    async ({ data }: { data: Record<string, unknown> }) => ({ id: "m-1", ...data }) as never,
-  );
+  vi.mocked(prisma.messageLog.create).mockImplementation((async (args: { data: Record<string, unknown> }) => ({
+    id: "m-1",
+    ...args.data,
+  })) as never);
 });
 
 describe("sendAppointmentMessage", () => {
