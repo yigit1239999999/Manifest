@@ -47,6 +47,7 @@ model Clinic {
   invoices      Invoice[]
   documents     Document[]
   auditLogs     AuditLog[]
+  messages      MessageLog[]
 
   @@map("clinics")
 }
@@ -104,24 +105,30 @@ enum ContactMethod {
 }
 
 model Client {
-  id               String         @id @default(cuid())
-  clinicId         String
-  clinic           Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  firstName        String
-  lastName         String
-  email            String?
-  phone            String?
-  secondaryPhone   String?
-  address          String?
-  city             String?
-  postalCode       String?
-  country          String?
-  preferredContact ContactMethod?
-  marketingOptIn   Boolean        @default(false)
-  notes            String?
-  archivedAt       DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id                String         @id @default(cuid())
+  clinicId          String
+  clinic            Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  firstName         String
+  lastName          String
+  email             String?
+  phone             String?
+  secondaryPhone    String?
+  address           String?
+  city              String?
+  postalCode        String?
+  country           String?
+  preferredContact  ContactMethod?
+  /// BCP 47 language for outbound messages ("tr" | "en"). Null falls back
+  /// to the clinic's default.
+  preferredLanguage String?
+  /// Per-client switch for automatic WhatsApp messages (appointments,
+  /// reminders). Timing is a clinic setting; this is the client's consent.
+  whatsappOptIn     Boolean        @default(true)
+  marketingOptIn    Boolean        @default(false)
+  notes             String?
+  archivedAt        DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   pets         Pet[]
   appointments Appointment[]
@@ -133,6 +140,7 @@ model Client {
   notes_rel    Note[]
   documents    Document[]
   reminders    Reminder[]
+  messages     MessageLog[]
 
   @@index([clinicId])
   @@index([clinicId, lastName, firstName])
@@ -282,6 +290,7 @@ model Appointment {
   reason          String?
   notes           String?
   visit           Visit?
+  messages        MessageLog[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -546,6 +555,8 @@ model Reminder {
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
 
+  messages MessageLog[]
+
   @@index([clinicId, dueAt])
   @@index([clinicId, status])
   @@map("reminders")
@@ -663,6 +674,54 @@ model Document {
 // ===========================================================================
 // Audit log — who changed what, when
 // ===========================================================================
+
+// ===========================================================================
+// Outbound messaging (WhatsApp appointment notifications)
+// ===========================================================================
+
+enum MessageChannel {
+  WHATSAPP
+}
+
+enum MessageKind {
+  APPOINTMENT_CONFIRMATION
+  APPOINTMENT_REMINDER
+  REMINDER_DUE
+}
+
+enum MessageStatus {
+  SENT
+  FAILED
+  MANUAL
+}
+
+/// Every outbound message, whether the provider sent it or staff opened it
+/// in WhatsApp by hand. Doubles as the dedupe source for reminders.
+model MessageLog {
+  id            String         @id @default(cuid())
+  clinicId      String
+  clinic        Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  appointment   Appointment?   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  clientId      String?
+  client        Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  reminderId    String?
+  reminder      Reminder?      @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  channel       MessageChannel @default(WHATSAPP)
+  kind          MessageKind
+  recipient     String
+  language      String
+  body          String
+  status        MessageStatus
+  providerId    String?
+  error         String?
+  createdAt     DateTime       @default(now())
+
+  @@index([clinicId, createdAt])
+  @@index([appointmentId, kind])
+  @@index([reminderId, kind])
+  @@map("message_logs")
+}
 
 enum AuditAction {
   CREATE

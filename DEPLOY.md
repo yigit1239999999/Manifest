@@ -63,3 +63,29 @@ npm install
 npm run db:migrate:deploy   # şemayı uygula
 npm run dev                 # http://localhost:3000
 ```
+
+## 4. WhatsApp bildirimleri (isteğe bağlı)
+
+Uygulama, randevu onayı / hatırlatması ve hayvan hatırlatmalarını (aşı zamanı,
+kontrol vb.) müşterinin dilinde WhatsApp ile gönderebilir. Zamanlama
+**Ayarlar → WhatsApp bildirimleri**'nden, müşteri bazında açma/kapama ise
+müşteri kartından yapılır.
+
+- **Bağlantı yokken:** randevu sayfasındaki "WhatsApp'ta aç" düğmesi hazır
+  mesajı WhatsApp'ta açar; personel tek dokunuşla gönderir. Ek kurulum gerekmez.
+- **Otomatik gönderim için** (Meta WhatsApp Cloud API) Vercel env'e ekleyin:
+
+  | Ad                          | Değer                                                  |
+  |-----------------------------|--------------------------------------------------------|
+  | `WHATSAPP_ACCESS_TOKEN`     | Meta Business → WhatsApp → API Setup'taki kalıcı token |
+  | `WHATSAPP_PHONE_NUMBER_ID`  | Aynı ekrandaki "Phone number ID"                       |
+  | `CRON_SECRET`               | Rastgele ≥16 karakter (`openssl rand -hex 24`)         |
+
+  Not: Meta, işletmenin başlattığı sohbetlerde **onaylı şablon** ister; onay
+  ve hatırlatma metinlerini Meta Business Manager'da şablon olarak kaydedin.
+
+- **Zamanlayıcı:** `vercel.json` günde bir (05:00 UTC) `/api/cron/reminders`
+  çağırır (Hobby planı günlük cron'a izin verir). "Randevudan X saat önce"
+  modunu kullanacaksanız daha sık tetikleyin: Vercel Pro'da `*/15 * * * *`,
+  ya da cron-job.org gibi ücretsiz bir servisten 15 dakikada bir
+  `Authorization: Bearer <CRON_SECRET>` başlığıyla aynı adrese GET isteği.

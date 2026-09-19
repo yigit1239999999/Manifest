@@ -22,17 +22,40 @@ import {
 import { SpeciesSettingsForm } from "@/components/forms/species-settings-form";
 import { CustomSpeciesDeleteButton } from "@/components/custom-species-delete-button";
 import { SpeciesIcon } from "@/components/species-icon";
+import { NotificationSettingsForm } from "@/components/forms/notification-settings-form";
+import { setNotificationSettingsAction } from "@/modules/notifications/actions";
+import { getClinicMessagingProfile } from "@/modules/notifications/settings";
+import { isWhatsAppConfigured } from "@/lib/whatsapp/provider";
+import { composeAppointmentMessage } from "@/lib/whatsapp/messages";
 
 export default async function SettingsPage() {
   const session = await requireSession();
   if (!can(session.user.role, "settings.manage")) redirect("/");
 
-  const [t, tSpecies, enabled, customs] = await Promise.all([
+  const [t, tSpecies, enabled, customs, profile] = await Promise.all([
     getTranslations("settings"),
     getTranslations("enum.species"),
     getEnabledSpecies(session.user.clinicId),
     listCustomSpeciesWithUsage(session.user.clinicId),
+    getClinicMessagingProfile(session.user.clinicId),
   ]);
+  if (!profile) redirect("/");
+
+  const configured = isWhatsAppConfigured();
+  const sampleStart = new Date();
+  sampleStart.setDate(sampleStart.getDate() + 1);
+  sampleStart.setHours(14, 30, 0, 0);
+  const sample = (locale: "tr" | "en", kind: "APPOINTMENT_CONFIRMATION" | "APPOINTMENT_REMINDER") =>
+    composeAppointmentMessage(kind, {
+      locale,
+      clientName: locale === "tr" ? "Ayşe Yılmaz" : "Jane Smith",
+      petName: locale === "tr" ? "Sarı" : "Max",
+      startsAt: sampleStart,
+      durationMinutes: 30,
+      visitType: locale === "tr" ? "Aşı" : "Vaccination",
+      vetName: session.user.name,
+      clinic: profile,
+    });
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -51,6 +74,54 @@ export default async function SettingsPage() {
             saveLabel={t("species.save")}
             savedMessage={t("species.saved")}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("notifications.title")}</CardTitle>
+          <CardDescription>{t("notifications.hint")}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5">
+          <p
+            className={
+              configured
+                ? "rounded-lg border border-primary/30 bg-accent px-3 py-2 text-sm text-accent-foreground"
+                : "rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+            }
+          >
+            {configured ? t("notifications.providerConnected") : t("notifications.providerMissing")}
+          </p>
+          <NotificationSettingsForm
+            action={setNotificationSettingsAction}
+            settings={profile.notifications}
+            timezone={profile.timezone}
+          />
+          <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+            <summary className="cursor-pointer font-medium">{t("notifications.preview")}</summary>
+            <div className="mt-3 grid gap-4 lg:grid-cols-2">
+              {(["tr", "en"] as const).map((locale) => (
+                <div key={locale} className="flex flex-col gap-3">
+                  <div>
+                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {t("notifications.previewConfirmation")} · {locale.toUpperCase()}
+                    </p>
+                    <pre className="whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-sans text-xs">
+                      {sample(locale, "APPOINTMENT_CONFIRMATION")}
+                    </pre>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {t("notifications.previewReminder")} · {locale.toUpperCase()}
+                    </p>
+                    <pre className="whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-sans text-xs">
+                      {sample(locale, "APPOINTMENT_REMINDER")}
+                    </pre>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
         </CardContent>
       </Card>
 

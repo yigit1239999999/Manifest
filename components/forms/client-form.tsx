@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
-import { CONTACT_METHODS } from "@/modules/clients/schema";
+import { CONTACT_METHODS, LANGUAGES } from "@/modules/clients/schema";
 import {
   createClientAction,
   updateClientAction,
@@ -24,6 +24,7 @@ export function ClientForm({ client }: Props) {
   const t = useTranslations("client");
   const tEnum = useTranslations("enum.contactMethod");
   const tCommon = useTranslations("common");
+  const tLang = useTranslations("enum.language");
 
   const action = client
     ? updateClientAction.bind(null, client.id)
@@ -108,6 +109,23 @@ export function ClientForm({ client }: Props) {
               ))}
             </Select>
           </Field>
+          <Field
+            label={t("preferredLanguage")}
+            error={state.fieldErrors?.preferredLanguage}
+            hint={t("preferredLanguageHint")}
+          >
+            <Select
+              name="preferredLanguage"
+              defaultValue={client?.preferredLanguage ?? ""}
+            >
+              <option value="">{tCommon("none")}</option>
+              {LANGUAGES.map((v) => (
+                <option key={v} value={v}>
+                  {tLang(v)}
+                </option>
+              ))}
+            </Select>
+          </Field>
         </div>
       </FormSection>
 
@@ -136,6 +154,18 @@ export function ClientForm({ client }: Props) {
         title={t("sections.preferences")}
         description={t("sections.preferencesHint")}
       >
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            name="whatsappOptIn"
+            defaultChecked={client?.whatsappOptIn ?? true}
+            className="mt-0.5 size-4 rounded border-border"
+          />
+          <span className="flex flex-col">
+            <span className="text-foreground">{t("whatsappOptIn")}</span>
+            <span className="text-xs text-muted-foreground">{t("whatsappOptInHint")}</span>
+          </span>
+        </label>
         <label className="flex items-start gap-3 text-sm">
           <input
             type="checkbox"

@@ -113,6 +113,10 @@
     "postalCode": "Posta kodu",
     "country": "Ülke",
     "preferredContact": "Tercih edilen iletişim",
+    "preferredLanguage": "Tercih edilen dil",
+    "preferredLanguageHint": "WhatsApp mesajları bu dilde gönderilir.",
+    "whatsappOptIn": "WhatsApp bildirimleri aktif",
+    "whatsappOptInHint": "Randevu onayı, hatırlatma ve aşı zamanı gibi mesajlar bu müşteriye gönderilir. Kapatıldığında otomatik mesaj gitmez.",
     "marketingOptIn": "Pazarlama iletişimine izin ver",
     "notes": "Notlar",
     "archivedTitle": "Arşivlendi",
@@ -231,7 +235,19 @@
     "vet": "Veteriner",
     "reason": "Sebep",
     "notes": "Notlar",
-    "cancel": "Randevuyu iptal et"
+    "cancel": "Randevuyu iptal et",
+    "whatsapp": {
+      "title": "WhatsApp bildirimi",
+      "language": "Mesaj dili",
+      "noPhone": "Müşterinin kayıtlı telefon numarası olmadığı için mesaj hazırlanamıyor.",
+      "openInWhatsApp": "WhatsApp'ta aç",
+      "sendNow": "Şimdi gönder",
+      "preview": "Mesajı görüntüle",
+      "history": "Gönderim geçmişi",
+      "historyEmpty": "Bu randevu için henüz mesaj gönderilmedi.",
+      "messageSent": "Mesaj gönderildi.",
+      "optedOut": "Bu müşteri için WhatsApp bildirimleri pasif. Otomatik mesaj gönderilmez; gerekirse mesajı WhatsApp'ta açarak elle iletebilirsiniz."
+    }
   },
   "staff": {
     "title": "Ekip",
@@ -268,6 +284,31 @@
       "delete": "Sil",
       "deleteConfirm": "\"{name}\" türü silinsin mi?",
       "inUse": "Kullanımda olduğu için silinemez."
+    },
+    "notifications": {
+      "title": "WhatsApp bildirimleri",
+      "hint": "Randevu mesajları müşterinin tercih ettiği dilde ve klinik saat dilimine göre hazırlanır.",
+      "enabled": "WhatsApp bildirimleri açık",
+      "confirmOnBooking": "Randevu oluşturulduğunda onay mesajı gönder",
+      "reminder": "Hatırlatma zamanı",
+      "reminderOff": "Hatırlatma gönderme",
+      "reminderHoursBefore": "Randevudan belirli bir süre önce",
+      "hoursBefore": "Kaç saat önce",
+      "reminderMorningOf": "Randevu günü, belirlenen saatte",
+      "morningHour": "Saat (0-23)",
+      "remindersTitle": "Hayvan hatırlatmaları",
+      "remindersHint": "Aşı zamanı, kontrol, takip, doğum günü ve özel hatırlatmalar için mesaj. Gönderim saati, yukarıdaki randevu günü saatiyle aynıdır.",
+      "remindersEnabled": "Hatırlatma mesajlarını gönder",
+      "remindersDaysBefore": "Kaç gün önce (0 = aynı gün)",
+      "timezone": "Klinik saat dilimi",
+      "timezoneHint": "Mesajlardaki tarih ve saatler bu saat dilimine göre yazılır.",
+      "providerConnected": "WhatsApp Business bağlantısı aktif. Mesajlar otomatik gönderilir.",
+      "providerMissing": "WhatsApp Business bağlantısı henüz yapılmadı. Bu süre içinde mesajlar randevu sayfasından tek tıkla WhatsApp'ta açılır ve elle gönderilir.",
+      "preview": "Mesaj önizlemesi",
+      "previewConfirmation": "Onay mesajı",
+      "previewReminder": "Hatırlatma mesajı",
+      "saved": "Bildirim ayarları kaydedildi.",
+      "save": "Kaydet"
     }
   },
   "vaccination": {
@@ -525,6 +566,20 @@
       "PHONE": "Telefon",
       "SMS": "SMS"
     },
+    "language": {
+      "tr": "Türkçe",
+      "en": "İngilizce"
+    },
+    "messageKind": {
+      "APPOINTMENT_CONFIRMATION": "Randevu onayı",
+      "APPOINTMENT_REMINDER": "Randevu hatırlatması",
+      "REMINDER_DUE": "Hatırlatma"
+    },
+    "messageStatus": {
+      "SENT": "Gönderildi",
+      "FAILED": "Başarısız",
+      "MANUAL": "Elle gönderildi"
+    },
     "auditAction": {
       "CREATE": "Oluşturuldu",
       "UPDATE": "Güncellendi",
@@ -567,6 +622,12 @@
       "signupFailed": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
       "invalidCredentials": "E-posta adresi veya şifre hatalı."
     },
+    "notifications": {
+      "noPhone": "Müşterinin kayıtlı telefon numarası yok.",
+      "notConfigured": "WhatsApp Business bağlantısı yapılandırılmamış.",
+      "optedOut": "Bu müşteri için WhatsApp bildirimleri pasif.",
+      "sendFailed": "Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin."
+    },
     "validation": {
       "ownerNotInClinic": "Bu sahip bu klinikte bulunamadı.",
       "petNotInClinic": "Bu hayvan bu klinikte bulunamadı.",
@@ -575,6 +636,7 @@
       "speciesUnknown": "Geçersiz tür.",
       "speciesInUse": "Bu tür hayvanlarda kullanıldığı için silinemez.",
       "speciesNoneEnabled": "En az bir tür seçili olmalı.",
+      "timezoneUnknown": "Geçersiz saat dilimi.",
       "noteTarget": "Bir hayvan veya müşteri belirtmelisiniz."
     }
   }

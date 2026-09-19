@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
+import { previewAppointmentMessages } from "@/modules/notifications/service";
+import { listMessagesForAppointment } from "@/modules/notifications/queries";
+import {
+  logManualMessageAction,
+  sendAppointmentMessageAction,
+} from "@/modules/notifications/actions";
+import { WhatsAppActions } from "@/components/whatsapp-actions";
 
 export default async function AppointmentPage({
   params,
@@ -26,13 +33,19 @@ export default async function AppointmentPage({
   const locale = await getLocale();
   const { id } = await params;
   const session = await requireSession();
-  const [appointment, t, tCommon, tType, tStatus] = await Promise.all([
-    getAppointmentById(session.user.clinicId, id),
-    getTranslations("appointment"),
-    getTranslations("common"),
-    getTranslations("enum.visitType"),
-    getTranslations("enum.appointmentStatus"),
-  ]);
+  const [appointment, t, tCommon, tType, tStatus, tKind, tMsgStatus, tLang, preview, log] =
+    await Promise.all([
+      getAppointmentById(session.user.clinicId, id),
+      getTranslations("appointment"),
+      getTranslations("common"),
+      getTranslations("enum.visitType"),
+      getTranslations("enum.appointmentStatus"),
+      getTranslations("enum.messageKind"),
+      getTranslations("enum.messageStatus"),
+      getTranslations("enum.language"),
+      previewAppointmentMessages(session.user.clinicId, id),
+      listMessagesForAppointment(session.user.clinicId, id),
+    ]);
   if (!appointment) notFound();
 
   return (
@@ -79,6 +92,63 @@ export default async function AppointmentPage({
               {appointment.notes}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle>{t("whatsapp.title")}</CardTitle>
+          {preview && (
+            <Badge variant="secondary">
+              {t("whatsapp.language")}: {tLang(preview.confirmation.language)}
+            </Badge>
+          )}
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {preview && !preview.optedIn && (
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
+              {t("whatsapp.optedOut")}
+            </p>
+          )}
+          {!preview?.confirmation.recipient ? (
+            <p className="text-sm text-muted-foreground">{t("whatsapp.noPhone")}</p>
+          ) : (
+            <WhatsAppActions
+              appointmentId={appointment.id}
+              configured={preview.configured && preview.optedIn}
+              messages={[preview.confirmation, preview.reminder].map((m) => ({
+                kind: m.kind,
+                body: m.body,
+                link: m.link,
+              }))}
+              sendAction={sendAppointmentMessageAction}
+              logManualAction={logManualMessageAction}
+            />
+          )}
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {t("whatsapp.history")}
+            </p>
+            {log.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("whatsapp.historyEmpty")}</p>
+            ) : (
+              <ul className="divide-y divide-border text-sm">
+                {log.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between gap-3 py-2">
+                    <span>
+                      {tKind(m.kind)}
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {formatDateTime(locale, m.createdAt)} · {m.language.toUpperCase()}
+                      </span>
+                    </span>
+                    <Badge variant={m.status === "FAILED" ? "destructive" : "secondary"}>
+                      {tMsgStatus(m.status)}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

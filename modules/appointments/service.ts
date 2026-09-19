@@ -4,6 +4,7 @@ import { redact, withAudited } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { AppointmentInput } from "./schema";
+import { notifyAppointmentBooked } from "@/modules/notifications/service";
 
 async function resolvePet(petId: string, clinicId: string) {
   const pet = await prisma.pet.findFirst({
@@ -21,7 +22,7 @@ export async function createAppointment(
   requirePermission(ctx.userRole, "appointments.write");
   const pet = await resolvePet(input.petId, ctx.clinicId);
 
-  return withAudited(
+  const appointment = await withAudited(
     {
       clinicId: ctx.clinicId,
       actorId: ctx.userId,
@@ -45,6 +46,8 @@ export async function createAppointment(
         },
       }),
   );
+  await notifyAppointmentBooked(appointment.id, ctx);
+  return appointment;
 }
 
 export async function updateAppointment(

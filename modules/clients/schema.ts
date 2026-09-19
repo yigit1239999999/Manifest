@@ -8,6 +8,7 @@ import {
 } from "@/lib/forms";
 
 export const CONTACT_METHODS = ["EMAIL", "PHONE", "SMS"] as const;
+export const LANGUAGES = ["tr", "en"] as const;
 
 export const clientSchema = z.object({
   firstName: requiredText(1, 80, "Ad"),
@@ -20,6 +21,8 @@ export const clientSchema = z.object({
   postalCode: optionalText(20),
   country: optionalText(80),
   preferredContact: optionalEnum(CONTACT_METHODS),
+  preferredLanguage: optionalEnum(LANGUAGES),
+  whatsappOptIn: checkbox,
   marketingOptIn: checkbox,
   notes: optionalText(2000),
 });

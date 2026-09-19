@@ -45,6 +45,8 @@ const validInput = {
   postalCode: null,
   country: null,
   preferredContact: null,
+  preferredLanguage: null,
+  whatsappOptIn: true,
   marketingOptIn: false,
   notes: null,
 };

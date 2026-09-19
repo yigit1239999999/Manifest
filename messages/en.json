@@ -113,6 +113,10 @@
     "postalCode": "Postal code",
     "country": "Country",
     "preferredContact": "Preferred contact",
+    "preferredLanguage": "Preferred language",
+    "preferredLanguageHint": "WhatsApp messages are sent in this language.",
+    "whatsappOptIn": "WhatsApp notifications enabled",
+    "whatsappOptInHint": "Appointment confirmations, reminders and due notices are sent to this client. When off, no automatic messages are sent.",
     "marketingOptIn": "Allow marketing communications",
     "notes": "Notes",
     "archivedTitle": "Archived",
@@ -231,7 +235,19 @@
     "vet": "Veterinarian",
     "reason": "Reason",
     "notes": "Notes",
-    "cancel": "Cancel appointment"
+    "cancel": "Cancel appointment",
+    "whatsapp": {
+      "title": "WhatsApp notification",
+      "language": "Message language",
+      "noPhone": "The client has no phone number on file, so no message can be prepared.",
+      "openInWhatsApp": "Open in WhatsApp",
+      "sendNow": "Send now",
+      "preview": "View message",
+      "history": "Delivery history",
+      "historyEmpty": "No messages sent for this appointment yet.",
+      "messageSent": "Message sent.",
+      "optedOut": "WhatsApp notifications are disabled for this client. Nothing is sent automatically; if needed you can still open the message in WhatsApp and send it by hand."
+    }
   },
   "staff": {
     "title": "Team",
@@ -268,6 +284,31 @@
       "delete": "Delete",
       "deleteConfirm": "Delete the species \"{name}\"?",
       "inUse": "In use and cannot be deleted."
+    },
+    "notifications": {
+      "title": "WhatsApp notifications",
+      "hint": "Appointment messages are written in the client's preferred language, in the clinic's timezone.",
+      "enabled": "WhatsApp notifications enabled",
+      "confirmOnBooking": "Send a confirmation when an appointment is created",
+      "reminder": "Reminder timing",
+      "reminderOff": "Do not send reminders",
+      "reminderHoursBefore": "A set number of hours before the appointment",
+      "hoursBefore": "Hours before",
+      "reminderMorningOf": "On the day of the appointment, at a set hour",
+      "morningHour": "Hour (0-23)",
+      "remindersTitle": "Pet reminders",
+      "remindersHint": "Messages for vaccination due, check-up, follow-up, birthday and custom reminders. Sent at the same hour as the appointment-day reminder above.",
+      "remindersEnabled": "Send reminder messages",
+      "remindersDaysBefore": "Days before (0 = same day)",
+      "timezone": "Clinic timezone",
+      "timezoneHint": "Dates and times in messages use this timezone.",
+      "providerConnected": "WhatsApp Business is connected. Messages are sent automatically.",
+      "providerMissing": "WhatsApp Business is not connected yet. Until then, messages open in WhatsApp with one click from the appointment page and are sent by hand.",
+      "preview": "Message preview",
+      "previewConfirmation": "Confirmation",
+      "previewReminder": "Reminder",
+      "saved": "Notification settings saved.",
+      "save": "Save"
     }
   },
   "vaccination": {
@@ -525,6 +566,20 @@
       "PHONE": "Phone",
       "SMS": "SMS"
     },
+    "language": {
+      "tr": "Turkish",
+      "en": "English"
+    },
+    "messageKind": {
+      "APPOINTMENT_CONFIRMATION": "Appointment confirmation",
+      "APPOINTMENT_REMINDER": "Appointment reminder",
+      "REMINDER_DUE": "Reminder"
+    },
+    "messageStatus": {
+      "SENT": "Sent",
+      "FAILED": "Failed",
+      "MANUAL": "Sent manually"
+    },
     "auditAction": {
       "CREATE": "Created",
       "UPDATE": "Updated",
@@ -567,6 +622,12 @@
       "signupFailed": "Sign-up failed. Please try again.",
       "invalidCredentials": "Email or password is incorrect."
     },
+    "notifications": {
+      "noPhone": "The client has no phone number on file.",
+      "notConfigured": "WhatsApp Business is not configured.",
+      "optedOut": "WhatsApp notifications are disabled for this client.",
+      "sendFailed": "The message could not be sent. Please try again later."
+    },
     "validation": {
       "ownerNotInClinic": "This owner isn't in your clinic.",
       "petNotInClinic": "This pet isn't in your clinic.",
@@ -575,6 +636,7 @@
       "speciesUnknown": "Unknown species.",
       "speciesInUse": "This species is in use and can't be deleted.",
       "speciesNoneEnabled": "Select at least one species.",
+      "timezoneUnknown": "Unknown timezone.",
       "noteTarget": "Pick a pet or a client to attach the note to."
     }
   }
