@@ -6,39 +6,44 @@ import { toast } from "sonner";
 import { MessageCircle, Send } from "lucide-react";
 import type { FormState } from "@/lib/action";
 import type { AppointmentMessageKind } from "@/lib/whatsapp/messages";
+import type { Channel } from "@/lib/messaging/types";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface Message {
   kind: AppointmentMessageKind;
   body: string;
-  link: string | null;
+  whatsappLink: string | null;
+  segments: number | null;
 }
 
 interface Props {
   appointmentId: string;
-  messages: Message[];
+  channel: Channel;
   configured: boolean;
+  messages: Message[];
   sendAction: (appointmentId: string, kind: AppointmentMessageKind) => Promise<FormState>;
   logManualAction: (appointmentId: string, kind: AppointmentMessageKind) => Promise<FormState>;
 }
 
-export function WhatsAppActions({
+export function NotificationActions({
   appointmentId,
-  messages,
+  channel,
   configured,
+  messages,
   sendAction,
   logManualAction,
 }: Props) {
-  const t = useTranslations("appointment.whatsapp");
+  const t = useTranslations("appointment.notifications");
   const tKind = useTranslations("enum.messageKind");
+  const tChannel = useTranslations("enum.messageChannel");
   const [pending, startTransition] = useTransition();
 
   function send(kind: AppointmentMessageKind) {
     startTransition(async () => {
       const result = await sendAction(appointmentId, kind);
       if (result?.error) toast.error(result.error);
-      else toast.success(t("messageSent"));
+      else toast.success(t("messageSent", { channel: tChannel(channel) }));
     });
   }
 
@@ -51,16 +56,20 @@ export function WhatsAppActions({
   return (
     <div className="flex flex-col gap-3">
       {messages.map((m) => (
-        <div
-          key={m.kind}
-          className="flex flex-col gap-2 rounded-lg border border-border p-3"
-        >
+        <div key={m.kind} className="flex flex-col gap-2 rounded-lg border border-border p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm font-medium text-foreground">{tKind(m.kind)}</span>
+            <span className="text-sm font-medium text-foreground">
+              {tKind(m.kind)}
+              {m.segments != null && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  {t("segments", { count: m.segments })}
+                </span>
+              )}
+            </span>
             <div className="flex items-center gap-2">
-              {m.link && (
+              {m.whatsappLink && (
                 <a
-                  href={m.link}
+                  href={m.whatsappLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => logManual(m.kind)}
@@ -70,7 +79,7 @@ export function WhatsAppActions({
                   {t("openInWhatsApp")}
                 </a>
               )}
-              {configured && m.link && (
+              {configured && (
                 <button
                   type="button"
                   disabled={pending}
@@ -78,7 +87,7 @@ export function WhatsAppActions({
                   className={cn(buttonVariants({ size: "sm" }))}
                 >
                   <Send />
-                  {t("sendNow")}
+                  {t("sendNow", { channel: tChannel(channel) })}
                 </button>
               )}
             </div>

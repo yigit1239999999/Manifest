@@ -5,6 +5,6 @@ export async function listMessagesForAppointment(clinicId: string, appointmentId
     where: { clinicId, appointmentId },
     orderBy: { createdAt: "desc" },
     take: 20,
-    select: { id: true, kind: true, status: true, createdAt: true, error: true, language: true },
+    select: { id: true, kind: true, status: true, channel: true, createdAt: true, error: true, language: true },
   });
 }

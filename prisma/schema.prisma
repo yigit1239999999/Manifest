@@ -105,30 +105,30 @@ enum ContactMethod {
 }
 
 model Client {
-  id                String         @id @default(cuid())
-  clinicId          String
-  clinic            Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  firstName         String
-  lastName          String
-  email             String?
-  phone             String?
-  secondaryPhone    String?
-  address           String?
-  city              String?
-  postalCode        String?
-  country           String?
-  preferredContact  ContactMethod?
+  id                 String         @id @default(cuid())
+  clinicId           String
+  clinic             Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  firstName          String
+  lastName           String
+  email              String?
+  phone              String?
+  secondaryPhone     String?
+  address            String?
+  city               String?
+  postalCode         String?
+  country            String?
+  preferredContact   ContactMethod?
   /// BCP 47 language for outbound messages ("tr" | "en"). Null falls back
   /// to the clinic's default.
-  preferredLanguage String?
-  /// Per-client switch for automatic WhatsApp messages (appointments,
+  preferredLanguage  String?
+  /// Per-client switch for automatic SMS/WhatsApp messages (appointments,
   /// reminders). Timing is a clinic setting; this is the client's consent.
-  whatsappOptIn     Boolean        @default(true)
-  marketingOptIn    Boolean        @default(false)
-  notes             String?
-  archivedAt        DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  notificationsOptIn Boolean        @default(true)
+  marketingOptIn     Boolean        @default(false)
+  notes              String?
+  archivedAt         DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   pets         Pet[]
   appointments Appointment[]
@@ -680,6 +680,7 @@ model Document {
 // ===========================================================================
 
 enum MessageChannel {
+  SMS
   WHATSAPP
 }
 
@@ -707,7 +708,7 @@ model MessageLog {
   client        Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
   reminderId    String?
   reminder      Reminder?      @relation(fields: [reminderId], references: [id], onDelete: Cascade)
-  channel       MessageChannel @default(WHATSAPP)
+  channel       MessageChannel @default(SMS)
   kind          MessageKind
   recipient     String
   language      String

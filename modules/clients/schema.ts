@@ -22,7 +22,7 @@ export const clientSchema = z.object({
   country: optionalText(80),
   preferredContact: optionalEnum(CONTACT_METHODS),
   preferredLanguage: optionalEnum(LANGUAGES),
-  whatsappOptIn: checkbox,
+  notificationsOptIn: checkbox,
   marketingOptIn: checkbox,
   notes: optionalText(2000),
 });

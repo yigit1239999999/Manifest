@@ -3,8 +3,11 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import type { ReminderConfig, ReminderMode } from "@/lib/whatsapp/schedule";
+import type { Channel } from "@/lib/messaging/types";
 
 export interface NotificationSettings {
+  /** Delivery channel for every automatic message. */
+  channel: Channel;
   whatsapp: {
     enabled: boolean;
     confirmOnBooking: boolean;
@@ -15,6 +18,7 @@ export interface NotificationSettings {
 }
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
+  channel: "SMS",
   whatsapp: {
     enabled: false,
     confirmOnBooking: true,
@@ -35,7 +39,10 @@ export function parseNotificationSettings(raw: unknown): NotificationSettings {
   const reminders = (src.reminders ?? {}) as Record<string, unknown>;
   const clampInt = (v: unknown, min: number, max: number, fallback: number) =>
     typeof v === "number" && Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v))) : fallback;
+  const channelRaw =
+    raw && typeof raw === "object" && "channel" in raw ? (raw as { channel?: unknown }).channel : undefined;
   return {
+    channel: channelRaw === "WHATSAPP" ? "WHATSAPP" : "SMS",
     whatsapp: {
       enabled: typeof src.enabled === "boolean" ? src.enabled : d.enabled,
       confirmOnBooking:

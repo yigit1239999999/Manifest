@@ -8,7 +8,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/submit-button";
-import { REMINDER_MODES, TIMEZONES } from "@/modules/notifications/schema";
+import { CHANNELS, REMINDER_MODES, TIMEZONES } from "@/modules/notifications/schema";
 import type { NotificationSettings } from "@/modules/notifications/settings";
 
 interface Props {
@@ -35,6 +35,30 @@ export function NotificationSettingsForm({ action, settings, timezone }: Props) 
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 text-sm font-medium text-foreground">{t("channel")}</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {CHANNELS.map((c) => (
+            <label
+              key={c}
+              className="flex cursor-pointer items-start gap-3 rounded-lg border border-border px-3 py-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-accent"
+            >
+              <input
+                type="radio"
+                name="channel"
+                value={c}
+                defaultChecked={settings.channel === c}
+                className="mt-0.5 size-4"
+              />
+              <span className="flex flex-col">
+                <span className="font-medium text-foreground">{t(`channel_${c}`)}</span>
+                <span className="text-xs text-muted-foreground">{t(`channel_${c}_hint`)}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
       <label className="flex items-start gap-3 text-sm">
         <input
           type="checkbox"
