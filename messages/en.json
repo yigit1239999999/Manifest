@@ -13,6 +13,7 @@
     "reminders": "Reminders",
     "invoices": "Invoices",
     "staff": "Team",
+    "settings": "Settings",
     "audit": "Audit log",
     "signOut": "Sign out"
   },
@@ -173,6 +174,7 @@
     "deceasedAt": "Date of passing",
     "markDeceased": "Mark as deceased",
     "archiveConfirm": "Archive this pet?",
+    "manageSpecies": "Manage species",
     "newSpecies": "New species",
     "newSpeciesHint": "Not in the list? Add your own — it's saved for your clinic so you never type it again.",
     "newSpeciesPlaceholder": "Species name (e.g. Hedgehog)",
@@ -248,6 +250,23 @@
     "activate": "Activate",
     "you": "You",
     "deactivateConfirm": "Deactivate this staff member?"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Tune how your clinic works.",
+    "species": {
+      "title": "Visible species",
+      "hint": "Which species should the pet form list? Fewer, relevant species mean faster intake. Existing pets of hidden species are unaffected.",
+      "save": "Save",
+      "saved": "Species saved.",
+      "custom": "Clinic-specific species",
+      "customHint": "Added from the pet form via \"New species\". A species in use can't be deleted.",
+      "customEmpty": "No custom species yet — add one from the pet form via \"New species\".",
+      "usage": "{count, plural, =0 {unused} one {1 pet} other {# pets}}",
+      "delete": "Delete",
+      "deleteConfirm": "Delete the species \"{name}\"?",
+      "inUse": "In use — can't be deleted."
+    }
   },
   "vaccination": {
     "title": "Vaccinations",
@@ -525,6 +544,8 @@
       "note": "Note",
       "reminder": "Reminder",
       "invoice": "Invoice",
+      "clinic": "Clinic",
+      "species": "Species",
       "user": "Staff member"
     },
     "conflict": {
@@ -541,6 +562,8 @@
       "clientRequired": "Client not found.",
       "petRequired": "Pet not found.",
       "speciesUnknown": "Unknown species.",
+      "speciesInUse": "This species is in use and can't be deleted.",
+      "speciesNoneEnabled": "Select at least one species.",
       "noteTarget": "Pick a pet or a client to attach the note to."
     }
   }

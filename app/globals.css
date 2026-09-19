@@ -98,6 +98,20 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+  /* Browser autofill paints a pale yellow/blue box that clashes with the
+     theme (very visible in dark mode). Keep the field's own colors. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-foreground);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-card) inset;
+    caret-color: var(--color-foreground);
+    transition: background-color 9999s ease-out;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-primary);
+  }
   /* Smooth color transitions when switching themes — but skip on first paint
      so the system-preference detection script doesn't flash. */
   html[data-theme] body,

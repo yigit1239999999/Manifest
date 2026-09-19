@@ -11,6 +11,7 @@ import {
   PawPrint,
   Pill,
   Receipt,
+  Settings,
   Stethoscope,
   UserCog,
   Users,
@@ -29,14 +30,24 @@ const NAV: { href: string; key: string; icon: typeof Home }[] = [
   { href: "/audit", key: "audit", icon: History },
 ];
 
-export function Sidebar({ canManageStaff = false }: { canManageStaff?: boolean }) {
+export function Sidebar({
+  canManageStaff = false,
+  canManageSettings = false,
+}: {
+  canManageStaff?: boolean;
+  canManageSettings?: boolean;
+}) {
   const t = useTranslations("nav");
   const tApp = useTranslations("app");
   const pathname = usePathname();
 
-  const items = canManageStaff
-    ? [...NAV, { href: "/staff", key: "staff", icon: UserCog }]
-    : NAV;
+  const items = [
+    ...NAV,
+    ...(canManageStaff ? [{ href: "/staff", key: "staff", icon: UserCog }] : []),
+    ...(canManageSettings
+      ? [{ href: "/settings", key: "settings", icon: Settings }]
+      : []),
+  ];
 
   const isActive = (href: string) =>
     href === "/"

@@ -19,7 +19,10 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar canManageStaff={can(session.user.role, "users.manage")} />
+      <Sidebar
+        canManageStaff={can(session.user.role, "users.manage")}
+        canManageSettings={can(session.user.role, "settings.manage")}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar
           clinicName={clinic?.name ?? "Your clinic"}

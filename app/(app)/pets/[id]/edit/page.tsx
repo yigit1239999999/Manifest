@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
+import { getEnabledSpecies } from "@/modules/species/queries";
 import {
   getPetById,
   listClinicBreedOptions,
@@ -18,7 +20,7 @@ export default async function EditPetPage({
 }) {
   const { id } = await params;
   const session = await requireSession();
-  const [pet, owners, t, tCommon, customSpecies, clinicBreeds] =
+  const [pet, owners, t, tCommon, customSpecies, clinicBreeds, enabledSpecies] =
     await Promise.all([
       getPetById(session.user.clinicId, id),
       listClients({ clinicId: session.user.clinicId }),
@@ -26,6 +28,7 @@ export default async function EditPetPage({
       getTranslations("common"),
       listCustomSpecies(session.user.clinicId),
       listClinicBreedOptions(session.user.clinicId),
+      getEnabledSpecies(session.user.clinicId),
     ]);
   if (!pet) notFound();
 
@@ -43,6 +46,8 @@ export default async function EditPetPage({
           }))}
           customSpecies={customSpecies}
           clinicBreeds={clinicBreeds}
+          enabledSpecies={enabledSpecies}
+          manageHref={can(session.user.role, "settings.manage") ? "/settings" : undefined}
         />
       </div>
     </div>

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
+import { getEnabledSpecies } from "@/modules/species/queries";
 import { listClients } from "@/modules/clients/queries";
 import {
   listClinicBreedOptions,
@@ -20,7 +22,7 @@ export default async function NewPetPage({
 }) {
   const session = await requireSession();
   const { ownerId } = await searchParams;
-  const [t, tCommon, tClient, owners, customSpecies, clinicBreeds] =
+  const [t, tCommon, tClient, owners, customSpecies, clinicBreeds, enabledSpecies] =
     await Promise.all([
       getTranslations("pet"),
       getTranslations("common"),
@@ -28,6 +30,7 @@ export default async function NewPetPage({
       listClients({ clinicId: session.user.clinicId }),
       listCustomSpecies(session.user.clinicId),
       listClinicBreedOptions(session.user.clinicId),
+      getEnabledSpecies(session.user.clinicId),
     ]);
 
   return (
@@ -56,6 +59,8 @@ export default async function NewPetPage({
             defaultOwnerId={ownerId}
             customSpecies={customSpecies}
             clinicBreeds={clinicBreeds}
+            enabledSpecies={enabledSpecies}
+            manageHref={can(session.user.role, "settings.manage") ? "/settings" : undefined}
           />
         </div>
       )}
