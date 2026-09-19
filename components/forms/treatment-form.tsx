@@ -1,14 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import {useActionState, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { SubmitButton } from "@/components/submit-button";
+import { useActionResult } from "./use-action-result";
 import { createTreatmentAction } from "@/modules/treatments/actions";
 import { toDateTimeInput } from "@/lib/format";
 import { TREATMENTS } from "@/lib/procedures";
@@ -31,13 +31,12 @@ export function TreatmentForm({
   const [state, formAction] = useActionState(createTreatmentAction, {});
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (state.success) {
+  useActionResult(state, {
+    successMessage: tCommon("saved"),
+    onSuccess: () => {
       formRef.current?.reset();
-      toast.success(tCommon("saved"));
-    }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+    },
+  });
 
   return (
     <form action={formAction} ref={formRef} className="grid gap-3 sm:grid-cols-2">

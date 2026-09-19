@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { toast } from "sonner";
+import { useActionState } from "react";
 import type { FormState } from "@/lib/action";
 import { SpeciesIcon } from "@/components/species-icon";
 import { SubmitButton } from "@/components/submit-button";
+import { useActionResult } from "./use-action-result";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -24,10 +24,7 @@ export function SpeciesSettingsForm({
 }: Props) {
   const [state, formAction] = useActionState(action, {});
 
-  useEffect(() => {
-    if (state.success) toast.success(savedMessage);
-    if (state.error) toast.error(state.error);
-  }, [state, savedMessage]);
+  useActionResult(state, { successMessage: savedMessage });
 
   const fieldError = state.fieldErrors?.species?.[0];
 

@@ -47,14 +47,14 @@ test.describe("Clinical records on the pet page", () => {
     await vacc.locator("summary").click();
     await vacc.getByLabel(/^vaccine$|^aşı$/i).fill("Karma aşı");
     await vacc.getByRole("button", { name: /save vaccination|aşıyı kaydet/i }).click();
-    await expect(page.getByText("Karma aşı")).toBeVisible();
+    await expect(page.getByText("Karma aşı").first()).toBeVisible();
 
     // Treatment (searchable combobox, free text allowed)
     const treat = page.locator("details", { hasText: /add treatment|tedavi \/ işlem ekle/i });
     await treat.locator("summary").click();
     await treat.getByLabel(/treatment \/ procedure|tedavi \/ işlem/i).fill("Tırnak kesimi");
     await treat.getByRole("button", { name: /^save$|^kaydet$/i }).click();
-    await expect(page.getByText("Tırnak kesimi")).toBeVisible();
+    await expect(page.getByText("Tırnak kesimi").first()).toBeVisible();
 
     // Diagnostic test (type-driven combobox)
     const diag = page.locator("details", { hasText: /add test|test ekle/i });
@@ -62,6 +62,6 @@ test.describe("Clinical records on the pet page", () => {
     await diag.getByLabel(/test type|test türü/i).selectOption("BLOOD");
     await diag.getByLabel(/^test$/i).fill("Hemogram");
     await diag.getByRole("button", { name: /^save$|^kaydet$/i }).click();
-    await expect(page.getByText("Hemogram")).toBeVisible();
+    await expect(page.getByText("Hemogram").first()).toBeVisible();
   });
 });

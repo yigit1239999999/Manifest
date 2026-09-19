@@ -1,12 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import {useActionState, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/submit-button";
+import { useActionResult } from "./use-action-result";
 import { PAYMENT_METHODS } from "@/modules/invoices/schema";
 import { recordPaymentAction } from "@/modules/invoices/actions";
 
@@ -23,13 +23,12 @@ export function PaymentForm({
   const [state, formAction] = useActionState(recordPaymentAction, {});
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (state.success) {
+  useActionResult(state, {
+    successMessage: tCommon("saved"),
+    onSuccess: () => {
       formRef.current?.reset();
-      toast.success(tCommon("saved"));
-    }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+    },
+  });
 
   return (
     <form action={formAction} ref={formRef} className="flex flex-col gap-3">

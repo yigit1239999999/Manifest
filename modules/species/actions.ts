@@ -9,8 +9,6 @@ export const setEnabledSpeciesAction = action(
   async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
     const keys = formData.getAll("species").map(String);
     await setEnabledSpecies(keys, ctx);
-    revalidatePath("/settings");
-    revalidatePath("/pets/new");
     return { success: true };
   },
 );

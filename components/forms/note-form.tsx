@@ -1,12 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import {useActionState, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
+import { useActionResult } from "./use-action-result";
 import { NOTE_KINDS } from "@/modules/notes/schema";
 import { createNoteAction } from "@/modules/notes/actions";
 
@@ -22,13 +22,12 @@ export function NoteForm({ petId, clientId }: Props) {
   const [state, formAction] = useActionState(createNoteAction, {});
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (state.success) {
+  useActionResult(state, {
+    successMessage: tCommon("saved"),
+    onSuccess: () => {
       formRef.current?.reset();
-      toast.success(tCommon("saved"));
-    }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+    },
+  });
 
   return (
     <form action={formAction} ref={formRef} className="flex flex-col gap-3">

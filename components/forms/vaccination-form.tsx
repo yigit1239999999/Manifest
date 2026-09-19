@@ -1,12 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import {useActionState, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
+import { useActionResult } from "./use-action-result";
 import { createVaccinationAction } from "@/modules/vaccinations/actions";
 import { toDateTimeInput } from "@/lib/format";
 
@@ -22,13 +22,12 @@ export function VaccinationForm({
   const [state, formAction] = useActionState(createVaccinationAction, {});
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (state.success) {
+  useActionResult(state, {
+    successMessage: tCommon("saved"),
+    onSuccess: () => {
       formRef.current?.reset();
-      toast.success(tCommon("saved"));
-    }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+    },
+  });
 
   return (
     <form

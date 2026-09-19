@@ -1,13 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import type { FormState } from "@/lib/action";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/submit-button";
+import { useActionResult } from "./use-action-result";
 import { CHANNELS, REMINDER_MODES, TIMEZONES } from "@/modules/notifications/schema";
 import type { NotificationSettings } from "@/modules/notifications/settings";
 
@@ -22,10 +22,7 @@ export function NotificationSettingsForm({ action, settings, timezone }: Props) 
   const [state, formAction] = useActionState(action, {});
   const [mode, setMode] = useState<string>(settings.whatsapp.reminder.mode);
 
-  useEffect(() => {
-    if (state.success) toast.success(t("saved"));
-    if (state.error) toast.error(state.error);
-  }, [state, t]);
+  useActionResult(state, { successMessage: t("saved") });
 
   const modeLabel: Record<(typeof REMINDER_MODES)[number], string> = {
     off: t("reminderOff"),

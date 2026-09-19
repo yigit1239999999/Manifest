@@ -1,14 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef } from "react";
+import {useActionState, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import type { Client, Pet } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
+import { useActionResult } from "./use-action-result";
 import { REMINDER_TYPES } from "@/modules/reminders/schema";
 import { createReminderAction } from "@/modules/reminders/actions";
 import { toDateTimeInput } from "@/lib/format";
@@ -39,13 +39,12 @@ export function ReminderForm({
     [],
   );
 
-  useEffect(() => {
-    if (state.success) {
+  useActionResult(state, {
+    successMessage: tCommon("saved"),
+    onSuccess: () => {
       formRef.current?.reset();
-      toast.success(tCommon("saved"));
-    }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+    },
+  });
 
   return (
     <form

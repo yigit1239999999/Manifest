@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { MessageCircle, Send } from "lucide-react";
 import type { FormState } from "@/lib/action";
@@ -37,6 +38,7 @@ export function NotificationActions({
   const t = useTranslations("appointment.notifications");
   const tKind = useTranslations("enum.messageKind");
   const tChannel = useTranslations("enum.messageChannel");
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function send(kind: AppointmentMessageKind) {
@@ -44,12 +46,14 @@ export function NotificationActions({
       const result = await sendAction(appointmentId, kind);
       if (result?.error) toast.error(result.error);
       else toast.success(t("messageSent", { channel: tChannel(channel) }));
+      router.refresh();
     });
   }
 
   function logManual(kind: AppointmentMessageKind) {
     startTransition(async () => {
       await logManualAction(appointmentId, kind);
+      router.refresh();
     });
   }
 

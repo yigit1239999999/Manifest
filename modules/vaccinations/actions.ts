@@ -11,9 +11,7 @@ export const createVaccinationAction = action(
     const parsed = parse(vaccinationSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
-    const vaccination = await createVaccination(parsed.data, ctx);
-    revalidatePath(`/pets/${vaccination.petId}`);
-    if (vaccination.visitId) revalidatePath(`/visits/${vaccination.visitId}`);
+    await createVaccination(parsed.data, ctx);
     return { success: true };
   },
 );
