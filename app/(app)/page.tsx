@@ -77,7 +77,7 @@ export default async function DashboardPage() {
       icon: Receipt,
       value: insights.counts.outstandingInvoices,
       href: "/invoices",
-      hint: formatMoney(insights.outstandingInvoiceCents, currency),
+      hint: formatMoney(locale, insights.outstandingInvoiceCents, currency),
     },
     {
       key: "pendingReminders" as const,
@@ -96,7 +96,7 @@ export default async function DashboardPage() {
   const revenueLast6MonthsData = insights.revenueLast6Months.map((m) => ({
     label: monthFmt.format(m.monthStart),
     value: m.cents,
-    display: formatMoney(m.cents, currency),
+    display: formatMoney(locale, m.cents, currency),
   }));
 
   const speciesBars = insights.petsBySpecies.map((g) => ({
@@ -154,7 +154,7 @@ export default async function DashboardPage() {
           <CardContent>
             <ColumnBars
               data={revenueLast6MonthsData}
-              formatValue={(v) => formatMoney(v, currency)}
+              formatValue={(v) => formatMoney(locale, v, currency)}
             />
           </CardContent>
         </Card>
@@ -181,7 +181,7 @@ export default async function DashboardPage() {
                           {a.pet.name} · {a.client.firstName} {a.client.lastName}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDateTime(a.startsAt)}
+                          {formatDateTime(locale, a.startsAt)}
                         </span>
                       </span>
                     </Link>
@@ -212,7 +212,7 @@ export default async function DashboardPage() {
                           {v.pet.name} · {v.client.firstName} {v.client.lastName}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDateTime(v.visitedAt)} · {tVisitType(v.type)}
+                          {formatDateTime(locale, v.visitedAt)} · {tVisitType(v.type)}
                         </span>
                       </span>
                     </Link>
@@ -258,10 +258,10 @@ export default async function DashboardPage() {
                     className="flex items-center justify-between rounded-xl px-2 py-2"
                   >
                     <span className="text-sm font-medium">
-                      {v.pet?.name ?? "?"} — {v.name}
+                      {v.pet?.name ?? "?"} · {v.name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {v.nextDueAt ? formatDateTime(v.nextDueAt) : "—"}
+                      {v.nextDueAt ? formatDateTime(locale, v.nextDueAt) : "-"}
                     </span>
                   </li>
                 ))}

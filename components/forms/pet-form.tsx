@@ -28,7 +28,7 @@ interface Props {
   clinicBreeds?: { speciesKey: string; breed: string }[];
   /** Built-in species this clinic chose to show (Settings → Species). */
   enabledSpecies?: readonly string[];
-  /** Link to the species settings page — only for users who may manage it. */
+  /** Link to the species settings page, only for users who may manage it. */
   manageHref?: string;
 }
 
@@ -126,7 +126,7 @@ export function PetForm({
             required
           >
             <option value="" disabled>
-              —
+              {tCommon("select")}
             </option>
             {owners.map((o) => (
               <option key={o.id} value={o.id}>

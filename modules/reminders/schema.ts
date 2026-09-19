@@ -22,7 +22,7 @@ export const REMINDER_STATUSES = [
 ] as const;
 
 export const reminderSchema = z.object({
-  clientId: z.string().min(1, "Müşteri seç."),
+  clientId: z.string().min(1, "Müşteri seçiniz."),
   petId: optionalText(40),
   type: requiredEnum(REMINDER_TYPES),
   title: requiredText(1, 120, "Başlık"),

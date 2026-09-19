@@ -24,6 +24,7 @@ interface Props {
 
 export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
   const t = useTranslations("visit");
+  const tCommon = useTranslations("common");
   const tType = useTranslations("enum.visitType");
   const tPet = useTranslations("pet");
   const action = visit
@@ -47,7 +48,7 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
             required
           >
             <option value="" disabled>
-              —
+              {tCommon("select")}
             </option>
             {pets.map((p) => (
               <option key={p.id} value={p.id}>
@@ -82,7 +83,7 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
         </Field>
         <Field label={t("vet")} error={state.fieldErrors?.vetId}>
           <Select name="vetId" defaultValue={visit?.vetId ?? ""}>
-            <option value="">—</option>
+            <option value="">{tCommon("none")}</option>
             {vets.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.name}

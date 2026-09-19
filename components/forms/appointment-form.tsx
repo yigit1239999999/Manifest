@@ -32,6 +32,7 @@ export function AppointmentForm({
   defaultPetId,
 }: Props) {
   const t = useTranslations("appointment");
+  const tCommon = useTranslations("common");
   const tType = useTranslations("enum.visitType");
   const tStatus = useTranslations("enum.appointmentStatus");
   const tPet = useTranslations("pet");
@@ -63,7 +64,7 @@ export function AppointmentForm({
             required
           >
             <option value="" disabled>
-              —
+              {tCommon("select")}
             </option>
             {pets.map((p) => (
               <option key={p.id} value={p.id}>
@@ -125,7 +126,7 @@ export function AppointmentForm({
 
       <Field label={t("vet")} error={state.fieldErrors?.vetId}>
         <Select name="vetId" defaultValue={appointment?.vetId ?? ""}>
-          <option value="">—</option>
+          <option value="">{tCommon("none")}</option>
           {vets.map((v) => (
             <option key={v.id} value={v.id}>
               {v.name}

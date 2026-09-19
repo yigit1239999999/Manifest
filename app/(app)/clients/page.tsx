@@ -71,10 +71,10 @@ export default async function ClientsPage({
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {c.email ?? "—"}
+                      {c.email ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {c.phone ?? "—"}
+                      {c.phone ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link

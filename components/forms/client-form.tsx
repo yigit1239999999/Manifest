@@ -100,7 +100,7 @@ export function ClientForm({ client }: Props) {
               name="preferredContact"
               defaultValue={client?.preferredContact ?? ""}
             >
-              <option value="">—</option>
+              <option value="">{tCommon("none")}</option>
               {CONTACT_METHODS.map((v) => (
                 <option key={v} value={v}>
                   {tEnum(v)}

@@ -31,7 +31,7 @@ const invoiceLineSchema = z.object({
 });
 
 export const invoiceSchema = z.object({
-  clientId: z.string().min(1, "Müşteri seç."),
+  clientId: z.string().min(1, "Müşteri seçiniz."),
   number: z.string().trim().min(1, "Fatura numarası gerekli.").max(40),
   status: requiredEnum(INVOICE_STATUSES),
   dueAt: optionalDateTime,

@@ -61,8 +61,8 @@ export function ReminderForm({
       <Field label={tClient("title")} error={state.fieldErrors?.clientId} required>
         <Select name="clientId" defaultValue={defaultClientId ?? ""} required>
           <option value="" disabled>
-            —
-          </option>
+              {tCommon("select")}
+            </option>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>
               {c.firstName} {c.lastName}
@@ -73,7 +73,7 @@ export function ReminderForm({
       {pets && (
         <Field label={tPet("title")} error={state.fieldErrors?.petId}>
           <Select name="petId" defaultValue={defaultPetId ?? ""}>
-            <option value="">—</option>
+            <option value="">{tCommon("none")}</option>
             {pets.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}

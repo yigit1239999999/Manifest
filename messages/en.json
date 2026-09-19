@@ -29,6 +29,8 @@
     "addAnother": "Add another",
     "remove": "Remove",
     "search": "Search…",
+    "select": "Select",
+    "none": "None",
     "back": "Back",
     "noResults": "No results.",
     "searchOrType": "Search or type…",
@@ -82,8 +84,8 @@
       "upcomingVaccinations": "Upcoming vaccinations",
       "petsBySpecies": "Pets by species",
       "visitsByType": "Visits by type",
-      "visitsLast12Weeks": "Visits — last 12 weeks",
-      "revenueLast6Months": "Paid invoices — last 6 months"
+      "visitsLast12Weeks": "Visits (last 12 weeks)",
+      "revenueLast6Months": "Paid invoices (last 6 months)"
     },
     "empty": {
       "appointments": "No upcoming appointments.",
@@ -122,7 +124,7 @@
       "identity": "Identity",
       "identityHint": "How this client is named in your records.",
       "contact": "Contact",
-      "contactHint": "How you reach them — kept private.",
+      "contactHint": "How to reach them. Kept private.",
       "address": "Address",
       "addressHint": "Useful for home visits and correspondence.",
       "preferences": "Preferences & notes",
@@ -176,10 +178,10 @@
     "archiveConfirm": "Archive this pet?",
     "manageSpecies": "Manage species",
     "newSpecies": "New species",
-    "newSpeciesHint": "Not in the list? Add your own — it's saved for your clinic so you never type it again.",
+    "newSpeciesHint": "Not in the list? Add your own. It is saved for your clinic so you never type it again.",
     "newSpeciesPlaceholder": "Species name (e.g. Hedgehog)",
     "optionalDetails": "Optional details",
-    "optionalDetailsHint": "Birth date, weight, microchip, insurance, notes — you can fill these in later.",
+    "optionalDetailsHint": "Birth date, weight, microchip, insurance and notes. You can fill these in later.",
     "tabs": {
       "overview": "Overview",
       "timeline": "Timeline",
@@ -261,11 +263,11 @@
       "saved": "Species saved.",
       "custom": "Clinic-specific species",
       "customHint": "Added from the pet form via \"New species\". A species in use can't be deleted.",
-      "customEmpty": "No custom species yet — add one from the pet form via \"New species\".",
+      "customEmpty": "No custom species yet. Add one from the pet form via \"New species\".",
       "usage": "{count, plural, =0 {unused} one {1 pet} other {# pets}}",
       "delete": "Delete",
       "deleteConfirm": "Delete the species \"{name}\"?",
-      "inUse": "In use — can't be deleted."
+      "inUse": "In use and cannot be deleted."
     }
   },
   "vaccination": {
@@ -299,29 +301,38 @@
     "instructions": "Instructions",
     "notes": "Notes",
     "complete": "Mark completed",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "durationShort": "{count} days"
   },
   "treatment": {
-    "title": "Treatments",
-    "new": "Add treatment",
-    "create": "Save treatment",
-    "empty": "No treatments recorded.",
-    "name": "Treatment",
-    "code": "Code",
+    "title": "Treatments and procedures",
+    "new": "Add treatment / procedure",
+    "create": "Save",
+    "empty": "No treatments or procedures recorded yet.",
+    "name": "Treatment / procedure",
+    "namePlaceholder": "Search or type: spay, dental scaling, IV fluids…",
+    "code": "Procedure code",
+    "codeHint": "Internal or tariff code (optional).",
     "performedAt": "Performed at",
+    "performedBy": "Performed by",
     "durationMinutes": "Duration (min)",
-    "notes": "Notes"
+    "notes": "Procedure notes",
+    "notesPlaceholder": "Anaesthesia protocol, materials used, complications, owner briefing…"
   },
   "diagnostic": {
     "title": "Diagnostics",
-    "new": "Add diagnostic",
-    "create": "Save diagnostic",
-    "empty": "No diagnostics recorded.",
-    "type": "Type",
-    "name": "Test name",
+    "new": "Add test",
+    "create": "Save",
+    "empty": "No diagnostic tests recorded yet.",
+    "type": "Test type",
+    "name": "Test",
+    "namePlaceholder": "Search or type: CBC, chemistry panel, thoracic X-ray…",
     "performedAt": "Performed at",
-    "result": "Result",
+    "result": "Results and findings",
+    "resultPlaceholder": "Measured values, reference ranges, imaging findings…",
+    "resultPending": "Result pending",
     "interpretation": "Interpretation",
+    "interpretationPlaceholder": "Clinical interpretation, differential diagnosis, recommended follow-up…",
     "notes": "Notes"
   },
   "note": {

@@ -22,7 +22,7 @@ export const DIAGNOSTIC_TYPES = [
 ] as const;
 
 export const diagnosticSchema = z.object({
-  petId: z.string().min(1, "Hasta seç."),
+  petId: z.string().min(1, "Hayvan seçiniz."),
   visitId: optionalText(40),
   type: requiredEnum(DIAGNOSTIC_TYPES),
   name: requiredText(1, 120, "Test adı"),

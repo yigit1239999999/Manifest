@@ -6,7 +6,7 @@ import {
   Plus,
   Stethoscope,
 } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { getPetById } from "@/modules/pets/queries";
 import { petTimeline } from "@/modules/timeline/queries";
@@ -24,6 +24,9 @@ import { Timeline } from "@/components/timeline";
 import { NoteForm } from "@/components/forms/note-form";
 import { VaccinationForm } from "@/components/forms/vaccination-form";
 import { PrescriptionForm } from "@/components/forms/prescription-form";
+import { TreatmentForm } from "@/components/forms/treatment-form";
+import { DiagnosticForm } from "@/components/forms/diagnostic-form";
+import { listStaff } from "@/modules/staff/queries";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -39,6 +42,7 @@ export default async function PetPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const locale = await getLocale();
   const { id } = await params;
   const session = await requireSession();
   const clinicId = session.user.clinicId;
@@ -55,12 +59,14 @@ export default async function PetPage({
     tRx,
     tTreatment,
     tDiag,
+    tDiagType,
     timeline,
     vaccinations,
     prescriptions,
     treatments,
     diagnostics,
     currency,
+    staff,
   ] = await Promise.all([
     getPetById(clinicId, id),
     getTranslations("pet"),
@@ -73,15 +79,21 @@ export default async function PetPage({
     getTranslations("prescription"),
     getTranslations("treatment"),
     getTranslations("diagnostic"),
+    getTranslations("enum.diagnosticType"),
     petTimeline(clinicId, id),
     listVaccinationsForPet(clinicId, id, 20),
     listPrescriptionsForPet(clinicId, id, 20),
     listTreatmentsForPet(clinicId, id, 20),
     listDiagnosticsForPet(clinicId, id, 20),
     getClinicCurrency(clinicId),
+    listStaff(clinicId),
   ]);
 
   if (!pet) notFound();
+
+  const vets = staff
+    .filter((m) => m.active && (m.role === "VETERINARIAN" || m.role === "ADMIN"))
+    .map((m) => ({ id: m.id, name: m.name }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,7 +103,7 @@ export default async function PetPage({
         title={pet.name}
         description={`${pet.customSpecies?.name ?? tSpecies(pet.species as never)}${
           pet.breed ? ` · ${pet.breed}` : ""
-        } · ${tSex(pet.sex as never)} · ${petAge(pet.birthDate) ?? "—"}`}
+        } · ${tSex(pet.sex as never)} · ${petAge(locale, pet.birthDate) ?? "-"}`}
       >
         <Link
           href={`/visits/new?petId=${pet.id}`}
@@ -123,7 +135,7 @@ export default async function PetPage({
 
       {pet.deceased && (
         <p className="rounded-lg border border-muted-foreground/30 bg-muted px-3 py-2 text-sm">
-          {t("deceased")}: {formatDate(pet.deceasedAt)}
+          {t("deceased")}: {formatDate(locale, pet.deceasedAt)}
         </p>
       )}
 
@@ -149,19 +161,19 @@ export default async function PetPage({
                 </Link>
               }
             />
-            <Detail label={t("breed")} value={pet.breed || "—"} />
-            <Detail label={t("color")} value={pet.color || "—"} />
-            <Detail label={t("birthDate")} value={formatDate(pet.birthDate)} />
+            <Detail label={t("breed")} value={pet.breed || "-"} />
+            <Detail label={t("color")} value={pet.color || "-"} />
+            <Detail label={t("birthDate")} value={formatDate(locale, pet.birthDate)} />
             <Detail
               label={t("weightKg")}
-              value={pet.weightKg != null ? `${pet.weightKg} kg` : "—"}
+              value={pet.weightKg != null ? `${pet.weightKg} kg` : "-"}
             />
-            <Detail label={t("microchipId")} value={pet.microchipId || "—"} />
+            <Detail label={t("microchipId")} value={pet.microchipId || "-"} />
             <Detail
               label={t("insuranceProvider")}
-              value={pet.insuranceProvider || "—"}
+              value={pet.insuranceProvider || "-"}
             />
-            <Detail label={t("neutered")} value={pet.neutered ? "✓" : "—"} />
+            <Detail label={t("neutered")} value={pet.neutered ? "✓" : "-"} />
             {pet.alerts && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700">
                 <strong>{t("alerts")}: </strong>
@@ -197,8 +209,8 @@ export default async function PetPage({
                       <div>
                         <p className="font-medium">{v.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDateTime(v.administeredAt)}
-                          {v.nextDueAt && ` · → ${formatDate(v.nextDueAt)}`}
+                          {formatDateTime(locale, v.administeredAt)}
+                          {v.nextDueAt && ` · → ${formatDate(locale, v.nextDueAt)}`}
                         </p>
                       </div>
                     </li>
@@ -236,7 +248,7 @@ export default async function PetPage({
                         <p className="font-medium">{p.medicationName}</p>
                         <p className="text-xs text-muted-foreground">
                           {p.dosage} · {p.frequency}
-                          {p.durationDays ? ` · ${p.durationDays} days` : ""}
+                          {p.durationDays ? ` · ${tRx("durationShort", { count: p.durationDays })}` : ""}
                         </p>
                       </div>
                       <Badge variant="secondary">
@@ -263,26 +275,49 @@ export default async function PetPage({
               <CardTitle>{tTreatment("title")}</CardTitle>
               <Badge variant="secondary">{treatments.length}</Badge>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-4">
               {treatments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   {tTreatment("empty")}
                 </p>
               ) : (
                 <ul className="flex flex-col gap-2">
-                  {treatments.map((t) => (
+                  {treatments.map((tr) => (
                     <li
-                      key={t.id}
-                      className="rounded-lg border border-border px-3 py-2 text-sm"
+                      key={tr.id}
+                      className="flex items-start justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm"
                     >
-                      <p className="font-medium">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDateTime(t.performedAt)}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="font-medium">{tr.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDateTime(locale, tr.performedAt)}
+                          {tr.performedBy?.name && ` · ${tr.performedBy.name}`}
+                          {tr.durationMinutes != null && ` · ${tr.durationMinutes} dk`}
+                        </p>
+                        {tr.notes && (
+                          <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">
+                            {tr.notes}
+                          </p>
+                        )}
+                      </div>
+                      {tr.code && <Badge variant="secondary">{tr.code}</Badge>}
                     </li>
                   ))}
                 </ul>
               )}
+              <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+                <summary className="cursor-pointer font-medium">
+                  <Plus className="mr-1 inline size-3.5" />
+                  {tTreatment("new")}
+                </summary>
+                <div className="mt-3">
+                  <TreatmentForm
+                    petId={pet.id}
+                    vets={vets}
+                    defaultVetId={session.user.id}
+                  />
+                </div>
+              </details>
             </CardContent>
           </Card>
 
@@ -291,7 +326,7 @@ export default async function PetPage({
               <CardTitle>{tDiag("title")}</CardTitle>
               <Badge variant="secondary">{diagnostics.length}</Badge>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-4">
               {diagnostics.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{tDiag("empty")}</p>
               ) : (
@@ -301,17 +336,43 @@ export default async function PetPage({
                       key={d.id}
                       className="rounded-lg border border-border px-3 py-2 text-sm"
                     >
-                      <p className="font-medium">{d.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDateTime(d.performedAt)}
-                      </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium">{d.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDateTime(locale, d.performedAt)}
+                          </p>
+                        </div>
+                        <Badge variant={d.result ? "secondary" : "outline"}>
+                          {d.result ? tDiagType(d.type as never) : tDiag("resultPending")}
+                        </Badge>
+                      </div>
                       {d.result && (
-                        <p className="mt-1 text-xs">{d.result}</p>
+                        <p className="mt-2 whitespace-pre-wrap text-xs">
+                          {d.result}
+                        </p>
+                      )}
+                      {d.interpretation && (
+                        <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">
+                            {tDiag("interpretation")}:{" "}
+                          </span>
+                          {d.interpretation}
+                        </p>
                       )}
                     </li>
                   ))}
                 </ul>
               )}
+              <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+                <summary className="cursor-pointer font-medium">
+                  <Plus className="mr-1 inline size-3.5" />
+                  {tDiag("new")}
+                </summary>
+                <div className="mt-3">
+                  <DiagnosticForm petId={pet.id} />
+                </div>
+              </details>
             </CardContent>
           </Card>
         </div>

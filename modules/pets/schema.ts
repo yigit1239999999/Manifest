@@ -29,7 +29,7 @@ export const SPECIES = [
 export const SEXES = ["MALE", "FEMALE", "UNKNOWN"] as const;
 
 export const petSchema = z.object({
-  ownerId: z.string().min(1, "Sahibi seç."),
+  ownerId: z.string().min(1, "Sahip seçiniz."),
   name: requiredText(1, 80, "İsim"),
   // Either a built-in Species enum value, "custom:<id>" for an existing
   // clinic-defined species, or free text naming a new one (created by the

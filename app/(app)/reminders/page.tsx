@@ -1,5 +1,5 @@
 import { ClipboardList } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { listReminders } from "@/modules/reminders/queries";
 import { listClients } from "@/modules/clients/queries";
@@ -17,6 +17,7 @@ import {
 import { formatDateTime } from "@/lib/format";
 
 export default async function RemindersPage() {
+  const locale = await getLocale();
   const session = await requireSession();
   const [t, tType, tStatus, reminders, clients, pets] = await Promise.all([
     getTranslations("reminder"),
@@ -68,7 +69,7 @@ export default async function RemindersPage() {
                   <p className="text-sm font-semibold">{r.title}</p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {formatDateTime(r.dueAt)} · {r.client.firstName}{" "}
+                  {formatDateTime(locale, r.dueAt)} · {r.client.firstName}{" "}
                   {r.client.lastName}
                   {r.pet ? ` · ${r.pet.name}` : ""}
                 </p>

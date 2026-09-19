@@ -73,7 +73,7 @@ export async function Timeline({
           <h3 className="sticky top-16 z-[1] -mx-2 bg-background/85 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
             {group.label}
             <span className="ml-2 text-muted-foreground/60">
-              · {relativeTime(group.events[0].at)}
+              · {relativeTime(locale, group.events[0].at)}
             </span>
           </h3>
           <ol className="flex flex-col">
@@ -112,7 +112,7 @@ export async function Timeline({
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {formatTime(event.at)}
+                      {formatTime(locale, event.at)}
                       {event.kind === "visit" && event.vet
                         ? ` · ${event.vet.name}`
                         : ""}
@@ -132,7 +132,7 @@ export async function Timeline({
                         ? ` · ${event.author.name}`
                         : ""}
                       {event.kind === "invoice"
-                        ? ` · ${formatMoney(event.totalCents, currency)}`
+                        ? ` · ${formatMoney(locale, event.totalCents, currency)}`
                         : ""}
                     </p>
                     {event.summary && (

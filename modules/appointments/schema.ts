@@ -30,7 +30,7 @@ export const APPOINTMENT_STATUSES = [
 ] as const;
 
 export const appointmentSchema = z.object({
-  petId: z.string().min(1, "Hasta seç."),
+  petId: z.string().min(1, "Hayvan seçiniz."),
   vetId: optionalText(40),
   startsAt: requiredDateTime,
   durationMinutes: optionalInt({ min: 5, max: 480 }),

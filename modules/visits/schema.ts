@@ -11,7 +11,7 @@ import {
 import { VISIT_TYPES } from "@/modules/appointments/schema";
 
 export const visitSchema = z.object({
-  petId: z.string().min(1, "Hasta seç."),
+  petId: z.string().min(1, "Hayvan seçiniz."),
   vetId: optionalText(40),
   visitedAt: requiredDateTime,
   type: requiredEnum(VISIT_TYPES),

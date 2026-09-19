@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Edit3, Plus } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { getClientById } from "@/modules/clients/queries";
 import { clientTimeline } from "@/modules/timeline/queries";
@@ -28,6 +28,7 @@ export default async function ClientPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const locale = await getLocale();
   const { id } = await params;
   const session = await requireSession();
 
@@ -68,7 +69,7 @@ export default async function ClientPage({
 
       {client.archivedAt && (
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
-          {t("archivedTitle")}: {formatDate(client.archivedAt)}
+          {t("archivedTitle")}: {formatDate(locale, client.archivedAt)}
         </p>
       )}
 
@@ -126,11 +127,11 @@ export default async function ClientPage({
             <CardContent className="grid gap-2 text-sm sm:grid-cols-3">
               <Detail
                 label={tCommon("createdAt")}
-                value={formatDate(client.createdAt)}
+                value={formatDate(locale, client.createdAt)}
               />
               <Detail
                 label={tCommon("updatedAt")}
-                value={formatDate(client.updatedAt)}
+                value={formatDate(locale, client.updatedAt)}
               />
               <div className="flex flex-col gap-1">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -170,7 +171,7 @@ function Detail({ label, value }: { label: string; value: string | null }) {
       <span className="text-xs uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
-      <span className="text-sm text-foreground">{value || "—"}</span>
+      <span className="text-sm text-foreground">{value || "-"}</span>
     </div>
   );
 }

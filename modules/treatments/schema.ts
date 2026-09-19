@@ -7,7 +7,7 @@ import {
 } from "@/lib/forms";
 
 export const treatmentSchema = z.object({
-  petId: z.string().min(1, "Hasta seç."),
+  petId: z.string().min(1, "Hayvan seçiniz."),
   visitId: optionalText(40),
   performedById: optionalText(40),
   name: requiredText(1, 120, "Tedavi adı"),

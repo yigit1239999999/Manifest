@@ -55,12 +55,16 @@ describe("firstName", () => {
 
 describe("formatDate", () => {
   it("returns a dash for missing dates", () => {
-    expect(formatDate(null)).toBe("—");
-    expect(formatDate(undefined)).toBe("—");
+    expect(formatDate("en", null)).toBe("-");
+    expect(formatDate("tr", undefined)).toBe("-");
   });
 
   it("formats a date in a readable form", () => {
-    expect(formatDate(new Date(2026, 4, 22))).toBe("May 22, 2026");
+    expect(formatDate("en", new Date(2026, 4, 22))).toBe("May 22, 2026");
+  });
+
+  it("formats Turkish dates in Turkish", () => {
+    expect(formatDate("tr", new Date(2026, 4, 22))).toBe("22 May 2026");
   });
 });
 
@@ -86,23 +90,25 @@ describe("petAge", () => {
   }
 
   it("returns null when there is no birth date", () => {
-    expect(petAge(null)).toBeNull();
-    expect(petAge(undefined)).toBeNull();
+    expect(petAge("en", null)).toBeNull();
+    expect(petAge("tr", undefined)).toBeNull();
   });
 
   it("returns null for a birth date in the future", () => {
     freezeNow();
-    expect(petAge(new Date("2027-01-01T00:00:00.000Z"))).toBeNull();
+    expect(petAge("en", new Date("2027-01-01T00:00:00.000Z"))).toBeNull();
   });
 
   it("reports young pets in months", () => {
     freezeNow();
-    expect(petAge(new Date("2026-05-10T00:00:00.000Z"))).toBe("Under 1 month");
-    expect(petAge(new Date("2026-02-22T00:00:00.000Z"))).toBe("3 mo old");
+    expect(petAge("en", new Date("2026-05-10T00:00:00.000Z"))).toBe("Under 1 month");
+    expect(petAge("en", new Date("2026-02-22T00:00:00.000Z"))).toBe("3 mo");
+    expect(petAge("tr", new Date("2026-02-22T00:00:00.000Z"))).toBe("3 aylık");
   });
 
   it("reports older pets in years", () => {
     freezeNow();
-    expect(petAge(new Date("2023-05-22T00:00:00.000Z"))).toBe("3 yr old");
+    expect(petAge("en", new Date("2023-05-22T00:00:00.000Z"))).toBe("3 yr");
+    expect(petAge("tr", new Date("2023-05-22T00:00:00.000Z"))).toBe("3 yaşında");
   });
 });

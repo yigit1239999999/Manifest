@@ -21,7 +21,7 @@ export function HorizontalBars({
 }) {
   if (data.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">{emptyLabel ?? "—"}</p>
+      <p className="text-sm text-muted-foreground">{emptyLabel ?? "-"}</p>
     );
   }
   const max = Math.max(...data.map((d) => d.value), 1);

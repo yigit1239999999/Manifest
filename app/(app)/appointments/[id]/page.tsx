@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Edit3 } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { getAppointmentById } from "@/modules/appointments/queries";
 import { cancelAppointmentAction } from "@/modules/appointments/actions";
@@ -23,6 +23,7 @@ export default async function AppointmentPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const locale = await getLocale();
   const { id } = await params;
   const session = await requireSession();
   const [appointment, t, tCommon, tType, tStatus] = await Promise.all([
@@ -39,7 +40,7 @@ export default async function AppointmentPage({
       <BackLink href="/appointments" label={tCommon("back")} />
       <PageHeader
         title={`${appointment.pet.name} · ${appointment.client.firstName} ${appointment.client.lastName}`}
-        description={formatDateTime(appointment.startsAt)}
+        description={formatDateTime(locale, appointment.startsAt)}
       >
         <Badge variant="secondary">{tType(appointment.type as never)}</Badge>
         <Badge variant="secondary">
@@ -66,13 +67,13 @@ export default async function AppointmentPage({
           <CardTitle>{tCommon("details")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-          <Row label={t("startsAt")} value={formatDateTime(appointment.startsAt)} />
+          <Row label={t("startsAt")} value={formatDateTime(locale, appointment.startsAt)} />
           <Row
             label={t("durationMinutes")}
             value={`${appointment.durationMinutes} min`}
           />
-          <Row label={t("reason")} value={appointment.reason ?? "—"} />
-          <Row label="Vet" value={appointment.vet?.name ?? "—"} />
+          <Row label={t("reason")} value={appointment.reason ?? "-"} />
+          <Row label={t("vet")} value={appointment.vet?.name ?? "-"} />
           {appointment.notes && (
             <div className="sm:col-span-2 mt-2 rounded-lg bg-muted/40 p-3 text-sm">
               {appointment.notes}

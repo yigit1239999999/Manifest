@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Edit3, Plus } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { getVisitById } from "@/modules/visits/queries";
 import { archiveVisitAction } from "@/modules/visits/actions";
@@ -31,6 +31,7 @@ export default async function VisitPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const locale = await getLocale();
   const { id } = await params;
   const session = await requireSession();
   const clinicId = session.user.clinicId;
@@ -65,7 +66,7 @@ export default async function VisitPage({
 
       <PageHeader
         title={visit.chiefComplaint ?? tType(visit.type as never)}
-        description={`${formatDateTime(visit.visitedAt)} · ${visit.pet.name} · ${visit.client.firstName} ${visit.client.lastName}`}
+        description={`${formatDateTime(locale, visit.visitedAt)} · ${visit.pet.name} · ${visit.client.firstName} ${visit.client.lastName}`}
       >
         <Badge variant="secondary">{tType(visit.type as never)}</Badge>
         <Link
@@ -102,33 +103,33 @@ export default async function VisitPage({
           <CardContent className="flex flex-col gap-2 text-sm">
             <Row
               label={t("weightKg")}
-              value={visit.weightKg != null ? `${visit.weightKg} kg` : "—"}
+              value={visit.weightKg != null ? `${visit.weightKg} kg` : "-"}
             />
             <Row
               label={t("temperatureC")}
-              value={visit.temperatureC != null ? `${visit.temperatureC} °C` : "—"}
+              value={visit.temperatureC != null ? `${visit.temperatureC} °C` : "-"}
             />
             <Row
               label={t("heartRateBpm")}
-              value={visit.heartRateBpm ?? "—"}
+              value={visit.heartRateBpm ?? "-"}
             />
             <Row
               label={t("respiratoryRateBpm")}
-              value={visit.respiratoryRateBpm ?? "—"}
+              value={visit.respiratoryRateBpm ?? "-"}
             />
             <Row
               label={t("followupAt")}
-              value={visit.followupAt ? formatDateTime(visit.followupAt) : "—"}
+              value={visit.followupAt ? formatDateTime(locale, visit.followupAt) : "-"}
             />
             <Row
               label={t("totalCost")}
               value={
                 visit.totalCents != null
-                  ? formatMoney(visit.totalCents, currency)
-                  : "—"
+                  ? formatMoney(locale, visit.totalCents, currency)
+                  : "-"
               }
             />
-            <Row label={t("vet")} value={visit.vet?.name ?? "—"} />
+            <Row label={t("vet")} value={visit.vet?.name ?? "-"} />
           </CardContent>
         </Card>
       </div>
@@ -148,7 +149,7 @@ export default async function VisitPage({
                   {v.nextDueAt && (
                     <span className="text-muted-foreground">
                       {" "}
-                      · → {formatDateTime(v.nextDueAt)}
+                      · → {formatDateTime(locale, v.nextDueAt)}
                     </span>
                   )}
                 </li>
@@ -269,7 +270,7 @@ function SoapBlock({ label, value }: { label: string; value: string | null }) {
       <span className="text-xs uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
-      <p className="whitespace-pre-wrap text-sm">{value || "—"}</p>
+      <p className="whitespace-pre-wrap text-sm">{value || "-"}</p>
     </div>
   );
 }

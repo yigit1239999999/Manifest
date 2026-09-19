@@ -29,6 +29,8 @@
     "addAnother": "Bir tane daha ekle",
     "remove": "Kaldır",
     "search": "Ara…",
+    "select": "Seçiniz",
+    "none": "Seçilmedi",
     "back": "Geri",
     "noResults": "Sonuç yok.",
     "searchOrType": "Ara veya yaz…",
@@ -52,21 +54,21 @@
   "auth": {
     "signIn": "Giriş",
     "signUp": "Kayıt",
-    "welcomeBack": "Tekrar hoş geldin",
+    "welcomeBack": "Tekrar hoş geldiniz",
     "createClinicAccount": "Klinik hesabı oluştur",
-    "email": "Email",
+    "email": "E-posta",
     "password": "Şifre",
-    "name": "Adın",
+    "name": "Adınız",
     "clinicName": "Klinik adı",
     "signInButton": "Giriş yap",
     "signUpButton": "Hesap oluştur",
-    "needAccount": "Hesabın yok mu? Kayıt ol",
-    "haveAccount": "Zaten hesabın var mı? Giriş yap"
+    "needAccount": "Hesabınız yok mu? Kayıt olun",
+    "haveAccount": "Zaten hesabınız var mı? Giriş yapın"
   },
   "dashboard": {
     "title": "Panel",
     "greeting": "Merhaba {name}",
-    "subtitle": "Bugün neler oluyor:",
+    "subtitle": "Bugünün özeti.",
     "metrics": {
       "clients": "Müşteri",
       "pets": "Hayvan",
@@ -82,8 +84,8 @@
       "upcomingVaccinations": "Yaklaşan aşılar",
       "petsBySpecies": "Türlere göre hayvanlar",
       "visitsByType": "Türlere göre vizitler",
-      "visitsLast12Weeks": "Vizitler — son 12 hafta",
-      "revenueLast6Months": "Ödenen faturalar — son 6 ay"
+      "visitsLast12Weeks": "Vizitler (son 12 hafta)",
+      "revenueLast6Months": "Ödenen faturalar (son 6 ay)"
     },
     "empty": {
       "appointments": "Yaklaşan randevu yok.",
@@ -103,7 +105,7 @@
     "emptySearch": "Aramayla eşleşen müşteri yok.",
     "firstName": "Ad",
     "lastName": "Soyad",
-    "email": "Email",
+    "email": "E-posta",
     "phone": "Telefon",
     "secondaryPhone": "İkincil telefon",
     "address": "Adres",
@@ -122,7 +124,7 @@
       "identity": "Kimlik",
       "identityHint": "Bu müşterinin kayıtlarda nasıl göründüğü.",
       "contact": "İletişim",
-      "contactHint": "Müşteriye nasıl ulaşıldığı — özel kalır.",
+      "contactHint": "Müşteriye nasıl ulaşılacağı. Bu bilgiler gizli tutulur.",
       "address": "Adres",
       "addressHint": "Ev ziyaretleri ve yazışmalar için faydalı.",
       "preferences": "Tercihler ve notlar",
@@ -166,7 +168,7 @@
       "physical": "Fiziksel",
       "physicalHint": "Görünür özellikler ve giriş anındaki vital bulgular.",
       "medical": "Tıbbi",
-      "medicalHint": "Her vizit gözükmesi gereken tanımlayıcılar, sigorta ve uyarılar.",
+      "medicalHint": "Her vizitte görünmesi gereken tanımlayıcılar, sigorta ve uyarılar.",
       "notes": "Notlar",
       "notesHint": "Klinik ekibinin bilmesi gereken her şey."
     },
@@ -176,10 +178,10 @@
     "archiveConfirm": "Bu hayvan arşivlensin mi?",
     "manageSpecies": "Türleri yönet",
     "newSpecies": "Yeni tür",
-    "newSpeciesHint": "Listede yoksa kendi türünü ekle — kliniğine kaydedilir, bir daha yazman gerekmez.",
+    "newSpeciesHint": "Listede yoksa kendi türünüzü ekleyin. Kliniğinize kaydedilir, tekrar yazmanız gerekmez.",
     "newSpeciesPlaceholder": "Tür adı (örn. Kirpi)",
     "optionalDetails": "İsteğe bağlı detaylar",
-    "optionalDetailsHint": "Doğum tarihi, ağırlık, mikroçip, sigorta, notlar — sonra da doldurabilirsin.",
+    "optionalDetailsHint": "Doğum tarihi, ağırlık, mikroçip, sigorta ve notlar. Daha sonra da doldurabilirsiniz.",
     "tabs": {
       "overview": "Genel",
       "timeline": "Zaman çizelgesi",
@@ -202,10 +204,10 @@
     "chiefComplaint": "Ana şikayet",
     "vet": "Veteriner",
     "soap": "SOAP notları",
-    "subjective": "Subjective",
-    "objective": "Objective",
-    "assessment": "Assessment",
-    "plan": "Plan",
+    "subjective": "Anamnez (S)",
+    "objective": "Klinik bulgular (O)",
+    "assessment": "Değerlendirme ve tanı (A)",
+    "plan": "Tedavi planı (P)",
     "vitals": "Vital bulgular",
     "weightKg": "Ağırlık (kg)",
     "temperatureC": "Ateş (°C)",
@@ -238,7 +240,7 @@
     "create": "Personel ekle",
     "empty": "Henüz personel eklenmemiş.",
     "name": "Ad soyad",
-    "email": "Email",
+    "email": "E-posta",
     "phone": "Telefon",
     "role": "Rol",
     "password": "Geçici şifre",
@@ -248,20 +250,20 @@
     "inactive": "Pasif",
     "deactivate": "Devre dışı bırak",
     "activate": "Aktifleştir",
-    "you": "Sen",
+    "you": "Siz",
     "deactivateConfirm": "Bu personel devre dışı bırakılsın mı?"
   },
   "settings": {
     "title": "Ayarlar",
-    "subtitle": "Kliniğinin çalışma şeklini buradan ayarla.",
+    "subtitle": "Kliniğinizin çalışma şeklini buradan ayarlayın.",
     "species": {
       "title": "Görünen türler",
-      "hint": "Hayvan formunda hangi türler listelensin? Az ve alakalı tür, daha hızlı kayıt demek. Kapattığın türlerdeki mevcut hayvanlar etkilenmez.",
+      "hint": "Hayvan formunda hangi türlerin listeleneceğini seçin. Az ve alakalı tür, daha hızlı kayıt sağlar. Kapattığınız türlerdeki mevcut hayvanlar etkilenmez.",
       "save": "Kaydet",
       "saved": "Türler kaydedildi.",
       "custom": "Kliniğe özel türler",
       "customHint": "Hayvan formunda \"Yeni tür\" ile eklenenler. Kullanımda olan bir tür silinemez.",
-      "customEmpty": "Henüz özel tür yok — hayvan formunda \"Yeni tür\" ile eklenir.",
+      "customEmpty": "Henüz özel tür yok. Hayvan formundaki \"Yeni tür\" seçeneğiyle eklenir.",
       "usage": "{count, plural, =0 {kullanılmıyor} one {1 hayvan} other {# hayvan}}",
       "delete": "Sil",
       "deleteConfirm": "\"{name}\" türü silinsin mi?",
@@ -299,29 +301,38 @@
     "instructions": "Talimatlar",
     "notes": "Notlar",
     "complete": "Tamamlandı olarak işaretle",
-    "cancel": "İptal et"
+    "cancel": "İptal et",
+    "durationShort": "{count} gün"
   },
   "treatment": {
-    "title": "Tedaviler",
-    "new": "Tedavi ekle",
-    "create": "Tedaviyi kaydet",
-    "empty": "Tedavi kaydı yok.",
-    "name": "Tedavi",
-    "code": "Kod",
-    "performedAt": "Yapılma tarihi",
+    "title": "Tedaviler ve işlemler",
+    "new": "Tedavi / işlem ekle",
+    "create": "Kaydet",
+    "empty": "Henüz tedavi veya işlem kaydı yok.",
+    "name": "Tedavi / işlem",
+    "namePlaceholder": "Ara veya yazın: kısırlaştırma, diş taşı temizliği, serum…",
+    "code": "İşlem kodu",
+    "codeHint": "Klinik içi kod veya tarife kodu (isteğe bağlı).",
+    "performedAt": "Uygulama tarihi",
+    "performedBy": "Uygulayan hekim",
     "durationMinutes": "Süre (dk)",
-    "notes": "Notlar"
+    "notes": "Uygulama notları",
+    "notesPlaceholder": "Anestezi protokolü, kullanılan malzeme, komplikasyon, sahip bilgilendirmesi…"
   },
   "diagnostic": {
     "title": "Tanı testleri",
     "new": "Test ekle",
-    "create": "Testi kaydet",
-    "empty": "Test kaydı yok.",
-    "type": "Tür",
-    "name": "Test adı",
-    "performedAt": "Yapılma tarihi",
-    "result": "Sonuç",
-    "interpretation": "Yorum",
+    "create": "Kaydet",
+    "empty": "Henüz tanı testi kaydı yok.",
+    "type": "Test türü",
+    "name": "Test",
+    "namePlaceholder": "Ara veya yazın: hemogram, biyokimya, toraks röntgeni…",
+    "performedAt": "Uygulama tarihi",
+    "result": "Sonuç ve bulgular",
+    "resultPlaceholder": "Ölçüm değerleri, referans aralıkları, görüntüleme bulguları…",
+    "resultPending": "Sonuç bekleniyor",
+    "interpretation": "Değerlendirme",
+    "interpretationPlaceholder": "Klinik yorum, ön tanı, önerilen ileri tetkik…",
     "notes": "Notlar"
   },
   "note": {
@@ -441,9 +452,9 @@
       "EMERGENCY": "Acil",
       "SURGERY": "Cerrahi",
       "DENTAL": "Diş",
-      "GROOMING": "Bakım",
+      "GROOMING": "Bakım ve tıraş",
       "FOLLOWUP": "Takip",
-      "TELEHEALTH": "Online",
+      "TELEHEALTH": "Uzaktan (tele-vet)",
       "OTHER": "Diğer"
     },
     "appointmentStatus": {
@@ -461,13 +472,13 @@
       "CANCELLED": "İptal"
     },
     "diagnosticType": {
-      "BLOOD": "Kan testi",
-      "URINE": "İdrar",
-      "FECAL": "Dışkı",
+      "BLOOD": "Kan tahlili",
+      "URINE": "İdrar tahlili",
+      "FECAL": "Dışkı tahlili",
       "CYTOLOGY": "Sitoloji",
       "CULTURE": "Kültür",
       "XRAY": "Röntgen",
-      "ULTRASOUND": "Ultrason",
+      "ULTRASOUND": "Ultrason (USG)",
       "MRI": "MR",
       "CT": "BT",
       "ECG": "EKG",
@@ -477,7 +488,7 @@
     "noteKind": {
       "GENERAL": "Not",
       "PHONE_CALL": "Telefon",
-      "EMAIL": "Email",
+      "EMAIL": "E-posta",
       "SMS": "SMS",
       "INTERNAL": "Dahili",
       "EVENT": "Olay"
@@ -510,7 +521,7 @@
       "OTHER": "Diğer"
     },
     "contactMethod": {
-      "EMAIL": "Email",
+      "EMAIL": "E-posta",
       "PHONE": "Telefon",
       "SMS": "SMS"
     },
@@ -528,9 +539,9 @@
   "error": {
     "generic": "Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.",
     "notFound": "{entity} bulunamadı.",
-    "validationFailed": "Lütfen formu kontrol et.",
-    "forbidden": "Bu işlem için yetkin yok.",
-    "tryAgain": "Tekrar dene",
+    "validationFailed": "Lütfen formu kontrol edin.",
+    "forbidden": "Bu işlem için yetkiniz yok.",
+    "tryAgain": "Tekrar deneyin",
     "goHome": "Ana sayfa",
     "entity": {
       "client": "Müşteri",
@@ -550,11 +561,11 @@
     },
     "conflict": {
       "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",
-      "emailInUse": "Bu email zaten kullanılıyor."
+      "emailInUse": "Bu e-posta adresi zaten kullanılıyor."
     },
     "auth": {
-      "signupFailed": "Kayıt sırasında bir hata oluştu. Tekrar deneyin.",
-      "invalidCredentials": "Email veya şifre hatalı."
+      "signupFailed": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
+      "invalidCredentials": "E-posta adresi veya şifre hatalı."
     },
     "validation": {
       "ownerNotInClinic": "Bu sahip bu klinikte bulunamadı.",
@@ -564,7 +575,7 @@
       "speciesUnknown": "Geçersiz tür.",
       "speciesInUse": "Bu tür hayvanlarda kullanıldığı için silinemez.",
       "speciesNoneEnabled": "En az bir tür seçili olmalı.",
-      "noteTarget": "Bir hayvan veya müşteri belirtmelisin."
+      "noteTarget": "Bir hayvan veya müşteri belirtmelisiniz."
     }
   }
 }

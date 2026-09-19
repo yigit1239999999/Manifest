@@ -1,5 +1,5 @@
 import { History } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { listAuditEntries } from "@/modules/audit/queries";
 import { PageHeader } from "@/components/page-header";
@@ -9,6 +9,7 @@ import { formatDateTime } from "@/lib/format";
 import { PAGE_SIZES } from "@/lib/pagination";
 
 export default async function AuditPage() {
+  const locale = await getLocale();
   const session = await requireSession();
   const [t, tAction, entries] = await Promise.all([
     getTranslations("audit"),
@@ -40,9 +41,9 @@ export default async function AuditPage() {
               {entries.map((e) => (
                 <tr key={e.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3 text-muted-foreground">
-                    {formatDateTime(e.createdAt)}
+                    {formatDateTime(locale, e.createdAt)}
                   </td>
-                  <td className="px-4 py-3">{e.actor?.name ?? "—"}</td>
+                  <td className="px-4 py-3">{e.actor?.name ?? "-"}</td>
                   <td className="px-4 py-3">
                     <Badge variant="secondary">
                       {tAction(e.action as never)}

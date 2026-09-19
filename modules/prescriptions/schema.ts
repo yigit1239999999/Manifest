@@ -11,7 +11,7 @@ import {
 export const PRESCRIPTION_STATUSES = ["ACTIVE", "COMPLETED", "CANCELLED"] as const;
 
 export const prescriptionSchema = z.object({
-  petId: z.string().min(1, "Hasta seç."),
+  petId: z.string().min(1, "Hayvan seçiniz."),
   visitId: optionalText(40),
   prescribedById: optionalText(40),
   medicationName: requiredText(1, 120, "İlaç adı"),

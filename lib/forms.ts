@@ -20,12 +20,12 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const requiredEmail = trim
   .refine((v) => v.length > 0, "Email gerekli.")
-  .refine((v) => EMAIL_RE.test(v), "Geçerli bir email girin.")
-  .refine((v) => v.length <= 120, "Email çok uzun.");
+  .refine((v) => EMAIL_RE.test(v), "Geçerli bir e-posta adresi giriniz.")
+  .refine((v) => v.length <= 120, "E-posta adresi çok uzun.");
 
 export const optionalEmail = trim
-  .refine((v) => v === "" || EMAIL_RE.test(v), "Geçerli bir email girin.")
-  .refine((v) => v.length <= 120, "Email çok uzun.")
+  .refine((v) => v === "" || EMAIL_RE.test(v), "Geçerli bir e-posta adresi giriniz.")
+  .refine((v) => v.length <= 120, "E-posta adresi çok uzun.")
   .transform((v) => (v === "" ? null : v));
 
 export const optionalEnum = <T extends readonly [string, ...string[]]>(values: T) =>
@@ -47,19 +47,19 @@ export const requiredEnum = <T extends readonly [string, ...string[]]>(values: T
 export const optionalDate = trim
   .refine(
     (v) => v === "" || !Number.isNaN(Date.parse(v)),
-    "Geçerli bir tarih girin.",
+    "Geçerli bir tarih giriniz.",
   )
   .transform((v) => (v === "" ? null : new Date(v)));
 
 export const requiredDateTime = trim
   .refine((v) => v.length > 0, "Tarih ve saat gerekli.")
-  .refine((v) => !Number.isNaN(Date.parse(v)), "Geçerli bir tarih girin.")
+  .refine((v) => !Number.isNaN(Date.parse(v)), "Geçerli bir tarih giriniz.")
   .transform((v) => new Date(v));
 
 export const optionalDateTime = trim
   .refine(
     (v) => v === "" || !Number.isNaN(Date.parse(v)),
-    "Geçerli bir tarih girin.",
+    "Geçerli bir tarih giriniz.",
   )
   .transform((v) => (v === "" ? null : new Date(v)));
 
@@ -72,7 +72,7 @@ export const optionalFloat = (opts: { min?: number; max?: number } = {}) =>
       if (opts.min != null && n < opts.min) return false;
       if (opts.max != null && n > opts.max) return false;
       return true;
-    }, "Geçerli bir sayı girin.")
+    }, "Geçerli bir sayı giriniz.")
     .transform((v) => (v === "" ? null : Number(v)));
 
 export const optionalInt = (opts: { min?: number; max?: number } = {}) =>
@@ -84,7 +84,7 @@ export const optionalInt = (opts: { min?: number; max?: number } = {}) =>
       if (opts.min != null && n < opts.min) return false;
       if (opts.max != null && n > opts.max) return false;
       return true;
-    }, "Geçerli bir tam sayı girin.")
+    }, "Geçerli bir tam sayı giriniz.")
     .transform((v) => (v === "" ? null : Number.parseInt(v, 10)));
 
 export const requiredInt = (opts: { min?: number; max?: number } = {}) =>
@@ -96,7 +96,7 @@ export const requiredInt = (opts: { min?: number; max?: number } = {}) =>
       if (opts.min != null && n < opts.min) return false;
       if (opts.max != null && n > opts.max) return false;
       return true;
-    }, "Geçerli bir tam sayı girin.")
+    }, "Geçerli bir tam sayı giriniz.")
     .transform((v) => Number.parseInt(v, 10));
 
 export const optionalMoneyCents = trim
@@ -104,7 +104,7 @@ export const optionalMoneyCents = trim
     if (v === "") return true;
     const n = Number(v.replace(",", "."));
     return Number.isFinite(n) && n >= 0 && n < 10_000_000;
-  }, "Geçerli bir tutar girin.")
+  }, "Geçerli bir tutar giriniz.")
   .transform((v) => (v === "" ? null : Math.round(Number(v.replace(",", ".")) * 100)));
 
 export const requiredMoneyCents = trim
@@ -112,7 +112,7 @@ export const requiredMoneyCents = trim
     if (v === "") return false;
     const n = Number(v.replace(",", "."));
     return Number.isFinite(n) && n >= 0 && n < 10_000_000;
-  }, "Geçerli bir tutar girin.")
+  }, "Geçerli bir tutar giriniz.")
   .transform((v) => Math.round(Number(v.replace(",", ".")) * 100));
 
 export const checkbox = z

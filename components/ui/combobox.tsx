@@ -206,7 +206,7 @@ export function Combobox({
         >
           {rows.length === 0 && (
             <li className="px-2.5 py-2 text-xs text-muted-foreground">
-              {noResultsLabel ?? "—"}
+              {noResultsLabel ?? "-"}
             </li>
           )}
           {rows.map((row, i) =>

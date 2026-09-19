@@ -28,6 +28,7 @@ interface Props {
 
 export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) {
   const t = useTranslations("invoice");
+  const tCommon = useTranslations("common");
   const tStatus = useTranslations("enum.invoiceStatus");
   const tClient = useTranslations("client");
   const [lines, setLines] = useState<Line[]>([{ ...emptyLine }]);
@@ -56,7 +57,7 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
         <Field label={tClient("title")} error={state.fieldErrors?.clientId} required>
           <Select name="clientId" defaultValue={defaultClientId ?? ""} required>
             <option value="" disabled>
-              —
+              {tCommon("select")}
             </option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>

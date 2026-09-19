@@ -112,18 +112,25 @@ export function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] || name;
 }
 
-export function formatDate(date: Date | null | undefined): string {
-  if (!date) return "—";
-  return new Intl.DateTimeFormat("en-US", {
+/** Maps the app locale ("tr" | "en") to a BCP 47 tag for Intl. */
+export function intlLocale(locale: string): string {
+  return locale === "tr" ? "tr-TR" : "en-US";
+}
+
+const EMPTY = "-";
+
+export function formatDate(locale: string, date: Date | null | undefined): string {
+  if (!date) return EMPTY;
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
   }).format(date);
 }
 
-export function formatDateTime(date: Date | null | undefined): string {
-  if (!date) return "—";
-  return new Intl.DateTimeFormat("en-US", {
+export function formatDateTime(locale: string, date: Date | null | undefined): string {
+  if (!date) return EMPTY;
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -132,9 +139,9 @@ export function formatDateTime(date: Date | null | undefined): string {
   }).format(date);
 }
 
-export function formatTime(date: Date | null | undefined): string {
-  if (!date) return "—";
-  return new Intl.DateTimeFormat("en-US", {
+export function formatTime(locale: string, date: Date | null | undefined): string {
+  if (!date) return EMPTY;
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
@@ -155,21 +162,27 @@ export function toDateTimeInput(date: Date | null | undefined): string {
   );
 }
 
-export function petAge(birthDate: Date | null | undefined): string | null {
+const AGE_COPY = {
+  tr: { underMonth: "1 aydan küçük", months: (n: number) => `${n} aylık`, years: (n: number) => `${n} yaşında` },
+  en: { underMonth: "Under 1 month", months: (n: number) => `${n} mo`, years: (n: number) => `${n} yr` },
+} as const;
+
+export function petAge(locale: string, birthDate: Date | null | undefined): string | null {
   if (!birthDate) return null;
+  const copy = locale === "tr" ? AGE_COPY.tr : AGE_COPY.en;
   const now = new Date();
   let months =
     (now.getFullYear() - birthDate.getFullYear()) * 12 +
     (now.getMonth() - birthDate.getMonth());
   if (now.getDate() < birthDate.getDate()) months -= 1;
   if (months < 0) return null;
-  if (months < 1) return "Under 1 month";
-  if (months < 24) return `${months} mo old`;
-  return `${Math.floor(months / 12)} yr old`;
+  if (months < 1) return copy.underMonth;
+  if (months < 24) return copy.months(months);
+  return copy.years(Math.floor(months / 12));
 }
 
-export function relativeTime(date: Date | null | undefined): string {
-  if (!date) return "—";
+export function relativeTime(locale: string, date: Date | null | undefined): string {
+  if (!date) return EMPTY;
   const diffMs = date.getTime() - Date.now();
   const absSec = Math.round(Math.abs(diffMs) / 1000);
   const inFuture = diffMs > 0;
@@ -191,15 +204,19 @@ export function relativeTime(date: Date | null | undefined): string {
     value = value / divisor;
     unit = nextUnit;
   }
-  return new Intl.RelativeTimeFormat("en-US", { numeric: "auto" }).format(
+  return new Intl.RelativeTimeFormat(intlLocale(locale), { numeric: "auto" }).format(
     (inFuture ? 1 : -1) * Math.round(value),
     unit,
   );
 }
 
-export function formatMoney(cents: number | null | undefined, currency = "USD"): string {
+export function formatMoney(
+  locale: string,
+  cents: number | null | undefined,
+  currency = "USD",
+): string {
   const amount = (cents ?? 0) / 100;
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(intlLocale(locale), {
     style: "currency",
     currency,
     minimumFractionDigits: 2,
