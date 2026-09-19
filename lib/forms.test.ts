@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import {
   checkbox,
   optionalDate,
@@ -153,5 +154,24 @@ describe("toFieldErrors", () => {
       const errors = toFieldErrors(result.error);
       expect(Object.keys(errors)).toContain("_form");
     }
+  });
+});
+
+describe("missing form fields", () => {
+  it("treats an absent optional field as empty", () => {
+    const schema = z.object({ visitId: optionalText(40), note: optionalText(10) });
+    expect(schema.parse({})).toEqual({ visitId: null, note: null });
+  });
+
+  it("reports an absent required field with the field's own message", () => {
+    const schema = z.object({ name: requiredText(1, 80, "Aşı adı") });
+    const result = schema.safeParse({});
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0].message).toBe("Aşı adı gerekli.");
+  });
+
+  it("treats an absent optional enum or date as null", () => {
+    const schema = z.object({ kind: optionalEnum(["A", "B"] as const), at: optionalDateTime });
+    expect(schema.parse({})).toEqual({ kind: null, at: null });
   });
 });

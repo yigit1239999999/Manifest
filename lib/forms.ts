@@ -4,7 +4,14 @@
 
 import { z, type ZodError } from "zod";
 
-const trim = z.string().transform((v) => v.trim());
+// A field that isn't in the submitted form arrives as `undefined` (hidden
+// inputs that were not rendered, selects shown conditionally). Treat that
+// like an empty string so optional fields stay optional and required ones
+// fail with their own message instead of Zod's generic "Required".
+const trim = z
+  .string()
+  .optional()
+  .transform((v) => (v ?? "").trim());
 
 export const requiredText = (min: number, max: number, label: string) =>
   trim
