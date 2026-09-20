@@ -15,6 +15,7 @@ import { PetCard } from "@/components/pet-card";
 import { Timeline } from "@/components/timeline";
 import { NoteForm } from "@/components/forms/note-form";
 import { Badge } from "@/components/ui/badge";
+import { Callout } from "@/components/ui/callout";
 import {
   Card,
   CardContent,
@@ -69,9 +70,9 @@ export default async function ClientPage({
       </PageHeader>
 
       {client.archivedAt && (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
+        <Callout variant="warning">
           {t("archivedTitle")}: {formatDate(fmt, client.archivedAt)}
-        </p>
+        </Callout>
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">

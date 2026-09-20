@@ -29,6 +29,7 @@ import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { listStaff } from "@/modules/staff/queries";
 import { Badge } from "@/components/ui/badge";
+import { Callout } from "@/components/ui/callout";
 import {
   Card,
   CardContent,
@@ -184,10 +185,9 @@ export default async function PetPage({
               value={pet.neutered ? tCommon("yes") : tCommon("no")}
             />
             {pet.alerts && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700">
-                <strong>{t("alerts")}: </strong>
+              <Callout variant="warning" title={t("alerts")}>
                 {pet.alerts}
-              </div>
+              </Callout>
             )}
             {pet.notes && (
               <div className="mt-2 rounded-lg bg-muted/40 p-3 text-sm">
