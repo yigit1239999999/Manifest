@@ -10,6 +10,11 @@ export interface BarDatum {
   display?: string;
 }
 
+/** How a datum reads aloud: "3 Mart: 14 vizit". */
+function describe(d: BarDatum, formatValue?: (value: number) => string) {
+  return `${d.label}: ${d.display ?? formatValue?.(d.value) ?? d.value}`;
+}
+
 export function HorizontalBars({
   data,
   emptyLabel,
@@ -40,7 +45,7 @@ export function HorizontalBars({
                 style={{ width: `${pct}%` }}
               />
             </span>
-            <span className="w-10 shrink-0 text-right text-xs font-semibold text-foreground">
+            <span className="w-10 shrink-0 text-end text-xs font-semibold text-foreground">
               {d.display ?? d.value}
             </span>
           </li>
@@ -54,32 +59,60 @@ export function ColumnBars({
   data,
   height = 96,
   className,
+  emptyLabel,
   formatValue,
 }: {
   data: BarDatum[];
   height?: number;
   className?: string;
+  /** Shown instead of the chart when there is nothing to plot. */
+  emptyLabel?: string;
   formatValue?: (value: number) => string;
 }) {
-  if (data.length === 0) return null;
+  // Two different kinds of "nothing", and the second is the one that actually
+  // happens: the dashboard series are gap-filled to a fixed 12 weeks / 6
+  // months, so `data` is never empty — a brand new clinic arrives here as
+  // twelve buckets of zero. Treating only the first case as empty is why a
+  // new clinic saw twelve stubby bars instead of an empty state.
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  if (data.length === 0 || total === 0) {
+    return emptyLabel ? (
+      <p className="text-sm text-muted-foreground">{emptyLabel}</p>
+    ) : null;
+  }
+
   const max = Math.max(...data.map((d) => d.value), 1);
+  const summary = data.map((d) => describe(d, formatValue)).join(", ");
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex items-end gap-1" style={{ height }}>
+      {/* One image with one description. The bars themselves are decorative
+          divs; without this the whole chart is silent to a screen reader. */}
+      <div
+        role="img"
+        aria-label={summary}
+        className="flex items-end gap-1 border-b border-border"
+        style={{ height }}
+      >
         {data.map((d) => {
           const pct = (d.value / max) * 100;
-          const tooltip = `${d.label}: ${d.display ?? formatValue?.(d.value) ?? d.value}`;
           return (
             <div
               key={d.label}
               className="group relative flex h-full flex-1 items-end"
-              title={tooltip}
+              title={describe(d, formatValue)}
             >
-              <div
-                className="w-full rounded-t-md bg-primary/80 transition-colors group-hover:bg-primary"
-                style={{ height: `${Math.max(pct, 2)}%` }}
-              />
+              {/* A zero bucket draws nothing at all. The old floor of 2% drew
+                  every zero as a stub, which made "no one came in" and "one
+                  animal came in" the same height on a busy clinic's chart.
+                  Non-zero values instead get a small pixel floor, so a value
+                  that rounds to nearly nothing still reads as present. */}
+              {d.value > 0 && (
+                <div
+                  className="w-full rounded-t-md bg-primary/80 transition-colors group-hover:bg-primary"
+                  style={{ height: `${pct}%`, minHeight: 2 }}
+                />
+              )}
             </div>
           );
         })}

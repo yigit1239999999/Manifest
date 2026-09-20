@@ -156,7 +156,10 @@ export default async function DashboardPage() {
             <CardTitle>{t("sections.visitsLast12Weeks")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <ColumnBars data={visitsLast12WeeksData} />
+            <ColumnBars
+              data={visitsLast12WeeksData}
+              emptyLabel={t("empty.visits")}
+            />
           </CardContent>
         </Card>
 
