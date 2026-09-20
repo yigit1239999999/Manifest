@@ -75,7 +75,11 @@ export async function listAppointmentsPage({
       take: perPage,
       include: {
         pet: { select: { id: true, name: true, species: true } },
-        client: { select: { id: true, firstName: true, lastName: true } },
+        client: {
+          // The phone is on the row so reception can call without
+          // leaving the day plan.
+          select: { id: true, firstName: true, lastName: true, phone: true },
+        },
         vet: { select: { id: true, name: true } },
       },
     }),

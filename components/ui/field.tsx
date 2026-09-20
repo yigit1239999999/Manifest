@@ -26,13 +26,38 @@ export function Field({
 
   // Associate the label with its control for screen readers (and so tests /
   // tooling can find fields by their label). When the caller passes an
-  // explicit `htmlFor` they own the wiring; otherwise we generate an id and
-  // inject it into the single child control (respecting an id it already has).
+  // explicit `htmlFor` they own the control's id; otherwise we generate one
+  // and inject it into the single child control (respecting an id it has).
   const controlId = htmlFor ?? generatedId;
-  const child =
-    !htmlFor && React.isValidElement<{ id?: string }>(children)
-      ? React.cloneElement(children, { id: children.props.id ?? controlId })
-      : children;
+
+  // Point the control at whichever message is actually on screen, so a screen
+  // reader reads "Telefon, geçerli bir numara giriniz" when focus lands on the
+  // field. Deliberately NOT a live region: six invalid fields would queue six
+  // assertive announcements over each other and none would be understood. The
+  // form-level Callout announces "submit failed" once; the per-field detail is
+  // read on arrival, in order, by the user's own navigation.
+  const errorId = `${generatedId}-error`;
+  const hintId = `${generatedId}-hint`;
+  const showHint = Boolean(hint) && !hasError;
+  const describedBy = hasError ? errorId : showHint ? hintId : undefined;
+
+  type Describable = {
+    id?: string;
+    "aria-describedby"?: string;
+    "aria-invalid"?: boolean | "true" | "false";
+  };
+
+  const child = React.isValidElement<Describable>(children)
+    ? React.cloneElement(children, {
+        ...(htmlFor ? {} : { id: children.props.id ?? controlId }),
+        // Keep anything the control already points at; describedby is a list.
+        "aria-describedby":
+          [children.props["aria-describedby"], describedBy]
+            .filter(Boolean)
+            .join(" ") || undefined,
+        "aria-invalid": hasError ? true : children.props["aria-invalid"],
+      })
+    : children;
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
@@ -48,11 +73,15 @@ export function Field({
         )}
       </div>
       {child}
-      {hint && !hasError && (
-        <p className="text-xs text-muted-foreground">{hint}</p>
+      {showHint && (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
       )}
       {hasError && (
-        <p className="text-xs font-medium text-destructive">{error?.[0]}</p>
+        <p id={errorId} className="text-xs font-medium text-destructive">
+          {error?.[0]}
+        </p>
       )}
     </div>
   );

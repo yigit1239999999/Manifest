@@ -15,6 +15,7 @@ import { PrescriptionForm } from "@/components/forms/prescription-form";
 import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { Badge } from "@/components/ui/badge";
+import { Callout } from "@/components/ui/callout";
 import {
   Card,
   CardContent,
@@ -46,6 +47,7 @@ export default async function VisitPage({
     tRx,
     tTreatment,
     tDiag,
+    tPet,
     currency,
   ] = await Promise.all([
     getVisitById(clinicId, id),
@@ -56,6 +58,7 @@ export default async function VisitPage({
     getTranslations("prescription"),
     getTranslations("treatment"),
     getTranslations("diagnostic"),
+    getTranslations("pet"),
     getClinicCurrency(clinicId),
   ]);
 
@@ -83,6 +86,12 @@ export default async function VisitPage({
           confirmText={tCommon("archive") + "?"}
         />
       </PageHeader>
+
+      {visit.pet.alerts && (
+        <Callout variant="warning" title={tPet("alerts")}>
+          {visit.pet.alerts}
+        </Callout>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">

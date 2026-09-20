@@ -147,7 +147,8 @@
       "pets": "Hayvanlar",
       "timeline": "Zaman çizelgesi",
       "invoices": "Faturalar"
-    }
+    },
+    "one": "Müşteri"
   },
   "pet": {
     "title": "Hayvanlar",
@@ -257,8 +258,19 @@
       "history": "Gönderim geçmişi",
       "historyEmpty": "Bu randevu için henüz mesaj gönderilmedi.",
       "messageSent": "Mesaj gönderildi.",
-      "optedOut": "Bu müşteri için WhatsApp bildirimleri pasif. Otomatik mesaj gönderilmez; gerekirse mesajı WhatsApp'ta açarak elle iletebilirsiniz."
-    }
+      "optedOut": "Bu müşteri için WhatsApp bildirimleri pasif. Otomatik mesaj gönderilmez; gerekirse mesajı WhatsApp'ta açarak elle iletebilirsiniz.",
+      "cancelledNotice": "Bu randevu iptal edildiği için onay ve hatırlatma mesajları artık sunulmuyor. Müşteri bilgilendirilmediyse lütfen kendiniz haber veriniz."
+    },
+    "today": "Bugün",
+    "previousDay": "Önceki gün",
+    "nextDay": "Sonraki gün",
+    "allDates": "Tüm tarihler",
+    "dayPlan": "Gün planı",
+    "petClient": "Hayvan · Müşteri",
+    "phone": "Telefon",
+    "emptyDay": "Bu gün için randevu bulunmuyor.",
+    "emptyDayHint": "Başka bir güne bakmak için okları kullanabilir veya yeni randevu oluşturabilirsiniz.",
+    "emptyHint": "Oluşturduğunuz randevular, en yakın tarihli olan başta olmak üzere burada görünür."
   },
   "staff": {
     "title": "Ekip",
@@ -278,7 +290,8 @@
     "deactivate": "Devre dışı bırak",
     "activate": "Aktifleştir",
     "you": "Siz",
-    "deactivateConfirm": "Bu personel devre dışı bırakılsın mı?"
+    "deactivateConfirm": "Bu personel devre dışı bırakılsın mı?",
+    "emptyHint": "Bu klinikte çalışan veteriner, teknisyen ve resepsiyon görevlilerini ekleyiniz."
   },
   "settings": {
     "title": "Ayarlar",
@@ -334,7 +347,8 @@
     "administeredAt": "Uygulanma tarihi",
     "nextDueAt": "Sonraki tarih",
     "site": "Uygulama bölgesi",
-    "notes": "Notlar"
+    "notes": "Notlar",
+    "namePlaceholder": "Ara veya yazın: kuduz, karma, FVRCP…"
   },
   "prescription": {
     "title": "Reçeteler",
@@ -355,12 +369,13 @@
     "notes": "Notlar",
     "complete": "Tamamlandı olarak işaretle",
     "cancel": "İptal et",
-    "durationShort": "{count} gün"
+    "durationShort": "{count} gün",
+    "emptyHint": "Hayvan sayfasından yazılan reçeteler, en yenisi başta olmak üzere burada görünür."
   },
   "treatment": {
     "title": "Tedaviler ve işlemler",
     "new": "Tedavi / işlem ekle",
-    "create": "Kaydet",
+    "create": "Tedaviyi kaydet",
     "empty": "Henüz tedavi veya işlem kaydı yok.",
     "name": "Tedavi / işlem",
     "namePlaceholder": "Ara veya yazın: kısırlaştırma, diş taşı temizliği, serum…",
@@ -375,7 +390,7 @@
   "diagnostic": {
     "title": "Tanı testleri",
     "new": "Test ekle",
-    "create": "Kaydet",
+    "create": "Testi kaydet",
     "empty": "Henüz tanı testi kaydı yok.",
     "type": "Test türü",
     "name": "Test",
@@ -411,7 +426,8 @@
     "body": "Notlar",
     "dueAt": "Tarih",
     "acknowledge": "Tamam",
-    "dismiss": "Kapat"
+    "dismiss": "Kapat",
+    "emptyHint": "Oluşturduğunuz hatırlatmalar — aşı zamanı, kontrol, takip — gönderilene kadar burada listelenir."
   },
   "invoice": {
     "title": "Faturalar",
@@ -469,7 +485,8 @@
     "actor": "Yapan",
     "action": "İşlem",
     "entity": "Nesne",
-    "when": "Zaman"
+    "when": "Zaman",
+    "emptyHint": "Ekibin yaptığı tüm değişiklikler — oluşturulan, düzenlenen veya arşivlenen kayıtlar — burada listelenir."
   },
   "enum": {
     "species": {

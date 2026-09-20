@@ -4,12 +4,16 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { createVaccinationAction } from "@/modules/vaccinations/actions";
+import { VACCINES } from "@/lib/procedures";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
+
+const VACCINE_OPTIONS = VACCINES.map((v) => ({ value: v, label: v }));
 
 export function VaccinationForm({
   petId,
@@ -40,7 +44,14 @@ export function VaccinationForm({
       {visitId && <input type="hidden" name="visitId" value={visitId} />}
 
       <Field label={t("name")} error={state.fieldErrors?.name} required>
-        <Input name="name" required />
+        <Combobox
+          name="name"
+          freeText
+          required
+          options={VACCINE_OPTIONS}
+          placeholder={t("namePlaceholder")}
+          noResultsLabel={tCommon("noResults")}
+        />
       </Field>
       <Field
         label={t("administeredAt")}

@@ -29,6 +29,7 @@ import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { listStaff } from "@/modules/staff/queries";
 import { Badge } from "@/components/ui/badge";
+import { Callout } from "@/components/ui/callout";
 import {
   Card,
   CardContent,
@@ -116,7 +117,7 @@ export default async function PetPage({
           className={buttonVariants({ variant: "secondary" })}
         >
           <Stethoscope />
-          {t("tabs.visits")}
+          {(await getTranslations("visit"))("new")}
         </Link>
         <Link
           href={`/appointments/new?petId=${pet.id}`}
@@ -138,6 +139,12 @@ export default async function PetPage({
           confirmText={t("archiveConfirm")}
         />
       </PageHeader>
+
+      {pet.alerts && (
+        <Callout variant="warning" title={t("alerts")}>
+          {pet.alerts}
+        </Callout>
+      )}
 
       {pet.deceased && (
         <p className="rounded-lg border border-muted-foreground/30 bg-muted px-3 py-2 text-sm">
@@ -183,12 +190,6 @@ export default async function PetPage({
               label={t("neutered")}
               value={pet.neutered ? tCommon("yes") : tCommon("no")}
             />
-            {pet.alerts && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700">
-                <strong>{t("alerts")}: </strong>
-                {pet.alerts}
-              </div>
-            )}
             {pet.notes && (
               <div className="mt-2 rounded-lg bg-muted/40 p-3 text-sm">
                 {pet.notes}

@@ -105,4 +105,31 @@ await optional(
    FROM message_logs GROUP BY 1,2 ORDER BY 3 DESC`,
 );
 
+// --- Para döngüsü ölçüleri (sonraki sürümün tabanı) ---
+// "Unutulan kalem": fatura başına kalem sayısı ile vizit başına yapılan iş
+// sayısı arasındaki fark. Türetme çalıştığında bu fark kapanmalı.
+await optional(
+  "INVOICE_LINES_PER_INVOICE",
+  `SELECT count(DISTINCT i.id) invoices, count(l.id) lines,
+          round(count(l.id)::numeric / nullif(count(DISTINCT i.id),0), 2) lines_per_invoice
+   FROM invoices i LEFT JOIN invoice_lines l ON l."invoiceId" = i.id`,
+);
+await optional(
+  "WORK_PER_VISIT",
+  `SELECT (SELECT count(*) FROM visits) visits,
+          (SELECT count(*) FROM treatments) treatments,
+          (SELECT count(*) FROM diagnostics) diagnostics`,
+);
+// Vizit-fatura bağı: InvoiceLine.visitId bugün hiç yazılmıyor.
+await optional(
+  "LINES_LINKED_TO_VISIT",
+  `SELECT count(*) total, count(*) FILTER (WHERE "visitId" IS NOT NULL) linked FROM invoice_lines`,
+);
+// Fiyat sapması: aynı açıklamanın faturalar arasındaki en düşük/en yüksek fiyatı.
+await optional(
+  "PRICE_SPREAD",
+  `SELECT description, count(*) n, min("unitPriceCents") lo, max("unitPriceCents") hi
+   FROM invoice_lines GROUP BY 1 HAVING count(*) > 1 ORDER BY 2 DESC LIMIT 10`,
+);
+
 await client.end();

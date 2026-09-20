@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/submit-button";
@@ -15,11 +16,7 @@ export function SignInForm() {
 
   return (
     <ActionForm form={form} className="flex flex-col gap-4">
-      {state.error && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Callout variant="danger">{state.error}</Callout>}
       <Field label={t("email")} error={state.fieldErrors?.email} required>
         <Input name="email" type="email" autoComplete="email" required />
       </Field>
