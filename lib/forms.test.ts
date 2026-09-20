@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
+  msg,
   checkbox,
   optionalDate,
   optionalDateTime,
@@ -187,10 +188,15 @@ describe("missing form fields", () => {
   });
 
   it("reports an absent required field with the field's own message", () => {
-    const schema = z.object({ name: requiredText(1, 80, "Aşı adı") });
+    // The field label is a translation key too, so the message arrives
+    // encoded and the action wrapper resolves it in the request's locale.
+    const schema = z.object({ name: requiredText(1, 80, "vaccination.name") });
     const result = schema.safeParse({});
     expect(result.success).toBe(false);
-    if (!result.success) expect(result.error.issues[0].message).toBe("Aşı adı gerekli.");
+    if (!result.success)
+      expect(result.error.issues[0].message).toBe(
+        msg("error.form.required", { field: "vaccination.name" }),
+      );
   });
 
   it("treats an absent optional enum or date as null", () => {

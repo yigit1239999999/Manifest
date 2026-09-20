@@ -53,6 +53,11 @@ export function ConfirmDialog({
 
   return (
     <>
+      {/* `open` only reads the ref when it is called, on click — never during
+          render. The compiler cannot see through the render prop, so the rule
+          is silenced here rather than restructuring around a native <dialog>,
+          whose modality and focus trap are the reason for using it. */}
+      {/* eslint-disable-next-line react-hooks/refs */}
       {children(open)}
       <dialog
         ref={ref}
