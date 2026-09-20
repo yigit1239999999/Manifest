@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
 import type { Client, Pet } from "@/generated/prisma/client";
+import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
@@ -112,11 +113,7 @@ export function PetForm({
 
   return (
     <ActionForm form={form} className="flex flex-col gap-8">
-      {state.error && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Callout variant="danger">{state.error}</Callout>}
 
       {/* The essentials: everything a vet needs to register an animal in
           under a minute. Everything else lives under "optional details". */}

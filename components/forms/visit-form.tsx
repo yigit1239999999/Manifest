@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type { Pet, User, Visit } from "@/generated/prisma/client";
+import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
@@ -35,11 +36,7 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
 
   return (
     <ActionForm form={form} className="flex flex-col gap-6">
-      {state.error && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Callout variant="danger">{state.error}</Callout>}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
