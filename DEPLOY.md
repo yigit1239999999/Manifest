@@ -64,28 +64,44 @@ npm run db:migrate:deploy   # şemayı uygula
 npm run dev                 # http://localhost:3000
 ```
 
-## 4. WhatsApp bildirimleri (isteğe bağlı)
+## 4. Bildirim mesajları: SMS (önerilen) ve WhatsApp
 
-Uygulama, randevu onayı / hatırlatması ve hayvan hatırlatmalarını (aşı zamanı,
-kontrol vb.) müşterinin dilinde WhatsApp ile gönderebilir. Zamanlama
-**Ayarlar → WhatsApp bildirimleri**'nden, müşteri bazında açma/kapama ise
-müşteri kartından yapılır.
+Randevu onayı/hatırlatması ve hayvan hatırlatmaları (aşı zamanı, kontrol vb.)
+müşterinin dilinde gönderilir. Zamanlama ve kanal **Ayarlar → Bildirim
+mesajları**'nden, müşteri bazında açma/kapama müşteri kartından yapılır.
 
-- **Bağlantı yokken:** randevu sayfasındaki "WhatsApp'ta aç" düğmesi hazır
-  mesajı WhatsApp'ta açar; personel tek dokunuşla gönderir. Ek kurulum gerekmez.
-- **Otomatik gönderim için** (Meta WhatsApp Cloud API) Vercel env'e ekleyin:
+### SMS (Netgsm)
+1. netgsm.com.tr'de kurumsal hesap açın; "Mesaj başlığı" (gönderici adı, örn.
+   `PETTRACK` veya klinik adı, en fazla 11 karakter) tanımlatın.
+2. Vercel env'e ekleyin:
 
-  | Ad                          | Değer                                                  |
-  |-----------------------------|--------------------------------------------------------|
-  | `WHATSAPP_ACCESS_TOKEN`     | Meta Business → WhatsApp → API Setup'taki kalıcı token |
-  | `WHATSAPP_PHONE_NUMBER_ID`  | Aynı ekrandaki "Phone number ID"                       |
-  | `CRON_SECRET`               | Rastgele ≥16 karakter (`openssl rand -hex 24`)         |
+   | Ad                 | Değer                                   |
+   |--------------------|-----------------------------------------|
+   | `SMS_PROVIDER`     | `netgsm`                                |
+   | `NETGSM_USERCODE`  | Netgsm kullanıcı kodu (API kullanıcısı) |
+   | `NETGSM_PASSWORD`  | Netgsm API şifresi                      |
+   | `NETGSM_MSGHEADER` | Onaylı mesaj başlığı                    |
+   | `CRON_SECRET`      | Rastgele ≥16 karakter (`openssl rand -hex 24`) |
 
-  Not: Meta, işletmenin başlattığı sohbetlerde **onaylı şablon** ister; onay
-  ve hatırlatma metinlerini Meta Business Manager'da şablon olarak kaydedin.
+   Geliştirme ortamında `SMS_PROVIDER=log` mesajı göndermek yerine sunucu
+   loguna yazar; tüm akış ücretsiz denenebilir.
+3. Netgsm panelinde API erişimi için IP kısıtı varsa Vercel çıkış IP'lerini
+   ekleyin veya kısıtı kaldırın (hata kodu 30 = kimlik/IP).
 
-- **Zamanlayıcı:** `vercel.json` günde bir (05:00 UTC) `/api/cron/reminders`
-  çağırır (Hobby planı günlük cron'a izin verir). "Randevudan X saat önce"
-  modunu kullanacaksanız daha sık tetikleyin: Vercel Pro'da `*/15 * * * *`,
-  ya da cron-job.org gibi ücretsiz bir servisten 15 dakikada bir
-  `Authorization: Bearer <CRON_SECRET>` başlığıyla aynı adrese GET isteği.
+Mevzuat notu: mevcut hizmet ilişkisine dair bilgilendirme mesajları (randevu,
+hatırlatma) 6563 sayılı kanunda ticari ileti sayılmaz; İYS onayı gerekmez.
+Kampanya/pazarlama gönderimi için İYS gerekir; uygulama bunu göndermez.
+
+### WhatsApp Business (isteğe bağlı)
+Kanal olarak WhatsApp seçilirse Meta Cloud API gerekir: `WHATSAPP_ACCESS_TOKEN`
+ve `WHATSAPP_PHONE_NUMBER_ID`. Meta, işletmenin başlattığı sohbetlerde onaylı
+şablon ister. Bağlantı olmasa da randevu sayfasındaki "WhatsApp'ta aç" düğmesi
+hazır mesajı WhatsApp'ta açar (elle gönderim), bu her zaman çalışır.
+
+### Zamanlayıcı
+`vercel.json` günde bir (05:00 UTC) `/api/cron/reminders` çağırır (Hobby planı
+günlük cron'a izin verir). "Randevudan X saat önce" modunu kullanacaksanız daha
+sık tetikleyin: Vercel Pro'da `*/15 * * * *`, ya da cron-job.org gibi ücretsiz
+bir servisten 15 dakikada bir `Authorization: Bearer <CRON_SECRET>` başlığıyla
+aynı adrese GET isteği. Gönderimler tekrarlanmaz; başarısız olanlar en fazla 3
+kez yeniden denenir.

@@ -11,9 +11,7 @@ export const createTreatmentAction = action(
     const parsed = parse(treatmentSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
-    const treatment = await createTreatment(parsed.data, ctx);
-    revalidatePath(`/pets/${treatment.petId}`);
-    if (treatment.visitId) revalidatePath(`/visits/${treatment.visitId}`);
+    await createTreatment(parsed.data, ctx);
     return { success: true };
   },
 );

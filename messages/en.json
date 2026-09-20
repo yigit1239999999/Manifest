@@ -123,8 +123,8 @@
     "preferredContact": "Preferred contact",
     "preferredLanguage": "Preferred language",
     "preferredLanguageHint": "WhatsApp messages are sent in this language.",
-    "whatsappOptIn": "The client consented to WhatsApp messages",
-    "whatsappOptInHint": "Tick this only if the client has agreed to receive messages. Left unticked, no automatic appointment confirmation, reminder or vaccination notice is sent to them.",
+    "notificationsOptIn": "The client consented to notification messages",
+    "notificationsOptInHint": "Tick this only if the client has agreed to receive messages. Left unticked, no automatic appointment confirmation, reminder or vaccination notice is sent to them.",
     "marketingOptIn": "Allow marketing communications",
     "notes": "Notes",
     "archivedTitle": "Archived",
@@ -248,17 +248,19 @@
     "reason": "Reason",
     "notes": "Notes",
     "cancel": "Cancel appointment",
-    "whatsapp": {
-      "title": "WhatsApp notification",
+    "notifications": {
+      "title": "Notifications",
       "language": "Message language",
       "noPhone": "The client has no phone number on file, so no message can be prepared.",
+      "notConfigured": "{channel} is not connected yet. You can still open the message in WhatsApp and send it by hand.",
       "openInWhatsApp": "Open in WhatsApp",
-      "sendNow": "Send now",
+      "sendNow": "Send {channel}",
       "preview": "View message",
+      "segments": "{count, plural, one {1 SMS} other {# SMS}}",
       "history": "Delivery history",
       "historyEmpty": "No messages sent for this appointment yet.",
-      "messageSent": "Message sent.",
-      "optedOut": "WhatsApp notifications are disabled for this client. Nothing is sent automatically; if needed you can still open the message in WhatsApp and send it by hand.",
+      "messageSent": "{channel} sent.",
+      "optedOut": "Notification messages are disabled for this client. Nothing is sent automatically; if needed you can still open the message in WhatsApp and send it by hand.",
       "cancelledNotice": "This appointment is cancelled, so the confirmation and reminder messages are no longer offered. Tell the client yourself if they have not been informed."
     },
     "today": "Today",
@@ -310,9 +312,15 @@
       "inUse": "In use and cannot be deleted."
     },
     "notifications": {
-      "title": "WhatsApp notifications",
-      "hint": "Appointment messages are written in the client's preferred language, in the clinic's timezone.",
-      "enabled": "Send automatic WhatsApp messages",
+      "title": "Notification messages",
+      "hint": "Appointment and reminder messages are written in the client's preferred language, in the clinic's timezone.",
+      "channel": "Delivery channel",
+      "channel_SMS": "SMS",
+      "channel_SMS_hint": "Works on every phone, no approvals or templates. Recommended.",
+      "channel_WHATSAPP": "WhatsApp Business",
+      "channel_WHATSAPP_hint": "Requires a Meta WhatsApp Cloud API connection and approved message templates.",
+      "segments": "{count, plural, one {1 SMS segment} other {# SMS segments}}",
+      "enabled": "Automatic notification messages enabled",
       "confirmOnBooking": "Send a confirmation when an appointment is created",
       "reminder": "Reminder timing",
       "reminderOff": "Do not send reminders",
@@ -326,8 +334,8 @@
       "remindersDaysBefore": "Days before (0 = same day)",
       "timezone": "Clinic timezone",
       "timezoneHint": "Dates and times in messages use this timezone.",
-      "providerConnected": "WhatsApp Business is connected. Messages are sent automatically.",
-      "providerMissing": "WhatsApp Business is not connected yet. Until then, messages open in WhatsApp with one click from the appointment page and are sent by hand.",
+      "providerConnected": "{channel} is connected ({transport}). Messages are sent automatically.",
+      "providerMissing": "{channel} is not connected yet. Until then, messages open in WhatsApp with one click from the appointment page and are sent by hand.",
       "preview": "Message preview",
       "previewConfirmation": "Confirmation",
       "previewReminder": "Reminder",
@@ -606,6 +614,10 @@
       "APPOINTMENT_REMINDER": "Appointment reminder",
       "REMINDER_DUE": "Reminder"
     },
+    "messageChannel": {
+      "SMS": "SMS",
+      "WHATSAPP": "WhatsApp"
+    },
     "messageStatus": {
       "SENT": "Sent",
       "FAILED": "Failed",
@@ -656,8 +668,8 @@
     },
     "notifications": {
       "noPhone": "The client has no phone number on file.",
-      "notConfigured": "WhatsApp Business is not configured.",
-      "optedOut": "WhatsApp notifications are disabled for this client.",
+      "notConfigured": "The message channel is not configured.",
+      "optedOut": "Notification messages are disabled for this client.",
       "sendFailed": "The message could not be sent. Please try again later."
     },
     "validation": {

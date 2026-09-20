@@ -46,7 +46,7 @@ const validInput = {
   country: null,
   preferredContact: null,
   preferredLanguage: null,
-  whatsappOptIn: true,
+  notificationsOptIn: true,
   marketingOptIn: false,
   notes: null,
 };

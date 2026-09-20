@@ -77,9 +77,6 @@ export const recordPaymentAction = action(
     }
 
     await recordPayment(parsed.data, ctx);
-    revalidatePath("/invoices");
-    revalidatePath(`/invoices/${parsed.data.invoiceId}`);
-    revalidatePath("/");
     return { success: true };
   },
 );

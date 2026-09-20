@@ -25,8 +25,9 @@ import { SpeciesIcon } from "@/components/species-icon";
 import { NotificationSettingsForm } from "@/components/forms/notification-settings-form";
 import { setNotificationSettingsAction } from "@/modules/notifications/actions";
 import { getClinicMessagingProfile } from "@/modules/notifications/settings";
-import { isWhatsAppConfigured } from "@/lib/whatsapp/provider";
-import { composeAppointmentMessage } from "@/lib/whatsapp/messages";
+import { isChannelConfigured, transportName } from "@/lib/messaging/transports";
+import { composeAppointmentFor } from "@/lib/messaging/compose";
+import { smsSegments } from "@/lib/messaging/sms/segments";
 
 export default async function SettingsPage() {
   const session = await requireSession();
@@ -41,12 +42,14 @@ export default async function SettingsPage() {
   ]);
   if (!profile) redirect("/");
 
-  const configured = isWhatsAppConfigured();
+  const channel = profile.notifications.channel;
+  const configured = isChannelConfigured(channel);
+  const transport = transportName(channel);
   const sampleStart = new Date();
   sampleStart.setDate(sampleStart.getDate() + 1);
   sampleStart.setHours(14, 30, 0, 0);
   const sample = (locale: "tr" | "en", kind: "APPOINTMENT_CONFIRMATION" | "APPOINTMENT_REMINDER") =>
-    composeAppointmentMessage(kind, {
+    composeAppointmentFor(channel, kind, {
       locale,
       clientName: locale === "tr" ? "Ayşe Yılmaz" : "Jane Smith",
       petName: locale === "tr" ? "Sarı" : "Max",
@@ -90,7 +93,14 @@ export default async function SettingsPage() {
                 : "rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
             }
           >
-            {configured ? t("notifications.providerConnected") : t("notifications.providerMissing")}
+            {configured
+              ? t("notifications.providerConnected", {
+                  channel: t(`notifications.channel_${channel}`),
+                  transport: transport ?? "",
+                })
+              : t("notifications.providerMissing", {
+                  channel: t(`notifications.channel_${channel}`),
+                })}
           </p>
           <NotificationSettingsForm
             action={setNotificationSettingsAction}
@@ -109,6 +119,13 @@ export default async function SettingsPage() {
                     <pre className="whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-sans text-xs">
                       {sample(locale, "APPOINTMENT_CONFIRMATION")}
                     </pre>
+                    {channel === "SMS" && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {t("notifications.segments", {
+                          count: smsSegments(sample(locale, "APPOINTMENT_CONFIRMATION")).segments,
+                        })}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -117,6 +134,13 @@ export default async function SettingsPage() {
                     <pre className="whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-sans text-xs">
                       {sample(locale, "APPOINTMENT_REMINDER")}
                     </pre>
+                    {channel === "SMS" && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {t("notifications.segments", {
+                          count: smsSegments(sample(locale, "APPOINTMENT_REMINDER")).segments,
+                        })}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}

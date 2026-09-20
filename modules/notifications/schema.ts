@@ -2,6 +2,7 @@ import { z } from "zod";
 import { checkbox, optionalInt, requiredEnum, requiredText } from "@/lib/forms";
 
 export const REMINDER_MODES = ["off", "hoursBefore", "morningOf"] as const;
+export const CHANNELS = ["SMS", "WHATSAPP"] as const;
 
 export const TIMEZONES = [
   "Europe/Istanbul",
@@ -17,6 +18,7 @@ export const TIMEZONES = [
 ] as const;
 
 export const notificationSettingsSchema = z.object({
+  channel: requiredEnum(CHANNELS),
   enabled: checkbox,
   confirmOnBooking: checkbox,
   reminderMode: requiredEnum(REMINDER_MODES),

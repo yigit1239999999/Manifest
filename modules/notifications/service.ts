@@ -5,8 +5,6 @@ import { logger } from "@/lib/logger";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import {
-  composeAppointmentMessage,
-  composeReminderMessage,
   normalizePhone,
   toMessageLocale,
   visitTypeLabel,
@@ -14,7 +12,10 @@ import {
   type AppointmentMessageKind,
 } from "@/lib/whatsapp/messages";
 import { isReminderDue, isReminderNoticeDue } from "@/lib/whatsapp/schedule";
-import { isWhatsAppConfigured, sendWhatsAppText } from "@/lib/whatsapp/provider";
+import { composeAppointmentFor, composeReminderFor } from "@/lib/messaging/compose";
+import { getTransport, isChannelConfigured } from "@/lib/messaging/transports";
+import { smsSegments } from "@/lib/messaging/sms/segments";
+import type { Channel } from "@/lib/messaging/types";
 import { TIMEZONES, type NotificationSettingsInput } from "./schema";
 import {
   countryCallingCode,
@@ -23,6 +24,9 @@ import {
   toMessagingProfile,
   type ClinicMessagingProfile,
 } from "./settings";
+
+/** A failed automatic send is retried on later sweeps, up to this many times. */
+export const MAX_AUTOMATIC_ATTEMPTS = 3;
 
 // ---------------------------------------------------------------------------
 // Settings
@@ -48,6 +52,7 @@ export async function setNotificationSettings(
   const previous = parseNotificationSettings(current.notifications);
 
   const notifications = {
+    channel: input.channel,
     whatsapp: {
       enabled: input.enabled,
       confirmOnBooking: input.confirmOnBooking,
@@ -82,24 +87,22 @@ export async function setNotificationSettings(
 // Composing
 // ---------------------------------------------------------------------------
 
+const CLIENT_SELECT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  preferredLanguage: true,
+  notificationsOptIn: true,
+} as const;
+
 const APPOINTMENT_INCLUDE = {
   pet: { select: { name: true } },
-  client: {
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      phone: true,
-      preferredLanguage: true,
-      whatsappOptIn: true,
-    },
-  },
+  client: { select: CLIENT_SELECT },
   vet: { select: { name: true } },
 } as const;
 
-type LoadedAppointment = NonNullable<
-  Awaited<ReturnType<typeof loadAppointment>>
->;
+type LoadedAppointment = NonNullable<Awaited<ReturnType<typeof loadAppointment>>>;
 
 async function loadAppointment(clinicId: string, id: string) {
   return prisma.appointment.findFirst({
@@ -109,22 +112,27 @@ async function loadAppointment(clinicId: string, id: string) {
 }
 
 export interface ComposedMessage {
+  channel: Channel;
   kind: AppointmentMessageKind;
   language: "tr" | "en";
   recipient: string | null;
   body: string;
-  link: string | null;
+  /** Click-to-chat deep link (WhatsApp wording), for manual sending. */
+  whatsappLink: string | null;
+  /** Segment estimate for SMS bodies, for cost transparency in the UI. */
+  segments: number | null;
 }
 
 export function composeFor(
   appointment: LoadedAppointment,
   kind: AppointmentMessageKind,
   clinic: ClinicMessagingProfile,
+  channel: Channel = clinic.notifications.channel,
   now?: Date,
 ): ComposedMessage {
   const language = toMessageLocale(appointment.client.preferredLanguage);
   const recipient = normalizePhone(appointment.client.phone, countryCallingCode(clinic.country));
-  const body = composeAppointmentMessage(kind, {
+  const messageCtx = {
     locale: language,
     clientName: `${appointment.client.firstName} ${appointment.client.lastName}`.trim(),
     petName: appointment.pet.name,
@@ -134,28 +142,34 @@ export function composeFor(
     vetName: appointment.vet?.name,
     clinic,
     now,
-  });
+  };
+  const body = composeAppointmentFor(channel, kind, messageCtx);
+  const waBody = channel === "WHATSAPP" ? body : composeAppointmentFor("WHATSAPP", kind, messageCtx);
   return {
+    channel,
     kind,
     language,
     recipient,
     body,
-    link: recipient ? whatsappLink(recipient, body) : null,
+    whatsappLink: recipient ? whatsappLink(recipient, waBody) : null,
+    segments: channel === "SMS" ? smsSegments(body).segments : null,
   };
 }
 
-/** Both messages for an appointment, ready for the appointment page. */
+/** Everything the appointment page needs to show and send messages. */
 export async function previewAppointmentMessages(clinicId: string, appointmentId: string) {
   const [appointment, clinic] = await Promise.all([
     loadAppointment(clinicId, appointmentId),
     getClinicMessagingProfile(clinicId),
   ]);
   if (!appointment || !clinic) return null;
+  const channel = clinic.notifications.channel;
   return {
+    channel,
+    configured: isChannelConfigured(channel),
+    optedIn: appointment.client.notificationsOptIn,
     confirmation: composeFor(appointment, "APPOINTMENT_CONFIRMATION", clinic),
     reminder: composeFor(appointment, "APPOINTMENT_REMINDER", clinic),
-    configured: isWhatsAppConfigured(),
-    optedIn: appointment.client.whatsappOptIn,
   };
 }
 
@@ -163,36 +177,49 @@ export async function previewAppointmentMessages(clinicId: string, appointmentId
 // Sending
 // ---------------------------------------------------------------------------
 
+interface DeliveryTarget {
+  appointmentId?: string;
+  reminderId?: string;
+  clientId: string;
+  kind: "APPOINTMENT_CONFIRMATION" | "APPOINTMENT_REMINDER" | "REMINDER_DUE";
+  recipient: string;
+  language: "tr" | "en";
+  body: string;
+}
+
+/**
+ * Sends over the clinic's channel and records the outcome. Throws an
+ * AppError (already logged as FAILED) when the provider rejects the message.
+ */
 async function deliver(
-  appointment: LoadedAppointment,
-  kind: AppointmentMessageKind,
   clinic: ClinicMessagingProfile,
+  target: DeliveryTarget,
   actorId: string | null,
 ) {
-  const composed = composeFor(appointment, kind, clinic);
-  if (!composed.recipient) {
-    throw new AppError("VALIDATION_FAILED", "error.notifications.noPhone");
-  }
-  if (!appointment.client.whatsappOptIn) {
-    throw new AppError("VALIDATION_FAILED", "error.notifications.optedOut");
-  }
-  if (!isWhatsAppConfigured()) {
+  const channel = clinic.notifications.channel;
+  const transport = getTransport(channel);
+  if (!transport?.isConfigured()) {
     throw new AppError("VALIDATION_FAILED", "error.notifications.notConfigured");
   }
+  const base = {
+    clinicId: clinic.id,
+    appointmentId: target.appointmentId,
+    reminderId: target.reminderId,
+    clientId: target.clientId,
+    channel,
+    kind: target.kind,
+    recipient: target.recipient,
+    language: target.language,
+    body: target.body,
+  };
   try {
-    const { id } = await sendWhatsAppText(composed.recipient, composed.body);
+    const { providerId } = await transport.send({
+      to: target.recipient,
+      body: target.body,
+      language: target.language,
+    });
     const log = await prisma.messageLog.create({
-      data: {
-        clinicId: clinic.id,
-        appointmentId: appointment.id,
-        clientId: appointment.client.id,
-        kind,
-        recipient: composed.recipient,
-        language: composed.language,
-        body: composed.body,
-        status: "SENT",
-        providerId: id || null,
-      },
+      data: { ...base, status: "SENT", providerId: providerId || null },
     });
     await writeAudit({
       clinicId: clinic.id,
@@ -200,27 +227,41 @@ async function deliver(
       action: "CREATE",
       entityType: "MessageLog",
       entityId: log.id,
-      metadata: { kind, status: "SENT" },
+      metadata: { channel, kind: target.kind, transport: transport.name },
     });
     return log;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error("whatsapp.send_failed", { appointmentId: appointment.id, kind, err: message });
+    logger.error("notifications.send_failed", {
+      channel,
+      transport: transport.name,
+      kind: target.kind,
+      appointmentId: target.appointmentId,
+      reminderId: target.reminderId,
+      err: message,
+    });
     await prisma.messageLog.create({
-      data: {
-        clinicId: clinic.id,
-        appointmentId: appointment.id,
-        clientId: appointment.client.id,
-        kind,
-        recipient: composed.recipient,
-        language: composed.language,
-        body: composed.body,
-        status: "FAILED",
-        error: message.slice(0, 500),
-      },
+      data: { ...base, status: "FAILED", error: message.slice(0, 500) },
     });
     throw new AppError("VALIDATION_FAILED", "error.notifications.sendFailed");
   }
+}
+
+function appointmentTarget(
+  appointment: LoadedAppointment,
+  kind: AppointmentMessageKind,
+  clinic: ClinicMessagingProfile,
+): DeliveryTarget {
+  const composed = composeFor(appointment, kind, clinic);
+  if (!composed.recipient) throw new AppError("VALIDATION_FAILED", "error.notifications.noPhone");
+  return {
+    appointmentId: appointment.id,
+    clientId: appointment.client.id,
+    kind,
+    recipient: composed.recipient,
+    language: composed.language,
+    body: composed.body,
+  };
 }
 
 /** Staff-initiated send from the appointment page. */
@@ -235,7 +276,9 @@ export async function sendAppointmentMessage(
     getClinicMessagingProfile(ctx.clinicId),
   ]);
   if (!appointment || !clinic) throw notFound("appointment", appointmentId);
-  return deliver(appointment, kind, clinic, ctx.userId);
+  if (!appointment.client.notificationsOptIn)
+    throw new AppError("VALIDATION_FAILED", "error.notifications.optedOut");
+  return deliver(clinic, appointmentTarget(appointment, kind, clinic), ctx.userId);
 }
 
 /** Staff opened the message in WhatsApp themselves; keep the trail. */
@@ -250,14 +293,14 @@ export async function logManualMessage(
     getClinicMessagingProfile(ctx.clinicId),
   ]);
   if (!appointment || !clinic) throw notFound("appointment", appointmentId);
-  const composed = composeFor(appointment, kind, clinic);
-  if (!composed.recipient)
-    throw new AppError("VALIDATION_FAILED", "error.notifications.noPhone");
+  const composed = composeFor(appointment, kind, clinic, "WHATSAPP");
+  if (!composed.recipient) throw new AppError("VALIDATION_FAILED", "error.notifications.noPhone");
   return prisma.messageLog.create({
     data: {
       clinicId: clinic.id,
       appointmentId: appointment.id,
       clientId: appointment.client.id,
+      channel: "WHATSAPP",
       kind,
       recipient: composed.recipient,
       language: composed.language,
@@ -276,12 +319,16 @@ export async function notifyAppointmentBooked(appointmentId: string, ctx: Action
     const clinic = await getClinicMessagingProfile(ctx.clinicId);
     if (!clinic?.notifications.whatsapp.enabled) return;
     if (!clinic.notifications.whatsapp.confirmOnBooking) return;
-    if (!isWhatsAppConfigured()) return;
+    if (!isChannelConfigured(clinic.notifications.channel)) return;
     const appointment = await loadAppointment(ctx.clinicId, appointmentId);
-    if (!appointment || !appointment.client.phone || !appointment.client.whatsappOptIn) return;
-    await deliver(appointment, "APPOINTMENT_CONFIRMATION", clinic, ctx.userId);
+    if (!appointment?.client.phone || !appointment.client.notificationsOptIn) return;
+    await deliver(
+      clinic,
+      appointmentTarget(appointment, "APPOINTMENT_CONFIRMATION", clinic),
+      ctx.userId,
+    );
   } catch (error) {
-    logger.warn("whatsapp.confirmation_skipped", {
+    logger.warn("notifications.confirmation_skipped", {
       appointmentId,
       err: error instanceof Error ? error.message : String(error),
     });
@@ -292,18 +339,26 @@ export async function notifyAppointmentBooked(appointmentId: string, ctx: Action
 // Reminder sweep (cron)
 // ---------------------------------------------------------------------------
 
-export async function runReminderSweep(now = new Date()) {
-  const summary = {
+export interface SweepSummary {
+  configured: boolean;
+  clinics: number;
+  appointments: { checked: number; sent: number; failed: number; notDue: number };
+  reminders: { checked: number; sent: number; failed: number; notDue: number };
+}
+
+/** Idempotent: SENT/MANUAL logs block resends; FAILED ones allow a few retries. */
+export function attemptsExhausted(messages: { status: string }[]): boolean {
+  if (messages.some((m) => m.status === "SENT" || m.status === "MANUAL")) return true;
+  return messages.filter((m) => m.status === "FAILED").length >= MAX_AUTOMATIC_ATTEMPTS;
+}
+
+export async function runReminderSweep(now = new Date()): Promise<SweepSummary> {
+  const summary: SweepSummary = {
+    configured: false,
     clinics: 0,
-    checked: 0,
-    sent: 0,
-    failed: 0,
-    skipped: 0,
-    remindersChecked: 0,
-    remindersSent: 0,
-    remindersFailed: 0,
+    appointments: { checked: 0, sent: 0, failed: 0, notDue: 0 },
+    reminders: { checked: 0, sent: 0, failed: 0, notDue: 0 },
   };
-  if (!isWhatsAppConfigured()) return { ...summary, configured: false };
 
   const clinics = await prisma.clinic.findMany({
     select: {
@@ -323,6 +378,8 @@ export async function runReminderSweep(now = new Date()) {
     const clinic = toMessagingProfile(row);
     const cfg = clinic.notifications.whatsapp;
     if (!cfg.enabled) continue;
+    if (!isChannelConfigured(clinic.notifications.channel)) continue;
+    summary.configured = true;
     summary.clinics++;
 
     if (cfg.reminder.mode !== "off") {
@@ -331,22 +388,25 @@ export async function runReminderSweep(now = new Date()) {
           clinicId: clinic.id,
           status: { in: ["SCHEDULED", "CONFIRMED"] },
           startsAt: { gt: now, lte: horizon },
-          client: { archivedAt: null, phone: { not: null }, whatsappOptIn: true },
-          messages: { none: { kind: "APPOINTMENT_REMINDER" } },
+          client: { archivedAt: null, phone: { not: null }, notificationsOptIn: true },
         },
-        include: APPOINTMENT_INCLUDE,
+        include: {
+          ...APPOINTMENT_INCLUDE,
+          messages: { where: { kind: "APPOINTMENT_REMINDER" }, select: { status: true } },
+        },
       });
       for (const appointment of candidates) {
-        summary.checked++;
+        if (attemptsExhausted(appointment.messages)) continue;
+        summary.appointments.checked++;
         if (!isReminderDue(appointment.startsAt, now, cfg.reminder, clinic.timezone)) {
-          summary.skipped++;
+          summary.appointments.notDue++;
           continue;
         }
         try {
-          await deliver(appointment, "APPOINTMENT_REMINDER", clinic, null);
-          summary.sent++;
+          await deliver(clinic, appointmentTarget(appointment, "APPOINTMENT_REMINDER", clinic), null);
+          summary.appointments.sent++;
         } catch {
-          summary.failed++;
+          summary.appointments.failed++;
         }
       }
     }
@@ -360,18 +420,17 @@ export async function runReminderSweep(now = new Date()) {
           clinicId: clinic.id,
           status: "PENDING",
           dueAt: { gte: new Date(now.getTime() - 86_400_000), lte: reminderHorizon },
-          client: { archivedAt: null, phone: { not: null }, whatsappOptIn: true },
-          messages: { none: { kind: "REMINDER_DUE" } },
+          client: { archivedAt: null, phone: { not: null }, notificationsOptIn: true },
         },
         include: {
           pet: { select: { name: true } },
-          client: {
-            select: { id: true, firstName: true, lastName: true, phone: true, preferredLanguage: true },
-          },
+          client: { select: CLIENT_SELECT },
+          messages: { where: { kind: "REMINDER_DUE" }, select: { status: true } },
         },
       });
       for (const reminder of reminders) {
-        summary.remindersChecked++;
+        if (attemptsExhausted(reminder.messages)) continue;
+        summary.reminders.checked++;
         if (
           !isReminderNoticeDue(
             reminder.dueAt,
@@ -380,12 +439,14 @@ export async function runReminderSweep(now = new Date()) {
             cfg.reminder.morningHour,
             clinic.timezone,
           )
-        )
+        ) {
+          summary.reminders.notDue++;
           continue;
+        }
         const language = toMessageLocale(reminder.client.preferredLanguage);
         const recipient = normalizePhone(reminder.client.phone, countryCallingCode(clinic.country));
         if (!recipient) continue;
-        const body = composeReminderMessage({
+        const body = composeReminderFor(clinic.notifications.channel, {
           locale: language,
           clientName: `${reminder.client.firstName} ${reminder.client.lastName}`.trim(),
           petName: reminder.pet?.name,
@@ -396,47 +457,28 @@ export async function runReminderSweep(now = new Date()) {
           clinic,
         });
         try {
-          const { id } = await sendWhatsAppText(recipient, body);
-          await prisma.$transaction([
-            prisma.messageLog.create({
-              data: {
-                clinicId: clinic.id,
-                reminderId: reminder.id,
-                clientId: reminder.client.id,
-                kind: "REMINDER_DUE",
-                recipient,
-                language,
-                body,
-                status: "SENT",
-                providerId: id || null,
-              },
-            }),
-            prisma.reminder.update({
-              where: { id: reminder.id },
-              data: { status: "SENT", sentAt: now },
-            }),
-          ]);
-          summary.remindersSent++;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          logger.error("whatsapp.reminder_failed", { reminderId: reminder.id, err: message });
-          await prisma.messageLog.create({
-            data: {
-              clinicId: clinic.id,
+          await deliver(
+            clinic,
+            {
               reminderId: reminder.id,
               clientId: reminder.client.id,
               kind: "REMINDER_DUE",
               recipient,
               language,
               body,
-              status: "FAILED",
-              error: message.slice(0, 500),
             },
+            null,
+          );
+          await prisma.reminder.update({
+            where: { id: reminder.id },
+            data: { status: "SENT", sentAt: now },
           });
-          summary.remindersFailed++;
+          summary.reminders.sent++;
+        } catch {
+          summary.reminders.failed++;
         }
       }
     }
   }
-  return { ...summary, configured: true };
+  return summary;
 }

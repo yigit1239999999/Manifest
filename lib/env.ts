@@ -27,7 +27,25 @@ const envSchema = z.object({
   // Shared secret the reminder cron must present (Vercel Cron sends it as
   // "Authorization: Bearer <CRON_SECRET>" automatically).
   CRON_SECRET: z.string().min(16).optional(),
+  // SMS transport. "netgsm" needs the three NETGSM_* values; "log" prints
+  // messages instead of sending (local development).
+  SMS_PROVIDER: z.enum(["netgsm", "log"]).optional(),
+  NETGSM_USERCODE: z.string().min(1).optional(),
+  NETGSM_PASSWORD: z.string().min(1).optional(),
+  NETGSM_MSGHEADER: z.string().min(1).max(11).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+}).superRefine((v, ctx) => {
+  if (v.SMS_PROVIDER === "netgsm") {
+    for (const key of ["NETGSM_USERCODE", "NETGSM_PASSWORD", "NETGSM_MSGHEADER"] as const) {
+      if (!v[key]) {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: `${key} is required when SMS_PROVIDER=netgsm`,
+        });
+      }
+    }
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;

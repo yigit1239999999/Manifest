@@ -123,8 +123,8 @@
     "preferredContact": "Tercih edilen iletişim",
     "preferredLanguage": "Tercih edilen dil",
     "preferredLanguageHint": "WhatsApp mesajları bu dilde gönderilir.",
-    "whatsappOptIn": "Müşteri WhatsApp mesajlarına onay verdi",
-    "whatsappOptInHint": "Bu kutuyu yalnızca müşteri mesaj almayı kabul ettiyse işaretleyiniz. İşaretlenmediğinde bu müşteriye otomatik randevu onayı, hatırlatma veya aşı bildirimi gönderilmez.",
+    "notificationsOptIn": "Müşteri bildirim mesajlarına onay verdi",
+    "notificationsOptInHint": "Bu kutuyu yalnızca müşteri mesaj almayı kabul ettiyse işaretleyiniz. İşaretlenmediğinde bu müşteriye otomatik randevu onayı, hatırlatma veya aşı bildirimi gönderilmez.",
     "marketingOptIn": "Pazarlama iletişimine izin ver",
     "notes": "Notlar",
     "archivedTitle": "Arşivlendi",
@@ -248,17 +248,19 @@
     "reason": "Sebep",
     "notes": "Notlar",
     "cancel": "Randevuyu iptal et",
-    "whatsapp": {
-      "title": "WhatsApp bildirimi",
+    "notifications": {
+      "title": "Bildirimler",
       "language": "Mesaj dili",
       "noPhone": "Müşterinin kayıtlı telefon numarası olmadığı için mesaj hazırlanamıyor.",
+      "notConfigured": "{channel} bağlantısı henüz yapılmadı. Mesajı WhatsApp'ta açarak elle iletebilirsiniz.",
       "openInWhatsApp": "WhatsApp'ta aç",
-      "sendNow": "Şimdi gönder",
+      "sendNow": "{channel} gönder",
       "preview": "Mesajı görüntüle",
+      "segments": "{count, plural, one {1 SMS} other {# SMS}}",
       "history": "Gönderim geçmişi",
       "historyEmpty": "Bu randevu için henüz mesaj gönderilmedi.",
-      "messageSent": "Mesaj gönderildi.",
-      "optedOut": "Bu müşteri için WhatsApp bildirimleri pasif. Otomatik mesaj gönderilmez; gerekirse mesajı WhatsApp'ta açarak elle iletebilirsiniz.",
+      "messageSent": "{channel} gönderildi.",
+      "optedOut": "Bu müşteri için bildirim mesajları pasif. Otomatik mesaj gönderilmez; gerekirse mesajı WhatsApp'ta açarak elle iletebilirsiniz.",
       "cancelledNotice": "Bu randevu iptal edildiği için onay ve hatırlatma mesajları artık sunulmuyor. Müşteri bilgilendirilmediyse lütfen kendiniz haber veriniz."
     },
     "today": "Bugün",
@@ -310,9 +312,15 @@
       "inUse": "Kullanımda olduğu için silinemez."
     },
     "notifications": {
-      "title": "WhatsApp bildirimleri",
-      "hint": "Randevu mesajları müşterinin tercih ettiği dilde ve klinik saat dilimine göre hazırlanır.",
-      "enabled": "Otomatik WhatsApp mesajları gönderilsin",
+      "title": "Bildirim mesajları",
+      "hint": "Randevu ve hatırlatma mesajları müşterinin tercih ettiği dilde ve klinik saat dilimine göre hazırlanır.",
+      "channel": "Gönderim kanalı",
+      "channel_SMS": "SMS",
+      "channel_SMS_hint": "Her telefonda çalışır, onay veya şablon gerektirmez. Önerilen kanal.",
+      "channel_WHATSAPP": "WhatsApp Business",
+      "channel_WHATSAPP_hint": "Meta WhatsApp Cloud API bağlantısı ve onaylı mesaj şablonları gerektirir.",
+      "segments": "{count, plural, one {1 SMS segmenti} other {# SMS segmenti}}",
+      "enabled": "Otomatik bildirim mesajları açık",
       "confirmOnBooking": "Randevu oluşturulduğunda onay mesajı gönder",
       "reminder": "Hatırlatma zamanı",
       "reminderOff": "Hatırlatma gönderme",
@@ -326,8 +334,8 @@
       "remindersDaysBefore": "Kaç gün önce (0 = aynı gün)",
       "timezone": "Klinik saat dilimi",
       "timezoneHint": "Mesajlardaki tarih ve saatler bu saat dilimine göre yazılır.",
-      "providerConnected": "WhatsApp Business bağlantısı aktif. Mesajlar otomatik gönderilir.",
-      "providerMissing": "WhatsApp Business bağlantısı henüz yapılmadı. Bu süre içinde mesajlar randevu sayfasından tek tıkla WhatsApp'ta açılır ve elle gönderilir.",
+      "providerConnected": "{channel} bağlantısı aktif ({transport}). Mesajlar otomatik gönderilir.",
+      "providerMissing": "{channel} bağlantısı henüz yapılmadı. Bu süre içinde mesajlar randevu sayfasından tek tıkla WhatsApp'ta açılır ve elle gönderilir.",
       "preview": "Mesaj önizlemesi",
       "previewConfirmation": "Onay mesajı",
       "previewReminder": "Hatırlatma mesajı",
@@ -606,6 +614,10 @@
       "APPOINTMENT_REMINDER": "Randevu hatırlatması",
       "REMINDER_DUE": "Hatırlatma"
     },
+    "messageChannel": {
+      "SMS": "SMS",
+      "WHATSAPP": "WhatsApp"
+    },
     "messageStatus": {
       "SENT": "Gönderildi",
       "FAILED": "Başarısız",
@@ -656,8 +668,8 @@
     },
     "notifications": {
       "noPhone": "Müşterinin kayıtlı telefon numarası yok.",
-      "notConfigured": "WhatsApp Business bağlantısı yapılandırılmamış.",
-      "optedOut": "Bu müşteri için WhatsApp bildirimleri pasif.",
+      "notConfigured": "Mesaj kanalı bağlantısı yapılandırılmamış.",
+      "optedOut": "Bu müşteri için bildirim mesajları pasif.",
       "sendFailed": "Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin."
     },
     "validation": {

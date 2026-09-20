@@ -158,13 +158,13 @@ export function ClientForm({ client }: Props) {
         <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/20 p-3 text-sm">
           <input
             type="checkbox"
-            name="whatsappOptIn"
-            defaultChecked={client?.whatsappOptIn ?? false}
+            name="notificationsOptIn"
+            defaultChecked={client?.notificationsOptIn ?? false}
             className="mt-0.5 size-4 rounded border-border"
           />
           <span className="flex flex-col gap-1">
-            <span className="font-medium text-foreground">{t("whatsappOptIn")}</span>
-            <span className="text-xs text-muted-foreground">{t("whatsappOptInHint")}</span>
+            <span className="font-medium text-foreground">{t("notificationsOptIn")}</span>
+            <span className="text-xs text-muted-foreground">{t("notificationsOptInHint")}</span>
           </span>
         </label>
         <label className="flex items-start gap-3 text-sm">

@@ -11,10 +11,7 @@ export const createReminderAction = action(
     const parsed = parse(reminderSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
-    const reminder = await createReminder(parsed.data, ctx);
-    revalidatePath("/reminders");
-    revalidatePath(`/clients/${reminder.clientId}`);
-    if (reminder.petId) revalidatePath(`/pets/${reminder.petId}`);
+    await createReminder(parsed.data, ctx);
     return { success: true };
   },
 );

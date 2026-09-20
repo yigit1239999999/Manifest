@@ -24,7 +24,7 @@ import {
   logManualMessageAction,
   sendAppointmentMessageAction,
 } from "@/modules/notifications/actions";
-import { WhatsAppActions } from "@/components/whatsapp-actions";
+import { NotificationActions } from "@/components/notification-actions";
 
 export default async function AppointmentPage({
   params,
@@ -34,7 +34,7 @@ export default async function AppointmentPage({
   const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
-  const [appointment, t, tCommon, tType, tStatus, tKind, tMsgStatus, tLang, preview, log] =
+  const [appointment, t, tCommon, tType, tStatus, tKind, tMsgStatus, tLang, tChannel, preview, log] =
     await Promise.all([
       getAppointmentById(session.user.clinicId, id),
       getTranslations("appointment"),
@@ -44,6 +44,7 @@ export default async function AppointmentPage({
       getTranslations("enum.messageKind"),
       getTranslations("enum.messageStatus"),
       getTranslations("enum.language"),
+      getTranslations("enum.messageChannel"),
       previewAppointmentMessages(session.user.clinicId, id),
       listMessagesForAppointment(session.user.clinicId, id),
     ]);
@@ -101,17 +102,25 @@ export default async function AppointmentPage({
 
       <Card>
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>{t("whatsapp.title")}</CardTitle>
+          <CardTitle>{t("notifications.title")}</CardTitle>
           {preview && (
-            <Badge variant="secondary">
-              {t("whatsapp.language")}: {tLang(preview.confirmation.language)}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">{tChannel(preview.channel)}</Badge>
+              <Badge variant="secondary">
+                {t("notifications.language")}: {tLang(preview.confirmation.language)}
+              </Badge>
+            </div>
           )}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {preview && !preview.optedIn && (
             <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
-              {t("whatsapp.optedOut")}
+              {t("notifications.optedOut")}
+            </p>
+          )}
+          {preview && preview.optedIn && !preview.configured && (
+            <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              {t("notifications.notConfigured", { channel: tChannel(preview.channel) })}
             </p>
           )}
           {cancelled ? (
@@ -119,18 +128,20 @@ export default async function AppointmentPage({
             // remind the client to come — there is no message here that is
             // true any more.
             <p className="text-sm text-muted-foreground">
-              {t("whatsapp.cancelledNotice")}
+              {t("notifications.cancelledNotice")}
             </p>
           ) : !preview?.confirmation.recipient ? (
-            <p className="text-sm text-muted-foreground">{t("whatsapp.noPhone")}</p>
+            <p className="text-sm text-muted-foreground">{t("notifications.noPhone")}</p>
           ) : (
-            <WhatsAppActions
+            <NotificationActions
               appointmentId={appointment.id}
+              channel={preview.channel}
               configured={preview.configured && preview.optedIn}
               messages={[preview.confirmation, preview.reminder].map((m) => ({
                 kind: m.kind,
                 body: m.body,
-                link: m.link,
+                whatsappLink: m.whatsappLink,
+                segments: m.segments,
               }))}
               sendAction={sendAppointmentMessageAction}
               logManualAction={logManualMessageAction}
@@ -138,10 +149,10 @@ export default async function AppointmentPage({
           )}
           <div>
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {t("whatsapp.history")}
+              {t("notifications.history")}
             </p>
             {log.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("whatsapp.historyEmpty")}</p>
+              <p className="text-sm text-muted-foreground">{t("notifications.historyEmpty")}</p>
             ) : (
               <ul className="divide-y divide-border text-sm">
                 {log.map((m) => (
@@ -149,8 +160,10 @@ export default async function AppointmentPage({
                     <span>
                       {tKind(m.kind)}
                       <span className="ml-2 text-xs text-muted-foreground">
-                        {formatDateTime(fmt, m.createdAt)} · {m.language.toUpperCase()}
+                        {tChannel(m.channel)} · {formatDateTime(fmt, m.createdAt)} ·{" "}
+                        {m.language.toUpperCase()}
                       </span>
+                      {m.error && <span className="ml-2 text-xs text-destructive">{m.error}</span>}
                     </span>
                     <Badge variant={m.status === "FAILED" ? "destructive" : "secondary"}>
                       {tMsgStatus(m.status)}
