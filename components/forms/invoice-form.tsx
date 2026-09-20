@@ -57,7 +57,7 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={tClient("title")} error={state.fieldErrors?.clientId} required>
+        <Field label={tClient("one")} error={state.fieldErrors?.clientId} required>
           <Select name="clientId" defaultValue={defaultClientId ?? ""} required>
             <option value="" disabled>
               {tCommon("select")}

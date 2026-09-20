@@ -49,6 +49,9 @@ export default async function AppointmentPage({
     ]);
   if (!appointment) notFound();
 
+  const cancelled =
+    appointment.status === "CANCELLED" || appointment.status === "NO_SHOW";
+
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/appointments" label={tCommon("back")} />
@@ -111,7 +114,14 @@ export default async function AppointmentPage({
               {t("whatsapp.optedOut")}
             </p>
           )}
-          {!preview?.confirmation.recipient ? (
+          {cancelled ? (
+            // A cancelled appointment must not offer to confirm it or to
+            // remind the client to come — there is no message here that is
+            // true any more.
+            <p className="text-sm text-muted-foreground">
+              {t("whatsapp.cancelledNotice")}
+            </p>
+          ) : !preview?.confirmation.recipient ? (
             <p className="text-sm text-muted-foreground">{t("whatsapp.noPhone")}</p>
           ) : (
             <WhatsAppActions

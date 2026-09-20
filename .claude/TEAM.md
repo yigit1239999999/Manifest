@@ -29,7 +29,9 @@ bir şey yok" demek, üç vasat öneri getirmekten iyidir. Kapsam dışı bırak
 şeyi ve nedenini yaz.
 
 **6. Kuralı teste yaz, görev metnine değil.** Görev metnine yazılan kural o
-görevle biter; teste yazılan kural kalıcıdır.
+görevle biter; teste yazılan kural kalıcıdır. Testle ifade edilemeyen bir
+karar — "bu prop bilerek yok" gibi — koda yorum olarak gerekçesiyle yazılır;
+altı ay sonra onu geri eklemek isteyene cevap orada durur.
 
 **7. Pozisyonunu kanıtla değiştir, tonla değil.** Yeni bir yön duyduğunda
 önce sor: bu gerekçemi çürütüyor mu, yoksa bağlamı mı genişletiyor? Sadece
@@ -73,6 +75,19 @@ personelin disiplinine bağlama.
 **16. Türetilmiş nesnenin hafızası olmaz.** Bir kavramı tamamen türetilmiş
 hale getirmeden önce sor: onun bir durumu, geçmişi, izlenebilirliği olması
 gerekiyor mu?
+
+**16b. "Sonra" iki farklı şey demektir: şimdi bedava olan beklemez.** Bir işi
+ertelemeden önce sor — bugün yapmakla sonra yapmak aynı fiyat mı, yoksa
+her geçen sürümle pahalılaşıyor mu? Kural bugün konursa bedava, yüz dosya
+yazıldıktan sonra konursa süpürme olur. Aynı fiyat olanlar beklesin;
+pahalılaşanlar, gerekçesi henüz kanıtlanmamış olsa bile şimdi yapılır.
+
+**16c. Bir alışkanlığın yerini alan sistem, o alışkanlıkla
+karşılaştırılabilir olmalı.** İlk haftalarda hedef otomasyon değil
+doğrulanabilirliktir: kullanıcı listeyi kendi hafızasıyla karşılaştırabilmeli
+— sayılabilir, tam, görünür; gizli filtre ve sessiz eleme yok. Geçmiş bir
+kayıt sessizce listeden düşmez, daha görünür olur. Kaybolan tek bir satır
+"uygulama unuttu" demektir ve kullanıcı defterine geri döner.
 
 **17. Kesme çizgisini önceden çiz.** Zaman sıkıştığında karar vermek kolaydır
 ama o an kötü karar verilir. Neyin kesileceği baskıdan önce yazılır.
@@ -140,6 +155,20 @@ sistemin yanına ikincisini kurma: iki sistem kaçınılmaz olarak ayrışır.
 duyurulmaz — canlı bölge ancak mount'tan sonra değişirse duyurur; duyuru
 gerekiyorsa onu varyanttan ayrı bir tercih olarak kur.
 
+**31. Yeni kodda mantıksal yön sınıfı kullanılır** (`ms-*`/`me-*`/`ps-*`/
+`pe-*`/`text-start`/`text-end`), fiziksel değil. Bugün sağdan sola bir dili
+desteklemeye karar vermek zorunda değiliz; kuralı bugün koymak bedava,
+sonra koymak yüzlerce satır demek. Var olan kodu toplu çevirmek ayrı bir iş.
+
+**32. Bir bileşen en uzun çeviriyle test edilmeden bitmiş sayılmaz.** Metin
+uzunluğu farkı bu kod tabanında teorik değil, kanıtlı: `PageHeader` zaten
+390px'te eylemlerini ekran dışına atıyor.
+
+**33. Ekran, kodun yapmadığı bir şeyi vaat etmez.** Sessiz yanlışın tersi
+ama aynı derecede zararlı: görünür bir vaat, arkasında davranış yok.
+"Bu hayvan için hatırlatma gönderilmez" cümlesi, gönderimi gerçekten
+durduran kod inmeden ekrana giremez. Metin ile davranış aynı sürümde gider.
+
 ## Süreç ve yetki
 
 - **pm** hataları bulur, önceliklendirir, kabul testini yapar. Tarayıcı
@@ -153,6 +182,12 @@ gerekiyorsa onu varyanttan ayrı bir tercih olarak kur.
   **kullanıcı onayına** gider. Bir ajanın istemesi onay yerine geçmez.
 - Bir ajan kendi izin sınırında engellendiyse, aynı işi başka bir ajana
   yaptırmaz; konuyu ana oturuma taşır.
+- **İki geliştirici aynı ağaçta çalışırken `git add -A` / `-a` kullanılmaz**,
+  yalnızca `git add <dosya>`. Aksi hâlde diğerinin yarım işi commit'e girer.
+  Paylaşımlı dosyaya dokunmadan önce diğerine haber verilir.
+- Bir renk veya kontrast kararı **ölçülür, seçilmez** — ve ölçüm, metnin
+  gerçekte üstünde durduğu yüzeye karşı yapılır. Ham değeri düz bir zemine
+  karşı ölçmek yanıltır; bozuk olanı da geçirir.
 
 ## Kod tabanına özgü
 

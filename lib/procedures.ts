@@ -177,3 +177,33 @@ export const DIAGNOSTIC_TESTS: Record<string, readonly string[]> = {
     "Nekropsi",
   ],
 };
+
+// Vaccines a Turkish small-animal clinic gives, with the trade names staff
+// actually say in brackets so either spelling finds the row. Free text as
+// well: a product not listed is typed and saved as-is.
+export const VACCINES: readonly string[] = [
+  // Köpek
+  "Kuduz (Rabies)",
+  "Karma - Parvo, Gençlik, Hepatit, Parainfluenza (DHPPi)",
+  "Karma + Leptospiroz (DHPPi+L)",
+  "Parvovirüs",
+  "Gençlik hastalığı (Distemper)",
+  "Leptospiroz",
+  "Bronchiseptica / Köpek öksürüğü (Kennel cough)",
+  "Coronavirüs",
+  "Leishmania",
+  // Kedi
+  "Kedi karma - Panlökopeni, Rinotrakeit, Kalisi (FVRCP)",
+  "Kedi karma + Klamidya (FVRCP+C)",
+  "Kedi lösemisi (FeLV)",
+  "Kedi enfeksiyöz peritoniti (FIP)",
+  // Diğer türler
+  "Tavşan - Myxomatosis / RHD",
+  "Gelincik - Gençlik hastalığı (Distemper)",
+  "At - Tetanoz",
+  "At - İnfluenza",
+  "Büyükbaş - Şap",
+  "Büyükbaş - Brusella",
+  "Küçükbaş - Enterotoksemi",
+  "Küçükbaş - Çiçek",
+];

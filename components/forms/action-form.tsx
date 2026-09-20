@@ -18,6 +18,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
+import { useRouter } from "next/navigation";
 import type { FormState } from "@/lib/action";
 
 const EMPTY: readonly string[] = [];
@@ -54,6 +55,15 @@ export function useActionForm(
     action as (state: FormState, formData: FormData) => Promise<FormState>,
     initialState,
   );
+
+  const router = useRouter();
+
+  // A form that stays on the page after saving (a reminder, a note, a
+  // vaccination) has to show what it just added. Without this the list
+  // still reads "none" and the user saves the same thing again.
+  React.useEffect(() => {
+    if (raw.success) router.refresh();
+  }, [raw, router]);
 
   const [cleared, setCleared] = React.useState<readonly string[]>([]);
   const [resetToken, setResetToken] = React.useState(0);

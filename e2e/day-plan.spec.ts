@@ -29,7 +29,9 @@ async function createPet(page: import("@playwright/test").Page, name: string) {
   await page.getByLabel(/^name$/i).fill(name);
   await page.getByRole("button", { name: /^cat$/i }).click();
   await page.getByRole("button", { name: /create pet/i }).click();
-  await expect(page.getByRole("heading", { name: new RegExp(name, "i") })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: new RegExp(name, "i") }),
+  ).toBeVisible();
 }
 
 async function book(page: import("@playwright/test").Page, wallTime: string) {
@@ -55,10 +57,6 @@ function dayKey(offsetDays: number): string {
 }
 
 test.describe("Appointments day plan", () => {
-  // Booking three appointments walks through a lot of routes, each of
-  // which the dev server compiles on first hit.
-  test.setTimeout(120_000);
-
   test("opens on today and moves a day at a time", async ({ page }) => {
     await signUp(page, Date.now());
     await createPet(page, "Boncuk");

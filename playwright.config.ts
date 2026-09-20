@@ -15,6 +15,10 @@ const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Against `npm run dev` the first hit on a route waits for it to compile,
+  // which is far longer than Playwright's defaults allow for.
+  timeout: 120_000,
+  expect: { timeout: 20_000 },
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

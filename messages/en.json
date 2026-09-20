@@ -147,7 +147,8 @@
       "pets": "Pets",
       "timeline": "Timeline",
       "invoices": "Invoices"
-    }
+    },
+    "one": "Client"
   },
   "pet": {
     "title": "Pets",
@@ -257,7 +258,8 @@
       "history": "Delivery history",
       "historyEmpty": "No messages sent for this appointment yet.",
       "messageSent": "Message sent.",
-      "optedOut": "WhatsApp notifications are disabled for this client. Nothing is sent automatically; if needed you can still open the message in WhatsApp and send it by hand."
+      "optedOut": "WhatsApp notifications are disabled for this client. Nothing is sent automatically; if needed you can still open the message in WhatsApp and send it by hand.",
+      "cancelledNotice": "This appointment is cancelled, so the confirmation and reminder messages are no longer offered. Tell the client yourself if they have not been informed."
     },
     "today": "Today",
     "previousDay": "Previous day",
@@ -288,7 +290,8 @@
     "deactivate": "Deactivate",
     "activate": "Activate",
     "you": "You",
-    "deactivateConfirm": "Deactivate this staff member?"
+    "deactivateConfirm": "Deactivate this staff member?",
+    "emptyHint": "Add the vets, technicians and receptionists who work at this clinic."
   },
   "settings": {
     "title": "Settings",
@@ -344,7 +347,8 @@
     "administeredAt": "Administered at",
     "nextDueAt": "Next due",
     "site": "Site",
-    "notes": "Notes"
+    "notes": "Notes",
+    "namePlaceholder": "Search or type: rabies, DHPPi, FVRCP…"
   },
   "prescription": {
     "title": "Prescriptions",
@@ -365,12 +369,13 @@
     "notes": "Notes",
     "complete": "Mark completed",
     "cancel": "Cancel",
-    "durationShort": "{count} days"
+    "durationShort": "{count} days",
+    "emptyHint": "Prescriptions written from a pet's page appear here, the newest first."
   },
   "treatment": {
     "title": "Treatments and procedures",
     "new": "Add treatment / procedure",
-    "create": "Save",
+    "create": "Save treatment",
     "empty": "No treatments or procedures recorded yet.",
     "name": "Treatment / procedure",
     "namePlaceholder": "Search or type: spay, dental scaling, IV fluids…",
@@ -385,7 +390,7 @@
   "diagnostic": {
     "title": "Diagnostics",
     "new": "Add test",
-    "create": "Save",
+    "create": "Save test",
     "empty": "No diagnostic tests recorded yet.",
     "type": "Test type",
     "name": "Test",
@@ -421,7 +426,8 @@
     "body": "Notes",
     "dueAt": "Due at",
     "acknowledge": "Mark done",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "emptyHint": "Reminders you create — vaccination due, check-up, follow-up — are listed here until they are sent."
   },
   "invoice": {
     "title": "Invoices",
@@ -479,7 +485,8 @@
     "actor": "Actor",
     "action": "Action",
     "entity": "Entity",
-    "when": "When"
+    "when": "When",
+    "emptyHint": "Everything staff change — records created, edited or archived — is listed here."
   },
   "enum": {
     "species": {

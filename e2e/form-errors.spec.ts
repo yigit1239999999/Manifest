@@ -156,3 +156,20 @@ test.describe("Clinic time zone", () => {
     await expect(page.getByText(/08:30/)).toHaveCount(0);
   });
 });
+
+test.describe("Saving without leaving the page", () => {
+  // The list has to show what was just saved; when it kept saying "none"
+  // people saved the same reminder twice.
+  test("a new reminder appears in the list straight away", async ({ page }) => {
+    await signUp(page, Date.now() + 4);
+    await createOwner(page);
+
+    await page.goto("/reminders");
+    await page.getByLabel(/^client$/i).selectOption({ index: 1 });
+    await page.getByLabel(/^name$|^title$/i).fill("Rabies booster due");
+    await page.getByRole("button", { name: /create reminder/i }).click();
+
+    await expect(page.getByText("Rabies booster due")).toBeVisible();
+    await expect(page.getByText(/no reminders/i)).toHaveCount(0);
+  });
+});
