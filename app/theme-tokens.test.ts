@@ -198,3 +198,71 @@ ${systemBody}
     expect(themePaletteViolations(withVariant)).toEqual([]);
   });
 });
+
+// --- Contrast -------------------------------------------------------------
+// A warning nobody can read is not a warning. The bug this palette work fixes
+// was `text-amber-700` (#b45309) on a dark card: 3.16:1, comfortably illegible.
+// Callouts paint text in the role colour over that same colour at 10% alpha,
+// so the text/background pair is what has to be measured — not the raw value
+// against a plain surface, which flatters it.
+
+const srgbToLinear = (channel: number) => {
+  const c = channel / 255;
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+};
+
+export function parseHex(value: string): [number, number, number] {
+  const match = /^#([0-9a-f]{6})$/i.exec(value.trim());
+  if (!match) throw new Error(`Not a 6-digit hex colour: ${value}`);
+  const n = parseInt(match[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+const relativeLuminance = ([r, g, b]: [number, number, number]) =>
+  0.2126 * srgbToLinear(r) + 0.7152 * srgbToLinear(g) + 0.0722 * srgbToLinear(b);
+
+export function contrastRatio(a: string, b: string): number {
+  const [hi, lo] = [relativeLuminance(parseHex(a)), relativeLuminance(parseHex(b))].sort(
+    (x, y) => y - x,
+  );
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Composites `fg` at `alpha` over `bg` — what `bg-<role>/10` actually paints. */
+export function composite(fg: string, bg: string, alpha: number): string {
+  const f = parseHex(fg);
+  const b = parseHex(bg);
+  return `#${f
+    .map((c, i) => Math.round(c * alpha + b[i] * (1 - alpha)).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+describe("warning callouts are readable in both themes", () => {
+  const { light, dark } = readThemePalettes(css);
+
+  // Every surface a callout is placed on today.
+  const surfaces = ["--card", "--bg", "--muted"] as const;
+
+  for (const [themeName, palette] of [
+    ["light", light],
+    ["dark", dark],
+  ] as const) {
+    for (const surface of surfaces) {
+      it(`--warning text clears WCAG AA on ${surface} in ${themeName}`, () => {
+        const role = palette.get("--warning")!;
+        const behind = palette.get(surface)!;
+        const ratio = contrastRatio(role, composite(role, behind, 0.1));
+        expect(ratio, `${role} on ${surface} (${behind})`).toBeGreaterThanOrEqual(4.5);
+      });
+    }
+  }
+
+  it("scores the known-bad colour as failing, so the bar is real", () => {
+    // The exact colour that shipped, on the exact surface it shipped against.
+    const amber700 = "#b45309";
+    const darkCard = dark.get("--card")!;
+    expect(
+      contrastRatio(amber700, composite(amber700, darkCard, 0.1)),
+    ).toBeLessThan(4.5);
+  });
+});

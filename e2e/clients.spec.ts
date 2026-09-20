@@ -24,7 +24,7 @@ test.describe("Clients", () => {
     await page.getByLabel(/^email$/i).fill("jamie@example.com");
     await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
 
-    await expect(page).toHaveURL(/\/clients\/[\w-]+$/);
+    await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
     await expect(
       page.getByRole("heading", { name: /jamie rivera/i }),
     ).toBeVisible();
@@ -37,7 +37,7 @@ test.describe("Clients", () => {
     await page.getByLabel(/first name|^ad$/i).fill("Avery");
     await page.getByLabel(/last name|soyad/i).fill("Chen");
     await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
-    await expect(page).toHaveURL(/\/clients\/[\w-]+$/);
+    await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
 
     await page.goto("/clients");
     await expect(page.getByText("Avery Chen")).toBeVisible();

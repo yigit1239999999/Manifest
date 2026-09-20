@@ -20,6 +20,7 @@
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-fg);
+  --color-warning: var(--warning);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 
@@ -45,6 +46,7 @@
   --ring: #0f7a6e;
   --destructive: #c24a3f;
   --destructive-fg: #ffffff;
+  --warning: #7f4d0e;
 }
 
 [data-theme="dark"] {
@@ -64,6 +66,7 @@
   --ring: #34c0a8;
   --destructive: #e6675a;
   --destructive-fg: #1f0a08;
+  --warning: #eab45f;
 }
 
 /* "system" resolves to the OS preference in pure CSS — no JS, no flash,
@@ -86,6 +89,7 @@
     --ring: #34c0a8;
     --destructive: #e6675a;
     --destructive-fg: #1f0a08;
+    --warning: #eab45f;
   }
 }
 

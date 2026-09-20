@@ -173,8 +173,7 @@ export function formatDateTime(
     year: "numeric",
     month: "short",
     day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+    ...hourOptions(target),
   }).format(date);
 }
 
@@ -183,7 +182,7 @@ export function formatTime(
   date: Date | null | undefined,
 ): string {
   if (!date) return EMPTY;
-  return dateFormat(target, { hour: "numeric", minute: "2-digit" }).format(date);
+  return dateFormat(target, hourOptions(target)).format(date);
 }
 
 /** Weekday and day, e.g. "Wednesday, 23 September" — for day headings. */
@@ -200,6 +199,15 @@ export function formatDayHeading(
   }).format(date);
 }
 
+// Turkish writes the clock 24-hour and zero-padded ("09:15"); English
+// doesn't ("9:15 AM").
+function hourOptions(target: FormatTarget): Intl.DateTimeFormatOptions {
+  return {
+    hour: localeOf(target) === "tr" ? "2-digit" : "numeric",
+    minute: "2-digit",
+  };
+}
+
 /**
  * "YYYY-MM-DD" for the calendar day an instant falls on in `timeZone`.
  * Grouping by the UTC day would put a 01:30 appointment in Istanbul on the
@@ -213,6 +221,34 @@ export function dayKey(date: Date, timeZone?: string): string {
     day: "2-digit",
     timeZone,
   }).format(date);
+}
+
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isDayKey(value: unknown): value is string {
+  return typeof value === "string" && DAY_KEY.test(value);
+}
+
+/** The day `days` away from a "YYYY-MM-DD" key. */
+export function shiftDayKey(key: string, days: number): string {
+  const [year, month, day] = key.split("-").map(Number);
+  const shifted = new Date(Date.UTC(year, month - 1, day) + days * 86_400_000);
+  return shifted.toISOString().slice(0, 10);
+}
+
+/**
+ * The instants a clinic's day starts and ends at. A day is a local thing:
+ * in Istanbul it runs 21:00–20:59:59.999 UTC, so a 23:30 appointment
+ * belongs to the day the clinic is having, not the one UTC is.
+ */
+export function dayRange(
+  key: string,
+  timeZone?: string,
+): { from: Date; to: Date } | null {
+  const from = wallTimeToInstant(`${key}T00:00`, timeZone);
+  const nextDay = wallTimeToInstant(`${shiftDayKey(key, 1)}T00:00`, timeZone);
+  if (!from || !nextDay) return null;
+  return { from, to: new Date(nextDay.getTime() - 1) };
 }
 
 /** "30 min" / "30 dk" — the unit follows the locale, not the source. */

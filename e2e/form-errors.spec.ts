@@ -64,7 +64,7 @@ test.describe("Form validation", () => {
     await expect(speciesError).toBeHidden();
 
     await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
-    await expect(page).toHaveURL(/\/pets\/[\w-]+$/);
+    await expect(page).toHaveURL(/\/pets\/(?!new)[\w-]+$/);
     await expect(page.getByRole("heading", { name: /boncuk/i })).toBeVisible();
   });
 
@@ -105,7 +105,7 @@ test.describe("Medical records", () => {
     await page.getByLabel(/^name$/i).fill("Boncuk");
     await page.getByRole("button", { name: /^cat$/i }).click();
     await page.getByRole("button", { name: /create pet/i }).click();
-    await expect(page).toHaveURL(/\/pets\/[\w-]+$/);
+    await expect(page).toHaveURL(/\/pets\/(?!new)[\w-]+$/);
 
     await page.getByText("Add vaccination").click();
     const vaccination = page.locator("form").filter({
@@ -147,7 +147,7 @@ test.describe("Clinic time zone", () => {
     await page.getByLabel(/^pet$/i).selectOption({ index: 1 });
     await page.getByLabel(/starts at/i).fill("2026-11-23T11:30");
     await page.getByRole("button", { name: /create appointment/i }).click();
-    await expect(page).toHaveURL(/\/appointments\/[\w-]+$/);
+    await expect(page).toHaveURL(/\/appointments\/(?!new)[\w-]+$/);
 
     // The heading, the details row and the message all say 11:30.
     await expect(page.getByText("11:30").first()).toBeVisible();

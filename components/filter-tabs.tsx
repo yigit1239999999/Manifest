@@ -12,6 +12,8 @@ interface Props {
   active?: string;
   allLabel: string;
   options: FilterOption[];
+  /** Other query params to carry along, so filters combine. */
+  params?: Record<string, string | undefined>;
 }
 
 export function FilterTabs({
@@ -20,9 +22,17 @@ export function FilterTabs({
   active,
   allLabel,
   options,
+  params,
 }: Props) {
-  const buildHref = (value?: string) =>
-    value ? `${basePath}?${param}=${encodeURIComponent(value)}` : basePath;
+  const buildHref = (value?: string) => {
+    const query = new URLSearchParams();
+    for (const [key, v] of Object.entries(params ?? {})) {
+      if (v) query.set(key, v);
+    }
+    if (value) query.set(param, value);
+    const qs = query.toString();
+    return qs ? `${basePath}?${qs}` : basePath;
+  };
 
   return (
     <div

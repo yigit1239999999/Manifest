@@ -258,7 +258,17 @@
       "historyEmpty": "Bu randevu için henüz mesaj gönderilmedi.",
       "messageSent": "Mesaj gönderildi.",
       "optedOut": "Bu müşteri için WhatsApp bildirimleri pasif. Otomatik mesaj gönderilmez; gerekirse mesajı WhatsApp'ta açarak elle iletebilirsiniz."
-    }
+    },
+    "today": "Bugün",
+    "previousDay": "Önceki gün",
+    "nextDay": "Sonraki gün",
+    "allDates": "Tüm tarihler",
+    "dayPlan": "Gün planı",
+    "petClient": "Hayvan · Müşteri",
+    "phone": "Telefon",
+    "emptyDay": "Bu gün için randevu bulunmuyor.",
+    "emptyDayHint": "Başka bir güne bakmak için okları kullanabilir veya yeni randevu oluşturabilirsiniz.",
+    "emptyHint": "Oluşturduğunuz randevular, en yakın tarihli olan başta olmak üzere burada görünür."
   },
   "staff": {
     "title": "Ekip",
