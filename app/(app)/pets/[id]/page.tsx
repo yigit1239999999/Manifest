@@ -140,6 +140,12 @@ export default async function PetPage({
         />
       </PageHeader>
 
+      {pet.alerts && (
+        <Callout variant="warning" title={t("alerts")}>
+          {pet.alerts}
+        </Callout>
+      )}
+
       {pet.deceased && (
         <p className="rounded-lg border border-muted-foreground/30 bg-muted px-3 py-2 text-sm">
           {t("deceased")}: {formatDate(fmt, pet.deceasedAt)}
@@ -184,11 +190,6 @@ export default async function PetPage({
               label={t("neutered")}
               value={pet.neutered ? tCommon("yes") : tCommon("no")}
             />
-            {pet.alerts && (
-              <Callout variant="warning" title={t("alerts")}>
-                {pet.alerts}
-              </Callout>
-            )}
             {pet.notes && (
               <div className="mt-2 rounded-lg bg-muted/40 p-3 text-sm">
                 {pet.notes}
