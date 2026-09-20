@@ -144,6 +144,29 @@ describe("checkbox", () => {
   });
 });
 
+describe("fields the form never rendered", () => {
+  // `Object.fromEntries(formData)` simply omits a control that is not in the
+  // DOM, so every helper has to survive an undefined value.
+  it("optional helpers treat a missing key as blank", () => {
+    expect(optionalText(10).safeParse(undefined).data).toBeNull();
+    expect(optionalEmail.safeParse(undefined).data).toBeNull();
+    expect(optionalEnum(["DOG", "CAT"] as const).safeParse(undefined).data).toBeNull();
+    expect(optionalDate.safeParse(undefined).data).toBeNull();
+    expect(optionalDateTime.safeParse(undefined).data).toBeNull();
+    expect(optionalFloat().safeParse(undefined).data).toBeNull();
+    expect(optionalInt().safeParse(undefined).data).toBeNull();
+    expect(optionalMoneyCents.safeParse(undefined).data).toBeNull();
+  });
+
+  it("required helpers report a missing key as required", () => {
+    const result = requiredText(1, 10, "pet.name").safeParse(undefined);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toContain("error.form.required");
+    }
+  });
+});
+
 describe("toFieldErrors", () => {
   it("groups Zod issues by their first path segment", () => {
     const schema = requiredText(1, 10, "Ad");

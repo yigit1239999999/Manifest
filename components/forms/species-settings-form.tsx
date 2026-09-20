@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import type { FormState } from "@/lib/action";
 import { SpeciesIcon } from "@/components/species-icon";
 import { SubmitButton } from "@/components/submit-button";
 import { cn } from "@/lib/utils";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
@@ -22,7 +23,8 @@ export function SpeciesSettingsForm({
   saveLabel,
   savedMessage,
 }: Props) {
-  const [state, formAction] = useActionState(action, {});
+  const form = useActionForm(action, {});
+  const { state } = form;
 
   useEffect(() => {
     if (state.success) toast.success(savedMessage);
@@ -32,7 +34,7 @@ export function SpeciesSettingsForm({
   const fieldError = state.fieldErrors?.species?.[0];
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <ActionForm form={form} className="flex flex-col gap-4">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {species.map((s) => (
           <label
@@ -60,6 +62,6 @@ export function SpeciesSettingsForm({
       <div className="flex justify-end">
         <SubmitButton>{saveLabel}</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

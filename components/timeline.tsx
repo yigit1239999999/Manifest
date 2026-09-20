@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import {
   CalendarClock,
   ClipboardList,
@@ -14,7 +15,13 @@ import {
 import type { TimelineEvent } from "@/modules/timeline/queries";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { formatMoney, formatTime, relativeTime } from "@/lib/format";
+import {
+  dayKey,
+  formatDayHeading,
+  formatMoney,
+  formatTime,
+  relativeTime,
+} from "@/lib/format";
 
 const KIND_ICONS = {
   visit: Stethoscope,
@@ -27,10 +34,6 @@ const KIND_ICONS = {
   invoice: Receipt,
 } as const;
 
-function dayKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
 export async function Timeline({
   events,
   currency = "USD",
@@ -40,27 +43,27 @@ export async function Timeline({
 }) {
   const t = await getTranslations("timeline");
   const tEnum = await getTranslations("enum");
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
 
   if (events.length === 0) {
-    return <EmptyState icon={ClipboardList} title={t("empty")} description="" />;
+    return (
+      <EmptyState
+        icon={ClipboardList}
+        title={t("empty")}
+        description={t("emptyHint")}
+      />
+    );
   }
 
-  // Group by date (UTC day). Iteration preserves the input order which is
-  // already sorted by date desc (with pinned notes floated to the top).
+  // Group by date. Iteration preserves the input order which is already
+  // sorted by date desc (with pinned notes floated to the top).
   const groups = new Map<string, { label: string; events: TimelineEvent[] }>();
-  const dayLabel = new Intl.DateTimeFormat(locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 
   for (const event of events) {
-    const key = dayKey(event.at);
+    const key = dayKey(event.at, fmt.timeZone);
     let bucket = groups.get(key);
     if (!bucket) {
-      bucket = { label: dayLabel.format(event.at), events: [] };
+      bucket = { label: formatDayHeading(fmt, event.at), events: [] };
       groups.set(key, bucket);
     }
     bucket.events.push(event);
@@ -70,10 +73,10 @@ export async function Timeline({
     <div className="flex flex-col gap-6">
       {Array.from(groups.values()).map((group, gi) => (
         <section key={gi} className="flex flex-col gap-1">
-          <h3 className="sticky top-16 z-[1] -mx-2 bg-background/85 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+          <h3 className="sticky top-16 z-[1] -mx-2 bg-background px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {group.label}
             <span className="ml-2 text-muted-foreground/60">
-              · {relativeTime(locale, group.events[0].at)}
+              · {relativeTime(fmt, group.events[0].at)}
             </span>
           </h3>
           <ol className="flex flex-col">
@@ -112,7 +115,7 @@ export async function Timeline({
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {formatTime(locale, event.at)}
+                      {formatTime(fmt, event.at)}
                       {event.kind === "visit" && event.vet
                         ? ` · ${event.vet.name}`
                         : ""}
@@ -126,13 +129,13 @@ export async function Timeline({
                         ? ` · ${tEnum(`prescriptionStatus.${event.status}` as never)}`
                         : ""}
                       {event.kind === "vaccination" && event.nextDueAt
-                        ? ` · next: ${dayLabel.format(event.nextDueAt)}`
+                        ? ` · ${t("nextDue")}: ${formatDayHeading(fmt, event.nextDueAt)}`
                         : ""}
                       {event.kind === "note" && event.author
                         ? ` · ${event.author.name}`
                         : ""}
                       {event.kind === "invoice"
-                        ? ` · ${formatMoney(locale, event.totalCents, currency)}`
+                        ? ` · ${formatMoney(fmt, event.totalCents, currency)}`
                         : ""}
                     </p>
                     {event.summary && (

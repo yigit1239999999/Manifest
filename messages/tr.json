@@ -37,11 +37,13 @@
     "addNew": "Ekle: \"{value}\"",
     "optional": "isteğe bağlı",
     "required": "zorunlu",
+    "requiredFields": "Zorunlu alanlar: {fields}",
     "yes": "Evet",
     "no": "Hayır",
     "all": "Tümü",
     "open": "Aç",
     "details": "Detaylar",
+    "emailPlaceholder": "ornek@eposta.com",
     "language": "Dil",
     "createdAt": "Oluşturuldu",
     "updatedAt": "Güncellendi",
@@ -49,7 +51,10 @@
     "created": "Oluşturuldu",
     "archived": "Arşivlendi",
     "deleted": "Silindi",
-    "theme": "Tema"
+    "theme": "Tema",
+    "themeLight": "Açık",
+    "themeDark": "Koyu",
+    "themeSystem": "Otomatik"
   },
   "auth": {
     "signIn": "Giriş",
@@ -63,7 +68,8 @@
     "signInButton": "Giriş yap",
     "signUpButton": "Hesap oluştur",
     "needAccount": "Hesabınız yok mu? Kayıt olun",
-    "haveAccount": "Zaten hesabınız var mı? Giriş yapın"
+    "haveAccount": "Zaten hesabınız var mı? Giriş yapın",
+    "passwordHint": "En az 8 karakter."
   },
   "dashboard": {
     "title": "Panel",
@@ -102,7 +108,9 @@
     "edit": "Müşteriyi düzenle",
     "search": "Müşteri ara…",
     "empty": "Henüz müşteri yok.",
+    "emptyHint": "Hayvan, vizit ve randevu kaydı yapabilmek için ilk müşterinizi ekleyiniz.",
     "emptySearch": "Aramayla eşleşen müşteri yok.",
+    "emptySearchHint": "Farklı bir ad, telefon numarası veya e-posta adresi deneyiniz.",
     "firstName": "Ad",
     "lastName": "Soyad",
     "email": "E-posta",
@@ -115,8 +123,8 @@
     "preferredContact": "Tercih edilen iletişim",
     "preferredLanguage": "Tercih edilen dil",
     "preferredLanguageHint": "WhatsApp mesajları bu dilde gönderilir.",
-    "whatsappOptIn": "WhatsApp bildirimleri aktif",
-    "whatsappOptInHint": "Randevu onayı, hatırlatma ve aşı zamanı gibi mesajlar bu müşteriye gönderilir. Kapatıldığında otomatik mesaj gitmez.",
+    "whatsappOptIn": "Müşteri WhatsApp mesajlarına onay verdi",
+    "whatsappOptInHint": "Bu kutuyu yalnızca müşteri mesaj almayı kabul ettiyse işaretleyiniz. İşaretlenmediğinde bu müşteriye otomatik randevu onayı, hatırlatma veya aşı bildirimi gönderilmez.",
     "marketingOptIn": "Pazarlama iletişimine izin ver",
     "notes": "Notlar",
     "archivedTitle": "Arşivlendi",
@@ -151,7 +159,10 @@
     "edit": "Hayvanı düzenle",
     "search": "Hayvan ara…",
     "empty": "Henüz hayvan yok.",
+    "emptyHint": "Tıbbi kaydını başlatmak için müşterilerinizden birine hayvan ekleyiniz.",
     "emptySearch": "Aramayla eşleşen hayvan yok.",
+    "emptySearchHint": "Farklı bir hayvan adı, ırk veya sahip adı deneyiniz.",
+    "noOwnersHint": "Her hayvan bir müşteriye bağlıdır. Önce müşteriyi oluşturunuz, ardından hayvanı ekleyiniz.",
     "name": "İsim",
     "species": "Tür",
     "breed": "Cins",
@@ -288,7 +299,7 @@
     "notifications": {
       "title": "WhatsApp bildirimleri",
       "hint": "Randevu mesajları müşterinin tercih ettiği dilde ve klinik saat dilimine göre hazırlanır.",
-      "enabled": "WhatsApp bildirimleri açık",
+      "enabled": "Otomatik WhatsApp mesajları gönderilsin",
       "confirmOnBooking": "Randevu oluşturulduğunda onay mesajı gönder",
       "reminder": "Hatırlatma zamanı",
       "reminderOff": "Hatırlatma gönderme",
@@ -308,7 +319,8 @@
       "previewConfirmation": "Onay mesajı",
       "previewReminder": "Hatırlatma mesajı",
       "saved": "Bildirim ayarları kaydedildi.",
-      "save": "Kaydet"
+      "save": "Kaydet",
+      "enabledHint": "Zamanlanmış mesajları — randevu onayları ve hatırlatmaları — klinik genelinde açar veya kapatır. Randevu sayfasından elle tek tıkla gönderim her durumda çalışmaya devam eder."
     }
   },
   "vaccination": {
@@ -446,7 +458,9 @@
       "diagnostic": "Tanı testi",
       "note": "Not",
       "invoice": "Fatura"
-    }
+    },
+    "nextDue": "sonraki",
+    "emptyHint": "Bu hayvan için eklenen kayıtlar — vizitler, aşılar, tedaviler ve notlar — burada görünür."
   },
   "audit": {
     "title": "İşlem geçmişi",
@@ -593,6 +607,7 @@
   },
   "error": {
     "generic": "Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.",
+    "dev": "Geliştirici hatası: {message}",
     "notFound": "{entity} bulunamadı.",
     "validationFailed": "Lütfen formu kontrol edin.",
     "forbidden": "Bu işlem için yetkiniz yok.",
@@ -638,6 +653,27 @@
       "speciesNoneEnabled": "En az bir tür seçili olmalı.",
       "timezoneUnknown": "Geçersiz saat dilimi.",
       "noteTarget": "Bir hayvan veya müşteri belirtmelisiniz."
+    },
+    "form": {
+      "required": "{field} gerekli.",
+      "requiredGeneric": "Bu alan gerekli.",
+      "minLength": "{field} en az {min} karakter olmalı.",
+      "minLengthGeneric": "En az {min} karakter olmalı.",
+      "maxLength": "{field} en fazla {max} karakter olabilir.",
+      "maxLengthGeneric": "En fazla {max} karakter olabilir.",
+      "select": "{field} seçiniz.",
+      "invalidChoice": "Geçersiz seçim.",
+      "email": "Geçerli bir e-posta adresi giriniz.",
+      "emailTooLong": "E-posta adresi çok uzun.",
+      "passwordMin": "Şifre en az {min} karakter olmalı.",
+      "date": "Geçerli bir tarih giriniz.",
+      "dateTimeRequired": "Tarih ve saat gerekli.",
+      "number": "Geçerli bir sayı giriniz.",
+      "numberRange": "{min} ile {max} arasında bir sayı giriniz.",
+      "integer": "Geçerli bir tam sayı giriniz.",
+      "integerRange": "{min} ile {max} arasında bir tam sayı giriniz.",
+      "amount": "Geçerli bir tutar giriniz.",
+      "linesRequired": "En az bir satır ekleyiniz."
     }
   }
 }

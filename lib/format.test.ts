@@ -1,12 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  dayKey,
   firstName,
   formatDate,
+  formatDuration,
+  formatTime,
+  relativeTime,
   initials,
   petAge,
   sexLabel,
   speciesLabel,
   toDateInput,
+  toDateTimeInput,
+  wallTimeToInstant,
 } from "@/lib/format";
 
 describe("speciesLabel", () => {
@@ -110,5 +116,85 @@ describe("petAge", () => {
     freezeNow();
     expect(petAge("en", new Date("2023-05-22T00:00:00.000Z"))).toBe("3 yr");
     expect(petAge("tr", new Date("2023-05-22T00:00:00.000Z"))).toBe("3 yaşında");
+  });
+});
+
+describe("relativeTime", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function at(iso: string) {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-20T09:00:00.000Z"));
+    return new Date(iso);
+  }
+
+  it("names the unit it actually divided down to", () => {
+    expect(relativeTime("en", at("2026-09-22T09:00:00.000Z"))).toBe("in 2 days");
+    expect(relativeTime("en", at("2026-09-20T13:00:00.000Z"))).toBe("in 4 hours");
+    expect(relativeTime("en", at("2026-09-20T09:30:00.000Z"))).toBe("in 30 minutes");
+  });
+
+  it("handles the past the same way", () => {
+    expect(relativeTime("en", at("2026-09-18T09:00:00.000Z"))).toBe("2 days ago");
+  });
+});
+
+describe("time zones", () => {
+  // 00:30 UTC is already the 21st in Istanbul.
+  const lateNight = new Date("2026-09-20T22:30:00.000Z");
+
+  it("formats against the clinic zone, not the runtime's", () => {
+    expect(formatTime({ locale: "en", timeZone: "Europe/Istanbul" }, lateNight)).toBe(
+      "1:30 AM",
+    );
+    expect(formatTime({ locale: "en", timeZone: "UTC" }, lateNight)).toBe("10:30 PM");
+  });
+
+  it("puts an instant on the right calendar day", () => {
+    expect(dayKey(lateNight, "Europe/Istanbul")).toBe("2026-09-21");
+    expect(dayKey(lateNight, "UTC")).toBe("2026-09-20");
+  });
+});
+
+describe("formatDuration", () => {
+  it("uses the locale's unit", () => {
+    expect(formatDuration("en", 30)).toBe("30 min");
+    expect(formatDuration("tr", 30)).toBe("30 dk");
+    expect(formatDuration("tr", null)).toBe("-");
+  });
+});
+
+describe("wallTimeToInstant", () => {
+  it("reads a wall-clock time in the given zone", () => {
+    // 11:30 in Istanbul (UTC+3) is 08:30 UTC.
+    expect(
+      wallTimeToInstant("2026-09-23T11:30", "Europe/Istanbul")?.toISOString(),
+    ).toBe("2026-09-23T08:30:00.000Z");
+    expect(wallTimeToInstant("2026-09-23T11:30", "UTC")?.toISOString()).toBe(
+      "2026-09-23T11:30:00.000Z",
+    );
+  });
+
+  it("follows daylight saving in zones that observe it", () => {
+    // Berlin is UTC+2 in July and UTC+1 in January.
+    expect(
+      wallTimeToInstant("2026-07-01T12:00", "Europe/Berlin")?.toISOString(),
+    ).toBe("2026-07-01T10:00:00.000Z");
+    expect(
+      wallTimeToInstant("2026-01-01T12:00", "Europe/Berlin")?.toISOString(),
+    ).toBe("2026-01-01T11:00:00.000Z");
+  });
+
+  it("round-trips with toDateTimeInput", () => {
+    const zone = "Europe/Istanbul";
+    const instant = wallTimeToInstant("2026-09-23T11:30", zone)!;
+    expect(toDateTimeInput(instant, zone)).toBe("2026-09-23T11:30");
+  });
+
+  it("returns null for anything that is not a wall-clock time", () => {
+    expect(wallTimeToInstant("", "UTC")).toBeNull();
+    expect(wallTimeToInstant("tomorrow", "UTC")).toBeNull();
   });
 });

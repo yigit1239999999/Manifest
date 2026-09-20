@@ -1,17 +1,18 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { Client, Pet } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { REMINDER_TYPES } from "@/modules/reminders/schema";
 import { createReminderAction } from "@/modules/reminders/actions";
-import { toDateTimeInput } from "@/lib/format";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   clients: Pick<Client, "id" | "firstName" | "lastName">[];
@@ -31,8 +32,8 @@ export function ReminderForm({
   const tClient = useTranslations("client");
   const tPet = useTranslations("pet");
   const tCommon = useTranslations("common");
-  const [state, formAction] = useActionState(createReminderAction, {});
-  const formRef = useRef<HTMLFormElement>(null);
+  const form = useActionForm(createReminderAction, {});
+  const { state, reset } = form;
   const defaultDue = useMemo(
     // eslint-disable-next-line react-hooks/purity -- one-shot initial value, never recomputed
     () => new Date(Date.now() + 7 * 86400 * 1000),
@@ -41,16 +42,15 @@ export function ReminderForm({
 
   useEffect(() => {
     if (state.success) {
-      formRef.current?.reset();
+      reset();
       toast.success(tCommon("saved"));
     }
     if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+  }, [state.success, state.error, tCommon, reset]);
 
   return (
-    <form
-      action={formAction}
-      ref={formRef}
+    <ActionForm
+      form={form}
       className="grid gap-4 sm:grid-cols-2"
     >
       {state.error && (
@@ -92,10 +92,9 @@ export function ReminderForm({
         </Select>
       </Field>
       <Field label={t("dueAt")} error={state.fieldErrors?.dueAt} required>
-        <Input
-          type="datetime-local"
+        <DateTimeInput
           name="dueAt"
-          defaultValue={toDateTimeInput(defaultDue)}
+          defaultValue={defaultDue}
           required
         />
       </Field>
@@ -112,6 +111,6 @@ export function ReminderForm({
       <SubmitButton size="sm" className="sm:col-span-2 w-fit">
         {t("create")}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

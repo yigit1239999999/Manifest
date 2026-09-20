@@ -37,11 +37,13 @@
     "addNew": "Add \"{value}\"",
     "optional": "optional",
     "required": "required",
+    "requiredFields": "Required: {fields}",
     "yes": "Yes",
     "no": "No",
     "all": "All",
     "open": "Open",
     "details": "Details",
+    "emailPlaceholder": "example@email.com",
     "language": "Language",
     "createdAt": "Created",
     "updatedAt": "Updated",
@@ -49,7 +51,10 @@
     "created": "Created",
     "archived": "Archived",
     "deleted": "Deleted",
-    "theme": "Theme"
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "Auto"
   },
   "auth": {
     "signIn": "Sign in",
@@ -63,7 +68,8 @@
     "signInButton": "Sign in",
     "signUpButton": "Create account",
     "needAccount": "Don't have an account? Sign up",
-    "haveAccount": "Already have an account? Sign in"
+    "haveAccount": "Already have an account? Sign in",
+    "passwordHint": "At least 8 characters."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -102,7 +108,9 @@
     "edit": "Edit client",
     "search": "Search clients…",
     "empty": "No clients yet.",
+    "emptyHint": "Add your first client to start registering pets, visits and appointments.",
     "emptySearch": "No clients match this search.",
+    "emptySearchHint": "Try a different name, phone number or email address.",
     "firstName": "First name",
     "lastName": "Last name",
     "email": "Email",
@@ -115,8 +123,8 @@
     "preferredContact": "Preferred contact",
     "preferredLanguage": "Preferred language",
     "preferredLanguageHint": "WhatsApp messages are sent in this language.",
-    "whatsappOptIn": "WhatsApp notifications enabled",
-    "whatsappOptInHint": "Appointment confirmations, reminders and due notices are sent to this client. When off, no automatic messages are sent.",
+    "whatsappOptIn": "The client consented to WhatsApp messages",
+    "whatsappOptInHint": "Tick this only if the client has agreed to receive messages. Left unticked, no automatic appointment confirmation, reminder or vaccination notice is sent to them.",
     "marketingOptIn": "Allow marketing communications",
     "notes": "Notes",
     "archivedTitle": "Archived",
@@ -151,7 +159,10 @@
     "edit": "Edit pet",
     "search": "Search pets…",
     "empty": "No pets yet.",
+    "emptyHint": "Register a pet to one of your clients to start its medical record.",
     "emptySearch": "No pets match this search.",
+    "emptySearchHint": "Try a different pet name, breed or owner.",
+    "noOwnersHint": "Every pet belongs to a client. Create the client first, then add the pet.",
     "name": "Name",
     "species": "Species",
     "breed": "Breed",
@@ -288,7 +299,7 @@
     "notifications": {
       "title": "WhatsApp notifications",
       "hint": "Appointment messages are written in the client's preferred language, in the clinic's timezone.",
-      "enabled": "WhatsApp notifications enabled",
+      "enabled": "Send automatic WhatsApp messages",
       "confirmOnBooking": "Send a confirmation when an appointment is created",
       "reminder": "Reminder timing",
       "reminderOff": "Do not send reminders",
@@ -308,7 +319,8 @@
       "previewConfirmation": "Confirmation",
       "previewReminder": "Reminder",
       "saved": "Notification settings saved.",
-      "save": "Save"
+      "save": "Save",
+      "enabledHint": "Turns the scheduled messages — booking confirmations and reminders — on and off for the whole clinic. Sending a message by hand from an appointment page keeps working either way."
     }
   },
   "vaccination": {
@@ -446,7 +458,9 @@
       "diagnostic": "Diagnostic",
       "note": "Note",
       "invoice": "Invoice"
-    }
+    },
+    "nextDue": "next",
+    "emptyHint": "Records added for this pet — visits, vaccinations, treatments and notes — appear here."
   },
   "audit": {
     "title": "Audit log",
@@ -593,6 +607,7 @@
   },
   "error": {
     "generic": "Something went wrong. Please try again.",
+    "dev": "Dev error: {message}",
     "notFound": "{entity} not found.",
     "validationFailed": "Please check the form and try again.",
     "forbidden": "You don't have permission for this.",
@@ -638,6 +653,27 @@
       "speciesNoneEnabled": "Select at least one species.",
       "timezoneUnknown": "Unknown timezone.",
       "noteTarget": "Pick a pet or a client to attach the note to."
+    },
+    "form": {
+      "required": "{field} is required.",
+      "requiredGeneric": "This field is required.",
+      "minLength": "{field} must be at least {min} characters.",
+      "minLengthGeneric": "Must be at least {min} characters.",
+      "maxLength": "{field} can be at most {max} characters.",
+      "maxLengthGeneric": "Can be at most {max} characters.",
+      "select": "Select {field}.",
+      "invalidChoice": "Invalid selection.",
+      "email": "Enter a valid email address.",
+      "emailTooLong": "The email address is too long.",
+      "passwordMin": "The password must be at least {min} characters.",
+      "date": "Enter a valid date.",
+      "dateTimeRequired": "Date and time are required.",
+      "number": "Enter a valid number.",
+      "numberRange": "Enter a number between {min} and {max}.",
+      "integer": "Enter a whole number.",
+      "integerRange": "Enter a whole number between {min} and {max}.",
+      "amount": "Enter a valid amount.",
+      "linesRequired": "Add at least one line."
     }
   }
 }

@@ -34,7 +34,7 @@ export default async function StaffPage() {
       </PageHeader>
 
       {staff.length === 0 ? (
-        <EmptyState icon={Users} title={t("empty")} description="" />
+        <EmptyState icon={Users} title={t("empty")} />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
           <table className="w-full text-sm">

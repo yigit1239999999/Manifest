@@ -43,7 +43,7 @@ export default async function ClientsPage({
         <EmptyState
           icon={Users}
           title={q ? t("emptySearch") : t("empty")}
-          description=""
+          description={q ? t("emptySearchHint") : t("emptyHint")}
         />
       ) : (
         <>

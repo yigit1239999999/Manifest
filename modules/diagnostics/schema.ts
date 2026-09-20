@@ -3,6 +3,7 @@ import {
   optionalText,
   requiredDateTime,
   requiredEnum,
+  requiredId,
   requiredText,
 } from "@/lib/forms";
 
@@ -22,10 +23,10 @@ export const DIAGNOSTIC_TYPES = [
 ] as const;
 
 export const diagnosticSchema = z.object({
-  petId: z.string().min(1, "Hayvan seçiniz."),
+  petId: requiredId("error.entity.pet"),
   visitId: optionalText(40),
   type: requiredEnum(DIAGNOSTIC_TYPES),
-  name: requiredText(1, 120, "Test adı"),
+  name: requiredText(1, 120, "diagnostic.name"),
   performedAt: requiredDateTime,
   result: optionalText(5000),
   interpretation: optionalText(5000),

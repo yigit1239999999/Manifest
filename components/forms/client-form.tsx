@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { Client } from "@/generated/prisma/client";
@@ -15,6 +15,7 @@ import {
   createClientAction,
   updateClientAction,
 } from "@/modules/clients/actions";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   client?: Client;
@@ -29,14 +30,15 @@ export function ClientForm({ client }: Props) {
   const action = client
     ? updateClientAction.bind(null, client.id)
     : createClientAction;
-  const [state, formAction] = useActionState(action, {});
+  const form = useActionForm(action, {});
+  const { state } = form;
 
   useEffect(() => {
     if (state.error) toast.error(state.error);
   }, [state.error]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-8">
+    <ActionForm form={form} className="flex flex-col gap-8">
       {state.error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
@@ -72,7 +74,7 @@ export function ClientForm({ client }: Props) {
               type="email"
               defaultValue={client?.email ?? ""}
               autoComplete="email"
-              placeholder="ornek@email.com"
+              placeholder={tCommon("emailPlaceholder")}
             />
           </Field>
           <Field label={t("phone")} error={state.fieldErrors?.phone}>
@@ -154,15 +156,17 @@ export function ClientForm({ client }: Props) {
         title={t("sections.preferences")}
         description={t("sections.preferencesHint")}
       >
-        <label className="flex items-start gap-3 text-sm">
+        {/* Consent is a record of something the client said, so the box
+            starts empty and the copy says what ticking it means. */}
+        <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/20 p-3 text-sm">
           <input
             type="checkbox"
             name="whatsappOptIn"
-            defaultChecked={client?.whatsappOptIn ?? true}
+            defaultChecked={client?.whatsappOptIn ?? false}
             className="mt-0.5 size-4 rounded border-border"
           />
-          <span className="flex flex-col">
-            <span className="text-foreground">{t("whatsappOptIn")}</span>
+          <span className="flex flex-col gap-1">
+            <span className="font-medium text-foreground">{t("whatsappOptIn")}</span>
             <span className="text-xs text-muted-foreground">{t("whatsappOptInHint")}</span>
           </span>
         </label>
@@ -182,10 +186,12 @@ export function ClientForm({ client }: Props) {
 
       <div className="flex items-center justify-end gap-3">
         <span className="text-xs text-muted-foreground">
-          {tCommon("required")}: {t("firstName")}, {t("lastName")}
+          {tCommon("requiredFields", {
+            fields: [t("firstName"), t("lastName")].join(", "),
+          })}
         </span>
         <SubmitButton>{client ? t("update") : t("create")}</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

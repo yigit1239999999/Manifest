@@ -21,7 +21,7 @@ export async function Topbar({
   ]);
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/85 px-4 backdrop-blur md:px-8">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-4 md:px-8">
       <span className="truncate text-sm font-semibold text-foreground">
         {clinicName}
       </span>

@@ -11,8 +11,8 @@ export const CONTACT_METHODS = ["EMAIL", "PHONE", "SMS"] as const;
 export const LANGUAGES = ["tr", "en"] as const;
 
 export const clientSchema = z.object({
-  firstName: requiredText(1, 80, "Ad"),
-  lastName: requiredText(1, 80, "Soyad"),
+  firstName: requiredText(1, 80, "client.firstName"),
+  lastName: requiredText(1, 80, "client.lastName"),
   email: optionalEmail,
   phone: optionalText(40),
   secondaryPhone: optionalText(40),

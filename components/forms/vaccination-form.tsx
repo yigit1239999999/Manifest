@@ -1,14 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { createVaccinationAction } from "@/modules/vaccinations/actions";
-import { toDateTimeInput } from "@/lib/format";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 export function VaccinationForm({
   petId,
@@ -19,21 +20,20 @@ export function VaccinationForm({
 }) {
   const t = useTranslations("vaccination");
   const tCommon = useTranslations("common");
-  const [state, formAction] = useActionState(createVaccinationAction, {});
-  const formRef = useRef<HTMLFormElement>(null);
+  const form = useActionForm(createVaccinationAction, {});
+  const { state, reset } = form;
 
   useEffect(() => {
     if (state.success) {
-      formRef.current?.reset();
+      reset();
       toast.success(tCommon("saved"));
     }
     if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+  }, [state.success, state.error, tCommon, reset]);
 
   return (
-    <form
-      action={formAction}
-      ref={formRef}
+    <ActionForm
+      form={form}
       className="grid gap-3 sm:grid-cols-2"
     >
       <input type="hidden" name="petId" value={petId} />
@@ -47,10 +47,9 @@ export function VaccinationForm({
         error={state.fieldErrors?.administeredAt}
         required
       >
-        <Input
-          type="datetime-local"
+        <DateTimeInput
           name="administeredAt"
-          defaultValue={toDateTimeInput(new Date())}
+          defaultValue={new Date()}
           required
         />
       </Field>
@@ -61,7 +60,7 @@ export function VaccinationForm({
         <Input name="lotNumber" />
       </Field>
       <Field label={t("nextDueAt")} error={state.fieldErrors?.nextDueAt}>
-        <Input type="datetime-local" name="nextDueAt" />
+        <DateTimeInput name="nextDueAt" />
       </Field>
       <Field label={t("site")} error={state.fieldErrors?.site}>
         <Input name="site" />
@@ -74,6 +73,6 @@ export function VaccinationForm({
       <SubmitButton size="sm" className="sm:col-span-2 w-fit">
         {t("create")}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

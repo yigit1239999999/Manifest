@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import type { Pet, User, Visit } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
@@ -13,7 +13,7 @@ import {
   createVisitAction,
   updateVisitAction,
 } from "@/modules/visits/actions";
-import { toDateTimeInput } from "@/lib/format";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   visit?: Visit;
@@ -30,10 +30,11 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
   const action = visit
     ? updateVisitAction.bind(null, visit.id)
     : createVisitAction;
-  const [state, formAction] = useActionState(action, {});
+  const form = useActionForm(action, {});
+  const { state } = form;
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <ActionForm form={form} className="flex flex-col gap-6">
       {state.error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
@@ -74,10 +75,9 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("visitedAt")} error={state.fieldErrors?.visitedAt} required>
-          <Input
-            type="datetime-local"
+          <DateTimeInput
             name="visitedAt"
-            defaultValue={toDateTimeInput(visit?.visitedAt ?? new Date())}
+            defaultValue={visit?.visitedAt ?? new Date()}
             required
           />
         </Field>
@@ -185,10 +185,9 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("followupAt")} error={state.fieldErrors?.followupAt}>
-          <Input
-            type="datetime-local"
+          <DateTimeInput
             name="followupAt"
-            defaultValue={toDateTimeInput(visit?.followupAt)}
+            defaultValue={visit?.followupAt}
           />
         </Field>
         <Field label={t("totalCost")} error={state.fieldErrors?.totalCents}>
@@ -203,6 +202,6 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
       </div>
 
       <SubmitButton>{visit ? t("update") : t("create")}</SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

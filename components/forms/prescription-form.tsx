@@ -1,16 +1,17 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { PRESCRIPTION_STATUSES } from "@/modules/prescriptions/schema";
 import { createPrescriptionAction } from "@/modules/prescriptions/actions";
-import { toDateTimeInput } from "@/lib/format";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 export function PrescriptionForm({
   petId,
@@ -22,21 +23,20 @@ export function PrescriptionForm({
   const t = useTranslations("prescription");
   const tStatus = useTranslations("enum.prescriptionStatus");
   const tCommon = useTranslations("common");
-  const [state, formAction] = useActionState(createPrescriptionAction, {});
-  const formRef = useRef<HTMLFormElement>(null);
+  const form = useActionForm(createPrescriptionAction, {});
+  const { state, reset } = form;
 
   useEffect(() => {
     if (state.success) {
-      formRef.current?.reset();
+      reset();
       toast.success(tCommon("saved"));
     }
     if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+  }, [state.success, state.error, tCommon, reset]);
 
   return (
-    <form
-      action={formAction}
-      ref={formRef}
+    <ActionForm
+      form={form}
       className="grid gap-3 sm:grid-cols-2"
     >
       <input type="hidden" name="petId" value={petId} />
@@ -81,10 +81,9 @@ export function PrescriptionForm({
         <Input type="number" min="0" name="refills" defaultValue="0" />
       </Field>
       <Field label={t("startedAt")} error={state.fieldErrors?.startedAt} required>
-        <Input
-          type="datetime-local"
+        <DateTimeInput
           name="startedAt"
-          defaultValue={toDateTimeInput(new Date())}
+          defaultValue={new Date()}
           required
         />
       </Field>
@@ -96,6 +95,6 @@ export function PrescriptionForm({
       <SubmitButton size="sm" className="sm:col-span-2 w-fit">
         {t("create")}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

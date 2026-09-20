@@ -1,5 +1,6 @@
 import { History } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { listAuditEntries } from "@/modules/audit/queries";
 import { PageHeader } from "@/components/page-header";
@@ -9,7 +10,7 @@ import { formatDateTime } from "@/lib/format";
 import { PAGE_SIZES } from "@/lib/pagination";
 
 export default async function AuditPage() {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const session = await requireSession();
   const [t, tAction, entries] = await Promise.all([
     getTranslations("audit"),
@@ -25,7 +26,7 @@ export default async function AuditPage() {
       <PageHeader title={t("title")} description={t("subtitle")} />
 
       {entries.length === 0 ? (
-        <EmptyState icon={History} title={t("empty")} description="" />
+        <EmptyState icon={History} title={t("empty")} />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
           <table className="w-full text-sm">
@@ -41,7 +42,7 @@ export default async function AuditPage() {
               {entries.map((e) => (
                 <tr key={e.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3 text-muted-foreground">
-                    {formatDateTime(locale, e.createdAt)}
+                    {formatDateTime(fmt, e.createdAt)}
                   </td>
                   <td className="px-4 py-3">{e.actor?.name ?? "-"}</td>
                   <td className="px-4 py-3">

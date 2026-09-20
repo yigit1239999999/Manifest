@@ -1,16 +1,18 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { INVOICE_STATUSES } from "@/modules/invoices/schema";
 import { createInvoiceAction } from "@/modules/invoices/actions";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Line {
   description: string;
@@ -32,7 +34,8 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
   const tStatus = useTranslations("enum.invoiceStatus");
   const tClient = useTranslations("client");
   const [lines, setLines] = useState<Line[]>([{ ...emptyLine }]);
-  const [state, formAction] = useActionState(createInvoiceAction, {});
+  const form = useActionForm(createInvoiceAction, {});
+  const { state } = form;
 
   const addLine = () => setLines((ls) => [...ls, { ...emptyLine }]);
   const removeLine = (i: number) =>
@@ -41,7 +44,7 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
     setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <ActionForm form={form} className="flex flex-col gap-6">
       {state.error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
@@ -82,7 +85,7 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
           </Select>
         </Field>
         <Field label={t("dueAt")} error={state.fieldErrors?.dueAt}>
-          <Input type="datetime-local" name="dueAt" />
+          <DateTimeInput name="dueAt" />
         </Field>
       </div>
 
@@ -147,6 +150,6 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
       </Field>
 
       <SubmitButton>{t("create")}</SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

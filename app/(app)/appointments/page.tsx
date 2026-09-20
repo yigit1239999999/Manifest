@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarClock, Plus } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { listAppointmentsPage } from "@/modules/appointments/queries";
 import { APPOINTMENT_STATUSES } from "@/modules/appointments/schema";
@@ -17,7 +18,7 @@ export default async function AppointmentsPage({
 }: {
   searchParams: Promise<{ page?: string; status?: string }>;
 }) {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const session = await requireSession();
   const { page: pageParam, status } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
@@ -54,7 +55,7 @@ export default async function AppointmentsPage({
       />
 
       {result.items.length === 0 ? (
-        <EmptyState icon={CalendarClock} title={t("empty")} description="" />
+        <EmptyState icon={CalendarClock} title={t("empty")} />
       ) : (
         <>
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -75,7 +76,7 @@ export default async function AppointmentsPage({
                         href={`/appointments/${a.id}`}
                         className="hover:underline"
                       >
-                        {formatDateTime(locale, a.startsAt)}
+                        {formatDateTime(fmt, a.startsAt)}
                       </Link>
                     </td>
                     <td className="px-4 py-3">

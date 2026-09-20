@@ -1,17 +1,18 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { SubmitButton } from "@/components/submit-button";
 import { createTreatmentAction } from "@/modules/treatments/actions";
-import { toDateTimeInput } from "@/lib/format";
 import { TREATMENTS } from "@/lib/procedures";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 const TREATMENT_OPTIONS = TREATMENTS.map((name) => ({ value: name, label: name }));
 
@@ -28,19 +29,19 @@ export function TreatmentForm({
 }) {
   const t = useTranslations("treatment");
   const tCommon = useTranslations("common");
-  const [state, formAction] = useActionState(createTreatmentAction, {});
-  const formRef = useRef<HTMLFormElement>(null);
+  const form = useActionForm(createTreatmentAction, {});
+  const { state, reset } = form;
 
   useEffect(() => {
     if (state.success) {
-      formRef.current?.reset();
+      reset();
       toast.success(tCommon("saved"));
     }
     if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+  }, [state.success, state.error, tCommon, reset]);
 
   return (
-    <form action={formAction} ref={formRef} className="grid gap-3 sm:grid-cols-2">
+    <ActionForm form={form} className="grid gap-3 sm:grid-cols-2">
       <input type="hidden" name="petId" value={petId} />
       {visitId && <input type="hidden" name="visitId" value={visitId} />}
 
@@ -58,10 +59,9 @@ export function TreatmentForm({
       </div>
 
       <Field label={t("performedAt")} error={state.fieldErrors?.performedAt} required>
-        <Input
-          type="datetime-local"
+        <DateTimeInput
           name="performedAt"
-          defaultValue={toDateTimeInput(new Date())}
+          defaultValue={new Date()}
           required
         />
       </Field>
@@ -91,6 +91,6 @@ export function TreatmentForm({
       <SubmitButton size="sm" className="w-fit sm:col-span-2">
         {t("create")}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

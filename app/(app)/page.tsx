@@ -8,7 +8,8 @@ import {
   Stethoscope,
   Users,
 } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { dashboardInsights } from "@/modules/dashboard/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
@@ -20,21 +21,33 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ColumnBars, HorizontalBars } from "@/components/charts";
-import { firstName, formatDateTime, formatMoney } from "@/lib/format";
+import {
+  firstName,
+  formatDateTime,
+  formatMoney,
+  intlLocale,
+} from "@/lib/format";
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const [t, tSpecies, tVisitType, insights, currency, locale] = await Promise.all([
+  const [t, tSpecies, tVisitType, insights, currency, fmt] = await Promise.all([
     getTranslations("dashboard"),
     getTranslations("enum.species"),
     getTranslations("enum.visitType"),
     dashboardInsights(session.user.clinicId),
     getClinicCurrency(session.user.clinicId),
-    getLocale(),
+    getFormatContext(),
   ]);
 
-  const weekFmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" });
-  const monthFmt = new Intl.DateTimeFormat(locale, { month: "short" });
+  const weekFmt = new Intl.DateTimeFormat(intlLocale(fmt.locale), {
+    day: "numeric",
+    month: "short",
+    timeZone: fmt.timeZone,
+  });
+  const monthFmt = new Intl.DateTimeFormat(intlLocale(fmt.locale), {
+    month: "short",
+    timeZone: fmt.timeZone,
+  });
 
   const metrics = [
     {
@@ -77,7 +90,7 @@ export default async function DashboardPage() {
       icon: Receipt,
       value: insights.counts.outstandingInvoices,
       href: "/invoices",
-      hint: formatMoney(locale, insights.outstandingInvoiceCents, currency),
+      hint: formatMoney(fmt, insights.outstandingInvoiceCents, currency),
     },
     {
       key: "pendingReminders" as const,
@@ -96,7 +109,7 @@ export default async function DashboardPage() {
   const revenueLast6MonthsData = insights.revenueLast6Months.map((m) => ({
     label: monthFmt.format(m.monthStart),
     value: m.cents,
-    display: formatMoney(locale, m.cents, currency),
+    display: formatMoney(fmt, m.cents, currency),
   }));
 
   const speciesBars = insights.petsBySpecies.map((g) => ({
@@ -154,7 +167,7 @@ export default async function DashboardPage() {
           <CardContent>
             <ColumnBars
               data={revenueLast6MonthsData}
-              formatValue={(v) => formatMoney(locale, v, currency)}
+              formatValue={(v) => formatMoney(fmt, v, currency)}
             />
           </CardContent>
         </Card>
@@ -181,7 +194,7 @@ export default async function DashboardPage() {
                           {a.pet.name} · {a.client.firstName} {a.client.lastName}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDateTime(locale, a.startsAt)}
+                          {formatDateTime(fmt, a.startsAt)}
                         </span>
                       </span>
                     </Link>
@@ -212,7 +225,7 @@ export default async function DashboardPage() {
                           {v.pet.name} · {v.client.firstName} {v.client.lastName}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDateTime(locale, v.visitedAt)} · {tVisitType(v.type)}
+                          {formatDateTime(fmt, v.visitedAt)} · {tVisitType(v.type)}
                         </span>
                       </span>
                     </Link>
@@ -261,7 +274,7 @@ export default async function DashboardPage() {
                       {v.pet?.name ?? "?"} · {v.name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {v.nextDueAt ? formatDateTime(locale, v.nextDueAt) : "-"}
+                      {v.nextDueAt ? formatDateTime(fmt, v.nextDueAt) : "-"}
                     </span>
                   </li>
                 ))}

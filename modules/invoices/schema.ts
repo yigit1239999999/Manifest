@@ -1,9 +1,12 @@
 import { z } from "zod";
 import {
+  msg,
   optionalDateTime,
   optionalMoneyCents,
   optionalText,
   requiredEnum,
+  requiredId,
+  requiredText,
 } from "@/lib/forms";
 
 export const INVOICE_STATUSES = [
@@ -23,7 +26,7 @@ export const PAYMENT_METHODS = [
 ] as const;
 
 const invoiceLineSchema = z.object({
-  description: z.string().trim().min(1, "Açıklama gerekli."),
+  description: requiredText(1, 200, "invoice.description"),
   quantity: z.coerce.number().int().min(1).max(10_000),
   unitPriceCents: z.coerce.number().int().min(0).max(10_000_000),
   petId: z.string().optional().transform((v) => v || null),
@@ -31,13 +34,13 @@ const invoiceLineSchema = z.object({
 });
 
 export const invoiceSchema = z.object({
-  clientId: z.string().min(1, "Müşteri seçiniz."),
-  number: z.string().trim().min(1, "Fatura numarası gerekli.").max(40),
+  clientId: requiredId("error.entity.client"),
+  number: requiredText(1, 40, "invoice.number"),
   status: requiredEnum(INVOICE_STATUSES),
   dueAt: optionalDateTime,
   taxCents: optionalMoneyCents,
   notes: optionalText(2000),
-  lines: z.array(invoiceLineSchema).min(1, "En az bir satır gerekli."),
+  lines: z.array(invoiceLineSchema).min(1, msg("error.form.linesRequired")),
 });
 
 export const paymentSchema = z.object({

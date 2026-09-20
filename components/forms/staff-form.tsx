@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
@@ -9,18 +9,21 @@ import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/submit-button";
 import { USER_ROLES } from "@/modules/staff/schema";
 import { createStaffAction } from "@/modules/staff/actions";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 export function StaffForm() {
   const t = useTranslations("staff");
   const tRole = useTranslations("enum.role");
-  const [state, formAction] = useActionState(createStaffAction, {});
+  const tCommon = useTranslations("common");
+  const form = useActionForm(createStaffAction, {});
+  const { state } = form;
 
   useEffect(() => {
     if (state.error) toast.error(state.error);
   }, [state.error]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <ActionForm form={form} className="flex flex-col gap-4">
       {state.error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
@@ -37,7 +40,7 @@ export function StaffForm() {
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="ornek@email.com"
+            placeholder={tCommon("emailPlaceholder")}
             required
           />
         </Field>
@@ -72,6 +75,6 @@ export function StaffForm() {
       </div>
 
       <SubmitButton>{t("create")}</SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

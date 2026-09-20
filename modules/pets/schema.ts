@@ -5,6 +5,7 @@ import {
   optionalFloat,
   optionalText,
   requiredEnum,
+  requiredId,
   requiredText,
 } from "@/lib/forms";
 
@@ -29,12 +30,12 @@ export const SPECIES = [
 export const SEXES = ["MALE", "FEMALE", "UNKNOWN"] as const;
 
 export const petSchema = z.object({
-  ownerId: z.string().min(1, "Sahip seçiniz."),
-  name: requiredText(1, 80, "İsim"),
+  ownerId: requiredId("pet.owner"),
+  name: requiredText(1, 80, "pet.name"),
   // Either a built-in Species enum value, "custom:<id>" for an existing
   // clinic-defined species, or free text naming a new one (created by the
   // service). Resolved in `resolveSpecies`.
-  species: requiredText(1, 60, "Tür"),
+  species: requiredText(1, 60, "pet.species"),
   breed: optionalText(80),
   sex: requiredEnum(SEXES),
   neutered: checkbox,
