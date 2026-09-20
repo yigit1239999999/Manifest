@@ -8,35 +8,39 @@ Ekip ilkeleri: `.claude/TEAM.md`.
 
 ## Nerede kaldık (20 Eylül 2026 — önce burayı oku)
 
-**1. Durum.** Sürüm "Güvenilir döngü", Katman 0'dayız. Kapanan işler: gün
-planı (27), saat dilimi (13), `Callout` primitifi + sekiz formun süpürülmesi
-(9), hayvan uyarısının doğru ekranlara taşınması (10), panel grafiklerinde
-sıfırın çubuk çizmemesi (11), rızanın varsayılanının kapatılması (14'ün
-yarısı). **İki deploy blokeri hâlâ açık:** tahsilat tutarının 100 kat küçük
-kaydedilmesi (2) ve para biriminin USD olması (29). İkisi de A hattında ve
+**0. Bu backlog temizlendi.** Biten işler satır olarak silindi; aşağıda
+yalnızca **yapılacak** olanlar var. Neyin bittiği "Doğrulanmış, iş
+gerektirmeyen" bölümünde özet olarak duruyor.
+
+**1. Durum.** Sürüm "Güvenilir döngü", Katman 0'dayız. `main` uzaktaki
+paralel çalışmayla birleştirildi ve push edildi (`6b8c2be`): **SMS kanalı,
+Netgsm adaptörü, segment hesabı ve kanal seçimi zaten inmiş durumda** —
+eski S1-S4 maddeleri bu yüzden silindi. Rıza alanı da `notificationsOptIn`
+adına kavuştu ve varsayılanı kapalı.
+
+**İki deploy blokeri hâlâ açık:** tahsilat tutarının 100 kat küçük
+kaydedilmesi (2) ve para biriminin USD olması (29). İkisi de A hattında,
 ikisi de "sessiz yanlış" sınıfından — sürüm bunlarla çıkamaz.
 
 **2. Sırada ne var.**
-- **A hattı (`dev`):** (1) tıbbi kaydın sessizce kaydedilmemesi → (2)
-  tahsilat 100 kat + (3) `parseMoneyInput` birlikte → (4) panelin kalan
-  borcu.
-- **B hattı (`dev-ui`):** kalan iki formun `Callout`'a geçmesi
-  (`reminder-form.tsx`, `invoice-form.tsx`) → DESIGN-3 `StatusBadge` (18) →
-  DESIGN-4 durum bütünlüğü (19). Son ikisi **A hattının R4a'sını bekletiyor**,
-  geciktirmesin.
+- **A hattı (`dev`):** (2) tahsilat 100 kat + (3) `parseMoneyInput`
+  birlikte → (4) panelin kalan borcu → (5) liste yeniden doğrulama →
+  (6) telefon doğrulama.
+- **B hattı (`dev-ui`):** DESIGN-3 `StatusBadge` (18) → DESIGN-4 durum
+  bütünlüğü (19) → onay dialogunun bağlanması (17). İlk ikisi **A hattının
+  R4a'sını bekletiyor**, geciktirmesin.
 
 **3. Yarım kalanlar.**
-- **`Callout` süpürmesi yarım:** sekiz form geçti, `reminder-form.tsx` ve
-  `invoice-form.tsx` hâlâ ham `border-destructive/30` kutusu taşıyor.
-  DESIGN-1 "bitti" sayılmaz: eşik primitif değil, **15 çağrı yeri + form
+- **`Callout` süpürmesi yarım:** dört çağrı yeri kaldı —
+  `invoice-form:49,:54`, `reminder-form:57`, `appointments/[id]:113`.
+  DESIGN-1 "bitti" sayılmaz: eşik primitif değil, **14 çağrı yeri + form
   hatasının ekran okuyucuda duyurulması.**
-- **Rıza işi yarım:** varsayılan kapatıldı ve mevcut kayıtlar migration ile
-  kapatıldı (`_whatsapp_opt_in_backup` tablosunda geri alma verisi var), ama
-  alan adı hâlâ `whatsappOptIn`. `messagingOptIn`'e dönüşü ayrı migration
-  olarak duruyor; alan adının geçtiği **her** filtre taranmalı, yarım
-  kalırsa otomatik gönderim sessizce durur.
-- Çalışma ağacında commit edilmemiş değişiklikler var (sayfa dosyaları,
-  `globals.css`, form bileşenleri).
+- **Onay dialogu primitifi çıktı ama bağlanmadı:**
+  `components/ui/confirm-dialog.tsx` var, **üç `window.confirm` hâlâ
+  yerinde** (`delete-button`, `staff-status-button`,
+  `custom-species-delete-button`).
+- **Hayvan uyarısı iki ekranda eksik:** `appointments/[id]` ve randevu
+  listesi (`modules/appointments/queries.ts` select'ine `alerts`).
 
 **4. Bekleyen kullanıcı cevapları.** Beş soru açık, tamamı "Kullanıcıya
 sorulacaklar" bölümünde. **En kritiği: ortalama vizit tutarı** — para
@@ -47,9 +51,10 @@ sürümünün büyüklük sırası ona bağlı, o gelene kadar tahmin üretilmey
   rota başına gerçek süreler bekleniyor (6000 ms bir bütçe değil, tavan).
 - `fullName()` ve `format.ts` ternary temizliği **para sürümünün ilk ekranı
   yazılmadan önce** inecek.
-- `--destructive` kontrast düzeltmesi, kalan iki form taşınmadan önce.
-- Panel grafiklerinde son çubuğun kısmi dönem olduğunun görünmesi.
+- Panel grafiklerinde son çubuğun kısmi dönem olduğunun görünmesi — panel
+  her pazartesi "düştük" diyor.
 - İptal/tamamlanmış randevuda gönderim kartının gizlenmesi (8b).
+- Rızanın **ne zaman ve hangi yolla** alındığının kaydı (14b).
 
 **6. Bir sonraki oturumda ilk yapılacak tek şey:** **tahsilat tutarının 100
 kat küçük kaydedilmesi ile `parseMoneyInput` birlikte düzeltilecek** — para
@@ -99,7 +104,6 @@ yazanlarla sınırlıdır.
 
 | # | İş | Hat | Durum | Bekler | Neden bu katmanda |
 |---|---|---|---|---|---|
-| 1 | Tıbbi kaydın sessizce kaydedilmemesi (P0) | A | açık | — | Kullanıcı kaydettiğini sanıyor; veri yok. |
 | 2 | Tahsilat tutarının 100 kat küçük kaydedilmesi (P0) | A | açık | — | Ödeme formu ham kuruş gönderiyor; sessiz para kaybı. |
 | 3 | `parseMoneyInput` yerelleştirilmiş girdiyi bozuyor (C2) | A | açık | — | "1.234,56" → binde bir. 2 ile aynı aile, birlikte ele alınır. |
 | 4 | Panelin kalan borcu yanlış göstermesi | A | açık | — | Tahsilatlar düşülmüyor; alacak olduğundan yüksek. |
@@ -117,13 +121,11 @@ yazanlarla sınırlıdır.
 | # | İş | Hat | Durum | Bekler | Neden |
 |---|---|---|---|---|---|
 | 12 | R1: cron saatlik (`vercel.json`) | A | açık | — | Günde tek çalışma 05:00 UTC = İstanbul 08:00; varsayılan mod "gün içi 09:00" olduğu için hatırlatma hiç bulunmuyor. Tek satır. |
-| 13 | Saat dilimi doğrulaması | A | **çıktı, testte** | 12 | `f072e90` + `1d4046b`: girdi, saklama, ekran ve mesaj aynı saati söylüyor; klinik varsayılanı `Europe/Istanbul`. R1 inince birlikte doğrulanacak. |
 
 ## Katman 2 — güvenilirlik ve kimlik
 
 | # | İş | Hat | Durum | Bekler | Neden |
 |---|---|---|---|---|---|
-| 14 | Rıza: `messagingOptIn` + kapalı varsayılan | A | devam | — | `f072e90`: varsayılan kapatıldı, mevcut kayıtlar `20260920100100_whatsapp_opt_in_default_off` ile kapatıldı (eski değerler `_whatsapp_opt_in_backup` tablosunda, geri alma SQL'i yorumda), form metni rıza kaydı gibi okunuyor, ana anahtar metni netleşti. **Kalan:** alan adının `messagingOptIn`'e dönmesi — artık ayrı bir migration, çünkü varsayılan işi indi. |
 | 14b | Rızanın ne zaman ve hangi yolla alındığının kaydı | A | açık | 14 | Bugün çıplak boolean; rızanın ispatı zaman ve kaynaktır. Eklemeli kolon, veri dönüşümü yok. Global (a) sınıfı. |
 | 15 | Şifre değiştirme | A | açık | — | Şifreler yöneticideyken hesaplar kişiye özel değil; denetim kaydı kimi yazdığını bilmiyor. |
 | 16 | R2: başarısız gönderimin yeniden denenmesi | A | açık | — | FAILED kaydı adayı kalıcı bloke ediyor; en fazla 3 deneme, aralarında ≥6 saat. |
@@ -183,21 +185,11 @@ göründüğü için fark edilmez. Kural: **erteleme tarihi taşır ve kendini
 sayar** ("2 kez ertelendi"); üçüncüden sonra hâlâ açıksa satır gizlenmek
 yerine daha görünür olur. Erteleme bir kapanış değil, bir gecikmedir.
 
-## Katman 4 — kanal (çekirdek)
-
-| # | İş | Hat | Durum | Bekler | Neden |
-|---|---|---|---|---|---|
-| 22 | S1: `lib/sms/` + `MessageChannel.SMS` + Netgsm adaptörü | A | açık | — | **Kritik:** `.env` yalnızca `AUTH_SECRET`, `DATABASE_URL`, `DIRECT_URL` içeriyor; WhatsApp hiç yapılandırılmamış, `runReminderSweep` erken dönüyor. Bugün hiçbir otomatik mesaj gidemez, R1 düzelse bile. |
-| 23 | S2: SMS şablonları + segment hesabı | A | açık | 22 | En fazla iki segment, Türkçe karakter bozulmaz, satış dili yok. Doğum günü otomatik SMS'e girmez. |
-| 24 | S4: sweep'in kanal seçimi | A | açık | 22, 23 | Otomatik yol SMS'e taşınır; manuel WhatsApp aynen kalır. |
-| 25 | S3: SMS ayar yüzeyi (gönderen başlığı, segment/maliyet göstergesi) | B (+A kaydetme) | açık | 22 | **Kesilebilir**: adaptör env ile çalışır, ayar yüzeyi olmadan da gönderim mümkün. |
-
 ## Katman 5 — görünürlük ve kurulum
 
 | # | İş | Hat | Durum | Bekler | Neden |
 |---|---|---|---|---|---|
 | 26 | DESIGN-2 `DataTable` | B | açık | — | Gün planı sunumundan önce: yoksa dokuzuncu kopyala-yapıştır tablo doğar. |
-| 27 | Gün planı | A | **çıktı, testte** | — | `2888d97`: bugüne açılıyor, gün okları, `?date=` URL'de, durum sekmeleri günü daraltıyor, "Tüm tarihler" eski listeye dönüyor, telefon `tel:` bağlantısıyla satırda. pm "Tüm tarihler çalışmıyor" demişti; dev çalıştığını söylüyor — **pm doğrulayacak.** |
 | 28 | Gün planı — tablo sunumu (`DataTable`'a geçiş) | B | açık | 26 | Varsayılan gün görünümü kararı kalıcı; "Tüm tarihler" ikincil görünüm. |
 | 29 | C1: ülke alanı + türetilenlerin görünmesi + klinik yazma tarafı | A | açık | — | `modules/clinics/` altında yazma tarafı hiç yok; yanlış varsayılan bugün düzeltilemiyor. |
 | 30 | Kurulum ekranı (boş klinikte panel yerine sıralı liste) | B | açık | — | 29 ile aynı paket ama farklı dosyalar; paralel gidebilir, panel sayfası paylaşımlı. |
@@ -218,7 +210,8 @@ yerine daha görünür olur. Erteleme bir kapanış değil, bir gecikmedir.
    `/reminders` işinden önce bitmeli. B hattı bu ikisini erken alsın.
 2. **17 (B) → 21 (A).** Onay dialogu primitifi, "aşı kaydındaki tekrar
    tarihini temizle" eylemine bağlanacak.
-3. **26 (B) → 28 (B), 27 (A) bağımsız.** Regresyon sunumu beklemez.
+3. **26 (B) → 28 (B).** Gün planı indi; kalan yalnızca tablo sunumunun
+   `DataTable`'a geçmesi.
 4. **29 (A) → 32 (A).** Para birimi dönüşümü fatura kolonundan önce.
 5. **9 (B) → 10 (B).** Primitif önce, yerleştirme sonra.
 
@@ -228,11 +221,10 @@ geçerlidir.
 
 ## Kesme çizgisi (iki hatta göre güncellendi)
 
-- **Kesilmez:** Katman 0, 1, 2, 3 ve Katman 4'ün ilk üçü (22, 23, 24).
-  Bunlar olmadan sürümün vaadi tutmaz.
-- **Kesme sırası:** önce 21b (`followupAt`), sonra 25 (SMS ayar yüzeyi),
-  sonra Katman 6, sonra 31 ve 30, sonra 28. Gün planının sunum cilası kesilse
-  de 27 (regresyon) kalır.
+- **Kesilmez:** Katman 0, 1, 2 ve 3. Bunlar olmadan sürümün vaadi tutmaz.
+  Kanal katmanı (eski Katman 4) kapandı: SMS altyapısı indi.
+- **Kesme sırası:** önce 21b (`followupAt`), sonra Katman 6, sonra 31 ve 30,
+  sonra 28.
 - **Katman 0'dan hiçbir şey kesilmez** — iki hat olması bu kuralı değiştirmez,
   yalnızca daha erken bitmesini sağlar.
 
@@ -581,3 +573,25 @@ hiçbir süre bulgu sayılmaz.
   üretim derlemesine karşı, 11 kilit rotada, CI'da her push ve her PR'da
   çalışıyor; regresyon canlıya çıkmadan build'i düşürüyor. Düzeltilecek olan
   düzen değil, yalnızca eşik değeri (bkz. "Performans bütçesi").
+
+### Bu oturumda kapanan ve backlog'dan silinen işler
+
+Satır olarak silindiler; burada yalnızca kaydı duruyor.
+
+- **Tıbbi kaydın sessizce kaydedilmemesi** — `lib/forms.ts` tek noktadan
+  düzeltildi; aşı, tedavi, tanı, reçete ve not artık kaydediliyor.
+- **Saat dilimi** — girdi, saklama, ekran ve mesaj aynı saati söylüyor;
+  klinik ayarı New York yapılıp sunucu İstanbul'dayken doğrulandı.
+- **Rıza** — alan `notificationsOptIn` adına geçti, varsayılan kapalı,
+  mevcut kayıtlar migration ile kapatıldı (geri alma verisi
+  `_whatsapp_opt_in_backup` tablosunda), form metni rıza beyanı gibi okunuyor.
+- **SMS kanalı (eski S1-S4)** — `lib/messaging/sms/` (Netgsm + log adaptörü),
+  segment hesabı, SMS şablonları, `MessageChannel.SMS` ve sweep'in kanal
+  seçimi. Uzaktaki paralel çalışmada inmiş, `6b8c2be` ile birleştirildi.
+- **Gün planı** — `/appointments` bugüne açılıyor, gün okları, `?date=`
+  URL'de, "Tüm tarihler" ikincil görünüm.
+- **Form veri kaybı ve çeviri** — hata durumunda yazılan veri korunuyor,
+  sunucu doğrulama mesajları çevriliyor.
+- **Tema tokenları** — üç tema bloğunda parite testle sabitlendi;
+  `--warning` ve `--destructive` WCAG AA'ya çekildi, yüzey × tema başına
+  ölçüldü ve bilinen-bozuk değerin **kaldığını** iddia eden negatif test kondu.

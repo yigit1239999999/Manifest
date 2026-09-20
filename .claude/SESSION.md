@@ -55,13 +55,20 @@ yeni özellik. Bir ajanın istemesi onay yerine geçmez.
 
 ## Bu oturumda nereye geldik
 
-**Kod:** `main` = `b6fbb6d`. `ff0028e`'den bu yana 17 commit. Push edilmedi.
-Branch `pm-dev-loop` main ile aynı noktada, çalışma ağacı temiz.
+**Kod:** `main` = push edildi (`6b8c2be` ve sonrası). Uzaktaki paralel
+çalışmayla birleştirildi: **SMS kanalı, Netgsm adaptörü ve `notificationsOptIn`
+yeniden adlandırması zaten inmiş durumda.** Çakışmalar elle çözüldü, kalite
+kapıları temiz (tsc · eslint 0 hata · 251 test).
+
+Güvenlik ağı: `backup-pm-dev-loop-1523` yerel branch'i birleşme öncesi hali
+taşıyor.
 
 **Sürüm:** "Güvenilir döngü" — *klinik uygulamayı açtığında yanlış bilgi
 görmüyor, yanlış mesaj göndermiyor ve hatırlatmaları gerçekten gidiyor.*
 
-**Durum:** 14 iş kapalı, ~45 açık. Katman 0 hâlâ açık.
+**Durum:** Katman 0 hâlâ açık. BACKLOG **temizlendi** — biten işler satır
+olarak silindi, dosyada yalnızca yapılacaklar var; neyin bittiği
+"Doğrulanmış, iş gerektirmeyen" bölümünde özet olarak duruyor.
 
 ### Kapananlar (doğrulanmış)
 - Tıbbi kayıtların sessizce kaydedilmemesi (ürünün çekirdek işlevi)
@@ -73,6 +80,8 @@ görmüyor, yanlış mesaj göndermiyor ve hatırlatmaları gerçekten gidiyor.*
 - `Callout` primitifi ve tüm kopyaların ona taşınması
 - Panel grafiklerinin sıfırı küçük sayı gibi çizmesi
 - `/appointments` bugüne açılıyor
+- SMS kanalı, Netgsm adaptörü, segment hesabı ve sweep'in kanal seçimi
+  (uzaktaki paralel çalışmada indi; eski S1-S4 maddeleri silindi)
 
 ### Açık iki deploy blokeri
 1. **Tahsilat tutarı 100 kat küçük kaydediliyor** (500 girilince 5,00)
