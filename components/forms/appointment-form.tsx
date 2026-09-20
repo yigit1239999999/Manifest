@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo } from "react";
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import type { Appointment, Pet, User } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
@@ -17,6 +17,7 @@ import {
   updateAppointmentAction,
 } from "@/modules/appointments/actions";
 import { toDateTimeInput } from "@/lib/format";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   appointment?: Appointment;
@@ -40,7 +41,8 @@ export function AppointmentForm({
   const action = appointment
     ? updateAppointmentAction.bind(null, appointment.id)
     : createAppointmentAction;
-  const [state, formAction] = useActionState(action, {});
+  const form = useActionForm(action, {});
+  const { state } = form;
   const defaultStart = useMemo(
     () =>
       // eslint-disable-next-line react-hooks/purity -- one-shot initial value, never recomputed
@@ -49,7 +51,7 @@ export function AppointmentForm({
   );
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <ActionForm form={form} className="flex flex-col gap-4">
       {state.error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
@@ -147,6 +149,6 @@ export function AppointmentForm({
       </Field>
 
       <SubmitButton>{appointment ? t("update") : t("create")}</SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

@@ -650,6 +650,27 @@
       "speciesNoneEnabled": "En az bir tür seçili olmalı.",
       "timezoneUnknown": "Geçersiz saat dilimi.",
       "noteTarget": "Bir hayvan veya müşteri belirtmelisiniz."
+    },
+    "form": {
+      "required": "{field} gerekli.",
+      "requiredGeneric": "Bu alan gerekli.",
+      "minLength": "{field} en az {min} karakter olmalı.",
+      "minLengthGeneric": "En az {min} karakter olmalı.",
+      "maxLength": "{field} en fazla {max} karakter olabilir.",
+      "maxLengthGeneric": "En fazla {max} karakter olabilir.",
+      "select": "{field} seçiniz.",
+      "invalidChoice": "Geçersiz seçim.",
+      "email": "Geçerli bir e-posta adresi giriniz.",
+      "emailTooLong": "E-posta adresi çok uzun.",
+      "passwordMin": "Şifre en az {min} karakter olmalı.",
+      "date": "Geçerli bir tarih giriniz.",
+      "dateTimeRequired": "Tarih ve saat gerekli.",
+      "number": "Geçerli bir sayı giriniz.",
+      "numberRange": "{min} ile {max} arasında bir sayı giriniz.",
+      "integer": "Geçerli bir tam sayı giriniz.",
+      "integerRange": "{min} ile {max} arasında bir tam sayı giriniz.",
+      "amount": "Geçerli bir tutar giriniz.",
+      "linesRequired": "En az bir satır ekleyiniz."
     }
   }
 }

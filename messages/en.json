@@ -650,6 +650,27 @@
       "speciesNoneEnabled": "Select at least one species.",
       "timezoneUnknown": "Unknown timezone.",
       "noteTarget": "Pick a pet or a client to attach the note to."
+    },
+    "form": {
+      "required": "{field} is required.",
+      "requiredGeneric": "This field is required.",
+      "minLength": "{field} must be at least {min} characters.",
+      "minLengthGeneric": "Must be at least {min} characters.",
+      "maxLength": "{field} can be at most {max} characters.",
+      "maxLengthGeneric": "Can be at most {max} characters.",
+      "select": "Select {field}.",
+      "invalidChoice": "Invalid selection.",
+      "email": "Enter a valid email address.",
+      "emailTooLong": "The email address is too long.",
+      "passwordMin": "The password must be at least {min} characters.",
+      "date": "Enter a valid date.",
+      "dateTimeRequired": "Date and time are required.",
+      "number": "Enter a valid number.",
+      "numberRange": "Enter a number between {min} and {max}.",
+      "integer": "Enter a whole number.",
+      "integerRange": "Enter a whole number between {min} and {max}.",
+      "amount": "Enter a valid amount.",
+      "linesRequired": "Add at least one line."
     }
   }
 }

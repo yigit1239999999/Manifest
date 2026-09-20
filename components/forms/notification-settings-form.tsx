@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { FormState } from "@/lib/action";
@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/submit-button";
 import { REMINDER_MODES, TIMEZONES } from "@/modules/notifications/schema";
 import type { NotificationSettings } from "@/modules/notifications/settings";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
@@ -19,7 +20,8 @@ interface Props {
 
 export function NotificationSettingsForm({ action, settings, timezone }: Props) {
   const t = useTranslations("settings.notifications");
-  const [state, formAction] = useActionState(action, {});
+  const form = useActionForm(action, {});
+  const { state } = form;
   const [mode, setMode] = useState<string>(settings.whatsapp.reminder.mode);
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export function NotificationSettingsForm({ action, settings, timezone }: Props) 
   };
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <ActionForm form={form} className="flex flex-col gap-5">
       <label className="flex items-start gap-3 text-sm">
         <input
           type="checkbox"
@@ -133,6 +135,6 @@ export function NotificationSettingsForm({ action, settings, timezone }: Props) 
       <div className="flex justify-end">
         <SubmitButton>{t("save")}</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

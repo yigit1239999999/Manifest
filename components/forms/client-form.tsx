@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { Client } from "@/generated/prisma/client";
@@ -15,6 +15,7 @@ import {
   createClientAction,
   updateClientAction,
 } from "@/modules/clients/actions";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   client?: Client;
@@ -29,14 +30,15 @@ export function ClientForm({ client }: Props) {
   const action = client
     ? updateClientAction.bind(null, client.id)
     : createClientAction;
-  const [state, formAction] = useActionState(action, {});
+  const form = useActionForm(action, {});
+  const { state } = form;
 
   useEffect(() => {
     if (state.error) toast.error(state.error);
   }, [state.error]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-8">
+    <ActionForm form={form} className="flex flex-col gap-8">
       {state.error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
@@ -188,6 +190,6 @@ export function ClientForm({ client }: Props) {
         </span>
         <SubmitButton>{client ? t("update") : t("create")}</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

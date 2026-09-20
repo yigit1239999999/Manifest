@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
@@ -13,6 +13,7 @@ import { DIAGNOSTIC_TYPES } from "@/modules/diagnostics/schema";
 import { createDiagnosticAction } from "@/modules/diagnostics/actions";
 import { toDateTimeInput } from "@/lib/format";
 import { DIAGNOSTIC_TESTS } from "@/lib/procedures";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 export function DiagnosticForm({
   petId,
@@ -24,8 +25,8 @@ export function DiagnosticForm({
   const t = useTranslations("diagnostic");
   const tType = useTranslations("enum.diagnosticType");
   const tCommon = useTranslations("common");
-  const [state, formAction] = useActionState(createDiagnosticAction, {});
-  const formRef = useRef<HTMLFormElement>(null);
+  const form = useActionForm(createDiagnosticAction, {});
+  const { state, reset } = form;
   const [type, setType] = useState<string>("BLOOD");
 
   // The test list follows the chosen type (blood work vs imaging vs ...).
@@ -36,14 +37,14 @@ export function DiagnosticForm({
 
   useEffect(() => {
     if (state.success) {
-      formRef.current?.reset();
+      reset();
       toast.success(tCommon("saved"));
     }
     if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+  }, [state.success, state.error, tCommon, reset]);
 
   return (
-    <form action={formAction} ref={formRef} className="grid gap-3 sm:grid-cols-2">
+    <ActionForm form={form} className="grid gap-3 sm:grid-cols-2">
       <input type="hidden" name="petId" value={petId} />
       {visitId && <input type="hidden" name="visitId" value={visitId} />}
 
@@ -101,6 +102,6 @@ export function DiagnosticForm({
       <SubmitButton size="sm" className="w-fit sm:col-span-2">
         {t("create")}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

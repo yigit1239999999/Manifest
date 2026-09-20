@@ -24,7 +24,7 @@ export const notificationSettingsSchema = z.object({
   morningHour: optionalInt({ min: 0, max: 23 }),
   remindersEnabled: checkbox,
   remindersDaysBefore: optionalInt({ min: 0, max: 60 }),
-  timezone: requiredText(1, 64, "Saat dilimi"),
+  timezone: requiredText(1, 64, "settings.notifications.timezone"),
 });
 
 export type NotificationSettingsInput = z.infer<typeof notificationSettingsSchema>;

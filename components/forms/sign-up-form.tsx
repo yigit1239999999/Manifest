@@ -1,19 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/submit-button";
 import { signUpAction } from "@/modules/auth/actions";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 export function SignUpForm() {
   const t = useTranslations("auth");
-  const [state, formAction] = useActionState(signUpAction, {});
+  const form = useActionForm(signUpAction, {});
+  const { state } = form;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <ActionForm form={form} className="flex flex-col gap-4">
       {state.error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
@@ -55,6 +56,6 @@ export function SignUpForm() {
           {t("haveAccount")}
         </Link>
       </p>
-    </form>
+    </ActionForm>
   );
 }

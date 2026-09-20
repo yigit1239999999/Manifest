@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
@@ -17,6 +17,7 @@ import { SPECIES, SEXES } from "@/modules/pets/schema";
 import { createPetAction, updatePetAction } from "@/modules/pets/actions";
 import { toDateInput } from "@/lib/format";
 import { BREEDS } from "@/lib/breeds";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   pet?: Pet;
@@ -47,7 +48,8 @@ export function PetForm({
   const tCommon = useTranslations("common");
 
   const action = pet ? updatePetAction.bind(null, pet.id) : createPetAction;
-  const [state, formAction] = useActionState(action, {});
+  const form = useActionForm(action, {});
+  const { state } = form;
 
   // "DOG" | ... | "custom:<id>" | free text for a brand-new species.
   // New pets start blank so the vet consciously picks a species.
@@ -109,7 +111,7 @@ export function PetForm({
   );
 
   return (
-    <form action={formAction} className="flex flex-col gap-8">
+    <ActionForm form={form} className="flex flex-col gap-8">
       {state.error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
@@ -270,6 +272,6 @@ export function PetForm({
         </span>
         <SubmitButton>{pet ? t("update") : t("create")}</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

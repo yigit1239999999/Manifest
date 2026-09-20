@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/submit-button";
 import { PAYMENT_METHODS } from "@/modules/invoices/schema";
 import { recordPaymentAction } from "@/modules/invoices/actions";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 export function PaymentForm({
   invoiceId,
@@ -20,19 +21,19 @@ export function PaymentForm({
   const t = useTranslations("invoice");
   const tMethod = useTranslations("enum.paymentMethod");
   const tCommon = useTranslations("common");
-  const [state, formAction] = useActionState(recordPaymentAction, {});
-  const formRef = useRef<HTMLFormElement>(null);
+  const form = useActionForm(recordPaymentAction, {});
+  const { state, reset } = form;
 
   useEffect(() => {
     if (state.success) {
-      formRef.current?.reset();
+      reset();
       toast.success(tCommon("saved"));
     }
     if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+  }, [state.success, state.error, tCommon, reset]);
 
   return (
-    <form action={formAction} ref={formRef} className="flex flex-col gap-3">
+    <ActionForm form={form} className="flex flex-col gap-3">
       {state.error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
@@ -61,6 +62,6 @@ export function PaymentForm({
       <SubmitButton size="sm" className="w-fit">
         {t("payment.submit")}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

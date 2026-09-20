@@ -1,6 +1,5 @@
 "use client";
 
-import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import type { Pet, User, Visit } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
@@ -14,6 +13,7 @@ import {
   updateVisitAction,
 } from "@/modules/visits/actions";
 import { toDateTimeInput } from "@/lib/format";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   visit?: Visit;
@@ -30,10 +30,11 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
   const action = visit
     ? updateVisitAction.bind(null, visit.id)
     : createVisitAction;
-  const [state, formAction] = useActionState(action, {});
+  const form = useActionForm(action, {});
+  const { state } = form;
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <ActionForm form={form} className="flex flex-col gap-6">
       {state.error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
@@ -203,6 +204,6 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
       </div>
 
       <SubmitButton>{visit ? t("update") : t("create")}</SubmitButton>
-    </form>
+    </ActionForm>
   );
 }
