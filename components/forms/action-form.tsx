@@ -20,6 +20,8 @@ import * as React from "react";
 import { useActionState } from "react";
 import type { FormState } from "@/lib/action";
 
+const EMPTY: readonly string[] = [];
+
 type FormAction = (
   state: FormState,
   formData: FormData,
@@ -36,6 +38,12 @@ export interface ActionFormApi {
   clearFieldError: (name: string) => void;
   /** Incremented by `reset()`; the <ActionForm> watches it. */
   resetToken: number;
+  /**
+   * Messages for fields this form does not render. The <ActionForm> works out
+   * which those are and reports them, and they surface in `state.error` —
+   * otherwise a rejected submit would look like nothing happened at all.
+   */
+  reportHomelessErrors: (messages: readonly string[]) => void;
 }
 
 export function useActionForm(
@@ -49,6 +57,7 @@ export function useActionForm(
 
   const [cleared, setCleared] = React.useState<readonly string[]>([]);
   const [resetToken, setResetToken] = React.useState(0);
+  const [homeless, setHomeless] = React.useState<readonly string[]>([]);
 
   // Every server response re-arms all of its messages.
   const [seen, setSeen] = React.useState(raw);
@@ -56,8 +65,20 @@ export function useActionForm(
   if (seen !== raw) {
     setSeen(raw);
     if (cleared.length > 0) setCleared([]);
+    if (homeless.length > 0) setHomeless([]);
     active = [];
   }
+
+  const reportHomelessErrors = React.useCallback(
+    (messages: readonly string[]) => {
+      setHomeless((prev) =>
+        prev.length === messages.length && prev.every((m, i) => m === messages[i])
+          ? prev
+          : messages,
+      );
+    },
+    [],
+  );
 
   const clearFieldError = React.useCallback((name: string) => {
     setCleared((prev) => (prev.includes(name) ? prev : [...prev, name]));
@@ -66,18 +87,33 @@ export function useActionForm(
   const reset = React.useCallback(() => setResetToken((n) => n + 1), []);
 
   const state = React.useMemo(() => {
-    if (!raw.fieldErrors || active.length === 0) return raw;
-    const fieldErrors: Record<string, string[]> = {};
-    for (const [field, messages] of Object.entries(raw.fieldErrors)) {
-      if (!active.includes(field)) fieldErrors[field] = messages;
+    let next = raw;
+    if (raw.fieldErrors && active.length > 0) {
+      const fieldErrors: Record<string, string[]> = {};
+      for (const [field, messages] of Object.entries(raw.fieldErrors)) {
+        if (!active.includes(field)) fieldErrors[field] = messages;
+      }
+      next = {
+        ...raw,
+        fieldErrors:
+          Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined,
+      };
     }
-    return {
-      ...raw,
-      fieldErrors: Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined,
-    };
-  }, [raw, active]);
+    if (!next.error && homeless.length > 0) {
+      next = { ...next, error: homeless.join(" ") };
+    }
+    return next;
+  }, [raw, active, homeless]);
 
-  return { state, pending, formAction, reset, clearFieldError, resetToken };
+  return {
+    state,
+    pending,
+    formAction,
+    reset,
+    clearFieldError,
+    resetToken,
+    reportHomelessErrors,
+  };
 }
 
 interface ActionFormProps extends Omit<React.ComponentProps<"form">, "action"> {
@@ -85,13 +121,34 @@ interface ActionFormProps extends Omit<React.ComponentProps<"form">, "action"> {
 }
 
 export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps) {
-  const { state, formAction, clearFieldError, resetToken } = form;
+  const { state, formAction, clearFieldError, resetToken, reportHomelessErrors } =
+    form;
   const ref = React.useRef<HTMLFormElement>(null);
   const values = state.values;
+  const fieldErrors = state.fieldErrors;
 
   React.useEffect(() => {
     restoreValues(ref.current, values);
   }, [values]);
+
+  // An error for a field this form doesn't render (a hidden id, say) would be
+  // invisible, and the submit would look like it silently did nothing. Hand
+  // those messages back so they show up in the form-level error box.
+  React.useEffect(() => {
+    if (!fieldErrors) {
+      reportHomelessErrors(EMPTY);
+      return;
+    }
+    const rendered = new Set(
+      Array.from(ref.current?.elements ?? [])
+        .map((el) => (el as HTMLInputElement).name)
+        .filter(Boolean),
+    );
+    const homeless = Object.entries(fieldErrors)
+      .filter(([field]) => !rendered.has(field))
+      .flatMap(([, messages]) => messages);
+    reportHomelessErrors(homeless);
+  }, [fieldErrors, reportHomelessErrors]);
 
   // Skip the initial render: only an explicit reset() clears the form.
   const firstRender = React.useRef(true);

@@ -22,7 +22,15 @@ export function msg(
     : `${MESSAGE_PREFIX}${key}`;
 }
 
-const trim = z.string().transform((v) => v.trim());
+// A control that is not rendered (a hidden `visitId` on a page that has no
+// visit, a field behind a collapsed option) never reaches FormData at all, so
+// `Object.fromEntries` leaves its key out entirely. Every helper below is
+// built on `trim`, so treating a missing key as "" here keeps an optional
+// field optional and lets a required one report the right message instead of
+// a type error nobody sees.
+const trim = z
+  .preprocess((v) => (v == null ? "" : v), z.string())
+  .transform((v) => v.trim());
 
 const requiredMsg = (field?: string) =>
   field ? msg("error.form.required", { field }) : msg("error.form.requiredGeneric");

@@ -91,3 +91,32 @@ test.describe("Form validation", () => {
     await expect(page.getByText(/gerekli|seçiniz/i)).toHaveCount(0);
   });
 });
+
+test.describe("Medical records", () => {
+  // Optional fields that the form does not render (visitId,
+  // administeredById) used to reach the schema as `undefined` and drop the
+  // whole submission without a word.
+  test("a vaccination saves from the pet page", async ({ page }) => {
+    await signUp(page, Date.now() + 2);
+    await createOwner(page);
+
+    await page.goto("/pets/new");
+    await page.getByLabel(/owner/i).selectOption({ label: "Ayse Yilmaz" });
+    await page.getByLabel(/^name$/i).fill("Boncuk");
+    await page.getByRole("button", { name: /^cat$/i }).click();
+    await page.getByRole("button", { name: /create pet/i }).click();
+    await expect(page).toHaveURL(/\/pets\/[\w-]+$/);
+
+    await page.getByText("Add vaccination").click();
+    const vaccination = page.locator("form").filter({
+      has: page.getByRole("button", { name: /save vaccination/i }),
+    });
+    await vaccination.getByLabel(/^vaccine$/i).fill("Rabies");
+    await vaccination.getByLabel(/manufacturer/i).fill("Acme");
+    await page.getByRole("button", { name: /save vaccination/i }).click();
+
+    await expect(page.getByText("Rabies").first()).toBeVisible();
+    await page.reload();
+    await expect(page.getByText("Rabies").first()).toBeVisible();
+  });
+});
