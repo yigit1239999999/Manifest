@@ -41,7 +41,7 @@ export default async function NewPetPage({
         <EmptyState
           icon={Users}
           title={tClient("empty")}
-          description=""
+          description={t("noOwnersHint")}
           action={
             <Link href="/clients/new" className={buttonVariants()}>
               {tClient("new")}

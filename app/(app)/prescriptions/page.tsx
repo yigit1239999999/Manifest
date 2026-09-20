@@ -22,7 +22,7 @@ export default async function PrescriptionsPage() {
       <PageHeader title={t("title")} description={t("subtitle")} />
 
       {prescriptions.length === 0 ? (
-        <EmptyState icon={Pill} title={t("empty")} description="" />
+        <EmptyState icon={Pill} title={t("empty")} />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
           <table className="w-full text-sm">

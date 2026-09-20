@@ -13,6 +13,7 @@ import { createStaffAction } from "@/modules/staff/actions";
 export function StaffForm() {
   const t = useTranslations("staff");
   const tRole = useTranslations("enum.role");
+  const tCommon = useTranslations("common");
   const [state, formAction] = useActionState(createStaffAction, {});
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export function StaffForm() {
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="ornek@email.com"
+            placeholder={tCommon("emailPlaceholder")}
             required
           />
         </Field>

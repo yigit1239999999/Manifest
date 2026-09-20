@@ -54,7 +54,7 @@ export default async function AppointmentsPage({
       />
 
       {result.items.length === 0 ? (
-        <EmptyState icon={CalendarClock} title={t("empty")} description="" />
+        <EmptyState icon={CalendarClock} title={t("empty")} />
       ) : (
         <>
           <div className="overflow-hidden rounded-2xl border border-border bg-card">

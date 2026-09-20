@@ -72,7 +72,7 @@ export function ClientForm({ client }: Props) {
               type="email"
               defaultValue={client?.email ?? ""}
               autoComplete="email"
-              placeholder="ornek@email.com"
+              placeholder={tCommon("emailPlaceholder")}
             />
           </Field>
           <Field label={t("phone")} error={state.fieldErrors?.phone}>
@@ -182,7 +182,9 @@ export function ClientForm({ client }: Props) {
 
       <div className="flex items-center justify-end gap-3">
         <span className="text-xs text-muted-foreground">
-          {tCommon("required")}: {t("firstName")}, {t("lastName")}
+          {tCommon("requiredFields", {
+            fields: [t("firstName"), t("lastName")].join(", "),
+          })}
         </span>
         <SubmitButton>{client ? t("update") : t("create")}</SubmitButton>
       </div>

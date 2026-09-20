@@ -35,7 +35,7 @@ export function SignUpForm() {
       <Field
         label={t("password")}
         error={state.fieldErrors?.password}
-        hint="Min 8 karakter / min 8 chars"
+        hint={t("passwordHint")}
         required
       >
         <Input

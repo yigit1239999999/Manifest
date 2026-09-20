@@ -37,11 +37,13 @@
     "addNew": "Ekle: \"{value}\"",
     "optional": "isteğe bağlı",
     "required": "zorunlu",
+    "requiredFields": "Zorunlu alanlar: {fields}",
     "yes": "Evet",
     "no": "Hayır",
     "all": "Tümü",
     "open": "Aç",
     "details": "Detaylar",
+    "emailPlaceholder": "ornek@eposta.com",
     "language": "Dil",
     "createdAt": "Oluşturuldu",
     "updatedAt": "Güncellendi",
@@ -49,7 +51,10 @@
     "created": "Oluşturuldu",
     "archived": "Arşivlendi",
     "deleted": "Silindi",
-    "theme": "Tema"
+    "theme": "Tema",
+    "themeLight": "Açık",
+    "themeDark": "Koyu",
+    "themeSystem": "Otomatik"
   },
   "auth": {
     "signIn": "Giriş",
@@ -63,7 +68,8 @@
     "signInButton": "Giriş yap",
     "signUpButton": "Hesap oluştur",
     "needAccount": "Hesabınız yok mu? Kayıt olun",
-    "haveAccount": "Zaten hesabınız var mı? Giriş yapın"
+    "haveAccount": "Zaten hesabınız var mı? Giriş yapın",
+    "passwordHint": "En az 8 karakter."
   },
   "dashboard": {
     "title": "Panel",
@@ -102,7 +108,9 @@
     "edit": "Müşteriyi düzenle",
     "search": "Müşteri ara…",
     "empty": "Henüz müşteri yok.",
+    "emptyHint": "Hayvan, vizit ve randevu kaydı yapabilmek için ilk müşterinizi ekleyiniz.",
     "emptySearch": "Aramayla eşleşen müşteri yok.",
+    "emptySearchHint": "Farklı bir ad, telefon numarası veya e-posta adresi deneyiniz.",
     "firstName": "Ad",
     "lastName": "Soyad",
     "email": "E-posta",
@@ -151,7 +159,10 @@
     "edit": "Hayvanı düzenle",
     "search": "Hayvan ara…",
     "empty": "Henüz hayvan yok.",
+    "emptyHint": "Tıbbi kaydını başlatmak için müşterilerinizden birine hayvan ekleyiniz.",
     "emptySearch": "Aramayla eşleşen hayvan yok.",
+    "emptySearchHint": "Farklı bir hayvan adı, ırk veya sahip adı deneyiniz.",
+    "noOwnersHint": "Her hayvan bir müşteriye bağlıdır. Önce müşteriyi oluşturunuz, ardından hayvanı ekleyiniz.",
     "name": "İsim",
     "species": "Tür",
     "breed": "Cins",
@@ -593,6 +604,7 @@
   },
   "error": {
     "generic": "Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.",
+    "dev": "Geliştirici hatası: {message}",
     "notFound": "{entity} bulunamadı.",
     "validationFailed": "Lütfen formu kontrol edin.",
     "forbidden": "Bu işlem için yetkiniz yok.",

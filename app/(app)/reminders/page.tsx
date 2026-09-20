@@ -53,7 +53,7 @@ export default async function RemindersPage() {
       </Card>
 
       {reminders.length === 0 ? (
-        <EmptyState icon={ClipboardList} title={t("empty")} description="" />
+        <EmptyState icon={ClipboardList} title={t("empty")} />
       ) : (
         <ul className="flex flex-col gap-2">
           {reminders.map((r) => (

@@ -145,13 +145,17 @@ async function appErrorToFormState(error: AppError): Promise<FormState> {
 }
 
 async function uncaughtMessage(devMessage: string): Promise<string> {
-  if (process.env.NODE_ENV === "development") {
-    return `Dev hata: ${devMessage}`;
-  }
   try {
     const t = await getTranslations();
-    return t("errors.generic");
+    // Only development surfaces the underlying message; production always
+    // gets the generic sentence so internal details never leak.
+    return process.env.NODE_ENV === "development"
+      ? t("error.dev", { message: devMessage })
+      : t("error.generic");
   } catch {
-    return "Something went wrong. Please try again.";
+    // No request scope (e.g. when called from a worker).
+    return process.env.NODE_ENV === "development"
+      ? `Dev error: ${devMessage}`
+      : "Something went wrong. Please try again.";
   }
 }

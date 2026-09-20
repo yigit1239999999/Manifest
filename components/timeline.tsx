@@ -43,7 +43,7 @@ export async function Timeline({
   const locale = await getLocale();
 
   if (events.length === 0) {
-    return <EmptyState icon={ClipboardList} title={t("empty")} description="" />;
+    return <EmptyState icon={ClipboardList} title={t("empty")} />;
   }
 
   // Group by date (UTC day). Iteration preserves the input order which is
@@ -70,7 +70,7 @@ export async function Timeline({
     <div className="flex flex-col gap-6">
       {Array.from(groups.values()).map((group, gi) => (
         <section key={gi} className="flex flex-col gap-1">
-          <h3 className="sticky top-16 z-[1] -mx-2 bg-background/85 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+          <h3 className="sticky top-16 z-[1] -mx-2 bg-background px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {group.label}
             <span className="ml-2 text-muted-foreground/60">
               · {relativeTime(locale, group.events[0].at)}

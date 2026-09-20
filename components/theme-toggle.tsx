@@ -32,7 +32,11 @@ export function ThemeToggle({
   }
 
   const icons = { light: Sun, dark: Moon, system: Monitor } as const;
-  const labels = { light: "Light", dark: "Dark", system: "Auto" };
+  const labels = {
+    light: t("themeLight"),
+    dark: t("themeDark"),
+    system: t("themeSystem"),
+  };
 
   return (
     <div

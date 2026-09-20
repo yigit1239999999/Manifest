@@ -56,7 +56,6 @@ export default async function VisitsPage({
         <EmptyState
           icon={Stethoscope}
           title={t("empty")}
-          description=""
           action={
             <Link href="/visits/new" className={buttonVariants()}>
               <Plus />

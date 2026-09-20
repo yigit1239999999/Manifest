@@ -37,11 +37,13 @@
     "addNew": "Add \"{value}\"",
     "optional": "optional",
     "required": "required",
+    "requiredFields": "Required: {fields}",
     "yes": "Yes",
     "no": "No",
     "all": "All",
     "open": "Open",
     "details": "Details",
+    "emailPlaceholder": "example@email.com",
     "language": "Language",
     "createdAt": "Created",
     "updatedAt": "Updated",
@@ -49,7 +51,10 @@
     "created": "Created",
     "archived": "Archived",
     "deleted": "Deleted",
-    "theme": "Theme"
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "Auto"
   },
   "auth": {
     "signIn": "Sign in",
@@ -63,7 +68,8 @@
     "signInButton": "Sign in",
     "signUpButton": "Create account",
     "needAccount": "Don't have an account? Sign up",
-    "haveAccount": "Already have an account? Sign in"
+    "haveAccount": "Already have an account? Sign in",
+    "passwordHint": "At least 8 characters."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -102,7 +108,9 @@
     "edit": "Edit client",
     "search": "Search clients…",
     "empty": "No clients yet.",
+    "emptyHint": "Add your first client to start registering pets, visits and appointments.",
     "emptySearch": "No clients match this search.",
+    "emptySearchHint": "Try a different name, phone number or email address.",
     "firstName": "First name",
     "lastName": "Last name",
     "email": "Email",
@@ -151,7 +159,10 @@
     "edit": "Edit pet",
     "search": "Search pets…",
     "empty": "No pets yet.",
+    "emptyHint": "Register a pet to one of your clients to start its medical record.",
     "emptySearch": "No pets match this search.",
+    "emptySearchHint": "Try a different pet name, breed or owner.",
+    "noOwnersHint": "Every pet belongs to a client. Create the client first, then add the pet.",
     "name": "Name",
     "species": "Species",
     "breed": "Breed",
@@ -593,6 +604,7 @@
   },
   "error": {
     "generic": "Something went wrong. Please try again.",
+    "dev": "Dev error: {message}",
     "notFound": "{entity} not found.",
     "validationFailed": "Please check the form and try again.",
     "forbidden": "You don't have permission for this.",

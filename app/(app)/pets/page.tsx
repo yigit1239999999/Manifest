@@ -46,7 +46,7 @@ export default async function PetsPage({
         <EmptyState
           icon={PawPrint}
           title={q ? t("emptySearch") : t("empty")}
-          description=""
+          description={q ? t("emptySearchHint") : t("emptyHint")}
         />
       ) : (
         <>

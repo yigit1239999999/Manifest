@@ -58,7 +58,6 @@ export default async function InvoicesPage({
         <EmptyState
           icon={Receipt}
           title={t("empty")}
-          description=""
           action={
             <Link href="/invoices/new" className={buttonVariants()}>
               <Plus />

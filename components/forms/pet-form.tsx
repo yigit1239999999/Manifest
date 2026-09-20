@@ -264,7 +264,9 @@ export function PetForm({
 
       <div className="flex items-center justify-end gap-3">
         <span className="text-xs text-muted-foreground">
-          {tCommon("required")}: {t("owner")}, {t("name")}, {t("species")}, {t("sex")}
+          {tCommon("requiredFields", {
+            fields: [t("owner"), t("name"), t("species"), t("sex")].join(", "),
+          })}
         </span>
         <SubmitButton>{pet ? t("update") : t("create")}</SubmitButton>
       </div>
