@@ -53,7 +53,7 @@ test.describe("Clinical records on the pet page", () => {
     const treat = page.locator("details", { hasText: /add treatment|tedavi \/ işlem ekle/i });
     await treat.locator("summary").click();
     await treat.getByLabel(/treatment \/ procedure|tedavi \/ işlem/i).fill("Tırnak kesimi");
-    await treat.getByRole("button", { name: /^save$|^kaydet$/i }).click();
+    await treat.getByRole("button", { name: /save treatment|tedavi.*kaydet|^kaydet$/i }).click();
     await expect(page.getByText("Tırnak kesimi").first()).toBeVisible();
 
     // Diagnostic test (type-driven combobox)
@@ -61,7 +61,7 @@ test.describe("Clinical records on the pet page", () => {
     await diag.locator("summary").click();
     await diag.getByLabel(/test type|test türü/i).selectOption("BLOOD");
     await diag.getByLabel(/^test$/i).fill("Hemogram");
-    await diag.getByRole("button", { name: /^save$|^kaydet$/i }).click();
+    await diag.getByRole("button", { name: /save test|test.*kaydet|^kaydet$/i }).click();
     await expect(page.getByText("Hemogram").first()).toBeVisible();
   });
 });
