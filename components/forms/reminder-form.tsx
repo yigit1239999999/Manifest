@@ -6,12 +6,12 @@ import { toast } from "sonner";
 import type { Client, Pet } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { REMINDER_TYPES } from "@/modules/reminders/schema";
 import { createReminderAction } from "@/modules/reminders/actions";
-import { toDateTimeInput } from "@/lib/format";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
@@ -92,10 +92,9 @@ export function ReminderForm({
         </Select>
       </Field>
       <Field label={t("dueAt")} error={state.fieldErrors?.dueAt} required>
-        <Input
-          type="datetime-local"
+        <DateTimeInput
           name="dueAt"
-          defaultValue={toDateTimeInput(defaultDue)}
+          defaultValue={defaultDue}
           required
         />
       </Field>

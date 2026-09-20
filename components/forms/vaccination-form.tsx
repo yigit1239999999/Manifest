@@ -5,10 +5,10 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { createVaccinationAction } from "@/modules/vaccinations/actions";
-import { toDateTimeInput } from "@/lib/format";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 export function VaccinationForm({
@@ -47,10 +47,9 @@ export function VaccinationForm({
         error={state.fieldErrors?.administeredAt}
         required
       >
-        <Input
-          type="datetime-local"
+        <DateTimeInput
           name="administeredAt"
-          defaultValue={toDateTimeInput(new Date())}
+          defaultValue={new Date()}
           required
         />
       </Field>
@@ -61,7 +60,7 @@ export function VaccinationForm({
         <Input name="lotNumber" />
       </Field>
       <Field label={t("nextDueAt")} error={state.fieldErrors?.nextDueAt}>
-        <Input type="datetime-local" name="nextDueAt" />
+        <DateTimeInput name="nextDueAt" />
       </Field>
       <Field label={t("site")} error={state.fieldErrors?.site}>
         <Input name="site" />

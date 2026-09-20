@@ -11,6 +11,8 @@ import {
   sexLabel,
   speciesLabel,
   toDateInput,
+  toDateTimeInput,
+  wallTimeToInstant,
 } from "@/lib/format";
 
 describe("speciesLabel", () => {
@@ -161,5 +163,38 @@ describe("formatDuration", () => {
     expect(formatDuration("en", 30)).toBe("30 min");
     expect(formatDuration("tr", 30)).toBe("30 dk");
     expect(formatDuration("tr", null)).toBe("-");
+  });
+});
+
+describe("wallTimeToInstant", () => {
+  it("reads a wall-clock time in the given zone", () => {
+    // 11:30 in Istanbul (UTC+3) is 08:30 UTC.
+    expect(
+      wallTimeToInstant("2026-09-23T11:30", "Europe/Istanbul")?.toISOString(),
+    ).toBe("2026-09-23T08:30:00.000Z");
+    expect(wallTimeToInstant("2026-09-23T11:30", "UTC")?.toISOString()).toBe(
+      "2026-09-23T11:30:00.000Z",
+    );
+  });
+
+  it("follows daylight saving in zones that observe it", () => {
+    // Berlin is UTC+2 in July and UTC+1 in January.
+    expect(
+      wallTimeToInstant("2026-07-01T12:00", "Europe/Berlin")?.toISOString(),
+    ).toBe("2026-07-01T10:00:00.000Z");
+    expect(
+      wallTimeToInstant("2026-01-01T12:00", "Europe/Berlin")?.toISOString(),
+    ).toBe("2026-01-01T11:00:00.000Z");
+  });
+
+  it("round-trips with toDateTimeInput", () => {
+    const zone = "Europe/Istanbul";
+    const instant = wallTimeToInstant("2026-09-23T11:30", zone)!;
+    expect(toDateTimeInput(instant, zone)).toBe("2026-09-23T11:30");
+  });
+
+  it("returns null for anything that is not a wall-clock time", () => {
+    expect(wallTimeToInstant("", "UTC")).toBeNull();
+    expect(wallTimeToInstant("tomorrow", "UTC")).toBeNull();
   });
 });

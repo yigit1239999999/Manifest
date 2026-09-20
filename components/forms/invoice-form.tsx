@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,7 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
           </Select>
         </Field>
         <Field label={t("dueAt")} error={state.fieldErrors?.dueAt}>
-          <Input type="datetime-local" name="dueAt" />
+          <DateTimeInput name="dueAt" />
         </Field>
       </div>
 

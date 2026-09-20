@@ -120,3 +120,39 @@ test.describe("Medical records", () => {
     await expect(page.getByText("Rabies").first()).toBeVisible();
   });
 });
+
+test.describe("Clinic time zone", () => {
+  // The screen and the WhatsApp message have to agree, and both have to
+  // agree with what the vet typed. They used to disagree by three hours:
+  // the screen followed the server's clock, the message the clinic's.
+  test("an appointment keeps the time it was booked for", async ({ page }) => {
+    await signUp(page, Date.now() + 3);
+
+    await page.goto("/clients/new");
+    await page.getByLabel(/first name/i).fill("Ayse");
+    await page.getByLabel(/last name/i).fill("Yilmaz");
+    await page.getByLabel(/^phone$/i).fill("+905321112233");
+    await page.getByLabel(/consented to whatsapp/i).check();
+    await page.getByRole("button", { name: /create client/i }).click();
+    await expect(page.getByRole("heading", { name: /ayse yilmaz/i })).toBeVisible();
+
+    await page.goto("/pets/new");
+    await page.getByLabel(/owner/i).selectOption({ label: "Ayse Yilmaz" });
+    await page.getByLabel(/^name$/i).fill("Boncuk");
+    await page.getByRole("button", { name: /^cat$/i }).click();
+    await page.getByRole("button", { name: /create pet/i }).click();
+    await expect(page.getByRole("heading", { name: /boncuk/i })).toBeVisible();
+
+    await page.goto("/appointments/new");
+    await page.getByLabel(/^pet$/i).selectOption({ index: 1 });
+    await page.getByLabel(/starts at/i).fill("2026-11-23T11:30");
+    await page.getByRole("button", { name: /create appointment/i }).click();
+    await expect(page).toHaveURL(/\/appointments\/[\w-]+$/);
+
+    // The heading, the details row and the message all say 11:30.
+    await expect(page.getByText("11:30").first()).toBeVisible();
+    await page.getByText(/view message/i).first().click();
+    await expect(page.getByText(/11:30/).nth(1)).toBeVisible();
+    await expect(page.getByText(/08:30/)).toHaveCount(0);
+  });
+});

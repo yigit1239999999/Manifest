@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import type { Appointment, Pet, User } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
@@ -16,7 +17,6 @@ import {
   createAppointmentAction,
   updateAppointmentAction,
 } from "@/modules/appointments/actions";
-import { toDateTimeInput } from "@/lib/format";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
@@ -76,10 +76,9 @@ export function AppointmentForm({
           </Select>
         </Field>
         <Field label={t("startsAt")} error={state.fieldErrors?.startsAt} required>
-          <Input
-            type="datetime-local"
+          <DateTimeInput
             name="startsAt"
-            defaultValue={toDateTimeInput(defaultStart)}
+            defaultValue={defaultStart}
             required
           />
         </Field>

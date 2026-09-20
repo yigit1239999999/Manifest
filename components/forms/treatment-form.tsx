@@ -5,12 +5,12 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { SubmitButton } from "@/components/submit-button";
 import { createTreatmentAction } from "@/modules/treatments/actions";
-import { toDateTimeInput } from "@/lib/format";
 import { TREATMENTS } from "@/lib/procedures";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
@@ -59,10 +59,9 @@ export function TreatmentForm({
       </div>
 
       <Field label={t("performedAt")} error={state.fieldErrors?.performedAt} required>
-        <Input
-          type="datetime-local"
+        <DateTimeInput
           name="performedAt"
-          defaultValue={toDateTimeInput(new Date())}
+          defaultValue={new Date()}
           required
         />
       </Field>

@@ -224,19 +224,84 @@ export function formatDuration(
   return localeOf(target) === "tr" ? `${minutes} dk` : `${minutes} min`;
 }
 
+/**
+ * A calendar date with no time of day (a birth date) is stored at UTC
+ * midnight, so it must be read back in UTC or a westward zone shows the
+ * day before.
+ */
+export function formatDateOnly(
+  target: FormatTarget,
+  date: Date | null | undefined,
+): string {
+  if (!date) return EMPTY;
+  return formatDate({ locale: localeOf(target), timeZone: "UTC" }, date);
+}
+
 export function toDateInput(date: Date | null | undefined): string {
   if (!date) return "";
   return date.toISOString().slice(0, 10);
 }
 
-export function toDateTimeInput(date: Date | null | undefined): string {
+/** "YYYY-MM-DDTHH:mm" for a datetime-local input, as read in `timeZone`. */
+export function toDateTimeInput(
+  date: Date | null | undefined,
+  timeZone?: string,
+): string {
   if (!date) return "";
-  // datetime-local input expects "YYYY-MM-DDTHH:mm" in local time.
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
+  const { year, month, day, hour, minute } = zonedParts(date, timeZone);
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+/**
+ * The instant a wall-clock time ("2026-09-23T11:30", what a datetime-local
+ * input holds) refers to in `timeZone`.
+ *
+ * Without this the string is parsed against whatever clock the runtime
+ * happens to be on — the browser's, or UTC on a server — and a clinic's
+ * 11:30 appointment silently becomes some other hour.
+ */
+export function wallTimeToInstant(wall: string, timeZone?: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(wall.trim());
+  if (!match) return null;
+  const [, y, m, d, h, min] = match;
+  const asUtc = Date.UTC(+y, +m - 1, +d, +h, +min);
+  if (!timeZone) return new Date(asUtc);
+  // The offset depends on the instant (DST), and the instant is what we are
+  // solving for, so apply the offset once and re-check it at the result.
+  let instant = asUtc - zoneOffsetMs(new Date(asUtc), timeZone);
+  instant = asUtc - zoneOffsetMs(new Date(instant), timeZone);
+  return new Date(instant);
+}
+
+/** How far `timeZone` is ahead of UTC at that instant, in milliseconds. */
+function zoneOffsetMs(instant: Date, timeZone: string): number {
+  const { year, month, day, hour, minute, second } = zonedParts(instant, timeZone);
+  const asUtc = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second);
+  return asUtc - instant.getTime();
+}
+
+function zonedParts(date: Date, timeZone?: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "00";
+  return {
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    // Some engines render midnight as "24" in hour12:false.
+    hour: get("hour") === "24" ? "00" : get("hour"),
+    minute: get("minute"),
+    second: get("second"),
+  };
 }
 
 const AGE_COPY = {

@@ -5,12 +5,12 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { PRESCRIPTION_STATUSES } from "@/modules/prescriptions/schema";
 import { createPrescriptionAction } from "@/modules/prescriptions/actions";
-import { toDateTimeInput } from "@/lib/format";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 export function PrescriptionForm({
@@ -81,10 +81,9 @@ export function PrescriptionForm({
         <Input type="number" min="0" name="refills" defaultValue="0" />
       </Field>
       <Field label={t("startedAt")} error={state.fieldErrors?.startedAt} required>
-        <Input
-          type="datetime-local"
+        <DateTimeInput
           name="startedAt"
-          defaultValue={toDateTimeInput(new Date())}
+          defaultValue={new Date()}
           required
         />
       </Field>

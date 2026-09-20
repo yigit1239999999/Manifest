@@ -36,7 +36,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { formatDate, formatDateTime, petAge } from "@/lib/format";
+import {
+  formatDate,
+  formatDateOnly,
+  formatDateTime,
+  petAge,
+} from "@/lib/format";
 
 export default async function PetPage({
   params,
@@ -164,7 +169,7 @@ export default async function PetPage({
             />
             <Detail label={t("breed")} value={pet.breed || "-"} />
             <Detail label={t("color")} value={pet.color || "-"} />
-            <Detail label={t("birthDate")} value={formatDate(fmt, pet.birthDate)} />
+            <Detail label={t("birthDate")} value={formatDateOnly(fmt, pet.birthDate)} />
             <Detail
               label={t("weightKg")}
               value={pet.weightKg != null ? `${pet.weightKg} kg` : "-"}
@@ -174,7 +179,10 @@ export default async function PetPage({
               label={t("insuranceProvider")}
               value={pet.insuranceProvider || "-"}
             />
-            <Detail label={t("neutered")} value={pet.neutered ? "✓" : "-"} />
+            <Detail
+              label={t("neutered")}
+              value={pet.neutered ? tCommon("yes") : tCommon("no")}
+            />
             {pet.alerts && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700">
                 <strong>{t("alerts")}: </strong>
