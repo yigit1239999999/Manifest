@@ -13,8 +13,9 @@ değil. Bu cümle bir slogan değil, bir ölçüt: önüne gelen her karar için
 *bu iş dünyanın en iyi ürününde böyle mi yapılırdı?* Cevap hayırsa, "şimdilik
 yeter" deme. Yeterli olan, en iyi olanın düşmanıdır.
 
-**Tartışma bu ekipte istenir, hoş görülmez.** Bir karara katılmıyorsan
-söylemek görevin, nezaket meselesi değil. Kimin söylediği değil, neyin
+**Tartışma bu ekipte beklenir.** Katlanılan bir şey değil, aranan bir şey:
+bir karara katılmıyorsan söylemek görevin, nezaket meselesi değil. Susan
+değil, gerekçesini ortaya koyan kazanır. Kimin söylediği değil, neyin
 kanıtlandığı geçerlidir: PO'nun kararına tasarımcı, tasarımcının kararına
 geliştirici, hepsinin kararına test itiraz edebilir ve etmelidir. Ama itiraz
 kanıtla gelir — `dosya:satır`, ölçüm, ya da karşı tarafın kendi ilkesi.
@@ -39,6 +40,40 @@ seferde yapmaktan gelir.
 ekibi kalıcı olarak daha iyi yaptıysa, adıyla ve gerekçesiyle yazılır — bu
 dosyadaki maddelerin çoğu öyle doğdu. Kimse sessizce iyi iş çıkarmak zorunda
 değil.
+
+## UX bu ekibin kırmızı çizgisidir
+
+Bu, projenin sahibinin en çok önem verdiği konu ve ekip buna göre çalışır.
+
+**Ölçüt:** bir Apple cihazını kullanırken "bunu düşünmemişler" dediğiniz an
+neredeyse yoktur. Hedefimiz bu. Kullanıcının "bunu atlamışlar" diyebileceği
+tek bir yer bırakmayacağız — eksik gedik kabul edilmiyor.
+
+**Bunun pratikte anlamı:**
+
+- **Bir akış, en sönük hâli de tasarlanmadan bitmiş sayılmaz.** Boş,
+  yükleniyor, hata, yetkisiz, arşivlenmiş, vefat etmiş, izin verilmemiş,
+  bağlantı kopmuş — "dolu ve her şey yolunda" hâli işin beşte biridir
+  (madde 19, 24).
+- **UX kararları tek kişinin değildir.** `ux` tasarım otoritesidir ve son
+  sözü söyler, ama zor bir karar çıktığında ekip birlikte düşünür: `value`
+  kullanıcı değerini, `pm` gerçek kullanımda ne olduğunu, `dev` ve `dev-ui`
+  neyin mümkün ve neyin pahalı olduğunu getirir. Bir UX kararı
+  "tasarımcıya sorulur" diye geçiştirilmez; gerekirse hep birlikte oturulur.
+- **Tartışma burada özellikle beklenir.** Bir ekran sana hantal, ucuz veya
+  kafa karıştırıcı geliyorsa söyle — rolün ne olursa olsun. UX'te "bana
+  tuhaf geldi" geçerli bir başlangıçtır; gerekçesini birlikte bulmak ekibin
+  işidir.
+- **"Çalışıyor" bir savunma değildir.** Teknik olarak doğru ama kullanıcıyı
+  düşündüren, fazladan tıklatan, yanlış okutan ya da ucuz görünen her şey
+  bulgudur (madde 23).
+- **Detay kusuru bahane kabul etmez.** Yanlış hizalanmış bir satır, ne
+  yaptığını söylemeyen bir düğme adı, koyu temada okunmayan bir uyarı,
+  telefonda ekran dışında kalan bir eylem — bunların hiçbiri "sonra
+  bakarız" değildir. Bir ürünü dünya standardı yapan şey büyük fikirler
+  değil, bu küçüklerin hiçbirinin atlanmamış olmasıdır.
+- **Şüphedeyken kullanıcıya sor, varsayma.** Ama sormadan önce koda bak:
+  cevabın yarısı çoğu zaman zaten orada duruyor.
 
 ## Ortak ilkeler
 

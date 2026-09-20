@@ -51,6 +51,10 @@ Paylaşımlı dosyalar: `messages/*.json` ve `app/(app)/**/page.tsx` — dokunma
 **Onaya gelenler:** şema değişikliği, migration, geri alınamaz veri işlemi,
 yeni özellik. Bir ajanın istemesi onay yerine geçmez.
 
+**UX kırmızı çizgidir.** `ux` son sözü söyler ama zor bir karar çıktığında
+ekip birlikte düşünür. Ölçüt `.claude/TEAM.md`'de yazılı: kullanıcının
+"bunu atlamışlar" diyebileceği tek bir yer bırakılmaz.
+
 ---
 
 ## Bu oturumda nereye geldik
