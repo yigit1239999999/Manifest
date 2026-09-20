@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Edit3 } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { getAppointmentById } from "@/modules/appointments/queries";
 import { cancelAppointmentAction } from "@/modules/appointments/actions";
@@ -16,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatDuration } from "@/lib/format";
 import { previewAppointmentMessages } from "@/modules/notifications/service";
 import { listMessagesForAppointment } from "@/modules/notifications/queries";
 import {
@@ -30,7 +31,7 @@ export default async function AppointmentPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
   const [appointment, t, tCommon, tType, tStatus, tKind, tMsgStatus, tLang, preview, log] =
@@ -53,7 +54,7 @@ export default async function AppointmentPage({
       <BackLink href="/appointments" label={tCommon("back")} />
       <PageHeader
         title={`${appointment.pet.name} · ${appointment.client.firstName} ${appointment.client.lastName}`}
-        description={formatDateTime(locale, appointment.startsAt)}
+        description={formatDateTime(fmt, appointment.startsAt)}
       >
         <Badge variant="secondary">{tType(appointment.type as never)}</Badge>
         <Badge variant="secondary">
@@ -80,10 +81,10 @@ export default async function AppointmentPage({
           <CardTitle>{tCommon("details")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-          <Row label={t("startsAt")} value={formatDateTime(locale, appointment.startsAt)} />
+          <Row label={t("startsAt")} value={formatDateTime(fmt, appointment.startsAt)} />
           <Row
             label={t("durationMinutes")}
-            value={`${appointment.durationMinutes} min`}
+            value={formatDuration(fmt, appointment.durationMinutes)}
           />
           <Row label={t("reason")} value={appointment.reason ?? "-"} />
           <Row label={t("vet")} value={appointment.vet?.name ?? "-"} />
@@ -138,7 +139,7 @@ export default async function AppointmentPage({
                     <span>
                       {tKind(m.kind)}
                       <span className="ml-2 text-xs text-muted-foreground">
-                        {formatDateTime(locale, m.createdAt)} · {m.language.toUpperCase()}
+                        {formatDateTime(fmt, m.createdAt)} · {m.language.toUpperCase()}
                       </span>
                     </span>
                     <Badge variant={m.status === "FAILED" ? "destructive" : "secondary"}>

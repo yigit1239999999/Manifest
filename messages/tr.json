@@ -123,8 +123,8 @@
     "preferredContact": "Tercih edilen iletişim",
     "preferredLanguage": "Tercih edilen dil",
     "preferredLanguageHint": "WhatsApp mesajları bu dilde gönderilir.",
-    "whatsappOptIn": "WhatsApp bildirimleri aktif",
-    "whatsappOptInHint": "Randevu onayı, hatırlatma ve aşı zamanı gibi mesajlar bu müşteriye gönderilir. Kapatıldığında otomatik mesaj gitmez.",
+    "whatsappOptIn": "Müşteri WhatsApp mesajlarına onay verdi",
+    "whatsappOptInHint": "Bu kutuyu yalnızca müşteri mesaj almayı kabul ettiyse işaretleyiniz. İşaretlenmediğinde bu müşteriye otomatik randevu onayı, hatırlatma veya aşı bildirimi gönderilmez.",
     "marketingOptIn": "Pazarlama iletişimine izin ver",
     "notes": "Notlar",
     "archivedTitle": "Arşivlendi",
@@ -299,7 +299,7 @@
     "notifications": {
       "title": "WhatsApp bildirimleri",
       "hint": "Randevu mesajları müşterinin tercih ettiği dilde ve klinik saat dilimine göre hazırlanır.",
-      "enabled": "WhatsApp bildirimleri açık",
+      "enabled": "Otomatik WhatsApp mesajları gönderilsin",
       "confirmOnBooking": "Randevu oluşturulduğunda onay mesajı gönder",
       "reminder": "Hatırlatma zamanı",
       "reminderOff": "Hatırlatma gönderme",
@@ -319,7 +319,8 @@
       "previewConfirmation": "Onay mesajı",
       "previewReminder": "Hatırlatma mesajı",
       "saved": "Bildirim ayarları kaydedildi.",
-      "save": "Kaydet"
+      "save": "Kaydet",
+      "enabledHint": "Zamanlanmış mesajları — randevu onayları ve hatırlatmaları — klinik genelinde açar veya kapatır. Randevu sayfasından elle tek tıkla gönderim her durumda çalışmaya devam eder."
     }
   },
   "vaccination": {
@@ -457,7 +458,9 @@
       "diagnostic": "Tanı testi",
       "note": "Not",
       "invoice": "Fatura"
-    }
+    },
+    "nextDue": "sonraki",
+    "emptyHint": "Bu hayvan için eklenen kayıtlar — vizitler, aşılar, tedaviler ve notlar — burada görünür."
   },
   "audit": {
     "title": "İşlem geçmişi",

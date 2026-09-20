@@ -117,20 +117,59 @@ export function intlLocale(locale: string): string {
   return locale === "tr" ? "tr-TR" : "en-US";
 }
 
+/**
+ * Where and in what language a value is being shown.
+ *
+ * Times are stored as instants, so a clinic's day only lines up with the
+ * clinic's own clock: never format one against the server's zone (Vercel
+ * runs on UTC) or a visitor's. Pass the context from `getFormatContext()`
+ * — a bare locale string still works and falls back to the runtime zone.
+ */
+export interface FormatContext {
+  locale: string;
+  timeZone?: string;
+}
+
+export type FormatTarget = string | FormatContext;
+
+function localeOf(target: FormatTarget): string {
+  return typeof target === "string" ? target : target.locale;
+}
+
+function zoneOf(target: FormatTarget): string | undefined {
+  return typeof target === "string" ? undefined : target.timeZone;
+}
+
+function dateFormat(
+  target: FormatTarget,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(intlLocale(localeOf(target)), {
+    ...options,
+    timeZone: zoneOf(target),
+  });
+}
+
 const EMPTY = "-";
 
-export function formatDate(locale: string, date: Date | null | undefined): string {
+export function formatDate(
+  target: FormatTarget,
+  date: Date | null | undefined,
+): string {
   if (!date) return EMPTY;
-  return new Intl.DateTimeFormat(intlLocale(locale), {
+  return dateFormat(target, {
     year: "numeric",
     month: "short",
     day: "numeric",
   }).format(date);
 }
 
-export function formatDateTime(locale: string, date: Date | null | undefined): string {
+export function formatDateTime(
+  target: FormatTarget,
+  date: Date | null | undefined,
+): string {
   if (!date) return EMPTY;
-  return new Intl.DateTimeFormat(intlLocale(locale), {
+  return dateFormat(target, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -139,12 +178,50 @@ export function formatDateTime(locale: string, date: Date | null | undefined): s
   }).format(date);
 }
 
-export function formatTime(locale: string, date: Date | null | undefined): string {
+export function formatTime(
+  target: FormatTarget,
+  date: Date | null | undefined,
+): string {
   if (!date) return EMPTY;
-  return new Intl.DateTimeFormat(intlLocale(locale), {
-    hour: "numeric",
-    minute: "2-digit",
+  return dateFormat(target, { hour: "numeric", minute: "2-digit" }).format(date);
+}
+
+/** Weekday and day, e.g. "Wednesday, 23 September" — for day headings. */
+export function formatDayHeading(
+  target: FormatTarget,
+  date: Date | null | undefined,
+): string {
+  if (!date) return EMPTY;
+  return dateFormat(target, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   }).format(date);
+}
+
+/**
+ * "YYYY-MM-DD" for the calendar day an instant falls on in `timeZone`.
+ * Grouping by the UTC day would put a 01:30 appointment in Istanbul on the
+ * previous day.
+ */
+export function dayKey(date: Date, timeZone?: string): string {
+  // en-CA gives ISO-shaped output for free.
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone,
+  }).format(date);
+}
+
+/** "30 min" / "30 dk" — the unit follows the locale, not the source. */
+export function formatDuration(
+  target: FormatTarget,
+  minutes: number | null | undefined,
+): string {
+  if (minutes == null) return EMPTY;
+  return localeOf(target) === "tr" ? `${minutes} dk` : `${minutes} min`;
 }
 
 export function toDateInput(date: Date | null | undefined): string {
@@ -167,9 +244,12 @@ const AGE_COPY = {
   en: { underMonth: "Under 1 month", months: (n: number) => `${n} mo`, years: (n: number) => `${n} yr` },
 } as const;
 
-export function petAge(locale: string, birthDate: Date | null | undefined): string | null {
+export function petAge(
+  target: FormatTarget,
+  birthDate: Date | null | undefined,
+): string | null {
   if (!birthDate) return null;
-  const copy = locale === "tr" ? AGE_COPY.tr : AGE_COPY.en;
+  const copy = localeOf(target) === "tr" ? AGE_COPY.tr : AGE_COPY.en;
   const now = new Date();
   let months =
     (now.getFullYear() - birthDate.getFullYear()) * 12 +
@@ -181,20 +261,25 @@ export function petAge(locale: string, birthDate: Date | null | undefined): stri
   return copy.years(Math.floor(months / 12));
 }
 
-export function relativeTime(locale: string, date: Date | null | undefined): string {
+export function relativeTime(
+  target: FormatTarget,
+  date: Date | null | undefined,
+): string {
   if (!date) return EMPTY;
   const diffMs = date.getTime() - Date.now();
   const absSec = Math.round(Math.abs(diffMs) / 1000);
   const inFuture = diffMs > 0;
 
+  // Each divisor is paired with the unit it produces: dividing seconds by 60
+  // gives minutes. Pairing it with the unit it consumed is what made "2 days
+  // from now" read as "in 2 hours".
   const units: [number, Intl.RelativeTimeFormatUnit][] = [
-    [60, "second"],
     [60, "minute"],
-    [24, "hour"],
-    [7, "day"],
-    [4.3452, "week"],
-    [12, "month"],
-    [Number.POSITIVE_INFINITY, "year"],
+    [60, "hour"],
+    [24, "day"],
+    [7, "week"],
+    [4.3452, "month"],
+    [12, "year"],
   ];
 
   let value = absSec;
@@ -204,19 +289,18 @@ export function relativeTime(locale: string, date: Date | null | undefined): str
     value = value / divisor;
     unit = nextUnit;
   }
-  return new Intl.RelativeTimeFormat(intlLocale(locale), { numeric: "auto" }).format(
-    (inFuture ? 1 : -1) * Math.round(value),
-    unit,
-  );
+  return new Intl.RelativeTimeFormat(intlLocale(localeOf(target)), {
+    numeric: "auto",
+  }).format((inFuture ? 1 : -1) * Math.round(value), unit);
 }
 
 export function formatMoney(
-  locale: string,
+  target: FormatTarget,
   cents: number | null | undefined,
   currency = "USD",
 ): string {
   const amount = (cents ?? 0) / 100;
-  return new Intl.NumberFormat(intlLocale(locale), {
+  return new Intl.NumberFormat(intlLocale(localeOf(target)), {
     style: "currency",
     currency,
     minimumFractionDigits: 2,

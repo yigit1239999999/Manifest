@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Receipt } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { listInvoicesPage } from "@/modules/invoices/queries";
 import { INVOICE_STATUSES } from "@/modules/invoices/schema";
@@ -18,7 +19,7 @@ export default async function InvoicesPage({
 }: {
   searchParams: Promise<{ page?: string; status?: string }>;
 }) {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const session = await requireSession();
   const { page: pageParam, status } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
@@ -95,10 +96,10 @@ export default async function InvoicesPage({
                       {inv.client.firstName} {inv.client.lastName}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {formatDate(locale, inv.issuedAt)}
+                      {formatDate(fmt, inv.issuedAt)}
                     </td>
                     <td className="px-4 py-3 text-right font-medium">
-                      {formatMoney(locale, inv.totalCents, currency)}
+                      {formatMoney(fmt, inv.totalCents, currency)}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant="secondary">

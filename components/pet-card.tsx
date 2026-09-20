@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { SpeciesIcon } from "@/components/species-icon";
 import { petAge } from "@/lib/format";
 
@@ -15,9 +16,9 @@ export async function PetCard({
     birthDate: Date | null;
   };
 }) {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const t = await getTranslations("enum.species");
-  const age = petAge(locale, pet.birthDate);
+  const age = petAge(fmt, pet.birthDate);
   const meta = [
     pet.customSpecies?.name ?? t(pet.species as never),
     pet.breed,

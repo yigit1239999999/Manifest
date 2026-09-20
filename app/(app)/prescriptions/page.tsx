@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Pill } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { activePrescriptions } from "@/modules/prescriptions/queries";
 import { PageHeader } from "@/components/page-header";
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
 
 export default async function PrescriptionsPage() {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const session = await requireSession();
   const [t, tStatus, prescriptions] = await Promise.all([
     getTranslations("prescription"),
@@ -51,7 +52,7 @@ export default async function PrescriptionsPage() {
                     {p.dosage} · {p.frequency}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {formatDate(locale, p.startedAt)}
+                    {formatDate(fmt, p.startedAt)}
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant="secondary">

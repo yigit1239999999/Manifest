@@ -44,7 +44,10 @@ export function NotificationSettingsForm({ action, settings, timezone }: Props) 
           defaultChecked={settings.whatsapp.enabled}
           className="mt-0.5 size-4 rounded border-border"
         />
-        <span className="font-medium text-foreground">{t("enabled")}</span>
+        <span className="flex flex-col gap-1">
+          <span className="font-medium text-foreground">{t("enabled")}</span>
+          <span className="text-xs text-muted-foreground">{t("enabledHint")}</span>
+        </span>
       </label>
       <label className="flex items-start gap-3 text-sm">
         <input

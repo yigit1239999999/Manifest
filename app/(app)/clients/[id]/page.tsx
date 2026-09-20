@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Edit3, Plus } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { getClientById } from "@/modules/clients/queries";
 import { clientTimeline } from "@/modules/timeline/queries";
@@ -28,7 +29,7 @@ export default async function ClientPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
 
@@ -69,7 +70,7 @@ export default async function ClientPage({
 
       {client.archivedAt && (
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
-          {t("archivedTitle")}: {formatDate(locale, client.archivedAt)}
+          {t("archivedTitle")}: {formatDate(fmt, client.archivedAt)}
         </p>
       )}
 
@@ -127,11 +128,11 @@ export default async function ClientPage({
             <CardContent className="grid gap-2 text-sm sm:grid-cols-3">
               <Detail
                 label={tCommon("createdAt")}
-                value={formatDate(locale, client.createdAt)}
+                value={formatDate(fmt, client.createdAt)}
               />
               <Detail
                 label={tCommon("updatedAt")}
-                value={formatDate(locale, client.updatedAt)}
+                value={formatDate(fmt, client.updatedAt)}
               />
               <div className="flex flex-col gap-1">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">

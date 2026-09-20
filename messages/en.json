@@ -123,8 +123,8 @@
     "preferredContact": "Preferred contact",
     "preferredLanguage": "Preferred language",
     "preferredLanguageHint": "WhatsApp messages are sent in this language.",
-    "whatsappOptIn": "WhatsApp notifications enabled",
-    "whatsappOptInHint": "Appointment confirmations, reminders and due notices are sent to this client. When off, no automatic messages are sent.",
+    "whatsappOptIn": "The client consented to WhatsApp messages",
+    "whatsappOptInHint": "Tick this only if the client has agreed to receive messages. Left unticked, no automatic appointment confirmation, reminder or vaccination notice is sent to them.",
     "marketingOptIn": "Allow marketing communications",
     "notes": "Notes",
     "archivedTitle": "Archived",
@@ -299,7 +299,7 @@
     "notifications": {
       "title": "WhatsApp notifications",
       "hint": "Appointment messages are written in the client's preferred language, in the clinic's timezone.",
-      "enabled": "WhatsApp notifications enabled",
+      "enabled": "Send automatic WhatsApp messages",
       "confirmOnBooking": "Send a confirmation when an appointment is created",
       "reminder": "Reminder timing",
       "reminderOff": "Do not send reminders",
@@ -319,7 +319,8 @@
       "previewConfirmation": "Confirmation",
       "previewReminder": "Reminder",
       "saved": "Notification settings saved.",
-      "save": "Save"
+      "save": "Save",
+      "enabledHint": "Turns the scheduled messages — booking confirmations and reminders — on and off for the whole clinic. Sending a message by hand from an appointment page keeps working either way."
     }
   },
   "vaccination": {
@@ -457,7 +458,9 @@
       "diagnostic": "Diagnostic",
       "note": "Note",
       "invoice": "Invoice"
-    }
+    },
+    "nextDue": "next",
+    "emptyHint": "Records added for this pet — visits, vaccinations, treatments and notes — appear here."
   },
   "audit": {
     "title": "Audit log",

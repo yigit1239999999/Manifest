@@ -6,7 +6,8 @@ import {
   Plus,
   Stethoscope,
 } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { getPetById } from "@/modules/pets/queries";
 import { petTimeline } from "@/modules/timeline/queries";
@@ -42,7 +43,7 @@ export default async function PetPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
   const clinicId = session.user.clinicId;
@@ -103,7 +104,7 @@ export default async function PetPage({
         title={pet.name}
         description={`${pet.customSpecies?.name ?? tSpecies(pet.species as never)}${
           pet.breed ? ` · ${pet.breed}` : ""
-        } · ${tSex(pet.sex as never)} · ${petAge(locale, pet.birthDate) ?? "-"}`}
+        } · ${tSex(pet.sex as never)} · ${petAge(fmt, pet.birthDate) ?? "-"}`}
       >
         <Link
           href={`/visits/new?petId=${pet.id}`}
@@ -135,7 +136,7 @@ export default async function PetPage({
 
       {pet.deceased && (
         <p className="rounded-lg border border-muted-foreground/30 bg-muted px-3 py-2 text-sm">
-          {t("deceased")}: {formatDate(locale, pet.deceasedAt)}
+          {t("deceased")}: {formatDate(fmt, pet.deceasedAt)}
         </p>
       )}
 
@@ -163,7 +164,7 @@ export default async function PetPage({
             />
             <Detail label={t("breed")} value={pet.breed || "-"} />
             <Detail label={t("color")} value={pet.color || "-"} />
-            <Detail label={t("birthDate")} value={formatDate(locale, pet.birthDate)} />
+            <Detail label={t("birthDate")} value={formatDate(fmt, pet.birthDate)} />
             <Detail
               label={t("weightKg")}
               value={pet.weightKg != null ? `${pet.weightKg} kg` : "-"}
@@ -209,8 +210,8 @@ export default async function PetPage({
                       <div>
                         <p className="font-medium">{v.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDateTime(locale, v.administeredAt)}
-                          {v.nextDueAt && ` · → ${formatDate(locale, v.nextDueAt)}`}
+                          {formatDateTime(fmt, v.administeredAt)}
+                          {v.nextDueAt && ` · → ${formatDate(fmt, v.nextDueAt)}`}
                         </p>
                       </div>
                     </li>
@@ -290,7 +291,7 @@ export default async function PetPage({
                       <div className="min-w-0">
                         <p className="font-medium">{tr.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDateTime(locale, tr.performedAt)}
+                          {formatDateTime(fmt, tr.performedAt)}
                           {tr.performedBy?.name && ` · ${tr.performedBy.name}`}
                           {tr.durationMinutes != null && ` · ${tr.durationMinutes} dk`}
                         </p>
@@ -340,7 +341,7 @@ export default async function PetPage({
                         <div className="min-w-0">
                           <p className="font-medium">{d.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {formatDateTime(locale, d.performedAt)}
+                            {formatDateTime(fmt, d.performedAt)}
                           </p>
                         </div>
                         <Badge variant={d.result ? "secondary" : "outline"}>

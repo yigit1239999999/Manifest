@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PawPrint, Plus } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { listPetsPage } from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
@@ -16,7 +17,7 @@ export default async function PetsPage({
 }: {
   searchParams: Promise<{ q?: string; page?: string; species?: string }>;
 }) {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const session = await requireSession();
   const { q, page: pageParam, species } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
@@ -55,7 +56,7 @@ export default async function PetsPage({
               const meta = [
                 pet.customSpecies?.name ?? tSpecies(pet.species as never),
                 pet.breed,
-                petAge(locale, pet.birthDate),
+                petAge(fmt, pet.birthDate),
               ].filter(Boolean);
               return (
                 <Link

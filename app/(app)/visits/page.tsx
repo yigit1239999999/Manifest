@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Stethoscope } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { listVisitsPage } from "@/modules/visits/queries";
 import { VISIT_TYPES } from "@/modules/appointments/schema";
@@ -17,7 +18,7 @@ export default async function VisitsPage({
 }: {
   searchParams: Promise<{ page?: string; type?: string }>;
 }) {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const session = await requireSession();
   const { page: pageParam, type } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
@@ -83,7 +84,7 @@ export default async function VisitsPage({
                         href={`/visits/${v.id}`}
                         className="hover:underline"
                       >
-                        {formatDateTime(locale, v.visitedAt)}
+                        {formatDateTime(fmt, v.visitedAt)}
                       </Link>
                     </td>
                     <td className="px-4 py-3">

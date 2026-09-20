@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Edit3, Plus } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { getVisitById } from "@/modules/visits/queries";
 import { archiveVisitAction } from "@/modules/visits/actions";
@@ -31,7 +32,7 @@ export default async function VisitPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
   const clinicId = session.user.clinicId;
@@ -66,7 +67,7 @@ export default async function VisitPage({
 
       <PageHeader
         title={visit.chiefComplaint ?? tType(visit.type as never)}
-        description={`${formatDateTime(locale, visit.visitedAt)} · ${visit.pet.name} · ${visit.client.firstName} ${visit.client.lastName}`}
+        description={`${formatDateTime(fmt, visit.visitedAt)} · ${visit.pet.name} · ${visit.client.firstName} ${visit.client.lastName}`}
       >
         <Badge variant="secondary">{tType(visit.type as never)}</Badge>
         <Link
@@ -119,13 +120,13 @@ export default async function VisitPage({
             />
             <Row
               label={t("followupAt")}
-              value={visit.followupAt ? formatDateTime(locale, visit.followupAt) : "-"}
+              value={visit.followupAt ? formatDateTime(fmt, visit.followupAt) : "-"}
             />
             <Row
               label={t("totalCost")}
               value={
                 visit.totalCents != null
-                  ? formatMoney(locale, visit.totalCents, currency)
+                  ? formatMoney(fmt, visit.totalCents, currency)
                   : "-"
               }
             />
@@ -149,7 +150,7 @@ export default async function VisitPage({
                   {v.nextDueAt && (
                     <span className="text-muted-foreground">
                       {" "}
-                      · → {formatDateTime(locale, v.nextDueAt)}
+                      · → {formatDateTime(fmt, v.nextDueAt)}
                     </span>
                   )}
                 </li>

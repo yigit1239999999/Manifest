@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { getInvoiceById } from "@/modules/invoices/queries";
 import { voidInvoiceAction } from "@/modules/invoices/actions";
@@ -22,7 +23,7 @@ export default async function InvoicePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const locale = await getLocale();
+  const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
   const [invoice, t, tCommon, tStatus, tMethod, currency] = await Promise.all([
@@ -77,10 +78,10 @@ export default async function InvoicePage({
                     <td className="py-2">{l.description}</td>
                     <td className="py-2 text-right">{l.quantity}</td>
                     <td className="py-2 text-right">
-                      {formatMoney(locale, l.unitPriceCents, currency)}
+                      {formatMoney(fmt, l.unitPriceCents, currency)}
                     </td>
                     <td className="py-2 text-right">
-                      {formatMoney(locale, l.totalCents, currency)}
+                      {formatMoney(fmt, l.totalCents, currency)}
                     </td>
                   </tr>
                 ))}
@@ -91,7 +92,7 @@ export default async function InvoicePage({
                     {t("subtotal")}
                   </td>
                   <td className="py-2 text-right">
-                    {formatMoney(locale, invoice.subtotalCents, currency)}
+                    {formatMoney(fmt, invoice.subtotalCents, currency)}
                   </td>
                 </tr>
                 <tr>
@@ -99,7 +100,7 @@ export default async function InvoicePage({
                     {t("tax")}
                   </td>
                   <td className="py-2 text-right">
-                    {formatMoney(locale, invoice.taxCents, currency)}
+                    {formatMoney(fmt, invoice.taxCents, currency)}
                   </td>
                 </tr>
                 <tr>
@@ -107,7 +108,7 @@ export default async function InvoicePage({
                     {t("total")}
                   </td>
                   <td className="py-2 text-right font-semibold">
-                    {formatMoney(locale, invoice.totalCents, currency)}
+                    {formatMoney(fmt, invoice.totalCents, currency)}
                   </td>
                 </tr>
               </tfoot>
@@ -127,11 +128,11 @@ export default async function InvoicePage({
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-semibold">
-                {formatMoney(locale, Math.max(0, remaining), currency)}
+                {formatMoney(fmt, Math.max(0, remaining), currency)}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {t("paidAt")}: {formatMoney(locale, paidSoFar, currency)} /{" "}
-                {formatMoney(locale, invoice.totalCents, currency)}
+                {t("paidAt")}: {formatMoney(fmt, paidSoFar, currency)} /{" "}
+                {formatMoney(fmt, invoice.totalCents, currency)}
               </p>
             </CardContent>
           </Card>
@@ -160,10 +161,10 @@ export default async function InvoicePage({
                   {invoice.payments.map((p) => (
                     <li key={p.id} className="flex justify-between">
                       <span>
-                        {formatDateTime(locale, p.paidAt)} · {tMethod(p.method as never)}
+                        {formatDateTime(fmt, p.paidAt)} · {tMethod(p.method as never)}
                       </span>
                       <span className="font-medium">
-                        {formatMoney(locale, p.amountCents, currency)}
+                        {formatMoney(fmt, p.amountCents, currency)}
                       </span>
                     </li>
                   ))}

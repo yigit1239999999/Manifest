@@ -156,15 +156,17 @@ export function ClientForm({ client }: Props) {
         title={t("sections.preferences")}
         description={t("sections.preferencesHint")}
       >
-        <label className="flex items-start gap-3 text-sm">
+        {/* Consent is a record of something the client said, so the box
+            starts empty and the copy says what ticking it means. */}
+        <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/20 p-3 text-sm">
           <input
             type="checkbox"
             name="whatsappOptIn"
-            defaultChecked={client?.whatsappOptIn ?? true}
+            defaultChecked={client?.whatsappOptIn ?? false}
             className="mt-0.5 size-4 rounded border-border"
           />
-          <span className="flex flex-col">
-            <span className="text-foreground">{t("whatsappOptIn")}</span>
+          <span className="flex flex-col gap-1">
+            <span className="font-medium text-foreground">{t("whatsappOptIn")}</span>
             <span className="text-xs text-muted-foreground">{t("whatsappOptInHint")}</span>
           </span>
         </label>
