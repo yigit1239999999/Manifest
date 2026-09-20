@@ -117,7 +117,7 @@ export default async function PetPage({
           className={buttonVariants({ variant: "secondary" })}
         >
           <Stethoscope />
-          {t("tabs.visits")}
+          {(await getTranslations("visit"))("new")}
         </Link>
         <Link
           href={`/appointments/new?petId=${pet.id}`}

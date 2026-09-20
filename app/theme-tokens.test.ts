@@ -237,32 +237,60 @@ export function composite(fg: string, bg: string, alpha: number): string {
     .join("")}`;
 }
 
-describe("warning callouts are readable in both themes", () => {
+describe("status colours are readable in both themes", () => {
   const { light, dark } = readThemePalettes(css);
 
-  // Every surface a callout is placed on today.
+  // Every surface one of these tinted boxes is placed on today.
   const surfaces = ["--card", "--bg", "--muted"] as const;
+
+  // Roles used as `text-<role>` over `bg-<role>/10`.
+  const tintedRoles = ["--warning", "--destructive"] as const;
 
   for (const [themeName, palette] of [
     ["light", light],
     ["dark", dark],
   ] as const) {
-    for (const surface of surfaces) {
-      it(`--warning text clears WCAG AA on ${surface} in ${themeName}`, () => {
-        const role = palette.get("--warning")!;
-        const behind = palette.get(surface)!;
-        const ratio = contrastRatio(role, composite(role, behind, 0.1));
-        expect(ratio, `${role} on ${surface} (${behind})`).toBeGreaterThanOrEqual(4.5);
-      });
+    for (const role of tintedRoles) {
+      for (const surface of surfaces) {
+        it(`${role} text clears WCAG AA on ${surface} in ${themeName}`, () => {
+          const colour = palette.get(role)!;
+          const behind = palette.get(surface)!;
+          const ratio = contrastRatio(colour, composite(colour, behind, 0.1));
+          expect(
+            ratio,
+            `${role} ${colour} on ${surface} ${behind}`,
+          ).toBeGreaterThanOrEqual(4.5);
+        });
+      }
     }
+
+    it(`--destructive-fg clears WCAG AA on solid --destructive in ${themeName}`, () => {
+      // The other way this role is used: a filled button. Darkening the role
+      // for the tinted case must not break the solid case, so both are pinned.
+      const ratio = contrastRatio(
+        palette.get("--destructive-fg")!,
+        palette.get("--destructive")!,
+      );
+      expect(ratio).toBeGreaterThanOrEqual(4.5);
+    });
   }
 
-  it("scores the known-bad colour as failing, so the bar is real", () => {
-    // The exact colour that shipped, on the exact surface it shipped against.
-    const amber700 = "#b45309";
+  it("scores the known-bad colours as failing, so the bar is real", () => {
+    // A test that cannot fail proves nothing. These are the exact colours that
+    // shipped, measured against the exact surfaces they shipped against.
     const darkCard = dark.get("--card")!;
+    const lightMuted = light.get("--muted")!;
+
+    const amber700 = "#b45309";
     expect(
       contrastRatio(amber700, composite(amber700, darkCard, 0.1)),
+      "text-amber-700 on a dark card",
+    ).toBeLessThan(4.5);
+
+    const oldDestructive = "#c24a3f";
+    expect(
+      contrastRatio(oldDestructive, composite(oldDestructive, lightMuted, 0.1)),
+      "the previous --destructive on a light muted surface",
     ).toBeLessThan(4.5);
   });
 });

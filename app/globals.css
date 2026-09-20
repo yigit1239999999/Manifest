@@ -44,7 +44,7 @@
   --accent: #e6f3f0;
   --accent-fg: #0b5d54;
   --ring: #0f7a6e;
-  --destructive: #c24a3f;
+  --destructive: #9e3328;
   --destructive-fg: #ffffff;
   --warning: #7f4d0e;
 }
@@ -64,7 +64,7 @@
   --accent: #173730;
   --accent-fg: #b6e3d6;
   --ring: #34c0a8;
-  --destructive: #e6675a;
+  --destructive: #ec7a6c;
   --destructive-fg: #1f0a08;
   --warning: #eab45f;
 }
@@ -87,7 +87,7 @@
     --accent: #173730;
     --accent-fg: #b6e3d6;
     --ring: #34c0a8;
-    --destructive: #e6675a;
+    --destructive: #ec7a6c;
     --destructive-fg: #1f0a08;
     --warning: #eab45f;
   }
