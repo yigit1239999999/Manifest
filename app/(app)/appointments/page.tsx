@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarClock, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { telHref } from "@/lib/phone";
 import { can } from "@/lib/permissions";
 import { listAppointmentsPage } from "@/modules/appointments/queries";
 import { APPOINTMENT_STATUSES } from "@/modules/appointments/schema";
@@ -220,11 +221,20 @@ export default async function AppointmentsPage({
                         essentials ride along in this cell. */}
                     <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground sm:hidden">
                       <span>{tType(a.type as never)}</span>
-                      {a.client.phone && (
-                        <a href={`tel:${a.client.phone}`} className="hover:underline">
-                          {a.client.phone}
-                        </a>
-                      )}
+                      {a.client.phone &&
+                        (telHref(a.client.phone) ? (
+                          <a
+                            href={telHref(a.client.phone) ?? undefined}
+                            className="hover:underline"
+                          >
+                            {a.client.phone}
+                          </a>
+                        ) : (
+                          // Not dialable, so not a link: something that
+                          // looks tappable and does nothing is worse than
+                          // plain text.
+                          <span>{a.client.phone}</span>
+                        ))}
                     </div>
                   </>
                 ),
@@ -259,17 +269,23 @@ export default async function AppointmentsPage({
                 key: "phone",
                 header: t("phone"),
                 hideBelow: "md",
-                cell: (a) =>
-                  a.client.phone ? (
+                cell: (a) => {
+                  const dial = telHref(a.client.phone);
+                  if (!a.client.phone)
+                    return <span className="text-muted-foreground">-</span>;
+                  return dial ? (
                     <a
-                      href={`tel:${a.client.phone}`}
+                      href={dial}
                       className="text-muted-foreground hover:underline"
                     >
                       {a.client.phone}
                     </a>
                   ) : (
-                    <span className="text-muted-foreground">-</span>
-                  ),
+                    <span className="text-muted-foreground">
+                      {a.client.phone}
+                    </span>
+                  );
+                },
               },
             ]}
           />

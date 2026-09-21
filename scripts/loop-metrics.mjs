@@ -21,6 +21,19 @@ const q = async (label, sql) => {
 
 await client.connect();
 
+// Every timestamp column in this schema is `timestamp without time zone`
+// holding a UTC instant, which is what Prisma writes. Comparing one of
+// those against `now()` — a `timestamptz` — makes Postgres read the naive
+// value in the *session* time zone, so the same query answers differently
+// depending on where it is run from. Three hours of drift is enough to put
+// a record in the wrong bucket on a boundary day, and nothing about the
+// output would look wrong.
+//
+// Pinning the session removes the class rather than the instance. It was
+// found because ux almost filed "reminders go out a day early" from a
+// script with this exact shape; the reminders were fine.
+await client.query("SET TIME ZONE 'UTC'");
+
 await q(
   "VOLUME",
   `SELECT (SELECT count(*) FROM clinics) clinics,
@@ -95,7 +108,12 @@ await optional(
 // R4a-1'in kesim tarihi: 7f64494, "Make the next vaccination date the second
 // question, and say what it does". Alanın formdaki yeri, sonuç satırı ve
 // öneri çipi o commit'le indi.
-const R4A1_CUTOFF = "2026-09-21T09:02:50Z";
+// Written without a zone suffix on purpose: the column is naive, so a
+// trailing "Z" is dropped rather than honoured, and reading it as if it
+// meant something would be the kind of decoration that becomes a wrong
+// answer the day the session is not UTC. With the session pinned above,
+// this is the UTC instant it looks like.
+const R4A1_CUTOFF = "2026-09-21 09:02:50";
 
 // Aynı oran, ama yalnızca kesimden SONRA oluşturulan kayıtlarda — ve
 // yanında kesimden önceki, artık donmuş küme.

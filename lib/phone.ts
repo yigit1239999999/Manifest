@@ -82,3 +82,28 @@ export function normalizePhone(
   if (international.length > MAX_E164_DIGITS) return null;
   return international;
 }
+
+/**
+ * A `tel:` target a phone actually dials, or null when the text cannot be
+ * dialled at all.
+ *
+ *   "0532 111 11 11" (TR clinic) → "tel:+905321111111"
+ *   "sabit hat yok"              → null
+ *
+ * The screens were writing `tel:${client.phone}` with the number exactly as
+ * someone typed it. Dialling that is a gamble: spaces and parentheses are
+ * tolerated by most handsets, a leading 0 is not international, and on a
+ * desktop the link simply fails. The number that reaches a gateway has gone
+ * through `normalizePhone` since backlog 6; the number behind a link had
+ * not, so the two disagreed about the same field.
+ *
+ * Returns null rather than a broken link, so a call site can render plain
+ * text instead of something that looks tappable and is not.
+ */
+export function telHref(
+  raw: string | null | undefined,
+  defaultCallingCode: string = DEFAULT_CALLING_CODE,
+): string | null {
+  const digits = normalizePhone(raw, defaultCallingCode);
+  return digits ? `tel:+${digits}` : null;
+}

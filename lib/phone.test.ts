@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPossiblePhoneText, normalizePhone } from "./phone";
+import { isPossiblePhoneText, normalizePhone, telHref } from "./phone";
 
 describe("normalizePhone", () => {
   it("turns Turkish local formats into international digits", () => {
@@ -48,5 +48,28 @@ describe("isPossiblePhoneText", () => {
     expect(isPossiblePhoneText("no landline")).toBe(false);
     expect(isPossiblePhoneText("532")).toBe(false);
     expect(isPossiblePhoneText("0532 123 45 67 +90")).toBe(false);
+  });
+});
+
+describe("telHref", () => {
+  // The number a gateway dials has gone through `normalizePhone` since
+  // backlog 6. The number behind a `tel:` link had not: the screens wrote
+  // it exactly as someone typed it, so the same field was international in
+  // one place and a local string with spaces in the other.
+  it("dials the same number the gateway would", () => {
+    expect(telHref("0532 111 11 11")).toBe("tel:+905321111111");
+    expect(normalizePhone("0532 111 11 11")).toBe("905321111111");
+  });
+
+  it("keeps an already-international number as written", () => {
+    expect(telHref("+90 (532) 123 45 67")).toBe("tel:+905321234567");
+  });
+
+  it("gives nothing back for text that cannot be dialled", () => {
+    // So the call site can render plain text. A link that looks tappable
+    // and does nothing is worse than no link.
+    expect(telHref("sabit hat yok")).toBeNull();
+    expect(telHref(null)).toBeNull();
+    expect(telHref("")).toBeNull();
   });
 });
