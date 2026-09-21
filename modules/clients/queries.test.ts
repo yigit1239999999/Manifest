@@ -5,7 +5,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { listClients, quickSearchClients } from "./queries";
+import { listClients, listClientsPage, quickSearchClients } from "./queries";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -48,6 +48,42 @@ describe("listClients, the picker's list", () => {
     const { hasMore } = await listClients({ clinicId: "clinic-1", take: 2 });
 
     expect(hasMore).toBe(false);
+  });
+});
+
+// Eleven people called Ayşe are told apart by their animals, not by
+// their surnames.
+describe("the animals on a client row", () => {
+  const includeOf = () =>
+    vi.mocked(prisma.client.findMany).mock.calls[0][0]?.include as {
+      _count?: { select?: { pets?: { where?: unknown } } };
+      pets?: { where?: unknown; take?: number; orderBy?: unknown };
+    };
+
+  beforeEach(() => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.client.count).mockResolvedValue(0 as never);
+  });
+
+  it("names them from the same set it counts", async () => {
+    // Two names from one set and "+N" from another is a row that
+    // disagrees with itself. A deceased animal is counted on purpose:
+    // somebody phoning about a record they remember is who this is for.
+    await listClientsPage({ clinicId: "clinic-1" });
+
+    expect(includeOf().pets?.where).toEqual(includeOf()._count?.select?.pets?.where);
+    expect(includeOf().pets?.take).toBe(2);
+  });
+
+  it("asks for them in a fixed order, so the row cannot change under the vet", async () => {
+    // An unordered `take: 2` returns whichever two rows the database
+    // finds convenient, and that can differ between requests: "Pamuk,
+    // Duman" on one load and "Duman, Tekir" on the next. In a field
+    // used for recognition, a row that contradicts itself is worse
+    // than one that is merely terse.
+    await listClientsPage({ clinicId: "clinic-1" });
+
+    expect(includeOf().pets?.orderBy).toEqual({ name: "asc" });
   });
 });
 
