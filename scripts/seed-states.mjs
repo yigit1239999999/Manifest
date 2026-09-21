@@ -143,6 +143,32 @@ export const STATES = [
     covers: "the longest Turkish text a row can hold",
   },
 
+  // The sweep had nothing it could send, in any clinic, so "0 sent" was
+  // the only answer it could give and nobody could tell that apart from
+  // a sweep that did not work. These three exist to be sent, and the
+  // fourth exists to be left alone beside them.
+  //
+  // Note what one sweep does to them: a sent message blocks the next
+  // attempt (`automaticSendBlocked`) and a sent reminder becomes SENT.
+  // So they are single-use, and the second run reports `alreadySent`
+  // rather than `sent` -- which is correct behaviour and also a state
+  // worth seeing. Reseed to get them back.
+  {
+    id: "notification.appointment.sendable",
+    covers:
+      "an appointment the sweep can actually send a reminder for: consented owner, living animal, still open, and inside the reminder window",
+  },
+  {
+    id: "notification.appointment.optedOut",
+    covers:
+      "the same appointment in every respect except consent: whether a screen can tell 'nothing was due' apart from 'the owner said no'",
+  },
+  {
+    id: "notification.reminder.sendable",
+    covers:
+      "a reminder whose notice is due: the record the vet writes, turned into a message that leaves",
+  },
+
   // The loop's four resting places.
   { id: "reminder.pending", covers: "a reminder waiting to go" },
   { id: "reminder.sent", covers: "one sent, the animal not yet back" },
@@ -331,6 +357,15 @@ export async function buildStateClinic(db) {
     // nobody made, which is the same distinction the null consent row
     // above is here to hold.
     //
+    // Messaging is ON here, and this is the only clinic where it is on
+    // on purpose (two pm test clinics have it on as well, from someone
+    // switching it on by hand). The sweep skips a clinic whose
+    // `whatsapp.enabled` is false before it looks at a single
+    // appointment, so with this off the fixtures below would be rows
+    // the sweep never reaches -- states that exist in the table and not
+    // in the behaviour, which is the failure this clinic is here to
+    // prevent.
+    //
     // `hoursBefore: 24` rather than the default `morningOf`: the mode
     // decides at what hour of the clinic's day a reminder becomes due,
     // so `morningOf` makes whether a fixture is sendable depend on what
@@ -340,6 +375,15 @@ export async function buildStateClinic(db) {
     [
       STATE_CLINIC_NAME,
       JSON.stringify({
+        notifications: {
+          channel: "SMS",
+          whatsapp: {
+            enabled: true,
+            confirmOnBooking: true,
+            reminder: { mode: "hoursBefore", hoursBefore: 24, morningHour: 9 },
+            reminders: { enabled: true, daysBefore: 3 },
+          },
+        },
         enabledSpecies: [
           "DOG",
           "CAT",
@@ -400,7 +444,7 @@ export async function buildStateClinic(db) {
 
   const client = await owner("consented", "Hâl", "Sahibi", "0532 000 00 00", true);
   made("client.consent.granted");
-  await owner("declined", "Reddeden", "Sahip", "0532 000 00 01", false);
+  const declined = await owner("declined", "Reddeden", "Sahip", "0532 000 00 01", false);
   made("client.consent.declined");
   // `null` and not "leave it out": the column has no default any more
   // (20260921180000), so an omitted value would also be null -- writing
@@ -700,6 +744,57 @@ export async function buildStateClinic(db) {
     );
     made(id);
   }
+
+  // What the sweep can actually pick up, and the row beside it that it
+  // must not. Every other appointment in this clinic fails one of the
+  // sweep's rules -- the two that are still open are two and three days
+  // out, which is outside the reminder window -- so before these the
+  // sweep had nothing to send anywhere in the database, and "0 sent"
+  // was the only answer it was capable of giving.
+  //
+  // Twelve hours out against the clinic's `hoursBefore: 24`: inside the
+  // window from both ends, rather than at an edge where an hour between
+  // seeding and sweeping decides the answer.
+  const sendableAt = ahead(0.5);
+
+  // The refusing owner needs an animal of their own. Everything else in
+  // this clinic hangs off the consenting owner, and hanging the
+  // counter-example off the same animal would make the pair differ in
+  // two things instead of one -- and a pair that differs in two things
+  // cannot measure either.
+  const refused = await one(
+    `INSERT INTO pets (id, "clinicId", "ownerId", name, species, "updatedAt")
+     VALUES ($3, $1, $2, 'Kömür', 'CAT', now())
+     RETURNING id`,
+    [clinic.id, declined.id, halId("pet", "komur")],
+  );
+
+  for (const [key, petId, clientId, stateId] of [
+    ["due", active.id, client.id, "notification.appointment.sendable"],
+    ["refused", refused.id, declined.id, "notification.appointment.optedOut"],
+  ]) {
+    await db.query(
+      `INSERT INTO appointments (id, "clinicId", "petId", "clientId", "vetId", "startsAt",
+                                 type, status, reason, "updatedAt")
+       VALUES ($6, $1, $2, $3, $4, $5, 'VACCINATION', 'SCHEDULED', 'Aşı tekrarı', now())`,
+      [clinic.id, petId, clientId, vet.id, sendableAt, halId("appt", key)],
+    );
+    made(stateId);
+  }
+
+  // The other half of the loop, and the half the complaint was about:
+  // the reminder a vet writes down. Due in two days against the
+  // clinic's `daysBefore: 3`, so its notice is due from three days
+  // before until the end of the due day -- inside that span now, and
+  // still inside it tomorrow. The PENDING reminder above is seven days
+  // out and stays not-yet-due, which is the pair: one goes, one waits.
+  await db.query(
+    `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
+                            "dueAt", status, "updatedAt")
+     VALUES ($5, $1, $2, $3, 'VACCINATION_DUE', 'Karma aşı zamanı', $4, 'PENDING', now())`,
+    [clinic.id, client.id, active.id, ahead(2), halId("reminder", "due")],
+  );
+  made("notification.reminder.sendable");
 
   // The archived and deceased animals get a history, so they are pages
   // with something on them rather than rows carrying a flag.
