@@ -1609,11 +1609,30 @@ her biri kendi eşiğine sahiptir.** Eşikler ayrışırsa iki kusurdan biri do�
 - satır sütundan **önce** kaybolursa → o bantta bilgi **hiçbir yerde yok**;
 - satır sütundan **sonra** kaybolursa → o bantta bilgi **iki kez var**.
 
-`/appointments`: yanı sıra giden satır `sm:hidden`, içinde `type` ve `phone`;
-`type` sütunu `hideBelow: "sm"` (**eşleşiyor**), `phone` sütunu
-`hideBelow: "md"` (**eşleşmiyor**) → **640–767px'te telefon yok**, yani
-tabletin dikey hâlinde. `/staff` aynı şekli doğru kuruyor: satır `sm:hidden`,
-her iki sütun da `hideBelow: "sm"`.
+**pm kuralı genişletti ve doğrusu onlarınki — üçüncü bir hâl var:**
+sütunun ikincil satırda **hiç karşılığı olmaması.** Orada eşikler ayrışmıyor,
+karşılık yok. Kuralın tam hâli:
+
+> **`hideBelow` taşıyan her sütunun ikincil satırda bir karşılığı olmalı,
+> ve o karşılığın eşiği sütunun eşiğiyle aynı olmalı.**
+
+Üç hâli birden kapsar: karşılık yok → boşluk · satır önce kaybolur → boşluk ·
+satır sonra kaybolur → kopya.
+
+**İki gerçek vaka, ikisi de `/appointments`'ta:**
+- **Telefon (kapandı, `48ffafc`):** satır `sm:hidden`, `phone` sütunu
+  `hideBelow: "md"` → 640–767px'te telefon hiçbir yerde yoktu. Düzeltme
+  sütunu çekmek değil **satırı uzatmak** oldu (`md:hidden` sarmalayıcı, tür
+  span'ine ayrıca `sm:hidden`), çünkü sütunu `sm`'e çekmek o bantta beşinci
+  sütun ekler ve **sığacağını kimse ölçmemişti.**
+- **Veteriner (açık):** `vet` sütunu `hideBelow: "md"` ve ikincil satırda
+  **hiç karşılığı yok** → 768px altında veteriner adı ne sütunda ne satırda.
+  pm buldu ve **sınırını da yazdı:** eldeki altı randevunun hepsinde `vetId`
+  boş, yani dolu bir adın kaybolduğu **ekranda görülmedi**; iddia koda ve
+  sütun görünürlüğüne dayanıyor.
+
+`/staff` şekli doğru kuruyor: satır `sm:hidden`, her iki sütun da
+`hideBelow: "sm"`.
 
 **Ve bu maddenin asıl dersi kusur değil, kusurun nasıl bulunduğudur.**
 pm "kopya sütun" dedi, ben doğrulamadan desen diye yazdım, dev-ui `/staff`
@@ -1623,3 +1642,42 @@ sorulduğunda cevabı ekran değil **eşik tablosu** verir; ekran yalnızca
 baktığın tek genişlikte doğruyu söyler ve aradaki bandı hiç göstermez.
 **Tersi bulgu, hipotezin çöpe atılacağı anlamına gelmez** — pm'in mekanizması
 doğruydu, işareti yanlıştı.
+
+### Zemini değiştiren, ölçen HERKESE söyler — yoksa zemin ölçenin lehine yanıltır
+
+Bu kuralın bedeli bu oturumda ödendi ve **doğru bir bulgunun iptal
+edilmesiyle** ödendi, ki bu yanlış bir bulgunun kabul edilmesinden pahalıdır:
+
+```
+14:21  üretim derlemesi — /appointments telefon boşluğu VAR
+14:29  48ffafc indi, boşluk kapandı
+14:32  derleme tazelendi, 3001 yeni derlemeye geçti
+   ↓    ana oturum bunu ux'e yazdı, pm'e YAZMADI
+       pm sekiz genişlikte ölçtü, telefonu her yerde gördü,
+       ve KENDİ DOĞRU GÖZLEMİNİ geri çekti
+```
+
+pm'in ölçümünde hata yoktu; **ölçtüğü ağaç, kusurun yaşadığı ağaç değildi.**
+Aynı anda kod okuması da aynı yöne yanılttı: dayanılan iç `sm:hidden`
+düzeltmenin **kendisiydi**, ve düzeltmenin yorumu kusuru **geçmiş zamanda**
+anlatıyordu — *"used to disappear as one at `sm`"* — yani metin "yok"
+demiyordu, "düzeltildi" diyordu.
+
+**Üç sonuç:**
+
+1. **Ölçüm zeminini değiştiren, ölçen herkese söylemekle yükümlüdür.**
+   Bir kişiye söylemek duyuru değildir. Zemin sessizce değişirse ölçüm
+   kendini doğrular ve kimse sebebini aramaz.
+2. **Bir düzeltmenin yorumu, kusurun yokluğunun kanıtı değildir.** Yorum
+   kusuru anlatıyorsa kusur **vardı**; zamanı okumadan "yok" diye okunur.
+3. **Zemin ölçenin lehine yanıldığında hiçbir alarm çalmaz.** Aleyhe
+   yanılan zemin bir kusur uydurur ve doğrulanırken yakalanır; lehe yanılan
+   zemin bir kusuru **yok eder** ve kimse yok olanı doğrulamaz. Bu yüzden
+   **"bulamadım" en az "buldum" kadar zemin sorgulaması ister.**
+
+**Ve bir yöntem eleştirisinin kendi sınırı vardır.** pm bu turda kendi
+üzerine doğru bir not yazdı: *"'ölçüm sağlam, teşhis zayıf' ayrımı beni
+rahatlatan bir hikâyeye dönüşmeye başlamıştı."* Uyanıklık yerindeydi ama
+fazla geniş uygulandı ve **doğru bir gözlemi de yedi.** Bir eleştiri, kendi
+doğru bulgularını iptal etmeye başladığında, artık eleştiri değil yeni bir
+kör noktadır.
