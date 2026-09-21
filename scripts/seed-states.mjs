@@ -191,6 +191,37 @@ export const STATES = [
     covers:
       "one refused for a reason that really is about this message: whether the row still carries its own sentence when the cause is not clinic-wide",
   },
+  // Four sentences written, tested, and never once rendered: every
+  // reminder in this clinic hung off the same consenting owner and the
+  // same living animal, so the reasons a reminder will never be sent
+  // existed only in the code that formats them.
+  //
+  // They share a due date on purpose. The list orders by it, so the
+  // four land next to each other and next to the failures above --
+  // which is the only way to ask whether four warnings in a column
+  // read as information or as a wall. A state seen one at a time
+  // cannot answer that.
+  {
+    id: "notification.reminder.blocked.optedOut",
+    covers:
+      "a reminder for an owner who refused: the row has to say nothing will go, and say it without implying anyone can fix it",
+  },
+  {
+    id: "notification.reminder.blocked.neverAsked",
+    covers:
+      "one for an owner nobody has asked: the same silence with a different remedy, and the row's job is to send the vet to the phone rather than to the settings",
+  },
+  {
+    id: "notification.reminder.blocked.noPhone",
+    covers:
+      "one for an owner who agreed but has no number on file: consent is not the obstacle here, and a row that blames consent sends the vet to the wrong field",
+  },
+  {
+    id: "notification.reminder.blocked.petSilenced",
+    covers:
+      "one naming an animal that died: nothing will be sent and nothing was refused, which used to be no sentence at all",
+  },
+
   {
     id: "notification.reminder.failedExhausted",
     covers:
@@ -500,7 +531,7 @@ export async function buildStateClinic(db) {
   // (20260921180000), so an omitted value would also be null -- writing
   // it plainly is what says this row is the unasked state on purpose
   // rather than by inheritance.
-  await owner("unasked", "Sorulmamış", "Sahip", "0532 000 00 02", null);
+  const unasked = await owner("unasked", "Sorulmamış", "Sahip", "0532 000 00 02", null);
   made("client.consent.unasked");
 
   // Enough owners to overflow a picker. PAGE_SIZES.DROPDOWN is 50, and
@@ -946,6 +977,62 @@ export async function buildStateClinic(db) {
     ["duplicate_send_blocked", ago(2)],
   ]);
   made("notification.reminder.failedExhausted");
+
+  // The four reasons a reminder will never go out, one row each.
+  //
+  // Each needs an owner or an animal of its own, because the obstacle
+  // IS the fixture: hung on the ordinary owner they would all read as
+  // "will be sent". The no-phone owner has agreed to messages on
+  // purpose -- consent must not be the obstacle, or the row would be
+  // measuring the sentence above it rather than its own.
+  //
+  // They are also the four the sweep's own query drops, so each one
+  // lights a census counter that no data in this database could make
+  // non-zero before: the reminder half reported optedOut, noPhone and
+  // petSilenced as zeros nobody could check.
+  const noPhone = await owner("nophone", "Numarasız", "Sahip", null, true);
+
+  const blocked = async (key, clientId, petId, title, stateId) => {
+    await db.query(
+      `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
+                              "dueAt", status, "updatedAt")
+       VALUES ($6, $1, $2, $3, 'CHECKUP', $5, $4, 'PENDING', now())`,
+      [clinic.id, clientId, petId, ahead(2), title, halId("reminder", key)],
+    );
+    made(stateId);
+  };
+
+  await blocked(
+    "blocked-optedout",
+    declined.id,
+    refused.id,
+    "Kontrol hatırlatması",
+    "notification.reminder.blocked.optedOut",
+  );
+  await blocked(
+    "blocked-neverasked",
+    unasked.id,
+    null,
+    "Kontrol hatırlatması",
+    "notification.reminder.blocked.neverAsked",
+  );
+  await blocked(
+    "blocked-nophone",
+    noPhone.id,
+    null,
+    "Kontrol hatırlatması",
+    "notification.reminder.blocked.noPhone",
+  );
+  // On the deceased animal, and its owner is the ordinary consenting
+  // one: the animal is the whole obstacle, and nothing else about the
+  // row may be able to explain the silence.
+  await blocked(
+    "blocked-petsilenced",
+    client.id,
+    dead.id,
+    "Kontrol hatırlatması",
+    "notification.reminder.blocked.petSilenced",
+  );
 
   // The archived and deceased animals get a history, so they are pages
   // with something on them rather than rows carrying a flag.
