@@ -5496,3 +5496,47 @@ Aynı turda dev-ui aynı düğmenin Türkçe adındaki **kelime
 tekrarını** kapattı (*"Karma aşı **aşı** satırını kapat"*). İkisi
 birlikte: **bir erişilebilir ad, hem tam hem doğru dilbilgisiyle
 kurulur** — ve ikisinin de kontrolü `messages.test.ts`'in dışında.
+
+### İki metnin aynı olması, iki niyetin aynı olduğunu göstermez
+
+Süpürgenin aynı SMS'i tek turda iki kez gönderebildiğini bulunca ben
+şöyle özetledim: *"mesaj gerçekten gitti (ikizi gitti, metin aynı),
+ve sahip bilgilendirildi."*
+
+**İkinci yarısı yanlıştı.** Veteriner *"Kuduz aşısı"* ve *"Karma
+aşı"* diye **iki ayrı iş** yazmıştı. Giden metin:
+
+> *"Zeytin için aşı zamanı yaklaşıyor (23 Eyl)."*
+
+Sahip **bir** aşı olduğunu öğrendi. **İki** vardı.
+
+value'nun düzeltmesi: *metinler birbirinin ikizi, **niyetler değil.**
+Metin ikiz olduğu için değil, **şablon iki niyeti ayırt edemediği
+için** çakıştılar.* Yani bu bir **mükerrer değil, kayıp bilgi** — ve
+Netgsm mükerrer engelinde *"satırda hiçbir şey demeyin"* demenin
+gerekçesi burada **geçmiyor:** orada iki deneme gerçekten aynı
+mesajdı ve sahip onu almıştı.
+
+**Kural:** çakışmayı **çıktının** eşitliğinden değil, **girdinin**
+eşitliğinden oku. Aynı metin iki farklı iş anlamına geliyorsa,
+elediğin şey bir tekrar değil, bir **bilgi.**
+
+Kökü yine tanıdık aile: **veri var, metin kullanmıyor.**
+`composeReminderSms` hatırlatmanın `title`'ına `VACCINATION_DUE`'da
+hiç bakmıyor.
+
+### Bugün bilinen bir zararı, bir sıra önler
+
+Şablon `title`'ı kullanmaya başlarsa çakışma kendiliğinden kaybolur —
+iki farklı başlık iki farklı metin üretir. Ama `title` bugün
+müşteriye yalnız `CUSTOM`'da gidiyor **ve form bunu hiçbir yerde
+söylemiyor.**
+
+> Şablon önce değişirse, bugün içine iç kısaltma yazan her veteriner
+> o kısaltmayı sahibe göndermiş olur. *"Sahibi zor, dikkat"* başlıklı
+> bir aşı hatırlatması.
+
+value bunu **"iyileştirme" değil "şart"** diye yazdı ve haklı: önce
+formun önizleme/uyarısı, sonra şablon. **Bedeli yalnızca bir sıra;
+karşılığı bildiğimiz bir zarar.** Bir işi bölerken hangisinin önce
+geleceğini söylemek, bölmenin kendisi kadar iş.
