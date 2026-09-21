@@ -469,7 +469,26 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    git add <yalnız kendi dosyalarım>
    git diff --cached --stat          # ve her yolu OKU
    git commit
+   git reset HEAD -- <az önce commit ettiğin yollar>   # AYNI KOMUTTA
    ```
+
+   **Son satır ayrı bir adım değil, komutun parçasıdır — ve bu, kuralı
+   yazanın onu üç kez atlamasıyla öğrenildi.** Özel indeksle commit
+   etmek, paylaşımlı indeksi o yollarda **bayat** bırakır: HEAD ilerler,
+   paylaşımlı indeks eski ağacı tutmaya devam eder. Yani `git status`
+   `MM` gösterir ve `git diff --cached` o yolları **silen** bir hâl
+   çizer. Oradan kesen bir sonraki kişi, senin commit'lerini geri alır.
+
+   21 Eylül'de bu tam olarak oldu ve yalnız şans eseri yakalandı:
+   paylaşımlı indeks üç dosyada **246 satır silen** bir hâl tutuyordu
+   (`TEAM.md`'nin kültür değişikliği, `BACKLOG.md`'nin onboarding
+   kararı, bir ajan tanımının düzeltmesi) ve `dev-ui` tam o sırada
+   commit etmek üzereydi. Aynı gün, aynı mekanizma `9df1227`'de sekiz
+   dosyayı zaten silmişti.
+
+   **Dersin kendisi kuralın içeriğinde değil, yerinde:** "commit et,
+   sonra sıfırla" diye iki adım olarak yazılan bir kural, ikinci adımı
+   atlanacak biçimde yazılmıştır. Tek komut hâline getir.
 
    **İkinci yarısı, `dev-ui`'den ve kaybı yaşayan taraftan:**
    **paylaşımlı bir dosyadaki düzenlemeyi başka iş yaparken elde
