@@ -97,6 +97,8 @@
     "title": "Panel",
     "greeting": "Merhaba {name}",
     "subtitle": "Bugünün özeti.",
+    "readyFor": "{clinic} için her şey hazır. Panel ilk kayıtla birlikte dolmaya başlar.",
+    "preview": "Kayıtlar girmeye başladığında panel böyle görünecek.",
     "metrics": {
       "clients": "Müşteri",
       "pets": "Hayvan",

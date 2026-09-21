@@ -17,9 +17,12 @@ import { requireSession } from "@/lib/session";
 import { dashboardInsights } from "@/modules/dashboard/queries";
 import { blockedReminders } from "@/modules/notifications/queries";
 import { unreadDiagnostics } from "@/modules/diagnostics/queries";
+import { getClinicSettings } from "@/modules/clinics/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
 import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
+import { FirstStepCard } from "@/components/first-step-card";
+import { PreviewPanel } from "@/components/preview-panel";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -50,6 +53,7 @@ export default async function DashboardPage() {
     insights,
     blocked,
     unread,
+    clinicSettings,
     currency,
     fmt,
   ] = await Promise.all([
@@ -66,6 +70,9 @@ export default async function DashboardPage() {
       // Rows, not just a number: one link cannot take a vet to three
       // results, and the job finishes where each result's text is.
       unreadDiagnostics(session.user.clinicId),
+      // Only the first-run header says the clinic's name; the query is
+      // request-cached and the layout has already asked for it.
+      getClinicSettings(session.user.clinicId),
       getClinicCurrency(session.user.clinicId),
       getFormatContext(),
     ]);
@@ -192,6 +199,19 @@ export default async function DashboardPage() {
     display: formatMoney(fmt, m.cents, currency),
   }));
 
+  // Which link of the mandatory chain is missing, or neither. Read from
+  // the two counts the metric cards are already printing, so a clinic
+  // that is past this asks the database nothing extra to be told
+  // nothing. Clients first: an animal cannot be registered without an
+  // owner, so a clinic with neither has exactly one place to start and
+  // being offered the second would be a dead end.
+  const firstStep =
+    insights.counts.clients === 0
+      ? ("client" as const)
+      : insights.counts.pets === 0
+        ? ("pet" as const)
+        : undefined;
+
   const speciesBars = insights.petsBySpecies.map((g) => ({
     label: tSpecies(g.species as never),
     value: g.count,
@@ -202,12 +222,59 @@ export default async function DashboardPage() {
     value: g.count,
   }));
 
+  // A clinic with nothing in it gets a different page, not the same
+  // page full of zeroes. Seven noughts and a column of "nothing yet"
+  // sentences is a dashboard that works perfectly and says only that
+  // you have not started -- read on the evening somebody has just
+  // finished setting the thing up.
+  //
+  // Read from counts the page already has, so a clinic past this asks
+  // the database nothing extra to be told nothing.
+  const clinicName = clinicSettings?.name ?? "";
+
+  const firstRun =
+    insights.counts.clients === 0 &&
+    insights.counts.pets === 0 &&
+    insights.counts.visits === 0;
+
+  if (firstRun) {
+    return (
+      <div className="flex flex-col gap-8">
+        {/* Not `subtitle` ("today's summary"), which is a lie on day
+            zero. The key stays for the other states. */}
+        <PageHeader
+          title={t("greeting", { name: firstName(session.user.name ?? "") })}
+          description={t("readyFor", { clinic: clinicName })}
+        />
+
+        {/* The one fully present thing on the screen: full contrast,
+            its own shadow. The focus is built by holding everything
+            else back rather than by making this bigger. */}
+        {firstStep && <FirstStepCard need={firstStep} />}
+
+        {/* Outside the two-column grid below on purpose -- that grid is
+            where a 140px overflow was measured at 390px -- and set off
+            by its own space. The sentence is the only centred text on
+            the page: it does not belong to the left-aligned column
+            above it, it names the block beneath it. */}
+        <div className="mt-4 flex flex-col gap-4">
+          <p className="text-center text-sm text-muted-foreground">
+            {t("preview")}
+          </p>
+          <PreviewPanel />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
         title={t("greeting", { name: firstName(session.user.name ?? "") })}
         description={t("subtitle")}
       />
+
+      {firstStep && <FirstStepCard need={firstStep} />}
 
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
         {metrics.map(({ key, icon: Icon, value, href, hint }) => (
