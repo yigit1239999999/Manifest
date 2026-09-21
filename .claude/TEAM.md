@@ -1783,3 +1783,37 @@ Bu kural bu oturumda iki yönde birden bedel ödetti: `/appointments`'ta
 **görünen** metinle ölçüm doğru cevabı verdi ama yanlış ağaçta alındı.
 **Ölçüm aracı, ölçümün parçasıdır** — ve bu, o ailenin arayüz tarafındaki
 en somut kuralı.
+
+### Abartılmış şiddet, gerçek kusuru da beraberinde götürür
+
+Ham enum bulgusunu *"bir alerji uyarısının üstünde başlık olarak `GENERAL`
+duruyor"* diye ilettim. Doğruydu ama **eksik yarısı bulguyu başka bir sınıfa
+taşıyordu:** notun gövdesi de satırda (`timeline.tsx:142`, `event.summary` =
+`n.body`), yani klinik içerik **ekranda.** Kusur **bilgi kaybı değil, yanlış
+etiketleme.**
+
+ux'in düzeltmesi ve gerekçesi:
+
+> Sıralama gerekçesi *"alerji uyarısı kayboluyor"* olursa, biri gidip bakınca
+> **bulguyu güvenilmez bulur — ve o, gerçek kusuru da beraberinde götürür.**
+
+Yani abartma yalnızca yanlış sıralama üretmiyor; **doğru olan kısmı da
+harcıyor.** Bir bulgu, en güçlü hâliyle değil **en savunulabilir hâliyle**
+iletilir — çünkü ilk kontrol eden kişi, iddianın en zayıf yerinden bakar.
+
+Bu, "sahte pozitif kural listesinde de test listesinde olduğu kadar
+zararlıdır"ın üçüncü yüzü: sahte pozitif **bir bulgunun içinde de** olabilir.
+
+### İki kaynaklı doğru da borçtur
+
+*"Çağrı yeri olmayan soyutlama borçtur"un* (30) eksik kalan yüzü, ux'in
+para birimi sembolü şartından:
+
+> Bir gösterimin **iki yerde** tanımlı olması, bugün ikisi de doğru olsa bile
+> borçtur — **ikisi ayrı ayrı bayatlar**, ve ayrıldıkları gün hangisinin
+> doğru olduğunu kimse bilmez.
+
+Bu kod tabanı bedelini zaten ödedi: `formatMoney`'nin `"USD"` varsayılanı.
+Pratik şartı: para birimi adı/sembolü `lib/format.ts`'ten gelir, çağrı
+yerinde ham `"₺"` yazılmaz — yoksa **bir sonraki para biriminde ikinci
+eşleme tablosu doğar.**
