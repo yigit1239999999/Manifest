@@ -81,4 +81,26 @@ describe("server actions", () => {
 
     expect(racing).toEqual([]);
   });
+
+  it("archiving leaves the user on the record, everywhere", () => {
+    // Three archive actions, three different destinations: a client went
+    // to the list, an animal to the list, a visit to its animal's page.
+    // The same action must not have three outcomes (TEAM.md #18), and the
+    // right one is none of those three — the record still exists, its own
+    // page is where the "Archived on …" notice and the Restore beside it
+    // live, and being thrown elsewhere hides both. A reversible action
+    // that looks like a removal is what backlog 39 was about.
+    const leaving = actions
+      .filter((a) => /^archive[A-Z]/.test(a.name))
+      .filter((a) => a.body.includes("redirect("))
+      .map((a) => `${a.file} → ${a.name}`);
+
+    expect(leaving).toEqual([]);
+  });
+
+  it("finds the archive actions at all", () => {
+    const archiving = actions.filter((a) => /^archive[A-Z]/.test(a.name));
+
+    expect(archiving.length).toBe(3);
+  });
 });

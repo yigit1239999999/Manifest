@@ -50,9 +50,16 @@ export const archivePetAction = action(
   async (ctx, id: string): Promise<void> => {
     const { ownerId } = await archivePet(id, ctx);
     revalidatePath("/pets");
+    revalidatePath(`/pets/${id}`);
     revalidatePath(`/clients/${ownerId}`);
     revalidatePath("/");
-    redirect("/pets");
+    // No redirect: archiving is a state change on a record that still
+    // exists, and its own page is the one place that says so and offers
+    // the way back. Being thrown to the list instead hides the notice and
+    // the "Restore" beside it, so a reversible action reads as a removal —
+    // which is the thing backlog 39 was about (TEAM.md #25). The three
+    // archive actions used to land in three different places; they now
+    // all stay put (TEAM.md #18).
   },
 );
 
