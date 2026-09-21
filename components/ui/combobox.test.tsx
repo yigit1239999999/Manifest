@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { Combobox } from "@/components/ui/combobox";
 
 // Focusing the field opens the list, so by the time a keyboard user
@@ -179,7 +179,16 @@ describe("searching a combobox against the server", () => {
     expect(note).toBeInTheDocument();
     // Not an option: it cannot be chosen and the arrow keys must not
     // stop on it.
-    expect(note.getAttribute("role")).toBe("presentation");
+    // Outside the listbox, not a presentational child of it. In there
+    // the sentence sat below every option in a 256px scroll box — in a
+    // list of fifty, forty-three rows down, which is hidden — and a
+    // `role="presentation"` child of a listbox is skipped by virtual
+    // focus, so it was missing from the screen reader too. Both
+    // channels, for the one fact the cap exists to announce.
+    expect(note.tagName).toBe("P");
+    expect(
+      within(screen.getByRole("listbox")).queryByText(note.textContent!),
+    ).toBeNull();
     expect(screen.getAllByRole("option")).toHaveLength(2);
   });
 
@@ -318,7 +327,16 @@ describe("what the server finds and what the page already sent", () => {
     fireEvent.focus(input);
 
     const note = screen.getByText("En az iki harf yazın.");
-    expect(note.getAttribute("role")).toBe("presentation");
+    // Outside the listbox, not a presentational child of it. In there
+    // the sentence sat below every option in a 256px scroll box — in a
+    // list of fifty, forty-three rows down, which is hidden — and a
+    // `role="presentation"` child of a listbox is skipped by virtual
+    // focus, so it was missing from the screen reader too. Both
+    // channels, for the one fact the cap exists to announce.
+    expect(note.tagName).toBe("P");
+    expect(
+      within(screen.getByRole("listbox")).queryByText(note.textContent!),
+    ).toBeNull();
     expect(screen.getAllByRole("option")).toHaveLength(2);
   });
 
@@ -451,5 +469,62 @@ describe("a picker whose selection the form holds", () => {
     );
 
     expect(input).toHaveValue("Meh");
+  });
+});
+
+// The note left the listbox to become visible; `aria-describedby` is how
+// it gets back into the accessibility tree. That association is the whole
+// second half of the fix and nothing else in this file would notice if it
+// were dropped — the sentence would still be on screen, and silent.
+describe("the note reaches the input it is about", () => {
+  const HANDED = [
+    { value: "c1", label: "Ayşe Kara" },
+    { value: "c2", label: "Mehmet Kaya" },
+  ];
+
+  function render_(props: Record<string, unknown> = {}) {
+    const view = render(
+      <Combobox
+        name="clientId"
+        options={HANDED}
+        onSearch={async () => []}
+        hasMore
+        searchHintLabel="En az iki harf yazın."
+        noResultsLabel="Sonuç yok."
+        {...props}
+      />,
+    );
+    return {
+      ...view,
+      input: view.container.querySelector('input[type="text"]')!,
+    };
+  }
+
+  it("describes the input by the note while the note is showing", () => {
+    const { input } = render_();
+    fireEvent.focus(input);
+
+    const note = screen.getByText("En az iki harf yazın.");
+    expect(input.getAttribute("aria-describedby")?.split(" ")).toContain(
+      note.id,
+    );
+  });
+
+  it("joins the caller's description rather than replacing it", () => {
+    // `Field` passes the error and the hint in through this prop.
+    // Overwriting it to announce a footnote would trade a validation
+    // message for one.
+    const { input } = render_({ "aria-describedby": "field-error" });
+    fireEvent.focus(input);
+
+    const ids = input.getAttribute("aria-describedby")!.split(" ");
+    expect(ids).toContain("field-error");
+    expect(ids).toContain(screen.getByText("En az iki harf yazın.").id);
+  });
+
+  it("says nothing when there is no note", () => {
+    const { input } = render_({ hasMore: false, onSearch: undefined });
+    fireEvent.focus(input);
+    expect(input.getAttribute("aria-describedby")).toBeNull();
   });
 });

@@ -201,6 +201,7 @@ export function Combobox({
   );
   const chosen = controlled ? (controlledValue ?? null) : ownChosen;
   const listId = React.useId();
+  const noteId = `${listId}-note`;
 
   // Follow the caller when it moves the value from outside — picking an
   // animal fills in its owner, submitting clears both. Adjusted during
@@ -257,7 +258,9 @@ export function Combobox({
     };
   }, [onSearch, query, readyToSearch]);
 
-  const local = typed ? options.filter((o) => matches(o.label, query)) : options;
+  const local = typed
+    ? options.filter((o) => matches(o.label, query))
+    : options;
   // Second, and only what is new. The same client can come back from the
   // server that is already on the handed list, and reading a name twice
   // in one dropdown reads as two records.
@@ -354,10 +357,19 @@ export function Combobox({
   // that is different enough to say differently.
   const footerLabel = belowThreshold ? searchHintLabel : hasMoreLabel;
 
-  const rows: Array<{ key: string; kind: "option" | "add"; option?: ComboOption }> = [
-    ...filtered.map((o) => ({ key: o.value, kind: "option" as const, option: o })),
+  const rows: Array<{
+    key: string;
+    kind: "option" | "add";
+    option?: ComboOption;
+  }> = [
+    ...filtered.map((o) => ({
+      key: o.value,
+      kind: "option" as const,
+      option: o,
+    })),
     ...(showAdd ? [{ key: "__add__", kind: "add" as const }] : []),
   ];
+  const showNote = hasMore && rows.length > 0 && Boolean(footerLabel);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "ArrowDown") {
@@ -390,9 +402,18 @@ export function Combobox({
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
-        aria-describedby={describedBy}
+        // Joined, not replaced. `Field` passes the error and the hint
+        // in here, and overwriting them to announce the note would
+        // trade a validation message for a footnote.
+        aria-describedby={
+          [describedBy, showNote ? noteId : undefined]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
         aria-invalid={invalid}
-        aria-activedescendant={open && rows[active] ? `${listId}-${active}` : undefined}
+        aria-activedescendant={
+          open && rows[active] ? `${listId}-${active}` : undefined
+        }
         autoComplete="off"
         required={required}
         name={freeText ? name : undefined}
@@ -418,12 +439,22 @@ export function Combobox({
       </button>
 
       {open && (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-control border border-border bg-card p-1 shadow-lg"
-        >
-          {/* Three states, not two, and the first is not an empty one.
+        // The box and the scroll area are two elements now, and that is
+        // the whole fix. They were one: the note sat as the last child
+        // of the scrolling list, which put it below every option rather
+        // than below the list. Rows are 36px and the box holds 256px, so
+        // in a list of fifty the sentence saying "there are more" waited
+        // forty-three rows down — unreachable by the one person who
+        // needs it, the one who reads the first seven, concludes the
+        // client is not on file, and opens a second record for them.
+        // Not a phone problem: this is the desktop.
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 flex flex-col rounded-control border border-border bg-card shadow-lg">
+          <ul
+            id={listId}
+            role="listbox"
+            className="max-h-64 overflow-y-auto p-1"
+          >
+            {/* Three states, not two, and the first is not an empty one.
               "Type two more letters" is an instruction; dressing it as
               "no results" tells the user their clinic has no such
               record when nobody has looked yet (TEAM.md #19). The
@@ -433,73 +464,83 @@ export function Combobox({
               Only when there is nothing above it. The instruction used
               to stand in the list's place, which hid the fifty records
               the page had already sent down. */}
-          {rows.length === 0 && (
-            <li className="px-2.5 py-2 text-xs text-muted-foreground">
-              {(belowThreshold ? searchHintLabel : undefined) ??
-                noResultsLabel ??
-                "-"}
-            </li>
-          )}
-          {rows.map((row, i) =>
-            row.kind === "add" ? (
-              <li
-                key={row.key}
-                id={`${listId}-${i}`}
-                role="option"
-                aria-selected={active === i}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectCustom();
-                }}
-                onMouseEnter={() => setActive(i)}
-                className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-control px-2.5 py-2 text-sm font-medium text-primary",
-                  active === i && "bg-accent text-accent-foreground",
-                )}
-              >
-                <Plus className="size-4" />
-                {addLabel ? addLabel(query) : `+ "${query}"`}
+            {rows.length === 0 && (
+              <li className="px-2.5 py-2 text-xs text-muted-foreground">
+                {(belowThreshold ? searchHintLabel : undefined) ??
+                  noResultsLabel ??
+                  "-"}
               </li>
-            ) : (
-              <li
-                key={row.key}
-                id={`${listId}-${i}`}
-                role="option"
-                aria-selected={active === i}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectOption(row.option!);
-                }}
-                onMouseEnter={() => setActive(i)}
-                className={cn(
-                  "cursor-pointer rounded-control px-2.5 py-2 text-sm",
-                  active === i
-                    ? "bg-accent text-accent-foreground"
-                    : "text-foreground",
-                )}
-              >
-                {row.option!.label}
-              </li>
-            ),
-          )}
-          {/* Last, after the options, because it is about what comes
-              after them. An instruction rather than a count: "500 of
-              1,200" tells a vet a number, and the thing they are about
-              to do is open a second record for a client who is already
-              in here. The records that fall off are not random either
-              — the list is ordered, so it is always the same end of the
-              alphabet missing, which reads exactly like "not on file". */}
-          {hasMore && rows.length > 0 && footerLabel && (
-            <li
+            )}
+            {rows.map((row, i) =>
+              row.kind === "add" ? (
+                <li
+                  key={row.key}
+                  id={`${listId}-${i}`}
+                  role="option"
+                  aria-selected={active === i}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectCustom();
+                  }}
+                  onMouseEnter={() => setActive(i)}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-2 rounded-control px-2.5 py-2 text-sm font-medium text-primary",
+                    active === i && "bg-accent text-accent-foreground",
+                  )}
+                >
+                  <Plus className="size-4" />
+                  {addLabel ? addLabel(query) : `+ "${query}"`}
+                </li>
+              ) : (
+                <li
+                  key={row.key}
+                  id={`${listId}-${i}`}
+                  role="option"
+                  aria-selected={active === i}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectOption(row.option!);
+                  }}
+                  onMouseEnter={() => setActive(i)}
+                  className={cn(
+                    "cursor-pointer rounded-control px-2.5 py-2 text-sm",
+                    active === i
+                      ? "bg-accent text-accent-foreground"
+                      : "text-foreground",
+                  )}
+                >
+                  {row.option!.label}
+                </li>
+              ),
+            )}
+          </ul>
+          {/* Outside the list, in both senses. Visually it is pinned
+            under the scroll area instead of floating away at the
+            bottom of it. In the accessibility tree it is no longer a
+            `role="presentation"` child of a listbox, which is a place
+            nothing gets read: virtual focus walks the options and
+            steps over everything else, so the note was missing from
+            the screen reader for the same reason it was missing from
+            the screen.
+
+            It reaches the input through `aria-describedby` instead,
+            which is how a fact about a control is supposed to travel.
+
+            An instruction rather than a count: "500 of 1,200" tells a
+            vet a number, and what they are about to do is open a
+            second record for a client who is already in here. The
+            records that fall off are not random either — the list is
+            ordered, so it is always the same end of the alphabet
+            missing, which reads exactly like "not on file". */}
+          {showNote && (
+            <p
+              id={noteId}
               className="border-t border-border px-2.5 py-2 text-xs text-muted-foreground"
-              // Not an option: it cannot be chosen and arrow keys must
-              // not stop on it.
-              role="presentation"
             >
               {footerLabel}
-            </li>
+            </p>
           )}
-        </ul>
+        </div>
       )}
     </div>
   );
