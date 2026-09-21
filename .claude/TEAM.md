@@ -2572,3 +2572,32 @@ elle yazılmıyor — yine *"kural değil yer"*: satırın kendisi
 **Genel hâli:** bir kimlik kaydı, kimliğin **hâlâ geçerli olup olmadığını**
 taşımıyorsa yarımdır. Hash bir isimdir; **isim, işaret ettiği şey
 silindiğinde de aynı görünür.**
+
+### Türetilmiş şey KOPYALANMAZ, üretildiği yerde ÜRETİLİR
+
+Üretim derlemesi bu turda tip hatasıyla düştü ve **az kalsın "dal kırık"
+diye bildiriyordum.** Dal kırık değildi:
+
+```
+prod checkout şeması (cf9991e):  notificationsOptIn Boolean @default(false)
+ana depodaki generated/:         boolean | null        ← dev'in AĞACINDAN
+```
+
+`generated/` **`.gitignore`'da** — yani tek bir kopyası var ve o kopya
+**en son kimin `prisma generate` çalıştırdığına** göre değişiyor. Ben onu
+prod checkout'una `cp -al` ile kopyalıyordum: **X commit'inin kodu,
+Y ağacının şemasından üretilmiş istemciyle** derleniyordu.
+
+> **Türetilmiş bir eser (`generated/`, derleme çıktısı, lock dosyası)
+> kopyalanmaz — kullanılacağı yerde, ORANIN kaynağından üretilir.**
+> Kopyalanan türetilmiş eser, kaynağıyla ilişkisini kaybeder ve bu
+> ilişkinin koptuğu **hiçbir yerde görünmez.**
+
+Çözüm: prod checkout'unda `npx prisma generate` koşuluyor, kopyalama
+kaldırıldı, ve `SERVED_COMMIT.txt`'e satır eklendi — *"prisma: bu
+checkout'un kendi şemasından üretildi."*
+
+**Ve bu, üçüncü kez aynı dizinden yendiğim anlamına geliyor:** birincisi
+`Visit.currency` eksik diye derlemenin patlaması, ikincisi terk edilmiş
+`Manifest/.next-prod`, üçüncüsü bu. **Üçünün de ortak yanı: türetilmiş
+bir şeyin kaynağından koparılmış olması.**
