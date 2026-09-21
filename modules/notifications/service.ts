@@ -128,6 +128,34 @@ export function isAppointmentClosed(status: string): boolean {
 }
 
 /**
+ * The other half of the same rule, and the hole the status list left.
+ *
+ * Every past appointment in the measurement baseline is still `SCHEDULED`:
+ * nobody goes back to mark last Tuesday as completed or missed, and there
+ * is no reason they should. So a status check alone still let staff send
+ * "your appointment has been booked" for an appointment that happened a
+ * week ago — one click, no warning, and the message is simply false.
+ *
+ * The cut is the start time, not the end: once it has begun, the owner
+ * either is in the waiting room or is not, and neither the confirmation
+ * nor the reminder tells them anything true.
+ */
+export function isAppointmentPast(startsAt: Date, now: Date): boolean {
+  return startsAt.getTime() <= now.getTime();
+}
+
+/** No message about this appointment is true any more, for either reason. */
+export function appointmentMessagingClosed(
+  appointment: { status: string; startsAt: Date },
+  now: Date = new Date(),
+): boolean {
+  return (
+    isAppointmentClosed(appointment.status) ||
+    isAppointmentPast(appointment.startsAt, now)
+  );
+}
+
+/**
  * An animal we must not write to its owner about. A reminder for a pet that
  * died is the one message that ends a clinic's trust in the whole system,
  * and an archived record is one the clinic has deliberately put away.
@@ -196,7 +224,7 @@ export async function previewAppointmentMessages(clinicId: string, appointmentId
     configured: isChannelConfigured(channel),
     // The page asks the service rather than reading the status itself, so
     // what the screen offers and what the server accepts cannot drift.
-    closed: isAppointmentClosed(appointment.status),
+    closed: appointmentMessagingClosed(appointment),
     status: appointment.status,
     petSilenced: isPetSilenced(appointment.pet),
     optedIn: appointment.client.notificationsOptIn,
@@ -310,6 +338,8 @@ export async function sendAppointmentMessage(
   if (!appointment || !clinic) throw notFound("appointment", appointmentId);
   if (isAppointmentClosed(appointment.status))
     throw new AppError("VALIDATION_FAILED", "error.notifications.appointmentClosed");
+  if (isAppointmentPast(appointment.startsAt, new Date()))
+    throw new AppError("VALIDATION_FAILED", "error.notifications.appointmentPast");
   if (isPetSilenced(appointment.pet))
     throw new AppError("VALIDATION_FAILED", "error.notifications.petSilenced");
   if (!appointment.client.notificationsOptIn)
@@ -341,6 +371,8 @@ export async function logManualMessage(
   // be possible to record one the app itself would refuse to send.
   if (isAppointmentClosed(appointment.status))
     throw new AppError("VALIDATION_FAILED", "error.notifications.appointmentClosed");
+  if (isAppointmentPast(appointment.startsAt, new Date()))
+    throw new AppError("VALIDATION_FAILED", "error.notifications.appointmentPast");
   if (isPetSilenced(appointment.pet))
     throw new AppError("VALIDATION_FAILED", "error.notifications.petSilenced");
   const channel = clinic.notifications.channel;

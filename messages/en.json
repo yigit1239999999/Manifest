@@ -286,6 +286,7 @@
       "optedOut": "Notification messages are disabled for this client. Nothing is sent automatically; if needed you can copy the message and send it by hand.",
       "cancelledNotice": "This appointment is cancelled, so the confirmation and reminder messages are no longer offered. Tell the client yourself if they have not been informed.",
       "completedNotice": "This appointment is complete, so confirmation and reminder messages are no longer offered.",
+    "pastNotice": "The appointment time has passed, so confirmation and reminder messages are no longer offered. Book a new appointment and the messages will be prepared for that one.",
       "petSilencedNotice": "This animal has died or been archived, so no message is sent about it."
     },
     "today": "Today",
@@ -740,6 +741,7 @@
       "optedOut": "Notification messages are disabled for this client.",
       "sendFailed": "The message could not be sent. Please try again later.",
       "appointmentClosed": "This appointment is closed, so no message can be sent for it.",
+    "appointmentPast": "The appointment time has passed, so this message is no longer true.",
       "petSilenced": "No message is sent for this animal."
     },
     "validation": {

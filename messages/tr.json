@@ -286,6 +286,7 @@
       "optedOut": "Bu müşteri için bildirim mesajları pasif. Otomatik mesaj gönderilmez; gerekirse mesajı kopyalayıp elle iletebilirsiniz.",
       "cancelledNotice": "Bu randevu iptal edildiği için onay ve hatırlatma mesajları artık sunulmuyor. Müşteri bilgilendirilmediyse lütfen kendiniz haber veriniz.",
       "completedNotice": "Bu randevu tamamlandığı için onay ve hatırlatma mesajları artık sunulmuyor.",
+    "pastNotice": "Randevu saati geçtiği için onay ve hatırlatma mesajları artık sunulmuyor. Yeni bir randevu oluşturursanız mesajlar onun için hazırlanır.",
       "petSilencedNotice": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için mesaj gönderilmiyor."
     },
     "today": "Bugün",
@@ -740,6 +741,7 @@
       "optedOut": "Bu müşteri için bildirim mesajları pasif.",
       "sendFailed": "Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin.",
       "appointmentClosed": "Bu randevu kapandığı için mesaj gönderilemez.",
+    "appointmentPast": "Randevu saati geçtiği için bu mesaj artık doğru değil.",
       "petSilenced": "Bu hayvan için mesaj gönderilmez."
     },
     "validation": {

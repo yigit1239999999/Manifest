@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -28,6 +28,7 @@ import {
   automaticSendBlocked,
   runReminderSweep,
   logManualMessage,
+  previewAppointmentMessages,
   sendAppointmentMessage,
 } from "./service";
 import { parseNotificationSettings } from "./settings";
@@ -66,13 +67,25 @@ function appointment(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// The fixture appointment is at a fixed instant, and half of what the
+// service decides now depends on whether that instant has gone by. Pinning
+// the clock two hours before it keeps "this appointment is still ahead"
+// true for good, instead of for as long as the suite is run before
+// 20 September 2026 — a test that starts failing on a calendar date is
+// worse than no test.
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-09-20T09:30:00.000Z"));
   vi.mocked(prisma.clinic.findUnique).mockResolvedValue(clinicRow as never);
   vi.mocked(prisma.messageLog.create).mockImplementation((async (args: { data: Record<string, unknown> }) => ({
     id: "m-1",
     ...args.data,
   })) as never);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("sendAppointmentMessage", () => {
@@ -153,6 +166,52 @@ describe("sendAppointmentMessage", () => {
       messageKey: "error.notifications.appointmentClosed",
     });
     expect(prisma.messageLog.create).not.toHaveBeenCalled();
+  });
+
+  // Backlog 42a. The status list closed the cancelled, missed and completed
+  // cases; this is the one it could not see. Every past appointment in the
+  // measurement baseline is still `SCHEDULED`, because nobody goes back to
+  // mark last Tuesday, so in practice this was the common case, not the
+  // edge one.
+  it("refuses a confirmation for an appointment that has already started", async () => {
+    vi.setSystemTime(new Date("2026-09-20T11:31:00.000Z"));
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      appointment({ status: "SCHEDULED" }) as never,
+    );
+
+    await expect(
+      sendAppointmentMessage("a-1", "APPOINTMENT_CONFIRMATION", ctx),
+    ).rejects.toMatchObject({
+      messageKey: "error.notifications.appointmentPast",
+    });
+    expect(transport.send).not.toHaveBeenCalled();
+  });
+
+  it("refuses to log a manual send for one that has already started", async () => {
+    vi.setSystemTime(new Date("2026-09-21T08:00:00.000Z"));
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      appointment({ status: "SCHEDULED" }) as never,
+    );
+
+    await expect(
+      logManualMessage("a-1", "APPOINTMENT_REMINDER", ctx),
+    ).rejects.toMatchObject({
+      messageKey: "error.notifications.appointmentPast",
+    });
+    expect(prisma.messageLog.create).not.toHaveBeenCalled();
+  });
+
+  it("tells the screen an appointment that has started is closed", async () => {
+    vi.setSystemTime(new Date("2026-09-20T11:30:00.000Z"));
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      appointment({ status: "SCHEDULED" }) as never,
+    );
+
+    // The page asks the service rather than reading the status, so what is
+    // offered and what is accepted cannot drift apart.
+    await expect(previewAppointmentMessages("clinic-1", "a-1")).resolves.toMatchObject({
+      closed: true,
+    });
   });
 
   // The one message that ends a clinic's trust in the whole system.
