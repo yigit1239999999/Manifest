@@ -32,7 +32,24 @@ import { describe, expect, it } from "vitest";
 // will be standing when it wants the same thing — and that is the day to
 // build it.
 //
+// The rule has three forms and this checks one of them. Written out so
+// that "there is a test for this" does not stop anyone looking:
+//
+//   1. no counterpart in the stand-in at all          -> gap   (NOT checked)
+//   2. stand-in hidden before its column arrives      -> gap   (checked)
+//   3. stand-in hidden after its column arrives       -> duplicate (allowed)
+//
+// Form 1 has a live candidate: `/appointments` gives the `vet` column
+// `hideBelow: "md"` and puts nothing in the stand-in for it, so below
+// 768px the vet's name is in neither place. It is not checked here and
+// not fixed yet on purpose — every appointment in the database has an
+// empty `vetId`, so nobody has yet seen a name disappear. value is
+// having it confirmed on a real record first. Writing the check now
+// would put a gate in front of a defect we have only reasoned our way
+// to (TEAM.md #1).
+//
 // NOT CHECKED, so the next reader knows where this stops:
+//   - form 1 above, for the reason given.
 //   - whether the stand-in actually carries what the hidden columns held.
 //     It checks the breakpoints line up, not the content.
 //   - pages that drop columns without a stand-in at all.
