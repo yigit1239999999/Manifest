@@ -347,9 +347,17 @@ export default async function RemindersPage({
             return (
               <li
                 key={r.id}
+                // Addressable, so a row just created can be scrolled to
+                // and briefly tinted. The `data-` variant rather than a
+                // bare `bg-accent`: two background utilities in one class
+                // list are resolved by stylesheet order, not attribute
+                // order, so it would be a coin toss against `surface`'s
+                // own `bg-card`.
+                id={`reminder-${r.id}`}
                 className={cn(
                   surface,
-                  "flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between",
+                  "flex flex-col gap-3 p-4 transition-colors sm:flex-row sm:items-start sm:justify-between",
+                  "data-[spotlight]:bg-accent",
                 )}
               >
                 <div className="flex min-w-0 flex-col">

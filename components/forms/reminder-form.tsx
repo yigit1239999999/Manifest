@@ -12,6 +12,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { Announcer } from "@/components/ui/announcer";
+import { NewRowSpotlight } from "@/components/new-row-spotlight";
 import { REMINDER_TYPES } from "@/modules/reminders/schema";
 import { createReminderAction } from "@/modules/reminders/actions";
 import { searchClientsAction } from "@/modules/clients/actions";
@@ -278,6 +279,13 @@ export function ReminderForm({
           correct and silent, and the vet who most needs the warning is the
           one who does not get it. */}
       <Announcer message={unreachable ? unreachableText(unreachable) : null} />
+      {/* The saved reminder's own row does the talking. The toast stays
+          where it is and keeps saying "Saved" — that answers "did it
+          happen", which every form here answers the same way; the row
+          answers "what will happen", and only this one has that to say. */}
+      <NewRowSpotlight
+        rowId={state.createdId ? `reminder-${state.createdId}` : null}
+      />
       <Field
         label={tClient("one")}
         error={state.fieldErrors?.clientId}

@@ -194,7 +194,11 @@ export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
       )}
     >
       <Mark aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-      <span className="min-w-0">{sentence()}</span>
+      {/* Marked so the spotlight can read this row's own words back out
+          after a save instead of composing a second version of them. */}
+      <span data-delivery-sentence className="min-w-0">
+        {sentence()}
+      </span>
     </p>
   );
 
