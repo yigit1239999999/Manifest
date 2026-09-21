@@ -2,6 +2,7 @@ import tr from "@/messages/tr.json";
 import en from "@/messages/en.json";
 import { fold } from "@/lib/search";
 import { LANGUAGES } from "@/modules/clients/schema";
+import { SPECIES } from "./schema";
 import type { Species } from "@/generated/prisma/enums";
 
 /**
@@ -57,4 +58,40 @@ const BY_FOLDED_NAME: ReadonlyMap<string, Species> = new Map(
  */
 export function builtInSpeciesNamed(raw: string): Species | null {
   return BY_FOLDED_NAME.get(fold(raw.trim())) ?? null;
+}
+
+/** Every name a built-in may be typed as, in every language. */
+export function speciesNames(key: Species): string[] {
+  return [
+    ...new Set(SPECIES_NAME_LOCALES.map((locale) => CATALOGUES[locale][key])),
+  ];
+}
+
+/**
+ * The built-ins this clinic has switched off, ready for the picker.
+ *
+ * Built here rather than in each page for one reason: the names have to
+ * come from both catalogues, and a client component only has the active
+ * language. Shipping both message files to the browser to work that out
+ * would be paying for a whole catalogue to answer a question the server
+ * already knows the answer to.
+ *
+ * "Other" is skipped, as everywhere else in this file: it is the
+ * absence of an answer, and a clinic cannot turn it off in a way that
+ * means anything.
+ */
+export function hiddenBuiltInSpecies(
+  enabled: readonly string[],
+  label: (key: Species) => string,
+  note: (name: string) => string,
+) {
+  const shown = new Set(enabled);
+  return SPECIES.filter((key) => key !== "OTHER" && !shown.has(key)).map(
+    (key) => ({
+      value: key,
+      label: label(key),
+      names: speciesNames(key),
+      note: note(label(key)),
+    }),
+  );
 }

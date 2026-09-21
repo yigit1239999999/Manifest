@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
-import { SpeciesPicker } from "@/components/species-picker";
+import { SpeciesPicker, type HiddenSpecies } from "@/components/species-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { searchClientsAction } from "@/modules/clients/actions";
 import { SPECIES, SEXES } from "@/modules/pets/schema";
@@ -42,6 +42,21 @@ interface Props {
   clinicBreeds?: { speciesKey: string; breed: string }[];
   /** Built-in species this clinic chose to show (Settings → Species). */
   enabledSpecies?: readonly string[];
+  /**
+   * The built-ins this clinic switched off, with every name each may be
+   * typed as.
+   *
+   * Built on the server (`modules/pets/species-names.ts`) because the
+   * names come from both catalogues and this component only has the
+   * active language. Shipping both message files to the browser to work
+   * that out would buy a whole catalogue to answer a question the
+   * server already knows.
+   */
+  hiddenBuiltIns?: HiddenSpecies[];
+  hiddenQualifier?: string;
+  /** Only for a reader who may change the setting; absent means absent. */
+  enableHref?: string;
+  enableLabel?: string;
   /** Link to the species settings page, only for users who may manage it. */
   manageHref?: string;
 }
@@ -55,6 +70,10 @@ export function PetForm({
   customSpecies = [],
   clinicBreeds = [],
   enabledSpecies = SPECIES,
+  hiddenBuiltIns,
+  hiddenQualifier,
+  enableHref,
+  enableLabel,
   manageHref,
 }: Props) {
   const ownerOptions = useMemo(
@@ -173,6 +192,10 @@ export function PetForm({
             addLabel={tCommon("add")}
             manageHref={manageHref}
             manageLabel={manageHref ? t("manageSpecies") : undefined}
+            hiddenBuiltIns={hiddenBuiltIns}
+            hiddenQualifier={hiddenQualifier}
+            enableHref={enableHref}
+            enableLabel={enableLabel}
           />
         </Field>
 

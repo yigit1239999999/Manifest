@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { PetForm } from "@/components/forms/pet-form";
+import { hiddenBuiltInSpecies } from "@/modules/pets/species-names";
 
 export default async function EditPetPage({
   params,
@@ -23,17 +24,38 @@ export default async function EditPetPage({
   const { id } = await params;
   const session = await requireSession();
   if (!can(session.user.role, "pets.write")) return <ForbiddenState />;
-  const [pet, owners, t, tCommon, customSpecies, clinicBreeds, enabledSpecies] =
-    await Promise.all([
-      getPetById(session.user.clinicId, id),
-      listClients({ clinicId: session.user.clinicId }),
-      getTranslations("pet"),
-      getTranslations("common"),
-      listCustomSpecies(session.user.clinicId),
-      listClinicBreedOptions(session.user.clinicId),
-      getEnabledSpecies(session.user.clinicId),
-    ]);
+  const [
+    pet,
+    owners,
+    t,
+    tCommon,
+    tSpecies,
+    customSpecies,
+    clinicBreeds,
+    enabledSpecies,
+  ] = await Promise.all([
+    getPetById(session.user.clinicId, id),
+    listClients({ clinicId: session.user.clinicId }),
+    getTranslations("pet"),
+    getTranslations("common"),
+    getTranslations("enum.species"),
+    listCustomSpecies(session.user.clinicId),
+    listClinicBreedOptions(session.user.clinicId),
+    getEnabledSpecies(session.user.clinicId),
+  ]);
   if (!pet) notFound();
+
+  // The built-ins this clinic switched off. Assembled here, on the
+  // server, so the picker can recognise one by either of its names
+  // without the browser carrying both message catalogues. None of this
+  // changes the setting: it governs what is offered, and an animal on
+  // the table is still whatever it is.
+  const hiddenBuiltIns = hiddenBuiltInSpecies(
+    enabledSpecies,
+    (key) => tSpecies(key),
+    (species) => t("hiddenSpeciesNote", { species }),
+  );
+  const canManageSpecies = can(session.user.role, "settings.manage");
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -52,7 +74,11 @@ export default async function EditPetPage({
           customSpecies={customSpecies}
           clinicBreeds={clinicBreeds}
           enabledSpecies={enabledSpecies}
-          manageHref={can(session.user.role, "settings.manage") ? "/settings" : undefined}
+          hiddenBuiltIns={hiddenBuiltIns}
+          hiddenQualifier={t("hiddenSpeciesQualifier")}
+          enableHref={canManageSpecies ? "/settings" : undefined}
+          enableLabel={canManageSpecies ? t("manageSpecies") : undefined}
+          manageHref={canManageSpecies ? "/settings" : undefined}
         />
       </Card>
     </div>

@@ -3,7 +3,12 @@ import tr from "@/messages/tr.json";
 import en from "@/messages/en.json";
 import { LANGUAGES } from "@/modules/clients/schema";
 import { SPECIES } from "./schema";
-import { SPECIES_NAME_LOCALES, builtInSpeciesNamed } from "./species-names";
+import {
+  SPECIES_NAME_LOCALES,
+  builtInSpeciesNamed,
+  hiddenBuiltInSpecies,
+  speciesNames,
+} from "./species-names";
 
 describe("recognising a built-in species by the name a person types", () => {
   it("covers every language the product speaks", () => {
@@ -48,5 +53,48 @@ describe("recognising a built-in species by the name a person types", () => {
     // like a bug fix.
     expect(builtInSpeciesNamed("Kirpi")).toBeNull();
     expect(builtInSpeciesNamed("")).toBeNull();
+  });
+});
+
+describe("offering a species the clinic switched off", () => {
+  const label = (key: string) => tr.enum.species[key as keyof typeof tr.enum.species];
+  const note = (species: string) => `${species} yerleşik bir tür.`;
+  const hidden = (enabled: readonly string[]) =>
+    hiddenBuiltInSpecies(enabled, label as never, note);
+
+  it("lists exactly what is not enabled", () => {
+    const keys = hidden(["DOG", "CAT", "OTHER"]).map((s) => s.value);
+
+    expect(keys).not.toContain("DOG");
+    expect(keys).not.toContain("CAT");
+    expect(keys).toContain("RABBIT");
+    expect(keys).toContain("HORSE");
+  });
+
+  it("never offers 'other'", () => {
+    // Enabled or not, it is the absence of an answer. Offering it as a
+    // hidden species would invite someone to pick "not answered" for an
+    // animal that is on the table.
+    expect(hidden(["DOG"]).map((s) => s.value)).not.toContain("OTHER");
+  });
+
+  it("carries both names, so either one can be typed", () => {
+    // The reason this is built on the server at all: the browser has
+    // one language, and a vet typing "cat" into a Turkish interface is
+    // not making a mistake.
+    const rabbit = hidden(["DOG"]).find((s) => s.value === "RABBIT")!;
+
+    expect(rabbit.names).toEqual(expect.arrayContaining(["Tavşan", "Rabbit"]));
+    expect(rabbit.label).toBe("Tavşan");
+    expect(rabbit.note).toContain("Tavşan");
+  });
+
+  it("does not repeat a name two languages share", () => {
+    // "Hamster"-shaped cases: one word in both catalogues, and a
+    // duplicate in the list is a duplicate comparison forever.
+    for (const s of hidden([])) {
+      expect(new Set(s.names).size).toBe(s.names.length);
+    }
+    expect(speciesNames("CAT")).toEqual(["Kedi", "Cat"]);
   });
 });

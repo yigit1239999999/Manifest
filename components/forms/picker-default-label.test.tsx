@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import tr from "@/messages/tr.json";
 
@@ -114,5 +114,47 @@ describe("a record the picker's list does not contain", () => {
     );
 
     expect(shown(/müşteri/i)).toBe("Zeynep Yıldız");
+  });
+});
+
+// The hidden-species props are the other half of a fix whose first half
+// is on the server: typing "Kedi" records CAT even when the clinic has
+// switched CAT off. The picker knows how to offer it; this is the
+// assertion that anything ever hands it the list. A prop with no call
+// site is the shape this session has now closed a dozen times.
+describe("a species the clinic switched off", () => {
+  const HIDDEN = [
+    {
+      value: "RABBIT",
+      label: "Tavşan",
+      names: ["Tavşan", "Rabbit"],
+      note: "Tavşan yerleşik bir tür. Bu klinikte kapalı, ama bu hayvan için kullanıldı.",
+    },
+  ];
+
+  it("is offered by the name the vet typed, in either language", () => {
+    const { container } = wrap(
+      <PetForm
+        owners={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]}
+        enabledSpecies={["DOG", "CAT", "OTHER"]}
+        hiddenBuiltIns={HIDDEN}
+        hiddenQualifier="bu klinikte kapalı"
+      />,
+    );
+
+    // The field only exists once "New species" is open -- which is the
+    // path a vet takes when the list does not show what is on the
+    // table, and exactly the path that used to invent a duplicate.
+    fireEvent.click(screen.getByRole("button", { name: /Yeni tür/ }));
+
+    // The English name, typed into the Turkish interface, because that
+    // is the case the folding exists for.
+    const draft = container.querySelector<HTMLInputElement>(
+      'input[placeholder="Tür adı (örn. Kirpi)"]',
+    )!;
+    fireEvent.change(draft, { target: { value: "Rabbit" } });
+
+    expect(screen.getByRole("button", { name: /Tavşan/ })).toBeTruthy();
+    expect(screen.getByText(/bu klinikte kapalı/)).toBeTruthy();
   });
 });

@@ -228,6 +228,8 @@
     "newSpecies": "New species",
     "newSpeciesHint": "Not in the list? Add your own. It is saved for your clinic so you never type it again.",
     "newSpeciesPlaceholder": "Species name (e.g. Hedgehog)",
+    "hiddenSpeciesQualifier": "turned off for this clinic",
+    "hiddenSpeciesNote": "{species} is a built-in species. It is turned off for this clinic, but it was used for this animal.",
     "optionalDetails": "Optional details",
     "optionalDetailsHint": "Birth date, weight, microchip, insurance and notes. You can fill these in later.",
     "tabs": {

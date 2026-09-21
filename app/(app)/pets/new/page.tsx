@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PetForm } from "@/components/forms/pet-form";
+import { hiddenBuiltInSpecies } from "@/modules/pets/species-names";
 import { buttonVariants } from "@/components/ui/button";
 
 export default async function NewPetPage({
@@ -29,6 +30,7 @@ export default async function NewPetPage({
     t,
     tCommon,
     tClient,
+    tSpecies,
     owners,
     customSpecies,
     clinicBreeds,
@@ -38,6 +40,7 @@ export default async function NewPetPage({
     getTranslations("pet"),
     getTranslations("common"),
     getTranslations("client"),
+    getTranslations("enum.species"),
     listClients({ clinicId: session.user.clinicId }),
     listCustomSpecies(session.user.clinicId),
     listClinicBreedOptions(session.user.clinicId),
@@ -46,6 +49,18 @@ export default async function NewPetPage({
     // the picker's cap, and then the field renders empty (`getClientLabel`).
     ownerId ? getClientLabel(session.user.clinicId, ownerId) : undefined,
   ]);
+
+  // The built-ins this clinic switched off. Assembled here, on the
+  // server, so the picker can recognise one by either of its names
+  // without the browser carrying both message catalogues. None of this
+  // changes the setting: it governs what is offered, and an animal on
+  // the table is still whatever it is.
+  const hiddenBuiltIns = hiddenBuiltInSpecies(
+    enabledSpecies,
+    (key) => tSpecies(key),
+    (species) => t("hiddenSpeciesNote", { species }),
+  );
+  const canManageSpecies = can(session.user.role, "settings.manage");
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -76,7 +91,11 @@ export default async function NewPetPage({
             customSpecies={customSpecies}
             clinicBreeds={clinicBreeds}
             enabledSpecies={enabledSpecies}
-            manageHref={can(session.user.role, "settings.manage") ? "/settings" : undefined}
+            hiddenBuiltIns={hiddenBuiltIns}
+            hiddenQualifier={t("hiddenSpeciesQualifier")}
+            enableHref={canManageSpecies ? "/settings" : undefined}
+            enableLabel={canManageSpecies ? t("manageSpecies") : undefined}
+            manageHref={canManageSpecies ? "/settings" : undefined}
           />
         </Card>
       )}
