@@ -170,6 +170,33 @@ export const STATES = [
       "a reminder whose notice is due: the record the vet writes, turned into a message that leaves",
   },
 
+  // Not one FAILED row existed in the whole database, so "could not be
+  // sent" was a sentence written four ways and shown zero times. The
+  // sweep cannot make one either: the log transport always succeeds.
+  // Nothing but the seed can produce this state, which is why it sat
+  // unmeasured while three people wrote screens for it.
+  //
+  // Recency is part of the fixture. The first two hold a failure from
+  // an hour ago, which is what keeps them waiting rather than retried;
+  // run the sweep more than six hours after seeding and the sweep will
+  // try again, succeed against the log transport, and they become
+  // "sent". The exhausted one below is permanent.
+  {
+    id: "notification.reminder.failedClinic",
+    covers:
+      "a send the operator refused for a reason that is the clinic's: an unapproved sender title fails every message, so whether the screen says it once at the top rather than on every row",
+  },
+  {
+    id: "notification.reminder.failedMessage",
+    covers:
+      "one refused for a reason that really is about this message: whether the row still carries its own sentence when the cause is not clinic-wide",
+  },
+  {
+    id: "notification.reminder.failedExhausted",
+    covers:
+      "three failures against one reminder: nothing automatic will try again, which is a different sentence from 'it will be retried' and the only state where the button is the whole answer",
+  },
+
   // The loop's four resting places.
   { id: "reminder.pending", covers: "a reminder waiting to go" },
   { id: "reminder.sent", covers: "one sent, the animal not yet back" },
@@ -218,6 +245,26 @@ export const STATES = [
     id: "client.list.capped",
     covers:
       "more owners than a picker shows: the hint under the list, the two search sentences, and whether onSearch is wired at all past the cap",
+  },
+
+  // The product's central promise is the vaccination loop, and the
+  // table behind it was empty in every clinic -- so the dashboard card
+  // read "no upcoming vaccinations" and nobody could tell that from a
+  // card that does not work. Three records, because the field the whole
+  // loop rests on has three states and the card treats them differently.
+  {
+    id: "vaccination.nextDue.future",
+    covers: "a dose with its next date ahead: the only thing the upcoming card can show",
+  },
+  {
+    id: "vaccination.nextDue.past",
+    covers:
+      "one whose next date has gone by: whether the 'upcoming' card silently drops the animals most overdue, which nothing today can confirm or refute",
+  },
+  {
+    id: "vaccination.nextDue.none",
+    covers:
+      "a dose recorded with no next date at all: the fill rate's other half, and an animal the loop cannot bring back",
   },
 
   { id: "clinical.prescription", covers: "a prescription on an animal" },
@@ -305,6 +352,8 @@ const DAY = 86_400_000;
  */
 const iso = (date) => date.toISOString();
 const ago = (days) => iso(new Date(Date.now() - days * DAY));
+/** Hours, for states the sweep's six-hour retry rule is measured in. */
+const hoursAgo = (hours) => iso(new Date(Date.now() - hours * 3_600_000));
 const ahead = (days) => iso(new Date(Date.now() + days * DAY));
 
 /**
@@ -659,6 +708,33 @@ export async function buildStateClinic(db) {
   );
   made("clinical.diagnostic");
 
+  // The three states of the one field the return loop rests on.
+  //
+  // `upcomingVaccinations` filters `nextDueAt >= now`, so the overdue
+  // row below is the case that decides whether the dashboard card
+  // quietly hides the animals furthest past their date -- the claim
+  // has been made twice and could be neither confirmed nor refuted,
+  // because the table was empty in every clinic.
+  //
+  // Three vaccines rather than three doses of one: the suggestion
+  // logic needs several records of the same vaccine on the same
+  // species before it offers an interval, and three identical ones
+  // here would put a suggestion on the form as a side effect of a
+  // fixture built for the card.
+  for (const [key, name, nextDueAt, stateId] of [
+    ["kuduz", "Kuduz aşısı", ahead(21), "vaccination.nextDue.future"],
+    ["karma", "Karma aşı", ago(45), "vaccination.nextDue.past"],
+    ["bronsin", "Bronşin aşısı", null, "vaccination.nextDue.none"],
+  ]) {
+    await db.query(
+      `INSERT INTO vaccinations (id, "clinicId", "petId", "administeredById", name,
+                                 "administeredAt", "nextDueAt", "updatedAt")
+       VALUES ($6, $1, $2, $3, $4, $5, $7, now())`,
+      [clinic.id, active.id, vet.id, name, ago(365), halId("vaccination", key), nextDueAt],
+    );
+    made(stateId);
+  }
+
   // The invoice number already names the state ("HAL-PAID-USD"), so the
   // address comes from it rather than from a second list that could
   // disagree with it.
@@ -806,6 +882,70 @@ export async function buildStateClinic(db) {
     [clinic.id, client.id, active.id, ahead(2), halId("reminder", "due")],
   );
   made("notification.reminder.sendable");
+
+  // Three reminders that could not be sent, and the differences
+  // between them are the whole point.
+  //
+  // `MessageLog.error` holds the transport's stable code, never the
+  // provider's sentence, so the scope can be read back from it
+  // (`lib/messaging/failures.ts`). `40` is the clinic's problem: an
+  // unapproved sender title fails every message the clinic sends, so
+  // repeating it on each row would send a vet to forty owners over one
+  // setting. `85` really is about the one message.
+  //
+  // The dueAt puts all three inside the sweep's notice window on
+  // purpose: they are candidates, and the sweep leaves them alone for
+  // three different named reasons. Before this, `coolingOff` and
+  // `attemptsExhausted` were counters that could never be anything but
+  // zero, which is a summary line nobody can check.
+  const failedReminder = async (key, title, failures) => {
+    const row = await one(
+      `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
+                              "dueAt", status, "updatedAt")
+       VALUES ($5, $1, $2, $3, 'VACCINATION_DUE', $6, $4, 'PENDING', now())
+       RETURNING id`,
+      [clinic.id, client.id, active.id, ahead(2), halId("reminder", key), title],
+    );
+    for (const [i, [code, at]] of failures.entries()) {
+      await db.query(
+        `INSERT INTO message_logs (id, "clinicId", "clientId", "reminderId", channel, kind,
+                                   recipient, language, body, status, error, "createdAt")
+         VALUES ($7, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr', $4,
+                 'FAILED', $5, $6)`,
+        [
+          clinic.id,
+          client.id,
+          row.id,
+          `Sayın Hâl Sahibi, Zeytin için ${title.toLocaleLowerCase("tr")} yaklaşıyor. HÂL KLİNİĞİ`,
+          code,
+          at,
+          halId("messagelog", key, String(i + 1)),
+        ],
+      );
+    }
+    return row;
+  };
+
+  // One attempt, an hour ago: still waiting for the next sweep, and
+  // the cause is one a vet fixes in settings rather than on this row.
+  await failedReminder("failed-clinic", "Kuduz aşısı zamanı", [
+    ["sender_title_not_registered", hoursAgo(1)],
+  ]);
+  made("notification.reminder.failedClinic");
+
+  await failedReminder("failed-message", "Karma aşı zamanı", [
+    ["duplicate_send_blocked", hoursAgo(1)],
+  ]);
+  made("notification.reminder.failedMessage");
+
+  // Three failures, days apart: the sweep has given up, and the only
+  // thing that can move this row now is a person pressing send.
+  await failedReminder("failed-exhausted", "Bronşin aşısı zamanı", [
+    ["duplicate_send_blocked", hoursAgo(2)],
+    ["duplicate_send_blocked", ago(1)],
+    ["duplicate_send_blocked", ago(2)],
+  ]);
+  made("notification.reminder.failedExhausted");
 
   // The archived and deceased animals get a history, so they are pages
   // with something on them rather than rows carrying a flag.
