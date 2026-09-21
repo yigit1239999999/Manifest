@@ -383,6 +383,32 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    kesikli bu kod tabanında *"burada henüz bir şey yok"* demek, oysa
    orada bir şey **var**, yalnız o kişinin işi değil.
 
+9. **Paylaşımlı indeks bu ağaçta güvenli değil — commit'i kendi
+   indeksinde kes.**
+   Birden fazla ajan aynı ağaçta çalışırken `git add <kendi dosyam>`
+   **başkasının sahnelediğini kaldırmaz**, ve paylaşımlı indeks biri
+   commit atar atmaz **bayatlar.** Bayat indeksten kesilen bir commit,
+   o arada **yeni oluşturulmuş** bir dosyayı "yok" diye kaydeder — yani
+   başkasının işini **siler.**
+
+   **Yöntem (`dev` önerdi, ana oturum uyguluyor):**
+   ```
+   export GIT_INDEX_FILE=$(mktemp)   # kendi indeksim
+   git read-tree HEAD                # HEAD'den taze başla
+   git add <yalnız kendi dosyalarım>
+   git diff --cached --stat          # ve her yolu OKU
+   git commit
+   ```
+
+   **Ve kuralın yazılma sebebi, uyarının neden yetmediği:** ana oturum
+   *"commit'ten önce `git diff --cached --stat` oku"* kuralını aynı gün
+   koydu, başkasına yazdırdı, **kendisi çalıştırdı** — ve çıktıda duran
+   sekiz yabancı dosyayı **kendi diff'i sandı** (`9df1227`, bir dakika
+   sonra `db36842` ile geri alındı; aynı kaza `e333e24`'te de olmuştu).
+   Yani **listeyi görmek onu okumak değil.** Kural 7'nin bu ekibe
+   kendi içinden gelen kanıtı: uyarı vardı, okundu, ve yine kaçtı —
+   çare uyarıyı güçlendirmek değil, **indeksi paylaşmayı bırakmak.**
+
 **Ve bir ölçüm kuralı, aynı gün beş kez lazım oldu:**
 
 > **İki sabiti çarpmak ölçüm değildir.** Ölçülmemiş bir sayı, ölçülmüş gibi
