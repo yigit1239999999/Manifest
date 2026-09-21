@@ -5984,3 +5984,26 @@ kullanıcının hiç sahip olmadığı bir genişlikte. pm sayıyı geri
 çekti, ben commit'i geri aldım. **Bir ölçüm geçersizse, ondan
 türeyen karar da geçersizdir** ve geri alınması ayrı bir iş
 değildir, aynı işin ikinci yarısıdır.
+
+### Okunması kolay sayı ile karar veren sayı aynı değildir
+
+dev tazeleme gerekip gerekmediğini *"on bir commit önde"* diye
+değerlendirdi. Damgalara baktım, fark **tek dosyaydı ve o da
+belge** — yani sevk edilecek hiçbir davranış değişmemişti.
+
+dev'in kendi teşhisi kuralın kendisi:
+
+> *"On bir commit" bir **sayım**dı, bir **ölçüm** değil. Soru hiçbir
+> zaman kaç commit'in kımıldadığı değildi; **davranışı değiştiren
+> bir şeyin** kımıldayıp kımıldamadığıydı. **Okunması kolay sayıya
+> uzandım, karar vereni değil.**"*
+
+Ve damgalar **elinin altındaydı** — `SEEDED.txt`'i alıntıladı ama
+**karşılaştırmadı.**
+
+**Kural:** bir karar verirken kullandığın sayıyı seçerken sor — *bu
+sayı kararı mı veriyor, yoksa elimin altında mı duruyordu?* Bugünün
+listesi hep aynı ikame: commit sayısı yerine fark, karakter sayısı
+yerine satır sayısı, müşteri sayısı yerine mesaj sayısı, nüfus
+yerine iş, ve *"kaç satır ulaşılabilir"* yerine *"kaç **gerçek
+kişi** ulaşılabilir"*.
