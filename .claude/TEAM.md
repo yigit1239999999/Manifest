@@ -1580,6 +1580,58 @@ Geçerli ölçü:
 
 İkisi de gözlenmiş arıza modudur: kabul boşluğu ve taşınan P0.
 
+## ÖLÇÜM YÖNTEMİ — ölçmeden önce okunur
+
+Bu oturumda ölçüm **sekiz kez** yanılttı ve yedi ayrı kural doğurdu. Dağınık
+dururlarken her biri kendi vakasının anısı gibi okunuyordu; **burada bir
+araç.** value'nun isteğiyle toplandı.
+
+**Bu bölüm operatif listedir.** Her maddenin arkasındaki vaka kaydı aşağıda,
+"Kod tabanına özgü" altında duruyor — oradakiler **neden**i anlatır, buradaki
+satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzeltilir.
+
+**Bir ölçüm kaydedilmeden önce yedi sorunun yedisi de cevaplanır:**
+
+1. **Hangi commit'te?** Rapor hash taşır. Zemin değişince o zeminde alınmış
+   **açık** ölçümler işaretlenir. *(pm'in aynı turdaki iki raporu: hash'li
+   olan tuttu, hash'siz olan doğru bir bulguyu iptal etti.)*
+2. **Hangi zeminde?** Dev sunucusu mu, üretim derlemesi mi, temiz mi kirli
+   mi. **Zemini değiştiren, ölçen HERKESE söyler.** Ve zemin **lehine**
+   yanıldığında hiçbir alarm çalmaz — *"bulamadım" en az "buldum" kadar
+   zemin sorgulaması ister.*
+3. **Neyi, hangi olayı?** 307 yönlendirmesini "hızlı sayfa" diye ölçmek bu
+   oturumun ilk vakasıydı. Ölçülen şeyin **adı** yazılır.
+4. **Isıtıldı mı?** İlk koşu JIT maliyetini tek boyuta yığar. dev-ui ısıtmasız
+   **258 ms** gördü, ısıtmalı **11 ms**; pm ısıtma turunu ayrı tuttu. *İki
+   bağımsız yerde aynı önlem — bu madde o yüzden burada.*
+5. **Noktalar nereden seçildi?** Genişlikler **koddan türetilir, cihazdan
+   değil**: her bildirilen eşiğin hemen altı ve hemen üstü. İki nokta bir
+   bandı kapsamaz; üç de kapsamaz.
+6. **Görünürlük neyle ölçüldü?** **Geometriyle, metinle değil.**
+   `textContent` gizli alt elemanları toplar, `getBoundingClientRect`
+   `content-visibility: hidden` altında eski geometri döndürür, `next-intl`
+   bütün kataloğu HTML'e gömer. *"DOM'da var" ile "ekranda var" ayrı
+   iddialardır.*
+7. **Mutasyon iki yönde mi doğrulandı?** Kusuru geri koyup testin kırmızıya
+   **döndüğünü görmek** gerekir; *"eski dal bunu render etmiyordu"* metinsel
+   bir olgudur, kırmızı gördüm değildir. Ve doğrulama **paylaşılan ağaçta
+   değil** kopyada yapılır.
+
+**Ve sonucu yazarken iki ayrım korunur:**
+
+- **Ölçüm / teşhis / önerilen sınıf** ayrı yazılır. Bu oturumda üç kez ölçüm
+  sağlam çıktı, teşhis zayıf.
+- **"Ölçtüm, sorun değilmiş" tek kutu değildir.** dev-ui'nin ayrımı:
+  **"yanlış yer"** (filtreleme, 0,66 ms — gerçekten ücretsiz) ile **"doğru
+  yer, yanlış zaman"** (render, 500'de 11 ms gerçek ama bizim ölçeğimizde
+  yok) aynı kutuya konursa öğrenilecek ders *"ölçüm hep hayır der"* olur —
+  **ve o yanlış ders bir sonraki gerçek performans işini de öldürür.**
+
+**Son olarak, ölçümün kendisi de sınanır** — özellikle *"görünüyor mu"*
+sorusunu cevaplıyorsa. Bu oturumda beş kez ölçüm aracı yanılttı ve beşi de
+**yayınlanmadan** yakalandı; yakalanma sebebi her seferinde aynıydı: ölçen
+kişi sonucu **beklediğiyle** değil, **başka bir yolla** karşılaştırdı.
+
 ## Kod tabanına özgü
 
 - **Bu, bilinen Next.js değil.** Kod yazmadan önce ilgili rehber
