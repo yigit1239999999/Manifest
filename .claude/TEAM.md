@@ -4960,3 +4960,113 @@ alanın altına indirmek **alan başına mini bir Callout** üretir.*
 
 **Yeni bir varyant, kapsamı yazılmadan eklenirse her yere yayılır** —
 `Callout`'un bugün on altı çağrı yerinde yaşadığı şey buydu.
+
+### Bir sınıfın VARLIĞINI doğrulayan test, o sınıfın İŞLEDİĞİNİ doğrulamaz
+
+dev-ui rozetin tam genişliğe yayılmasını `w-fit` ile kapattı. pm
+ölçtü: **rozet hâlâ 260px / 294px kart.**
+
+Sebep flexbox: **`basis-full` → `flex-basis:100%` ana eksende
+`width`'i ezer**, yani `w-fit` hiç okunmuyor. Sınıf DOM'da duruyor ve
+hiçbir şey yapmıyor.
+
+> **`w-fit` testten geçmiş olabilir çünkü sınıf VAR. Ölçülen şey
+> sınıfın varlığıysa, sınıfın ETKİSİZ olduğu görünmüyor.**
+
+CSS'te bu özellikle yakıcı: kaskad, özgüllük ve ana eksen kuralları
+bir bildirimi **sessizce** iptal ediyor ve bildirim yerinde duruyor.
+Bir `expect(el).toHaveClass("w-fit")` sonsuza kadar yeşil kalır.
+
+**Ve pm çalışan tarifi de ölçtü**, çünkü doğru cevap tek satır
+değildi:
+
+```
+basis-full w-fit                    260px · kendi satırında ✓ · düğme 1 satır
+max-w-fit tek başına                 77px · kendi satırında ✗ · düğme 2 satır  ← GERİLEME
+max-w-fit + ardından satır kırıcı    77px · kendi satırında ✓ · düğme 1 satır  ← doğru
+```
+
+**Bir düzeltmenin "daha iyi" olduğunu söylemeden önce, düzelttiği
+şeyin yanındakini bozmadığını ölç.** `max-w-fit` tek başına rozeti
+küçültüp **daha önce düzeltilmiş sarma kusurunu geri getiriyordu.**
+
+Bu, dev-ui'nin *"ilk yarının düzeltmesi ikinci yarının kusurunu
+doğurdu"* notunun **üçüncü yarısı: ikinci yarının düzeltmesi de
+sessizce hiçbir şey yapmamış.**
+
+### Bir uyarının okunabilir olması yetmez — komşusundan AYRILABİLİR olmalı
+
+dev-ui *"uyarı fazla sönük mü"* diye sordu. pm ölçtü: **kontrast
+6.90, okunabilirlik sorunu yok.** Sorun başka.
+
+Aynı formda, aynı anda duran iki `p`'nin **sunumu birebir aynı:**
+
+- *"Bu müşteri bildirim onayı vermemiş. Hatırlatma kaydedilir ama
+  mesaj gönderilmez."*
+- *"Bu başlık müşteriye aynen gönderilir."*
+
+İkisi de `text-xs text-muted-foreground`, 12px, ağırlık 400. **Biri
+yönlendirme, öteki engel.**
+
+> Veteriner ikisini de aynı gri ipucu diye tarar ve **engeli görmeden
+> kaydeder.**
+
+**"Sönük mü" yanlış soruydu; doğru soru "komşusundan ayrılıyor mu".**
+Bir uyarıyı tek başına ölçmek, onu **bulunduğu bağlamdan** koparıyor
+— bugün ikinci kez (birincisi: 118 karakterin hangi kapsayıcıya ait
+olduğu).
+
+### "Yok" demeden önce, görmesi gereken İKİNCİ bir kanalla bak
+
+pm bugün üç kez *"ürünün bir katmanı yok"* gibi görünen bir ölçüm
+aldı, ve **üçü de kendi aletindendi:**
+
+| ne yaptı | neyi atladı | nasıl yakalandı |
+|---|---|---|
+| değeri **DOM'a enjekte** etti | bileşenin kendi durumu | gerçek tuş vuruşları |
+| `[role=alert]` ile aradı | **rolsüz** banner | tam metin araması |
+| sorgu çıktısı **kesildi** | görünür kopya | ekran görüntüsü |
+
+**Üçünde de sonuç aynı şekle bürünüyordu:** *ürünün bir katmanı
+yokmuş gibi görünmek.*
+
+pm'in kendi kuralı:
+> **Bir şeye "yok" demeden önce, onu görmesi gereken ikinci bir
+> kanalla bak.**
+
+Ve üçünü de **mesaja girmeden** yakaladı. Bugün *"ölçenin kusuru
+ölçülenin kusuru gibi okunuyor"* ailesinin en olgun hâli: aile artık
+**tespit** değil, **refleks.**
+
+### Bir gerekçe iki yerde birden yaşar
+
+dev, `version=1`'in gerekçesini hem şartnameye hem koda koymaya karar
+verdi:
+
+> **Bir parametrenin gerekçesi YALNIZ KODDA yaşarsa ilk
+> sadeleştirmede düşer; YALNIZ ŞARTNAMEDE yaşarsa kodu tek başına
+> okuyan ilk kişide düşer.**
+
+value *"şartnameye ürün şartı olarak geçsin"* demişti, dev ikinci
+yarısını ekledi. İkisinden de iyi.
+
+### Sıralamanın gerekçesi iki yöne birden çekebilir
+
+Lead aşı kartını *"onaylanmış karar bekledikçe bağlamını
+kaybeder"* diye öne aldı. value itiraz etmedi ama **asimetriyi
+gösterdi:**
+
+- **Aşı kartı** `app/(app)/page.tsx` + vaccination/dashboard
+  sorgularına dokunuyor — **beklerse bir şey kaybetmez**, karar
+  yazılı, kapsam net.
+- ***"Ulaşmadı"nın satır yarısı*** `/reminders` satırına dokunuyor —
+  **dev-ui'nin şu anda içinde olduğu satırlara.** Beklerse bugün
+  yazdığını yeniden okumak zorunda kalır.
+
+> **"Bağlam kaybı" her iş için aynı hızda işlemiyor.** Bir kararın
+> bağlamı **yazılıysa** yavaş bayatlar; bir kodun bağlamı
+> **yazarının kafasındaysa** hızlı.
+
+Ve çözüm sıralamayı değiştirmek değildi: **arka uç yarısı paralel
+başlatıldı**, çünkü tek bir dosyası bile çakışmıyor. *Sıra, ancak
+paylaşılan dosya varsa sıradır.*
