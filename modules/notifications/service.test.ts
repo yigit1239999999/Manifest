@@ -25,7 +25,7 @@ vi.mock("@/lib/messaging/transports", () => ({
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
 import {
-  attemptsExhausted,
+  automaticSendBlocked,
   logManualMessage,
   sendAppointmentMessage,
 } from "./service";
@@ -161,15 +161,39 @@ describe("sendAppointmentMessage", () => {
   });
 });
 
-describe("attemptsExhausted", () => {
-  it("blocks resends after a successful or manual send", () => {
-    expect(attemptsExhausted([{ status: "SENT" }])).toBe(true);
-    expect(attemptsExhausted([{ status: "MANUAL" }])).toBe(true);
+describe("automaticSendBlocked", () => {
+  const now = new Date("2026-09-20T12:00:00.000Z");
+  const failedAt = (hoursAgo: number) => ({
+    status: "FAILED",
+    createdAt: new Date(now.getTime() - hoursAgo * 3_600_000),
   });
-  it("allows retries until the failure cap", () => {
-    expect(attemptsExhausted([])).toBe(false);
-    expect(attemptsExhausted([{ status: "FAILED" }, { status: "FAILED" }])).toBe(false);
-    expect(attemptsExhausted([{ status: "FAILED" }, { status: "FAILED" }, { status: "FAILED" }])).toBe(true);
+
+  it("blocks resends after a successful or manual send", () => {
+    expect(automaticSendBlocked([{ status: "SENT", createdAt: now }], now)).toBe(true);
+    expect(automaticSendBlocked([{ status: "MANUAL", createdAt: now }], now)).toBe(true);
+  });
+
+  it("sends when nothing has been tried", () => {
+    expect(automaticSendBlocked([], now)).toBe(false);
+  });
+
+  // The sweep runs hourly. Without a wait, the three attempts a candidate
+  // gets would be spent within three hours of the same provider outage.
+  it("waits at least six hours after a failure", () => {
+    expect(automaticSendBlocked([failedAt(1)], now)).toBe(true);
+    expect(automaticSendBlocked([failedAt(5.9)], now)).toBe(true);
+    expect(automaticSendBlocked([failedAt(6)], now)).toBe(false);
+  });
+
+  it("measures the wait from the most recent failure", () => {
+    expect(automaticSendBlocked([failedAt(20), failedAt(2)], now)).toBe(true);
+    expect(automaticSendBlocked([failedAt(20), failedAt(7)], now)).toBe(false);
+  });
+
+  it("gives up after three failures however old they are", () => {
+    expect(automaticSendBlocked([failedAt(40), failedAt(30), failedAt(20)], now)).toBe(
+      true,
+    );
   });
 });
 

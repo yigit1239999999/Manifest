@@ -372,10 +372,35 @@ export interface SweepSummary {
   reminders: { checked: number; sent: number; failed: number; notDue: number };
 }
 
-/** Idempotent: SENT/MANUAL logs block resends; FAILED ones allow a few retries. */
-export function attemptsExhausted(messages: { status: string }[]): boolean {
+/** A failed attempt waits this long before the sweep tries the same one again. */
+export const MIN_RETRY_INTERVAL_MS = 6 * 3_600_000;
+
+/**
+ * Whether the sweep should leave this candidate alone for now.
+ *
+ * Three rules, and the middle one is why this function exists: a provider
+ * that rejected a message once (a gateway outage, a sender title pending
+ * approval) usually rejects it again a minute later, and the sweep now runs
+ * hourly. Without a wait the three attempts a candidate gets would be spent
+ * inside three hours, on the same outage, and the reminder would never be
+ * sent at all.
+ *
+ * - Already sent, by us or by hand: never send again.
+ * - Three failures: stop, and let someone look at it.
+ * - Failed recently: wait, the attempt is not lost.
+ */
+export function automaticSendBlocked(
+  messages: { status: string; createdAt: Date }[],
+  now: Date,
+): boolean {
   if (messages.some((m) => m.status === "SENT" || m.status === "MANUAL")) return true;
-  return messages.filter((m) => m.status === "FAILED").length >= MAX_AUTOMATIC_ATTEMPTS;
+
+  const failures = messages.filter((m) => m.status === "FAILED");
+  if (failures.length >= MAX_AUTOMATIC_ATTEMPTS) return true;
+  if (failures.length === 0) return false;
+
+  const lastFailure = Math.max(...failures.map((m) => m.createdAt.getTime()));
+  return now.getTime() - lastFailure < MIN_RETRY_INTERVAL_MS;
 }
 
 export async function runReminderSweep(now = new Date()): Promise<SweepSummary> {
@@ -418,11 +443,14 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
         },
         include: {
           ...APPOINTMENT_INCLUDE,
-          messages: { where: { kind: "APPOINTMENT_REMINDER" }, select: { status: true } },
+          messages: {
+            where: { kind: "APPOINTMENT_REMINDER" },
+            select: { status: true, createdAt: true },
+          },
         },
       });
       for (const appointment of candidates) {
-        if (attemptsExhausted(appointment.messages)) continue;
+        if (automaticSendBlocked(appointment.messages, now)) continue;
         summary.appointments.checked++;
         if (!isReminderDue(appointment.startsAt, now, cfg.reminder, clinic.timezone)) {
           summary.appointments.notDue++;
@@ -451,11 +479,14 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
         include: {
           pet: { select: { name: true } },
           client: { select: CLIENT_SELECT },
-          messages: { where: { kind: "REMINDER_DUE" }, select: { status: true } },
+          messages: {
+            where: { kind: "REMINDER_DUE" },
+            select: { status: true, createdAt: true },
+          },
         },
       });
       for (const reminder of reminders) {
-        if (attemptsExhausted(reminder.messages)) continue;
+        if (automaticSendBlocked(reminder.messages, now)) continue;
         summary.reminders.checked++;
         if (
           !isReminderNoticeDue(
