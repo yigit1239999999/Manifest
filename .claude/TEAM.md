@@ -2830,3 +2830,39 @@ müşteriyi tam adıyla aramak, arama kutusuna yazılacak **en tabii şey.**
 `unaccent` yeter"* diye sadeleştirirse **boşluk sorunu geri gelir ve
 kimse bağlantıyı kurmaz.** İki kusur tek anahtarla kapandı; **kayıt
 ikisini de taşımazsa anahtarın neden tek olduğu kaybolur.**
+
+### Zemini gösteren mekanizma da bayatlayabilir — kendi tazeliğini TAŞIMALI
+
+`SERVED_COMMIT.txt` bu oturumda beş kez genişledi ve altıncıda **kendisi
+yanılttı.** dev-ui yakaladı:
+
+```
+SERVED_COMMIT.txt   commit: af595ad · derlendi 16:04
+prod checkout HEAD  c921092                  16:07
+.next-prod/BUILD_ID damga                    16:08
+```
+
+Derleme olmuştu, **dosya güncellenmemişti** — ve ikisi **bağımsız olarak
+doğruydu**, yani hangisinin taze olduğu okunmuyordu.
+
+**Nasıl bulunduğu, dosyanın varlık sebebini vuruyor:** dev-ui'nin süpürgesi
+yeşil geçti, oysa pm dakikalar önce aynı adreste ihlal bulmuştu. Çelişkiyi
+**dosyaya bakarak çözemediler** — sunulan **DOM**'a bakarak çözdüler
+(`aria-busy` var, `disabled` yok → `eb0e805` sunuluyor). *Dosya "hangi
+commit'i ölçtüğünü sormadan bil" diye kondu ve o soruyu cevaplamadı.*
+
+> **Bir tazelik göstergesi, kendi tazeliğini gösteremiyorsa gösterge
+> değildir.** Çare ayrı bir adım daha değil: gösterge, **gösterdiği şeyin
+> kimliğini içermeli.**
+
+Uygulaması dev-ui'nin önerisi: dosya artık **`BUILD_ID`'nin kendisini**
+taşıyor. `cat .next-prod/BUILD_ID` ile dosyadaki `build_id:` satırı
+eşleşmiyorsa **dosya bayat** — tek `cat` ile görünür, ve karşılaştırma
+**artefaktın kendi kimliğiyle** yapılıyor, zaman damgasıyla değil.
+Yazma işi de bir betiğe alındı (`write-served.sh`), `BUILD_ID` yoksa
+**hiç yazmıyor.**
+
+**Ve bu, "kural değil yer" kalıbının kendi üzerine uygulanmış hâli:** yeri
+kurmak yetmiyor, **yerin de bir tazelik kanıtı taşıması** gerekiyor —
+yoksa yer, hatırlamaya dayanan kuralın yerini alırken **sessizce** aynı
+hataya düşüyor.
