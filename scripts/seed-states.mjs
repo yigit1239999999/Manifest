@@ -43,6 +43,26 @@ import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
+/**
+ * A number that can actually ring, read from the environment and never
+ * written down here.
+ *
+ * `SEED_REAL_PHONE` is one person's mobile. It stays in `.env`, which
+ * is gitignored, because this file is in version control: a number
+ * committed once is in the history for good, and deleting it from the
+ * file does not delete it from the repository. That is not a reversible
+ * mistake to make with somebody's phone number.
+ *
+ * A switch, not a requirement. Unset -- on CI, on a clone, on any
+ * machine but the one -- the seed builds its synthetic numbers exactly
+ * as before and says so. Nothing about the state clinic depends on it.
+ *
+ * What it is for: when the SMS credentials are entered, the first real
+ * message this product sends should arrive in the pocket of the person
+ * who decided to send it.
+ */
+export const realPhone = () => (process.env.SEED_REAL_PHONE ?? "").trim() || null;
+
 /** The name `loop-metrics.mjs` filters on. Changing it changes both. */
 export const STATE_CLINIC_NAME = "HÂL KLİNİĞİ";
 
@@ -623,7 +643,18 @@ export async function buildStateClinic(db) {
       [clinic.id, firstName, lastName, phone, consent, halId("client", key)],
     );
 
-  const client = await owner("consented", "Hâl", "Sahibi", "0532 000 00 00", true);
+  // The only owner in this clinic the sweep can reach: consented, with
+  // a number. Every sendable fixture hangs off them, so pointing this
+  // one row at a real handset is what makes a real send arrive
+  // somewhere -- and the others stay synthetic precisely because they
+  // exist to be unreachable.
+  const client = await owner(
+    "consented",
+    "Hâl",
+    "Sahibi",
+    realPhone() ?? "0532 000 00 00",
+    true,
+  );
   made("client.consent.granted");
   const declined = await owner("declined", "Reddeden", "Sahip", "0532 000 00 01", false);
   made("client.consent.declined");
@@ -1373,6 +1404,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     // whoever comes to measure it.
     console.log(
       `LOGIN [${STATE_CLINIC_LOGIN.email} / ${STATE_CLINIC_LOGIN.password}] — seed fixture, synthetic clinic only`,
+    );
+    // Said out loud, and the number itself never printed. Nobody opens
+    // `.env` to find out what a seed did; they read this line. A switch
+    // whose position cannot be seen from where the work happens is not
+    // a switch anybody can rely on.
+    console.log(
+      realPhone()
+        ? `REAL TARGET [1 müşteri gerçek numaraya ayarlandı — SEED_REAL_PHONE]`
+        : `REAL TARGET [ayarlanmadı, sentetik numaralar — SEED_REAL_PHONE boş]`,
     );
 
     // The data ground, written where the measurer is already looking.
