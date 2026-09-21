@@ -31,6 +31,13 @@
  * A list has no slot for a new record's id (`RECORD_PARAM`), so
  * `withCreated` leaves it alone and the vet simply lands back where
  * they were, with the thing that was missing now present.
+ *
+ * FOR WHOEVER ADDS THE NEXT `/new` ROUTE: add it here too, or the
+ * chain will not resume there. It fails to the safe side -- the old
+ * redirect, no error -- which means nothing will look broken and
+ * nobody will be told. That is the good failure mode for a redirect
+ * and the bad one for noticing, so the note lives at the list rather
+ * than in whatever conversation produced it.
  */
 const ALLOWED_PATHS = new Set([
   "/visits/new",
