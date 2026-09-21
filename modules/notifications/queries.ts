@@ -49,7 +49,17 @@ export interface BlockedReminder {
   title: string;
   dueAt: Date;
   reason: BlockedReminderReason;
-  client: { id: string; firstName: string; lastName: string };
+  /**
+   * The number, raw, because four of the six reasons end in a phone
+   * call -- and a list that shows a problem while sending the work to
+   * another screen to act on it is a list that gets read once.
+   *
+   * Raw on purpose: whether it can be dialled, and what to render when
+   * it cannot, is the screen's question and `telHref` is its answer.
+   * Formatting it here would be the fourth copy of a rule that already
+   * has one home.
+   */
+  client: { id: string; firstName: string; lastName: string; phone: string | null };
   pet: { id: string; name: string } | null;
 }
 
@@ -104,6 +114,7 @@ export async function blockedReminders(
         id: row.client.id,
         firstName: row.client.firstName,
         lastName: row.client.lastName,
+        phone: row.client.phone,
       },
       pet: row.pet ? { id: row.pet.id, name: row.pet.name } : null,
     });

@@ -83,6 +83,21 @@ describe("blockedReminders", () => {
   // "What is stuck" is a different question from "what went wrong".
   // A reminder that is simply waiting its turn is not an obstacle,
   // and neither is one whose message already went.
+  // Four of the six reasons end in a phone call, so a list that shows
+  // the problem and sends the vet elsewhere to act on it is a list
+  // read once. Raw: whether it can be dialled is the screen's
+  // question, and `telHref` is where that rule lives.
+  it("carries the number, including the one that cannot be dialled", async () => {
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+      reminder({ id: "r-declined", client: { ...reminder().client, notificationsOptIn: false } }),
+      reminder({ id: "r-nophone", client: { ...reminder().client, phone: null } }),
+    ] as never);
+
+    const { items } = await blockedReminders("clinic-1");
+
+    expect(items.map((i) => i.client.phone)).toEqual(["0532 123 45 67", null]);
+  });
+
   it("leaves out what is merely waiting, and what already happened", async () => {
     vi.mocked(prisma.reminder.findMany).mockResolvedValue([
       reminder({ id: "r-fine" }),
