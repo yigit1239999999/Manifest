@@ -164,9 +164,20 @@ export default async function RemindersPage({
               at: delivery.at,
               attempts: delivery.attempts,
             };
-      default:
+      case "scheduled":
+      case "sent":
+      case "notConfigured":
         return { ...delivery, channel: tChannel(delivery.channel) };
     }
+    // Not a `default:` branch, on purpose. A tenth state added to
+    // `ReminderDeliveryState` would have fallen through a default and been
+    // spread into the line with a name it has no sentence for, which
+    // renders an empty row -- the one failure the line's own test exists
+    // to catch, arriving through the one door that test cannot watch.
+    // Spelling the cases out makes the compiler refuse the new state here
+    // instead.
+    const unhandled: never = delivery;
+    return unhandled;
   }
 
   return (
