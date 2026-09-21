@@ -59,11 +59,30 @@ burada:
    klavyeyle gelen biri hangi dilin etkin olduğunu yalnızca renkten
    okuyor. ux'te, tasarım kararı.
 
-**Adın kendisi onaylandı, geriye dönük ve artık sayıya dayanıyor:** etikette
-*"value'nun son ad onaylaması alınamadı"* diye açık bir madde duruyordu; ux
-onu kapattı — `<summary>` **2,89 → koyu 9,25 / açık 7,62**, zemin
-`097cc67`, yerleşmeli yöntemle, görünürlük ve `:focus-visible` ayrıca
-doğrulanmış. value: *"savunulabilir."*
+**Adın kendisi onaylandı, geriye dönük:** etikette *"value'nun son ad
+onaylaması alınamadı"* diye açık bir madde duruyordu; ux onu kapattı —
+`<summary>` **2,89 → 7,62**, zemin `097cc67`, yerleşmeli yöntemle.
+value: *"savunulabilir."*
+
+> **⚠ BU BLOKTA İLK YAZDIĞIM İKİ SAYI YANLIŞTI — ux düzeltti, dördüncü
+> kez bir sayıyı doğrulamadan taşıdım.**
+>
+> - *"koyu 9,25 / açık 7,62"* yazmıştım. **İkisi de koyu temaydı.** ux
+>   temayı `classList.contains("dark")` ile okuyordu, uygulama ise
+>   `data-theme="dark"` kullanıyor — kontrol **hep `false`** dönüyordu.
+>   **Açık temada hiçbir odak işareti ölçülmedi.**
+> - **9,25 tekrarlanmadı.** Yüzeyi açıkça kaydeden iki koşumda `<summary>`
+>   **7,62** (çizgi `rgb(52,192,168)`, yüzey `bg-card` `rgb(22,28,24)`).
+>   *9,25 ancak neredeyse siyah bir yüzeye karşı çıkar; üründe öyle bir
+>   yüzey yok.* Hüküm aynı (2,89 → geçiyor), **sayı 7,62.**
+> - **Üst çubuk için yazdığım *"3,11, eşiği geçiyor, tutarlılık borcu"* da
+>   yanlıştı.** ⌘K 3,11 (`bg-background` üstünde) ama **tema segmentleri
+>   2,89** (`bg-card` üstünde) — **aynı mavi, farklı yüzey.** Yani
+>   tutarlılık borcu değil **kapı ihlali**. (`76c8dce` beşini de tokene
+>   bağladı, yani bugün kapalı; ama sınıfı yanlış kaydetmiştim.)
+>
+> **Ortak kök:** üçünde de yüzey ya yanlış okundu ya hiç kaydedilmedi —
+> *"hangi zemin"* maddesinin tema ve yüzey tarafı.
 
 ### Ve bir sayıyı iki kez yanlış taşıdım — `notificationsOptIn` = 10
 
@@ -83,6 +102,38 @@ okuyup **mesajda tekrarladım.** value'nun teşhisi tam buydu —
 > **Kesim tabanı mesajdan değil, kesim anında veritabanından okunur** —
 > value'nun şartı bunu zaten söylüyor (*"migration kesim anında taze
 > sayılır"*), ve bu vaka onun **neden** gerektiğinin kanıtı.
+
+## AKSAN KUSURU YARIM KAPANDI — açık yarı daha çok kullanılan yarı
+
+**Kayıt tam şu cümleyle olsun, value'nun ifadesiyle:** *"Aksan katlaması
+istemcide kapandı (`a1412c4`); **sunucu yolu açık** — liste sayfaları ve
+komut paleti **bugün her klinikte** etkileniyor. Ayrı paket değil, aynı
+kusurun ikinci yarısı."*
+
+**Ölçüldü:** Prisma'nın `mode: "insensitive"`'i `ILIKE`'a derleniyor, ve
+`ILIKE` büyük/küçük harfi katlıyor **aksanı katlamıyor** —
+`'Ayşe' ILIKE '%Ayse%'` → **`false`**.
+
+**Kapsamı ölçek kapasından bağımsız:** `app/api/search/route.ts:18-19`
+komut paletinin `quickSearch*`'ü **doğrudan** çağırdığını gösteriyor. Yani
+**⌘K'ya "Ayse" yazan veteriner bugün, 12 müşterili bir klinikte hiçbir şey
+bulamıyor.**
+
+**value'nun çerçeve düzeltmesi kayda değer:** dev *"bugün ayrışma
+doğmuyor"* diye not düşmüştü ve teknik olarak doğruydu — yerel ile sunucu
+birbirini yalanlamıyor. Ama **zarar ayrışma değil, yokluk.** Bu ayrım
+yazılmazsa madde *"çözüldü, küçük bir kalıntı var"* diye okunur.
+
+**Çözüm onaylı** (üretilmiş kolon + `unaccent` + `pg_trgm`), boyut M, ve
+yan faydası bugün indekssiz olan aramayı da indeksliyor. **Sıra:** önce
+onay paketi — *sebebi bu kusurun küçüklüğü değil ötekinin saati; her yeni
+kayıt "sorulmadı"/"reddetti" ayrımını kalıcı yok ediyor, geri gelmeyen şey
+önce gider.*
+
+**Ve bir alışkanlık olumlu kayda geçsin:** dev `unaccent`'ı ölçmek için
+kurdu, ölçtü, **kaldırdı** — gerekçesi *"migration'ın tarif etmediği bir
+zemin bırakmamak."* Zeminin bugün dört kez yanılttığı bir günde, **ölçüm
+için kurulanın geri alınması** iyi bir alışkanlık.
 
 ## ⚠ BİLDİRİLEN ODAK GERİLEMESİ YOKTU — geri alındı, iki kez
 
