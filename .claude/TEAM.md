@@ -519,8 +519,22 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    *"aynı isimde iki sahip"* tek başına zayıf (üç Mehmet Yılmaz), ama
    ikisinin de aynı adlı bir hayvanı olması tesadüf değil.
 
+   **Ve kural, yazıldığı hâliyle KENDİ tarif ettiği kusuru taşıyordu.**
+   `pm` ikinci bir vaka getirdi ve dar hâl onu **kapsamıyordu:** randevu
+   kartı kliniğin mesajlaşma durumunu `isChannelConfigured` üzerinden
+   okuyor — ama kliniğin gerçekte içinde bulunduğu hâl (*"ayarlar hiç
+   açılmadı"*) o alana **hiç yazmıyor.** Orada bir şey **silinmiş**
+   değil; alan o soruyu **hiç taşımıyor.**
+
+   **Genel hâli, ve kuralın doğru sınırı:**
+
+   > **Doğru soruyu yanlış alana sorma.** Alanın cevabı taşımamasının
+   > iki yolu var: olay onu **siler**, ya da alan o cevabı **hiç
+   > tutmaz.** İkisi de kuralı en sık vakada sessiz bırakır.
+
    **Sorulacak soru:** bu kuralın dayandığı alan, yakalamaya çalıştığı
-   olay sırasında **değişmiş** olabilir mi? Olabiliyorsa kural en sık
+   olay sırasında **değişmiş** olabilir mi — **ya da o cevabı hiç tutuyor
+   mu?** Olabiliyorsa kural en sık
    vakada sessiz kalır — ve sessiz kaldığı için kimse fark etmez.
 
 13. **Soru sormanın da maliyeti var, ve bozuk soru ölçüm değildir.**
