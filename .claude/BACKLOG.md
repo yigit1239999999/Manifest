@@ -2291,6 +2291,54 @@ dökümünü **yazdırıp** imzalayıp kaşelemek."*
 Mesaj yolu **rakip değil yoldaş**: *"hem kâğıdı veririm hem telefonuna
 kopya düşer, bir dahakine bana sormaz."*
 
+## Kopya sahip tarafında doğar, hayvan tarafında yalnızca görünür
+
+**Hekim yazdı, ve kendi vakası için açılan maddenin kendi vakasını
+yakalamayacağını gösterdi.** `value` aynı gediği bağımsız olarak buldu
+(*"ben kendi şartımı sahip kimliğine bağlamışım, oysa kopyalanan şey
+sahibin kendisi"*), yani iki kaynak.
+
+**Açılan madde:** *"aynı sahipte katlanmış adı aynı olan iki hayvan varsa,
+ikisinin kayıt sayfası da bunu söyler."*
+
+**Yakalamadığı vaka, hekimin kendi sözleriyle:**
+
+> *"Elif'in hatası hayvan tarafında başlamıyor — **Ayşe'yi bulamıyor,
+> ikinci bir Ayşe açıyor**, Pamuk da onun altına giriyor. Sonuçta iki
+> Pamuk var ama **aynı sahipte değiller**, kontrol ikisini de temiz
+> sayıyor ve ben hiçbir uyarı görmüyorum."*
+>
+> **"Kopya SAHİP tarafında doğuyor, hayvan tarafında yalnızca görünüyor."**
+
+**Ve bu hafta bir şey eklenmesini kendisi istemedi:** *"2b'deki sahip
+araması hatayı **doğmadan** engelleyen asıl şey, o yeter."* İstediği tek
+şey bu not:
+
+> **Bu kontrol, sahip kopyasından doğan ikizleri görmez.**
+
+Sebebini de yazdı, ve notun var olma gerekçesi bu: *"yoksa altı ay sonra
+biri o maddeye bakıp **'kopya meselesi kapandı'** der."*
+
+`value`'nun düzeltmesi aynı yere çıkıyor ve ölçütü hekimden alıyor: **tek
+benzersiz şey telefon** — aynı telefonu taşıyan iki müşteri kaydı varsa
+ikisi de bunu söylesin.
+
+### Taşıma mı birleştirme mi — hekim cevapladı: **taşıma**
+
+> *"Bende ihtiyaç neredeyse hep **taşıma** — tipik hâl, on yıllık düzgün
+> bir dosya ve yanlış yere düşmüş **bir** vizit. İki dolu geçmişi
+> birleştirmek yılda belki bir kez lazım olur."*
+
+Yani ucuz olan ile doğru olan aynı çıkıyor; tam birleştirme bu haftanın
+işi değil ve muhtemelen hiçbir haftanın.
+
+**Tek şartı var ve bugünün kuralına uyuyor** (*kayıp yerel kalsın, ve
+olan şey söylensin*):
+
+> *"Taşınan vizit, **taşındığını kendi üstünde yazsın** — sessizce yer
+> değiştirirse altı ay sonra 'bu vizit niye burada' diye soran ben
+> olurum."*
+
 ## Mesajlaşma hâli tek yerden türetilmeli — beş kusur, biri "gönderdim" diyip göndermiyor
 
 **Açıldı, kodlanıyor.** `pm` buldu, `dev-ui` koddan takip edip mekanizmayı
