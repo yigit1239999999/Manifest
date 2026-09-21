@@ -940,3 +940,39 @@ describe("finding an animal by its owner", () => {
     ]);
   });
 });
+
+/**
+ * The row a keyboard user is actually reading.
+ *
+ * The second line is the tiebreaker -- the owner, and when the animal
+ * was last seen -- so it is the line that decides between three animals
+ * called Zeytin. It was drawn at `accent-foreground/80` on the
+ * highlighted row, which measures 4.35:1 in the light theme against
+ * `--accent`, under the 4.5 that 12px text asks for. The one row
+ * somebody is looking at was the one row that failed.
+ *
+ * Pinned as "no alpha on either state" rather than as a number, because
+ * the number is not checkable here: jsdom resolves no custom properties
+ * and would report the class, not the contrast. What a test can hold is
+ * the shape of the rule -- each state uses its own foreground token at
+ * full strength, and rank comes from the 12px. A tint added back is how
+ * this returns, and it returns silently.
+ */
+describe("the second line of a highlighted row", () => {
+  it("uses its foreground at full strength, in both states", () => {
+    const withCaptions: ComboOption[] = [
+      { value: "p1", label: "Zeytin · kedi", caption: "Ayşe Yılmaz" },
+      { value: "p2", label: "Zeytin · kedi", caption: "Mehmet Kaya" },
+    ];
+    const view = render(<Combobox name="petId" options={withCaptions} />);
+    fireEvent.focus(view.container.querySelector('input[type="text"]')!);
+
+    const { container } = view;
+    const captions = [...container.querySelectorAll("li span.block")];
+    expect(captions.length).toBeGreaterThan(0);
+
+    for (const caption of captions) {
+      expect(caption.className).not.toMatch(/text-[a-z-]+\/\d+/);
+    }
+  });
+});

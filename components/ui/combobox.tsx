@@ -704,11 +704,27 @@ export function Combobox({
                     // the row as one thing rather than announcing a
                     // name and leaving the part that tells it apart
                     // unread.
+                    //
+                    // "Quieter" is the 12px, not a tint. This line was
+                    // `accent-foreground/80` on the highlighted row and
+                    // that measured 4.35:1 in the light theme, under
+                    // the 4.5 this size asks for -- the one row a
+                    // keyboard user is actually reading was the one row
+                    // that failed. Full strength is 6.81 and 9.20.
+                    //
+                    // Not raised to /85 (4.83), which also passes: a
+                    // five percent tint is not a hierarchy anyone can
+                    // see, and it would leave this sitting a third of a
+                    // point above the floor where the next token nudge
+                    // drops it silently. Each state now uses its own
+                    // foreground token at full strength and the size
+                    // carries the rank, which is what the unhighlighted
+                    // row beside it already does.
                     <span
                       className={cn(
                         "block text-xs",
                         active === i
-                          ? "text-accent-foreground/80"
+                          ? "text-accent-foreground"
                           : "text-muted-foreground",
                       )}
                     >
