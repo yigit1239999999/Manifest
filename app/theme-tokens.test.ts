@@ -663,10 +663,19 @@ describe("every focusable thing has a focus mark of ours", () => {
       fileURLToPath(new URL("../components/ui/button.tsx", import.meta.url)),
       "utf8",
     );
-    // The colour is written out, not reached through `outline-ring`:
-    // `outline-color` falls back to `currentColor`, which on a primary
-    // button is nearly the button's own fill. A mark that fails to
-    // invisible is worse than no mark, because it looks handled.
+    // The colour is written out rather than reached through
+    // `outline-ring`. Both work; this one cannot be reached by colour
+    // inheritance, and there is no utility name between the declaration
+    // and the token.
+    //
+    // This assertion reads a string, which is the weaker half on purpose
+    // and should not be mistaken for the other one. The string test was
+    // green throughout the `ring-offset-background` era too — it can say
+    // what was written, never what the browser computed. The computed
+    // value belongs in `e2e/`, and it has to wait for the transition:
+    // `transition-colors` animates `outline-color`, so a reading taken
+    // straight after focus is the start of a 150ms ramp from
+    // `currentColor`, not the focus ring.
     expect(button).toContain("focus-visible:outline-[var(--color-ring)]");
     expect(button).toContain("focus-visible:outline-offset-2");
     // The ring is gone, and so is the `outline-none` that existed only

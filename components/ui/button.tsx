@@ -21,11 +21,19 @@ import { cn } from "@/lib/utils";
 // clear now.
 //
 // The colour is written out rather than reached through the `outline-ring`
-// utility. `outline-color`'s initial value is `currentColor`, so if that
-// utility ever fails to reach an element the mark does not disappear —
-// it turns the colour of the text, which on a primary button is nearly
-// the colour of the button. An invisible focus ring is worse than none,
-// because it looks handled. The arbitrary value cannot fall back.
+// utility. This is not fixing a defect: `outline-ring` resolves correctly
+// here and always did. It is one less name between the declaration and
+// the token, and it cannot be reached by colour inheritance the way
+// `outline-color`'s initial value, `currentColor`, can.
+//
+// Worth knowing before measuring this, because it cost the team a cycle:
+// `transition-colors` includes `outline-color` in Tailwind v4, so on
+// focus the mark animates from `currentColor` to `--ring` over 150ms.
+// Read straight after `.focus()` and every variant in every theme
+// reports `currentColor` — on a primary button that is 1.09 against the
+// card in dark and 1.00 in light, which looks exactly like a broken
+// focus ring and is really a clock. Settled values are 7.62 and 5.21.
+// Any measurement of this property has to wait for the transition.
 export const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0",
   {
