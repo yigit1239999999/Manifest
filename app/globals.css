@@ -130,6 +130,29 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+  /* Text links had no focus style of their own, so keyboard users saw the
+     browser's own outline on them and our ring on every button — two focus
+     systems on one screen, and the browser's one is a fixed blue that does
+     not follow the theme (measured at 3.1:1 on the dark background, which
+     passes 3:1 by almost nothing).
+
+     One rule rather than a class on each link: there are sixteen
+     `hover:underline` call sites today and the seventeenth would be the
+     one that forgot.
+
+     `outline` and not a `ring` box-shadow, which is what buttons use. It
+     is the same two-pixel mark in the same `--ring` colour with the same
+     gap, and it differs in one way that favours it: the gap shows the
+     surface the link actually sits on, whereas `ring-offset-background`
+     paints the page colour even when the link is on a card. If ux wants
+     them identical rather than equivalent, the buttons are the ones to
+     change. */
+  a:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-control);
+  }
+
   /* Browser autofill paints a pale yellow/blue box that clashes with the
      theme (very visible in dark mode). Keep the field's own colors. */
   input:-webkit-autofill,

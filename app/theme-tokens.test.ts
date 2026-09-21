@@ -608,3 +608,43 @@ describe("new code writes direction logically", () => {
     expect(physical('className="p-3 m-1 border-2 text-sm rounded-pill"')).toBe(0);
   });
 });
+
+// Keyboard focus was two systems on one screen: buttons carried a designed
+// ring, text links carried whatever the browser draws. ux measured the
+// browser's on the dark theme at 3.11 against a 3:1 threshold — passing by
+// almost nothing, in a colour that is not ours and does not follow the
+// theme. Sixteen `hover:underline` call sites had no focus style at all.
+//
+// One rule in the stylesheet rather than a class on each link, for the
+// reason the surface constant exists: the seventeenth call site is the one
+// that forgets.
+describe("every focusable thing has a focus mark of ours", () => {
+  const css = readFileSync(
+    fileURLToPath(new URL("./globals.css", import.meta.url)),
+    "utf8",
+  );
+
+  it("gives links a focus outline, in the ring colour", () => {
+    const rule = css.match(/a:focus-visible\s*\{[^}]*\}/);
+    expect(rule).not.toBeNull();
+    // From the token, so switching theme switches the mark. A literal
+    // colour here is how the browser's fixed blue got to be a problem in
+    // the first place.
+    expect(rule![0]).toContain("var(--color-ring)");
+    expect(rule![0]).toMatch(/outline-offset/);
+    // No hex, rgb() or palette name in the rule.
+    expect(rule![0]).not.toMatch(/#[0-9a-f]{3,8}|rgb\(/i);
+  });
+
+  it("uses the same token buttons use", () => {
+    // The two marks are allowed to be drawn differently — a ring is a
+    // box-shadow, an outline is an outline — but not to be different
+    // colours, which is what "two systems" looked like.
+    const button = readFileSync(
+      fileURLToPath(new URL("../components/ui/button.tsx", import.meta.url)),
+      "utf8",
+    );
+    expect(button).toContain("focus-visible:ring-ring");
+    expect(css.match(/a:focus-visible\s*\{[^}]*\}/)![0]).toContain("--color-ring");
+  });
+});
