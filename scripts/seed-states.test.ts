@@ -72,12 +72,24 @@ describe("the state clinic produces what it promises", () => {
     // Run twice, the states are rebuilt and not doubled. Measurements are
     // taken against this database, and a seed that accumulates corrupts
     // the thing it exists to protect.
+    //
+    // The first statement that touches a table, not the first statement
+    // outright: the seed pins the session's time zone before it does
+    // anything, and that is not a write. What must hold is that nothing
+    // is written before the delete — a row created first would be
+    // deleted by it, or orphaned — and that the delete is scoped by the
+    // clinic's name, which is the boundary of how much of this database
+    // the seed is allowed to touch.
     const { db, statements } = recorder();
 
     await buildStateClinic(db);
 
-    expect(statements[0]).toContain("DELETE FROM clinics");
-    expect(db.query.mock.calls[0][1]).toEqual([STATE_CLINIC_NAME]);
+    const writes = statements
+      .map((sql, i) => ({ sql, i }))
+      .filter(({ sql }) => /\b(INSERT|UPDATE|DELETE)\b/i.test(sql));
+
+    expect(writes[0].sql).toContain("DELETE FROM clinics");
+    expect(db.query.mock.calls[writes[0].i][1]).toEqual([STATE_CLINIC_NAME]);
   });
 
   it("writes nothing outside its own clinic", async () => {

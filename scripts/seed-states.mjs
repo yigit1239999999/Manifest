@@ -83,6 +83,15 @@ export const STATES = [
     covers:
       "an appointment whose time has gone by and is still SCHEDULED: nobody came, and nobody wrote that down",
   },
+  // ux cannot measure whether a mark is scannable in a list of five.
+  // What is being asked is not "is the mark there" but "can the marked
+  // ones be picked out from the unmarked", and only a crowd answers
+  // that -- so the mix is as much the state as the crowd is.
+  {
+    id: "appointment.day.busy",
+    covers:
+      "a full day of appointments, closed and still-open mixed together: whether the outcome-not-recorded mark can be picked out by scanning rather than by reading every row",
+  },
   {
     id: "appointment.past.arrived",
     covers:
@@ -190,8 +199,30 @@ export const STATES = [
 ];
 
 const DAY = 86_400_000;
-const ago = (days) => new Date(Date.now() - days * DAY);
-const ahead = (days) => new Date(Date.now() + days * DAY);
+
+/**
+ * An instant as an ISO string, and the string is the point.
+ *
+ * Every timestamp column in this schema is `timestamp without time
+ * zone` holding a UTC instant, because that is what Prisma writes.
+ * Handed a JS `Date`, node-postgres serialises it in the machine's
+ * LOCAL zone with an offset, and Postgres inserting into a naive
+ * column keeps the wall clock and throws the offset away: seeding from
+ * Europe/Istanbul stored 09:00 where Prisma stores 06:00. Three hours
+ * of drift between the seeded rows and everything the application
+ * writes, and no error anywhere.
+ *
+ * It surfaced the moment a row's clock time meant something — the busy
+ * day's "the clinic opens at nine" arrived on screen as noon. Before
+ * that it had been wrong all day in rows nobody read the hour of.
+ *
+ * `toISOString()` sends the instant in UTC, which the naive column
+ * then stores as written. Pinning the session zone does NOT fix this:
+ * the offset is decided by the client before Postgres sees it.
+ */
+const iso = (date) => date.toISOString();
+const ago = (days) => iso(new Date(Date.now() - days * DAY));
+const ahead = (days) => iso(new Date(Date.now() + days * DAY));
 
 /**
  * Builds the clinic and returns the ids it actually produced.
@@ -205,6 +236,21 @@ const ahead = (days) => new Date(Date.now() + days * DAY);
  * possible without a database.
  */
 export async function buildStateClinic(db) {
+  // Every timestamp column here is `timestamp without time zone`
+  // holding a UTC instant, because that is what Prisma writes. A JS
+  // Date handed to `pg` is converted to the SESSION's time zone first,
+  // so seeding from a machine in Europe/Istanbul stored 09:00 where
+  // Prisma would have stored 06:00 — three hours of drift between the
+  // seeded rows and everything the application writes, invisible until
+  // a row's clock time mattered.
+  //
+  // The write side is fixed by `iso()` above, which is where the drift
+  // actually comes from. This pins the session as well, so that
+  // anything computed by Postgres itself here — `now()` in an
+  // `updatedAt`, a comparison in a later addition — agrees with it.
+  // Same repair scripts/loop-metrics.mjs makes on the reading side.
+  await db.query("SET TIME ZONE 'UTC'");
+
   const produced = [];
   const made = (id) => produced.push(id);
   const one = async (sql, params) => (await db.query(sql, params)).rows[0];
@@ -396,6 +442,63 @@ export async function buildStateClinic(db) {
   }
   made("appointment.past.scheduled");
   made("appointment.past.arrived");
+
+  // A day with a day's worth of work on it.
+  //
+  // Eighteen appointments on one past day, and the MIX is the state:
+  // seven finished, three nobody came to, one called off, and seven
+  // still open. A list where every row is marked answers nothing --
+  // the question is whether a vet scanning this day can pick the
+  // unfinished ones out of the finished ones, and five rows cannot ask
+  // it either.
+  //
+  // Ordinary names, and here it matters most. In a crowd, a name that
+  // says the state turns the measurement into "can you read the names"
+  // -- the same trap that let a dead animal be spotted in a picker by
+  // being called "Vefat".
+  //
+  // Each appointment gets its own animal, because a busy day is busy
+  // with different animals, and because that is what the list actually
+  // shows: a column of names a person scans down. Times run from 09:00
+  // to 14:40 in the clinic's own zone, twenty minutes apart, which also
+  // keeps every row distinct for the per-animal-per-instant index.
+  const BUSY_DAY = [
+    ["Duman", "DOG", "COMPLETED"],
+    ["Mırnav", "CAT", "COMPLETED"],
+    ["Karamel", "DOG", "NO_SHOW"],
+    ["Şeker", "CAT", "COMPLETED"],
+    ["Bulut", "RABBIT", "SCHEDULED"],
+    ["Zümrüt", "BIRD", "COMPLETED"],
+    ["Paşa", "DOG", "ARRIVED"],
+    ["Minnoş", "CAT", "COMPLETED"],
+    ["Kestane", "DOG", "NO_SHOW"],
+    ["Limon", "BIRD", "SCHEDULED"],
+    ["Badem", "CAT", "COMPLETED"],
+    ["Çakıl", "DOG", "ARRIVED"],
+    ["Yumak", "CAT", "CANCELLED"],
+    ["Toprak", "DOG", "COMPLETED"],
+    ["Kiraz", "RABBIT", "SCHEDULED"],
+    ["Alev", "DOG", "NO_SHOW"],
+    ["Gece", "CAT", "ARRIVED"],
+    ["Tarçın", "DOG", "SCHEDULED"],
+  ];
+  const busyDay = new Date(ago(3));
+  for (const [i, [name, species, status]] of BUSY_DAY.entries()) {
+    const at = new Date(busyDay);
+    // 06:00 UTC is 09:00 in Europe/Istanbul, which is when a clinic
+    // opens. The column is naive UTC (the session is pinned above), so
+    // the hour is set in UTC and read back as the clinic's morning.
+    at.setUTCHours(6, i * 20, 0, 0);
+    const animal = await pet(name, species);
+    await db.query(
+      `INSERT INTO appointments (id, "clinicId", "petId", "clientId", "vetId", "startsAt",
+                                 type, status, "updatedAt")
+       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, 'WELLNESS_CHECK',
+               $6::"AppointmentStatus", now())`,
+      [clinic.id, animal.id, client.id, vet.id, iso(at), status],
+    );
+  }
+  made("appointment.day.busy");
 
   const visit = await one(
     `INSERT INTO visits (id, "clinicId", "petId", "clientId", "vetId", "visitedAt", type,
