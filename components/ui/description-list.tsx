@@ -91,30 +91,41 @@ export function DescriptionList({
   const row = layout === "row";
 
   return (
-    <dl className={cn("flex flex-col gap-2 text-sm", className)}>
+    // The container the pairs measure themselves against is this list, not
+    // the viewport. See the note on the row class below.
+    <dl className={cn("flex flex-col gap-2 text-sm", row && "@container", className)}>
       {items.map((item) => (
         <div
           key={item.label}
           className={
             row
-              ? // Two fallbacks, because the narrow case is not the phone.
+              ? // The width that decides this is the list's, not the
+                // screen's, and on this page the two move in opposite
+                // directions. `/visits/[id]` puts the vitals card in a
+                // `lg:grid-cols-3`, so the card is at its narrowest exactly
+                // when the window is at its widest. Measured, container
+                // width after the card's own padding:
                 //
-                // Measured on the vitals card, the only `row` call site:
-                // the longest label is English, "Respiration (bpm)" at 17
-                // characters against Turkish "Solunum (bpm)" at 13
-                // (TEAM.md #32b — which language is longer is per surface,
-                // and the instinct was wrong here too). At 390px the card
-                // is full width and has ~310px of content, which the pair
-                // fits. Where it does not fit is the `lg:grid-cols-3`
-                // column at exactly 1024px: ~176px, and the pair needs
-                // ~215px.
+                //   390px  phone, single column   310px
+                //   1024px three columns, capped  176px
+                //   1280px three columns          261px
+                //   1440px three columns, capped  298px
                 //
-                // So `flex-wrap` rather than a breakpoint: below `sm` the
-                // pair is stacked outright, and above it the value drops
-                // to its own line whenever the two cannot share one. No
-                // guess about which width is the tight one, and nothing
-                // lands off the edge at any width (TEAM.md #27).
-                "flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-4 sm:gap-y-0.5"
+                // The widest pair needs ~232px: the longest label is
+                // English, "Respiration (bpm)" at 17 characters, ~136px at
+                // 12px uppercase with `tracking-wide`, plus the gap and a
+                // formatted date. Turkish is shorter here — "Solunum
+                // (bpm)" is 13 — which is the second time on this surface
+                // that the instinct about which language is longer was
+                // wrong (TEAM.md #32b).
+                //
+                // `@2xs` (288px) rather than a screen breakpoint, which
+                // cannot see any of this, and rather than `flex-wrap`,
+                // which would wrap the three long pairs and leave the four
+                // short ones on one line — breaking the figure column at
+                // points that move with the language, which is the one
+                // thing `numeric` exists to prevent.
+                "flex flex-col gap-0.5 @2xs:flex-row @2xs:items-baseline @2xs:justify-between @2xs:gap-4"
               : "flex flex-col gap-0.5"
           }
         >
@@ -128,7 +139,7 @@ export function DescriptionList({
             className={cn(
               "text-sm text-foreground",
               item.numeric && "tabular-nums",
-              item.numeric && row && "sm:text-end",
+              item.numeric && row && "@2xs:text-end",
               // Muted, so that the absence of a value does not read as a
               // value someone entered.
               isEmpty(item.value) && "text-muted-foreground",

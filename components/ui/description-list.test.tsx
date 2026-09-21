@@ -58,24 +58,27 @@ describe("DescriptionList", () => {
     expect(screen.getByRole("button", { name: "Ayşe" })).toBeInTheDocument();
   });
 
-  it("stacks by default, and shares a line only from `sm` up in row layout", () => {
+  it("stacks by default, and shares a line only when its container is wide", () => {
     const stacked = render(
       <DescriptionList items={[{ label: "Adres", value: "x" }]} />,
     ).container.querySelector("dt")!.parentElement!;
     expect(stacked.className).toContain("flex-col");
-    expect(stacked.className).not.toContain("sm:flex-row");
+    expect(stacked.className).not.toContain("@2xs:flex-row");
 
-    // Below `sm` a row pair stacks outright, and above it wraps rather
-    // than overflowing. The tight width is not the phone: it is the
-    // three-column grid at 1024px, where the column holds ~176px and the
-    // longest pair needs ~215px.
-    const row = render(
+    // A row pair stacks until its own container is wide enough. The tight
+    // width is not the phone: it is the three-column grid at 1024px, where
+    // the column leaves ~176px and the longest pair needs ~232px.
+    const rendered = render(
       <DescriptionList layout="row" items={[{ label: "Kilo", value: "4 kg" }]} />,
-    ).container.querySelector("dt")!.parentElement!;
-    expect(row.className).toContain("flex-col");
-    expect(row.className).toContain("sm:flex-row");
-    expect(row.className).toContain("sm:items-baseline");
-    expect(row.className).toContain("sm:flex-wrap");
+    ).container;
+    const pair = rendered.querySelector("dt")!.parentElement!;
+    expect(pair.className).toContain("flex-col");
+    expect(pair.className).toContain("@2xs:flex-row");
+    expect(pair.className).toContain("@2xs:items-baseline");
+    // The list is the container being measured, so the query has something
+    // to read. Without this the variants never match and `row` never
+    // renders as a row.
+    expect(rendered.querySelector("dl")!.className).toContain("@container");
   });
 
   it("sets figures in tabular digits so a column of readings lines up", () => {
@@ -92,7 +95,7 @@ describe("DescriptionList", () => {
     );
     const [weight, vet] = [...container.querySelectorAll("dd")];
     expect(weight.className).toContain("tabular-nums");
-    expect(weight.className).toContain("sm:text-end");
+    expect(weight.className).toContain("@2xs:text-end");
     expect(vet.className).not.toContain("tabular-nums");
   });
 

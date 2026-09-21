@@ -477,3 +477,29 @@ describe("the app rounds by role only", () => {
     }
   });
 });
+
+// A screen breakpoint answers "how wide is the window", and twice now that
+// has been the wrong question. On `/visits/[id]` the vitals card sits in a
+// `lg:grid-cols-3`, so it is at its narrowest exactly when the window is at
+// its widest — 176px of content at 1024px against 310px on a phone. The
+// layout there reads its own container instead, and this keeps it that way:
+// the obvious fix, when someone next finds the card cramped, is a `sm:`.
+describe("a layout that depends on its container does not read the screen", () => {
+  const file = fileURLToPath(
+    new URL("../components/ui/description-list.tsx", import.meta.url),
+  );
+
+  it("uses container variants only, in description-list", () => {
+    // Comments stripped first: the file explains the rule by naming the
+    // `lg:grid-cols-3` that motivated it, and a rule that trips over its
+    // own reasoning is a rule nobody can write down.
+    const source = readFileSync(file, "utf8").replace(/\/\/.*$/gm, "");
+    const screenVariants = source
+      .split(/[\s"'`]+/)
+      .filter((token) => /^(sm|md|lg|xl|2xl):[a-z[]/.test(token));
+    expect(screenVariants).toEqual([]);
+    // And the container it measures is declared, or the variants would
+    // silently never match.
+    expect(source).toContain("@container");
+  });
+});
