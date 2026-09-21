@@ -5563,8 +5563,20 @@ demekti — tohum **geriden** gelirse fikstür ekranda yoktur. Bu onun
 **aynası**: tohum **önden** gelirse **kod** eskidir, ve eksik olan
 şey veri değil, **düzeltmenin kendisi.**
 
-**Kural:** iki damga eşleşmiyorsa ölçüm geçersiz — **hangi yöne
-kaymış olursa olsun.** Eşleşmeyi gördüğün an tazele, ölçme.
+**Kural (pm'in ilk vakada incelttiği hâliyle):** iki damga
+eşleşmiyorsa **farka bak** — `git diff --stat <tohum> <derleme>`.
+Fikstür, şema ya da kod varsa **ölçme**. Yalnız belge varsa **ölç,
+ve farkı raporda yaz.**
+
+İlk vaka kuralın kendi commit'iydi: tohum `caae769`, derleme
+`ed2858c`, tohum ileride — ve aradaki tek dosya `.claude/TEAM.md`.
+Kuralın ilk hâli o ölçümü attırırdı.
+
+pm'in cümlesi: ***damga bir uyarı, fark bir cevap.*** `git diff
+--stat` bir saniye sürüyor ve *"geçersiz mi"* sorusunu **"neyi
+geçersiz kılar"**a çeviriyor. Aynı turda pm *"tarihe değil
+`git merge-base` ile içerilmeye bak"* dersini de uygulamıştı —
+**içerilmemek tek başına yetmiyor, neyin içerilmediği lazım.**
 
 Aynı ailenin kod tarafı zaten yazılı: bir commit hakkında konuşurken
 `cat` değil `git show <commit>:<file>`. Bu, onun **çalışan uygulama**
@@ -5673,3 +5685,34 @@ bağımsız olan sayıyı (toast süresi) taşıdı, o da teyit edildi.
 kurtarılabilecek tek şey zeminle **ilgisiz** olan kısımdır. Gerisi
 atılır — ve **atıldığı yazılır**, yoksa bir sonraki kişi aynı sayıyı
 yeniden üretip güvenir.
+
+### Eşleşme bir tahmin üretir, kolon bir olgu
+
+Bastırılan ikizin *"hangi mesajın yerine geçtiğini"* söylemesi için
+dev kolonsuz bir yol önerdi: okuma anında aynı `body` + `recipient`
+taşıyan kabul edilmiş mesajı bulmak. **Onayladım**, ve tek şart
+koydum: eşleşme bulunamazsa satır hiçbir şey demesin.
+
+**Şartım yetmiyordu.** dev-ui reddetti:
+
+> *Üç hatırlatma aynı metni kuruyorsa, `body` sana **birinin**
+> gittiğini söyler — **hangisinin** değil.*
+
+Yani benim kapattığım delik *"eşleşme yok"*; açık kalan delik
+**"eşleşme var ve yanlış olanı"**. Bir satırın *"şunun yerine
+geçti"* demesi için **kesin** olması gerekir, yoksa bir saat önce
+kaldırdığımız sınıfa katılır: **doğru görünen ve bazen yanlış olan
+bir sebep.**
+
+**Kural:** aynı anahtardan türeyen çoklu kayıtlarda, eşleme
+*varlığı* kanıtlar, *kimliği* kanıtlamaz. Kimlik gerekiyorsa
+işaretin kendisi saklanır.
+
+Satır bugünkü hâlinde kalıyor: *bu mesaj gitmedi*, ve *aynı metin
+gitti*. **Eksik, ama yanlış değil** — ve bu ikisi arasındaki fark,
+bugünün tamamı.
+
+Ve sıra burada da iş görüyor: şablon başlığı okumaya başlarsa iki
+farklı başlık iki farklı metin üretir, ikizler **seyrekleşir**, ve
+kolonun değeri düşer. **Kolonu şablondan önce açmak, çözülmekte olan
+bir sorunu şemaya yazmak olurdu.**
