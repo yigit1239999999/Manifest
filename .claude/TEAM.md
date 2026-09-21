@@ -4283,3 +4283,99 @@ kolonu) ama farkı, **oradaki tetiklerin ölçülebilir olması.**
 Bu, ux'in *"ölçülemeyen bir sayı kararı erteleyemez"* cümlesinin
 operasyonel hâli: park etmek meşru, **tetiği `REAL 0`'da
 üretilemeyecek bir sayıya bağlamak** değil.
+
+### Teşhis çelişkisinde ÖLÇÜM kazanır, çıkarım kaybeder
+
+value, `2773bc4` gerilemesinin sebebini koddan okudu: *klinik adında
+`truncate` var, **`min-w-0` yok**.* Lead bunu **doğrulamadan** pm'e ve
+dev-ui'ye olgu olarak taşıdı. ux ölçtü ve ikisi de yanlıştı:
+
+- `components/topbar.tsx` klinik adında **`min-w-0` zaten var** —
+  ve dahası `truncate`'in verdiği `overflow:hidden`, flex öğesinin
+  otomatik asgarisini **zaten sıfırlıyor**; eklemek boş işlem olurdu.
+- Klinik adı **zaten kısılıyor** (81 → 63 px). Sağ grup da kısılıyor.
+- **Kısılmayan tek şey çıkış `FORM`'u** (`minW:auto`,
+  `overflow:visible`), sağ kenarı 436'ya taşıyor.
+
+> **Kodu okumak bir hipotez üretir, ölçüm bir olgu.** Hipotezi olgu
+> gibi taşımak, düzeltmeyi *"tutmadı"* görünecek bir boş işleme
+> çevirir — ve asıl sebep aranmaz, çünkü "zaten denendi".
+
+pm'in ölçümü baştan doğruydu. **Lead'in kusuru bugün beşinci kez aynı:
+doğrulamadığı bir değeri taşımak** — ve bu sefer taşıdığı şey bir
+sayı değil bir **teşhis**ti, yani yanlışlığı bir başkasının işinde
+ortaya çıkacaktı.
+
+### Bir başlıkta ne olduğu, neyin olmadığıyla ölçülür
+
+ux'in asıl bulgusu gerilemenin altındaydı: 390 px'te içerik alanı
+**326 px**, sağ grup **289** istiyor — ve bunun **165 px'i tema +
+dil.**
+
+> Yarısından fazlası, veterinerin gün boyunca **neredeyse hiç
+> değiştirmediği** iki tercih için. Aynı başlıkta **arama 0 px.**
+
+**Telefon genişliğinde ürün, iş akışına ait tek denetimi gizleyip
+tercih denetimlerini tutuyor.** Bir ekranın önceliklerini, koyduğu
+şeylerden değil **daralınca neyi attığından** okursun.
+
+Ve ux yapısal işi **açmadan önce** ölçülecek şeyi yazdı: tema ve dil
+`/settings`'te de yönetiliyor mu? Başlıktan kaldırıp başka yere
+koymazsak **erişilemez** hâle gelirler — bugün tam olarak kaçındığımız
+şey. **Bir şeyi kaldırmadan önce, başka nerede bulunduğu ölçülür.**
+
+### Bir eylemin kapısı, eylemin GİTTİĞİ YERİN izniyle kurulur
+
+value, beklettiğim izin kararını **vermek yerine koda baktı** ve
+kapanmış buldu. dev ölü `invoices.read` kapısını **kaldırmış**, yerine
+eylemin kendi izni gelmiş (`invoices.write`), ve o izin gerçekten
+ayırt ediyor.
+
+> **Bir eylemin kapısı, eylemin gittiği yerin izniyle kurulur** —
+> sayfanın ya da okunan verinin izniyle değil. Ve **kimseyi
+> reddetmeyen bir kapı kaldırılır, belge diye tutulmaz**; kalacak
+> olan, **yokluğunun sebebini** söyleyen bir satırdır.
+
+Bu, *"var ama korumuyor"* ailesine verdiğimiz ilk **yapıcı** cevap —
+önceki dördü tespitti, bu bir desen.
+
+Ve value bir ürün kontrolü de yaptı: `invoices.write`'ı
+**RECEPTIONIST de taşıyor** — Türkiye'de faturayı çoğu zaman o
+kesiyor. Taşımasaydı eylem **en çok kullanacak kişiden** gizlenmiş
+olurdu. İzin tablosuna bakarken sorulacak soru *"kim yetkili"* değil,
+**"bu işi gerçekte kim yapıyor"**.
+
+### Tek tıkla geri alınabilir bir eyleme diyalog konmaz
+
+ux, *"Cevabı kaldır"* için diyalog **olmadığını şimdiden yazdı** ki
+sonra eklenmesin:
+
+> Tek tıkla geri alınabilir bir eyleme diyalog koymak, **diyalogun
+> anlamını ucuzlatır**; onu her yerde gören kullanıcı **gerçekten
+> durması gereken yerde durmaz.**
+
+Bir korumanın maliyeti, o korumanın **başka yerdeki gücü.**
+
+Ve düğmenin basıldıktan sonra **kendiliğinden kaybolması** aynı
+zamanda onayın kendisi — ayrı bir bildirim gerekmiyor.
+
+value'nun çalışma adını **değiştirmemesi** de kayda değer: *ne
+yaptığını söylüyor ve "Sıfırla"/"Temizle"nin söylemediğini söylüyor.*
+**Yeni bir şey icat etmemek**, bugün üç kez başkalarına söylenen
+kuralın kendine uygulanması.
+
+### Boş bir listenin iki sebebi varsa, tek cümle yalan söyler
+
+Hatırlatma formunda hayvan listesi **iki sebeple** boşalıyor:
+müşterinin hiç hayvanı yok **(A)**, ya da hayvanları var ama **hepsi
+vefat etmiş** ve süzülüyorlar **(B)**.
+
+ux tek cümle yazmayı reddetti — *tek cümle ikisinden birinde yalan
+söyler, `hasMore`'da bedelini ödediğimiz şeyin aynısı* — iki ayrı
+cümle verdi, ve ayırt edilemiyorsa **sebep iddia etmeyen** bir
+üçüncüsünü: **eksik ama yanlış değil.**
+
+Ve ikinci cümleyi **zorunlu** kıldı: alan isteğe bağlı, akış
+kırılmıyor — ama söylenmezse veteriner boş listeyi **engel** sanıp
+durur. value'nun şartı *"sebebi söylesin"*di; ux *"ne yapılacağını da
+söylesin"* diye genişletmişti ve burada **ikisi birden** gerekiyor.
