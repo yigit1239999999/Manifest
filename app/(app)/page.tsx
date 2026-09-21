@@ -93,9 +93,9 @@ export default async function DashboardPage() {
       hint: formatMoney(fmt, insights.outstandingInvoiceCents, currency),
     },
     {
-      key: "pendingReminders" as const,
+      key: "openReminders" as const,
       icon: ClipboardList,
-      value: insights.counts.pendingReminders,
+      value: insights.counts.openReminders,
       href: "/reminders",
       hint: undefined,
     },
@@ -159,6 +159,10 @@ export default async function DashboardPage() {
             <ColumnBars
               data={visitsLast12WeeksData}
               emptyLabel={t("empty.visits")}
+              partialLast={{
+                note: t("chart.partialPeriod"),
+                inProgress: t("chart.inProgress"),
+              }}
             />
           </CardContent>
         </Card>
@@ -170,7 +174,12 @@ export default async function DashboardPage() {
           <CardContent>
             <ColumnBars
               data={revenueLast6MonthsData}
+              emptyLabel={t("empty.revenue")}
               formatValue={(v) => formatMoney(fmt, v, currency)}
+              partialLast={{
+                note: t("chart.partialPeriod"),
+                inProgress: t("chart.inProgress"),
+              }}
             />
           </CardContent>
         </Card>
@@ -244,7 +253,10 @@ export default async function DashboardPage() {
             <CardTitle>{t("sections.petsBySpecies")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <HorizontalBars data={speciesBars} emptyLabel={t("empty.visits")} />
+            {/* Counts animals, not visits: `modules/dashboard/queries.ts`
+                groups by pet. It said "no visits yet" to a clinic with a
+                hundred animals and no visits on the books. */}
+            <HorizontalBars data={speciesBars} emptyLabel={t("empty.pets")} />
           </CardContent>
         </Card>
 

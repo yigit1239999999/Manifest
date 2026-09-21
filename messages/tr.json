@@ -89,7 +89,7 @@
       "upcomingAppointments": "Yaklaşan",
       "activePrescriptions": "Aktif reçete",
       "outstandingInvoices": "Ödenmemiş",
-      "pendingReminders": "Hatırlatma"
+      "openReminders": "Hatırlatma"
     },
     "sections": {
       "upcomingAppointments": "Yaklaşan randevular",
@@ -100,8 +100,14 @@
       "visitsLast12Weeks": "Vizitler (son 12 hafta)",
       "revenueLast6Months": "Ödenen faturalar (son 6 ay)"
     },
+    "chart": {
+      "partialPeriod": "Son sütun devam eden dönemi gösterir.",
+      "inProgress": "devam ediyor"
+    },
     "empty": {
       "appointments": "Yaklaşan randevu yok.",
+      "pets": "Henüz hayvan yok.",
+      "revenue": "Bu dönemde ödenmiş fatura yok.",
       "visits": "Henüz vizit yok.",
       "vaccinations": "Yaklaşan aşı yok."
     }

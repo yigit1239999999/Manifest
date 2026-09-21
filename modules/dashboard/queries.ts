@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { recentVisits } from "@/modules/visits/queries";
 import { upcomingAppointments } from "@/modules/appointments/queries";
 import { upcomingVaccinations } from "@/modules/vaccinations/queries";
+import { OPEN_REMINDER_STATUSES } from "@/modules/reminders/queries";
 
 interface CountsRow {
   clients: number;
@@ -21,7 +22,7 @@ interface CountsRow {
   active_prescriptions: number;
   outstanding_invoices: number;
   outstanding_total_cents: number;
-  pending_reminders: number;
+  open_reminders: number;
 }
 
 interface WeekRow {
@@ -42,7 +43,7 @@ export interface DashboardInsights {
     upcomingAppointments: number;
     activePrescriptions: number;
     outstandingInvoices: number;
-    pendingReminders: number;
+    openReminders: number;
   };
   outstandingInvoiceCents: number;
   upcomingAppointments: Awaited<ReturnType<typeof upcomingAppointments>>;
@@ -104,8 +105,14 @@ export async function dashboardInsights(
           AND i.status IN ('SENT','PARTIAL')
           AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
       )::int AS outstanding_total_cents,
+      -- The same set the reminders list shows, taken from the same constant:
+      -- the card used to count only PENDING while the list showed PENDING and
+      -- SENT, so the number on the card and the number of rows behind it
+      -- disagreed.
       (SELECT COUNT(*) FROM "reminders"
-        WHERE "clinicId" = ${clinicId} AND status = 'PENDING')::int AS pending_reminders
+        WHERE "clinicId" = ${clinicId}
+          AND status::text IN (${Prisma.join([...OPEN_REMINDER_STATUSES])})
+      )::int AS open_reminders
   `);
 
   // 2) Visits per week — date_trunc('week', …) on the database side so
@@ -180,7 +187,7 @@ export async function dashboardInsights(
     active_prescriptions: 0,
     outstanding_invoices: 0,
     outstanding_total_cents: 0,
-    pending_reminders: 0,
+    open_reminders: 0,
   };
 
   const visitsLast12Weeks = fillBucketSeries(
@@ -205,7 +212,7 @@ export async function dashboardInsights(
       upcomingAppointments: c.upcoming_appointments,
       activePrescriptions: c.active_prescriptions,
       outstandingInvoices: c.outstanding_invoices,
-      pendingReminders: c.pending_reminders,
+      openReminders: c.open_reminders,
     },
     outstandingInvoiceCents: c.outstanding_total_cents,
     upcomingAppointments: upcomingApptsList,

@@ -89,7 +89,7 @@
       "upcomingAppointments": "Upcoming",
       "activePrescriptions": "Active Rx",
       "outstandingInvoices": "Outstanding",
-      "pendingReminders": "Reminders"
+      "openReminders": "Reminders"
     },
     "sections": {
       "upcomingAppointments": "Upcoming appointments",
@@ -100,8 +100,14 @@
       "visitsLast12Weeks": "Visits (last 12 weeks)",
       "revenueLast6Months": "Paid invoices (last 6 months)"
     },
+    "chart": {
+      "partialPeriod": "The last column covers a period still in progress.",
+      "inProgress": "in progress"
+    },
     "empty": {
       "appointments": "No upcoming appointments.",
+      "pets": "No animals yet.",
+      "revenue": "No paid invoices in this period.",
       "visits": "No visits yet.",
       "vaccinations": "No vaccinations due soon."
     }
