@@ -135,7 +135,18 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={(e) => openFrom(e.currentTarget)}
-        className="hidden h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:bg-muted sm:inline-flex"
+        // The same three utilities `buttonVariants` carries, and not
+        // `buttonVariants` itself: this control is a search field
+        // wearing a button's clothes — 36px tall, 12px text, a ⌘K badge
+        // — and none of the four variants is that shape. What has to
+        // match is the focus mark, not the size.
+        //
+        // Without them it fell through to Chromium's own ring,
+        // rgb(0, 95, 204), which is the one blue in the product and
+        // reads as a control from a different application. A focus mark
+        // that moves between two colours as you tab along a row is
+        // worse than either colour on its own.
+        className="hidden h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2 sm:inline-flex"
         aria-label={tCommon("search")}
       >
         <Search className="size-3.5" />

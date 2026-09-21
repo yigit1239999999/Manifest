@@ -31,7 +31,10 @@ export function LocaleSwitcher({ className }: { className?: string }) {
           disabled={pending || locale === option.value}
           onClick={() => startTransition(() => setLocale(option.value))}
           className={cn(
-            "rounded-control px-2 py-1 font-semibold transition-colors",
+            // See `ThemeToggle`: a segment inside a bordered group takes
+            // the mark at offset 0, because an outset one would cross
+            // its neighbour.
+            "rounded-control px-2 py-1 font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-0",
             locale === option.value
               ? "bg-accent text-accent-foreground"
               : "text-muted-foreground hover:text-foreground",

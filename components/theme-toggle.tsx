@@ -58,7 +58,15 @@ export function ThemeToggle({
             aria-pressed={active}
             onClick={() => setTheme(option)}
             className={cn(
-              "rounded-control p-1.5 transition-colors",
+              // `outline-offset-0` and not the 2px the standalone
+              // buttons use: these segments sit 2px apart inside a
+              // bordered group, so an outset mark would cross the
+              // neighbour and the group's own border. Hugging the
+              // segment keeps it unambiguous about which one has focus,
+              // which is the entire job. Against the active segment's
+              // `bg-accent` the ring measures 4.58 in light and 5.69 in
+              // dark, so the gap was not carrying the contrast.
+              "rounded-control p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-0",
               active
                 ? "bg-accent text-accent-foreground"
                 : "text-muted-foreground hover:text-foreground",
