@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { Combobox } from "@/components/ui/combobox";
+import { Combobox, type ComboOption } from "@/components/ui/combobox";
 
 // Focusing the field opens the list, so by the time a keyboard user
 // presses Down it is already open — and the handler read that as
@@ -526,5 +526,87 @@ describe("the note reaches the input it is about", () => {
     const { input } = render_({ hasMore: false, onSearch: undefined });
     fireEvent.focus(input);
     expect(input.getAttribute("aria-describedby")).toBeNull();
+  });
+});
+
+// Four things can be true while the list is empty and three of them
+// used to say "No results."
+//
+// The dangerous one is the wait. The debounce is 200ms and a round
+// trip follows it, and for that whole window the vet was told the
+// clinic has no such client — at exactly the moment they are deciding
+// whether to create a second record for one who is already there.
+//
+// The fourth is failure. `.catch(() => undefined)` swallowed it and
+// the same sentence appeared, so a search that could not run and a
+// search that found nothing were the same screen.
+describe("what the list says while it has nothing to show", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  const HANDED = [{ value: "c1", label: "Ayşe Kara" }];
+
+  function searchable(onSearch: (t: string) => Promise<ComboOption[]>) {
+    const view = render(
+      <Combobox
+        name="clientId"
+        options={HANDED}
+        onSearch={onSearch}
+        hasMore
+        searchHintLabel="En az iki harf yazın."
+        searchingLabel="Aranıyor…"
+        searchFailedLabel="Arama şu anda yapılamıyor."
+        noResultsLabel="Sonuç yok."
+      />,
+    );
+    return { ...view, input: view.container.querySelector('input[type="text"]')! };
+  }
+
+  it("says it is looking, not that there is nothing", async () => {
+    let release: (v: ComboOption[]) => void = () => {};
+    const { input } = searchable(
+      () => new Promise<ComboOption[]>((resolve) => (release = resolve)),
+    );
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "zzz" } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(screen.getByText("Aranıyor…")).toBeInTheDocument();
+    expect(screen.queryByText("Sonuç yok.")).toBeNull();
+
+    await act(async () => {
+      release([]);
+    });
+    // And once it has answered, "nothing" is the honest word.
+    expect(screen.getByText("Sonuç yok.")).toBeInTheDocument();
+  });
+
+  it("says the search failed, which is not the same as finding none", async () => {
+    const { input } = searchable(async () => {
+      throw new Error("offline");
+    });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "zzz" } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(screen.getByText("Arama şu anda yapılamıyor.")).toBeInTheDocument();
+    expect(screen.queryByText("Sonuç yok.")).toBeNull();
+  });
+
+  it("still says to type more before anything has been asked", async () => {
+    const onSearch = vi.fn(async () => []);
+    const { input } = searchable(onSearch);
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "z" } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(onSearch).not.toHaveBeenCalled();
+    expect(screen.getByText("En az iki harf yazın.")).toBeInTheDocument();
   });
 });

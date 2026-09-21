@@ -38,6 +38,8 @@
     "none": "None",
     "back": "Back",
     "noResults": "No results.",
+    "searching": "Searching…",
+    "searchFailed": "The search could not run just now. Check your connection and try again.",
     "searchMinChars": "Type at least two letters to search.",
     "searchMore": "Not all records are shown. If you cannot see the one you want, keep typing before you create a new one.",
     "searchOrType": "Search or type…",

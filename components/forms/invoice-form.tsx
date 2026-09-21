@@ -108,6 +108,8 @@ export function InvoiceForm({
             onSearch={clientsCapped ? searchClientsAction : undefined}
             hasMore={clientsCapped}
             searchHintLabel={tCommon("searchMinChars")}
+            searchingLabel={tCommon("searching")}
+            searchFailedLabel={tCommon("searchFailed")}
             hasMoreLabel={tCommon("searchMore")}
           />
         </Field>

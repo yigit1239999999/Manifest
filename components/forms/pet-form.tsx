@@ -167,6 +167,8 @@ export function PetForm({
             onSearch={ownersCapped ? searchClientsAction : undefined}
             hasMore={ownersCapped}
             searchHintLabel={tCommon("searchMinChars")}
+            searchingLabel={tCommon("searching")}
+            searchFailedLabel={tCommon("searchFailed")}
             hasMoreLabel={tCommon("searchMore")}
           />
         </Field>

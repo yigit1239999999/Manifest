@@ -89,6 +89,10 @@ interface Props {
   /** Below this many characters the server is not asked. */
   minSearchChars?: number;
   searchHintLabel?: string;
+  /** Shown while the server is being asked. */
+  searchingLabel?: string;
+  /** Shown when the ask failed, which is not the same as finding none. */
+  searchFailedLabel?: string;
   hasMoreLabel?: string;
   /**
    * `option` is null when the text was typed rather than chosen — free
@@ -121,6 +125,8 @@ export function Combobox({
   hasMore = false,
   minSearchChars = 2,
   searchHintLabel,
+  searchingLabel,
+  searchFailedLabel,
   hasMoreLabel,
   onValueChange,
   "aria-describedby": describedBy,
@@ -155,6 +161,21 @@ export function Combobox({
   // where opening put it; the second one moves.
   const [moved, setMoved] = React.useState(false);
   const [remote, setRemote] = React.useState<ComboOption[]>([]);
+  // Three things can be true while nothing is on screen, and the list
+  // said "No results." to all of them: the server has not been asked
+  // yet, it has been asked and has not answered, and it answered with
+  // nothing. The middle one is the dangerous one — a vet reading "No
+  // results." during the 200ms wait plus a round trip concludes the
+  // client is not on file and opens a second record, which is the
+  // outcome the search was added to prevent.
+  //
+  // And a fourth: the ask can fail. That was swallowed whole by
+  // `.catch(() => undefined)` and also read as "No results." — an
+  // error wearing the clothes of an absence, which is the one
+  // substitution this product has decided it will not make.
+  const [status, setStatus] = React.useState<"idle" | "asking" | "failed">(
+    "idle",
+  );
   // What was picked, kept beside `value` because nothing else can name
   // it once the list moves on. A record reached through the server is in
   // `remote` only until the next keystroke replaces it, and it was never
@@ -209,14 +230,23 @@ export function Combobox({
     if (!onSearch || !readyToSearch) return;
     let live = true;
     const timer = setTimeout(() => {
+      setStatus("asking");
       onSearch(query)
         .then((found) => {
           if (!live) return;
           setRemote(found);
           setActive(0);
           setMoved(false);
+          setStatus("idle");
         })
-        .catch(() => undefined);
+        .catch(() => {
+          if (!live) return;
+          // Still caught rather than thrown: a picker that throws
+          // takes the form down with it, and the form is where the
+          // vet's typing lives. But it is reported now instead of
+          // disappearing.
+          setStatus("failed");
+        });
     }, 200);
     return () => {
       live = false;
@@ -431,8 +461,17 @@ export function Combobox({
               to stand in the list's place, which hid the fifty records
               the page had already sent down. */}
             {rows.length === 0 && (
-              <li className="px-2.5 py-2 text-xs text-muted-foreground">
+              <li
+                className={cn(
+                  "px-2.5 py-2 text-xs",
+                  status === "failed"
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+                )}
+              >
                 {(belowThreshold ? searchHintLabel : undefined) ??
+                  (status === "failed" ? searchFailedLabel : undefined) ??
+                  (status === "asking" ? searchingLabel : undefined) ??
                   noResultsLabel ??
                   "-"}
               </li>

@@ -89,6 +89,8 @@ export function AppointmentForm({
             onSearch={petsCapped ? searchPetsAction : undefined}
             hasMore={petsCapped}
             searchHintLabel={tCommon("searchMinChars")}
+            searchingLabel={tCommon("searching")}
+            searchFailedLabel={tCommon("searchFailed")}
             hasMoreLabel={tCommon("searchMore")}
           />
         </Field>
