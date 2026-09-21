@@ -72,7 +72,25 @@
   --accent: #e6f3f0;
   --accent-fg: #0b5d54;
   --ring: #0f7a6e;
-  --destructive: #9e3328;
+  /* Darkened from #9e3328, and the reason is red-vs-amber rather than
+     red on its own. Failure and blocked sit next to each other all over
+     this app, and in light theme the two were the same lightness --
+     L* 37.5 against --warning's 37.6 -- so hue was the only thing
+     separating them. With the hue channel gone there was nothing left:
+     pm measured deuteranopic dE at 6.8 in light against 21.1 in dark,
+     and 6.8 is "the same colour". Dark theme already worked because it
+     has 12.7 points of lightness between the two.
+
+     This buys 12.8 points, the mirror of the dark theme's gap, and it
+     costs no contrast at all: 7.10 -> 11.24 on white, with --warning
+     untouched at 7.07. Opening the amber instead would have pushed it
+     under its own 7.07, which is fixing colour blindness by breaking
+     contrast. If the brick reads too heavy in place, #7d281e is half
+     the mirror (L* 29.3, 9.57) and still better than what was here.
+
+     Dark theme is deliberately untouched and its values live in TWO
+     blocks below; a future change to them has to edit both. */
+  --destructive: #6b2219;
   --destructive-fg: #ffffff;
   --warning: #7f4d0e;
 }

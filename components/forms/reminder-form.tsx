@@ -290,6 +290,12 @@ export function ReminderForm({
         label={tClient("one")}
         error={state.fieldErrors?.clientId}
         hint={unreachable ? unreachableText(unreachable) : undefined}
+        // An obstacle arising from the chosen client, which is exactly
+        // what this tone is for -- and what tells it apart from the
+        // hint one field down, where "this title is sent word for word"
+        // is information about a choice rather than something standing
+        // in its way.
+        hintTone="warning"
         required
       >
         {/* See `InvoiceForm`: searchable only once the list is short of

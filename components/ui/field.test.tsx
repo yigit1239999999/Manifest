@@ -200,3 +200,51 @@ describe("Field", () => {
     });
   });
 });
+
+/**
+ * A hint can carry an obstacle, and then it has to look like one.
+ *
+ * The warning that a client cannot be messaged moved onto the field to
+ * gain its `aria-describedby`, and arrived in the same grey as "this
+ * title is sent word for word" one row below — two very different
+ * things reading identically. The tone is the smallest thing that tells
+ * them apart: colour only, same size, same place, same association.
+ */
+describe("a hint that is an obstacle", () => {
+  it("paints the warning tone without changing anything else", () => {
+    const plain = render(
+      <Field label="A" hint="bilgi">
+        <input />
+      </Field>,
+    );
+    const warned = render(
+      <Field label="B" hint="engel" hintTone="warning">
+        <input />
+      </Field>,
+    );
+    const hintOf = (r: ReturnType<typeof render>, text: string) =>
+      r.getByText(text);
+
+    expect(hintOf(plain, "bilgi").className).toContain("text-muted-foreground");
+    expect(hintOf(warned, "engel").className).toContain("text-warning");
+    // Colour and nothing else: no box, no icon, same type scale. That
+    // vocabulary belongs to `Callout`, and a Callout-per-field is the
+    // thing this prop exists instead of.
+    expect(hintOf(warned, "engel").tagName).toBe(
+      hintOf(plain, "bilgi").tagName,
+    );
+    expect(hintOf(warned, "engel").className).toContain("text-xs");
+    expect(warned.container.querySelector("svg")).toBeNull();
+  });
+
+  it("stays attached to the control, tone or not", () => {
+    const { container, getByText } = render(
+      <Field label="B" hint="engel" hintTone="warning">
+        <input />
+      </Field>,
+    );
+    const input = container.querySelector("input")!;
+    const ids = input.getAttribute("aria-describedby")!.split(" ");
+    expect(ids).toContain(getByText("engel").id);
+  });
+});

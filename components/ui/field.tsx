@@ -9,6 +9,7 @@ export function Field({
   htmlFor,
   error,
   hint,
+  hintTone = "default",
   required,
   className,
   children,
@@ -17,6 +18,22 @@ export function Field({
   htmlFor?: string;
   error?: string[];
   hint?: string;
+  /**
+   * `warning` paints the hint in the warning colour. Nothing else
+   * changes: same size, same place, same `aria-describedby`.
+   *
+   * SCOPE, and it is the whole prop: only for a hint describing an
+   * OBSTACLE arising from the field's own value — "this client has not
+   * given consent", "this animal has died". Never for general advice,
+   * however useful. A caution that turns up where nothing is blocked
+   * spends itself, and it spends every future instance with it.
+   *
+   * No box and no icon, deliberately. That vocabulary belongs to
+   * `Callout`, and bringing it down under a field produces a
+   * Callout-per-field — which is the second box saying the same thing
+   * that this prop exists to avoid.
+   */
+  hintTone?: "default" | "warning";
   required?: boolean;
   className?: string;
   children: React.ReactNode;
@@ -74,7 +91,13 @@ export function Field({
       </div>
       {child}
       {showHint && (
-        <p id={hintId} className="text-xs text-muted-foreground">
+        <p
+          id={hintId}
+          className={cn(
+            "text-xs",
+            hintTone === "warning" ? "text-warning" : "text-muted-foreground",
+          )}
+        >
           {hint}
         </p>
       )}
