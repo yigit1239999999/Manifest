@@ -65,7 +65,9 @@ export type TimelineEvent =
       kind: "note";
       id: string;
       at: Date;
-      title: string;
+      /** Always null: a note's words are its `summary`, its kind is
+       *  `noteKind`, and the screen names that from the catalogue. */
+      title: null;
       summary: string;
       pinned: boolean;
       author: { id: string; name: string } | null;
@@ -247,7 +249,12 @@ async function collectTimeline({
       kind: "note",
       id: n.id,
       at: n.createdAt,
-      title: n.kind,
+      // The raw enum was going straight to the screen: a note read
+      // "GENERAL" as its title, including the one that says the animal is
+      // allergic to penicillin. `noteKind` below already carries the same
+      // value for the component to name from the catalogue, so the title
+      // has nothing left to say — a note's own words are its `summary`.
+      title: null,
       summary: n.body,
       pinned: n.pinned,
       author: n.author,
