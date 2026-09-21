@@ -4552,3 +4552,127 @@ verilmedi — bir günlük dosyasına yazıldı.
 
 > **Bir sözcük, arkasındaki taşıyıcının verebileceğinden fazlasını
 > ima edemez.** Taşıyıcı değiştiğinde sözcük de değişir.
+
+### Aynı hâl, NÜFUSUNA göre satırda ya da banner'da durur
+
+dev-ui `neverAsked`'ı (`null`) `optedOut`'tan (`false`) ayırdı ve
+**nereye koyacağını bilmediğini yazdı:** *"Satırda bıraktım çünkü
+aksi bir ölçümüm yok — ölçmeden emin değilim ve bunu ölçen benim
+değilim."* Ölçtürdü. pm saydı:
+
+```
+notificationsOptIn      tüm veritabanı    HÂL
+true                          11             1
+false                          2             1
+null  (hiç sorulmamış)       198            61
+```
+
+**63 müşterinin 61'i `null`.** dev-ui'nin kendi banner kuralı —
+*her satıra uyan bir şey satırdan çıkar, başlığa gider* — kararı
+kendiliğinden verdi: `neverAsked` banner'a, `optedOut` satırda
+kalıyor (2 müşteri; ayırt ediyor).
+
+> **Bir hâlin doğru yeri, hâlin kendisinden değil nüfusundan
+> okunur.** Ayrımı yapmak tasarımcının işi; nereye koyacağını
+> **sayı** söyler.
+
+Ve ölçüm bir kusuru da ortaya çıkardı: `IS NOT TRUE THEN 'optedOut'`
+sayımı **61 sorulmamışı "reddetti" diye raporluyor.** Ekranda
+*"müşteri bildirim istemiyor"* yazmak 61 müşteri için **yanlış**
+olurdu — ve eylemi de farklı: reddedende yapılacak bir şey yok,
+sorulmamışta **bir tık** var.
+
+### Bir dosya hem kuralı hem ihlalini barındırabilir
+
+`lib/whatsapp/schedule.test.ts` **iki testle** şu hatayı anlatıyordu:
+*"05:00 UTC'de koşan bir süpürge, 09:00'daki hatırlatmayı hiç
+yakalamaz."* Sonra **üçüncü testte, o hatayı doğuran cron dizgisini
+doğruluyordu** (`expect(schedule).toBe("0 * * * *")`).
+
+İki test kuralı yazıyor, üçüncüsü ihlali kilitliyor — ve **hiçbiri
+ötekine bakmıyor**, çünkü biri mantığı ölçüyor, öteki bir dizgiyi.
+
+dev düzeltirken nöbetçiyi güncellemedi, **konusunu düzeltti:** artık
+dizgi karşılaştırmıyor, yapılandırılmış saati alıp `isReminderDue`'ya
+soruyor.
+
+> **Saati öne çeken biri, sebebiyle birlikte kırılma görecek** — bir
+> dizgi uyuşmazlığıyla değil.
+
+**Bir nöbetçi, koruduğu şeyin adını değil, davranışını sormalı.**
+
+### "Baktım, sorun yok" demeden önce ölç — ve ölçtüğünü yaz
+
+Lead ölçek bakışı istedi ve *"sorun görmüyorsan öyle de, yeterli"*
+dedi. dev **diyemedi:**
+
+> Süpürge ucu her koşuda **bütün klinikleri** okuyordu, `settings`
+> JSON'u dahil, sonra üçü hariç hepsini JavaScript'te eliyordu.
+
+Konusu *"mesajlaşması açık üç klinik"* olan bir iş, **klinik
+tablosunun tamamıyla** orantılı çalışıyordu — günde 96 çağrı
+olacakken, ve o tablo büyüyecek tek yönken.
+
+**Ama asıl kayda değer olan, düzeltmediği kısım:** süzgeç
+veritabanına taşındıktan sonra hâlâ sequential scan, **183 satırda
+0,085 ms**, ve bilerek öyle bırakıldı — kısmi ifade indeksi Prisma
+şemasında yazılamıyor, yalnız migration'da yaşardı, ve klinik sayısı
+on binlere çıkmadan hak etmiyor.
+
+> **Sayıyı yorumun içine yazdı ki bir sonraki kişi kararı yeniden
+> ölçmeden verebilsin.**
+
+Bu, *"eklememe de bir karardır ve gerekçesi yazılır"* kuralının
+**performans tarafı.** Ve kalan orantısızlığı (klinik başına 4 sorgu;
+183 klinik hepsi açsa çağrı başına ~730) **ölçüp yapmaması**, sonra
+*"bu tek satırlık bir gözlem değil, tasarım kararı"* demesi doğru
+sınır.
+
+### "Sıfır" ile "üretilemedi" — en sert hâli
+
+value bir okuma tablosu verdi: *"4=0 ve 2=0 ve 3=0 ise kart doğru
+söylüyor, kalem düşer."* pm tabloyu **uygulamayı reddetti:**
+
+```
+hiç aşı kaydı olmayan hayvan    21 / 21
+nextDueAt boş                    0
+nextDueAt geçmişte               0
+nextDueAt gelecekte              0
+```
+
+> Üç kova sıfır **oldukları için değil, ÜRETİLMEDİKLERİ için** 0.
+> **`3 = 0` değil, `3` üretilemedi.**
+
+HÂL'de `vaccinations` tablosu tamamen boş — **38 hâl taşıyan bir
+klinikte aşı kaydı bir hâl olarak hiç kurulmamış**, üstelik ürünün
+ana vaadinin tam ortasında.
+
+Sonuç: *"`gte: new Date()` gecikmiş aşıyı eliyor"* iddiası bugünkü
+veriyle **ne doğrulanabiliyor ne çürütülebiliyor.** Kodda açık,
+ölçüde yok.
+
+**Bir okuma tablosu, kovaların üretilebildiğini varsayar.** Tabloyu
+yazan bu varsayımı da yazmalı; yazmadıysa uygulayan reddetmeli.
+
+### Kararın tercih mi zorunluluk mu olduğunu, dokümana bakan söyler
+
+Lead SMS teslim raporu için **sorgulama** seçti, gerekçe value'nun
+*"webhook `log` modunda denenemez"* argümanıydı. pm Netgsm
+dokümanını okudu:
+
+> **SMS teslim raporu için webhook YOK.** Netgsm'in webhook'u yalnız
+> İYS ve Sesli Mesaj için.
+
+Yani karar **bir tercih değil, tek seçenekmiş.** Gerekçe doğruydu ve
+**yetersizdi** — doğru sebep daha sertti, ve onu ancak dokümana bakan
+biri söyleyebilirdi.
+
+Yanında iki olgu daha, ikisi de şartnameyi değiştirdi:
+- Sorgulanacak anahtar `bulkid`, ve o **`netgsm.ts:64`'te zaten
+  sakladığımız `jobid`.** Ek bir şey saklamaya gerek yok.
+- **`version` parametresi gönderilmezse `11`, `12`, `13` durumları
+  "zaman aşımı"na birleşiyor.** Varsayılan **bilgi kaybediyor**;
+  ayrım isteniyorsa `version=1` zorunlu.
+
+> **Bir sağlayıcının varsayılanı, bize en çok bilgi veren ayar
+> değildir.**
