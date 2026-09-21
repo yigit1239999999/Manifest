@@ -828,13 +828,13 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
 
     if (!cfg.reminders.enabled) summary.reminders.clinicsDisabled++;
     else {
-      const reminderHorizon = new Date(
-        now.getTime() + (cfg.reminders.daysBefore + 2) * 86_400_000,
+      const { from: reminderFloor, to: reminderHorizon } = reminderNoticeWindow(
+        now,
+        cfg.reminders,
       );
       // What this run has already said, and to whom. Per clinic,
       // because the number is the key and two clinics never share one.
       const sentInRun = new Set<string>();
-      const reminderFloor = new Date(now.getTime() - 86_400_000);
       const remindersSummary = summary.reminders;
       const hold = (reason: SweepSkipReason) => remindersSummary.skipped[reason]++;
       applyCensus(
@@ -990,6 +990,30 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
  * why and on which attempt). A screen that reads the status can say
  * "sent" about a message that was rejected three times.
  */
+/**
+ * The days a reminder notice can be acted on: yesterday, through the
+ * clinic's notice lead time plus two.
+ *
+ * Exported and shared rather than recomputed, because two things now
+ * ask the question. The sweep asks "what may I send"; a screen asks
+ * "what will not go out", and the second is only honest inside the
+ * same horizon as the first. A count over all time would report work
+ * that is not work yet, and a second copy of this arithmetic would
+ * drift from the sweep the first time a clinic changed its lead time.
+ *
+ * The floor is a day back, matching the sweep: a notice whose day has
+ * just passed is still worth sending.
+ */
+export function reminderNoticeWindow(
+  now: Date,
+  reminders: { daysBefore: number },
+): { from: Date; to: Date } {
+  return {
+    from: new Date(now.getTime() - 86_400_000),
+    to: new Date(now.getTime() + (reminders.daysBefore + 2) * 86_400_000),
+  };
+}
+
 export type ReminderDeliveryState =
   | { state: "scheduled"; sendAt: Date; channel: Channel }
   /** The provider says it reached a handset. The only state that claims arrival. */
