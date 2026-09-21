@@ -68,12 +68,17 @@ test.describe("First run", () => {
       const main = page.getByRole("main");
       await expect(main.getByText(list.says)).toBeVisible();
 
-      // Exactly one primary way forward, and it is the one that works.
-      // The first pass at this left the page header's own "New pet" /
-      // "New invoice" button in place beside the sentence saying that
-      // form cannot be filled in yet — two primary buttons on one
-      // screen, one of them the dead end the other replaced. It is the
-      // count that catches it, not the href.
+      // A screen may offer more than one way forward; they must all go
+      // to the same place. On these four there is one place to go, so
+      // the count is one.
+      //
+      // Not a rule against two buttons: /clients deliberately carries
+      // the same "New client" in its header and its empty state, and
+      // both open the same form. What this catches is the version of
+      // this work that shipped for one build, where the header's "New
+      // pet" stood beside a body saying an owner had to exist first --
+      // two buttons, two destinations, one a dead end. The href alone
+      // could not see it, because the href it checked was the right one.
       const ways = main.getByRole("link", { name: /^(new|yeni) /i });
       await expect(ways).toHaveCount(1);
       await expect(ways).toHaveAttribute("href", list.to);

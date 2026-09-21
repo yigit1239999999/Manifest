@@ -76,9 +76,28 @@ export default async function ClientsPage({
           // The root of the chain, and the only button on a new
           // clinic's seven list screens that leads to a form which can
           // actually be filled in: everything else wants a client or an
-          // animal that does not exist yet. The header carries the same
-          // link, but on an empty screen the reader is looking at the
-          // middle of the page, not the top right corner.
+          // animal that does not exist yet.
+          //
+          // Yes, this is the second "New client" on the screen, and it
+          // stays. The rule, which is the one the other six screens were
+          // just fixed against (ux):
+          //
+          //   A screen may offer more than one way forward. They must
+          //   all go to the same place.
+          //
+          // The defect on /pets was never that there were two buttons.
+          // It was that the header's went to /pets/new while the body
+          // said an owner had to exist first -- two buttons, two
+          // destinations, one of them a dead end. Here both go to
+          // /clients/new, and they are not the same thing said twice:
+          // the header is the standing capability, in the place it will
+          // still be once the list fills; this one is the answer in the
+          // reading path, directly under "there is nothing here".
+          //
+          // The other half of the rule, for whoever arrives next: when a
+          // screen's own action is impossible, the header's button goes
+          // too. An empty state cannot say "not yet" while the header
+          // says "go ahead".
           //
           // Not under a search: "no client named Y" is answered by
           // trying another name, and a create button there invites
