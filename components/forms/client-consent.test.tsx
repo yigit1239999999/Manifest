@@ -46,17 +46,32 @@ describe("the client's notification consent", () => {
   it("starts unanswered on a new client, and says so", () => {
     renderForm();
 
-    const granted = screen.getByRole("radio", { name: consent.granted });
-    const declined = screen.getByRole("radio", { name: consent.declined });
-
-    expect(granted).not.toBeChecked();
-    expect(declined).not.toBeChecked();
+    expect(
+      screen.getByRole("radio", { name: consent.granted }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole("radio", { name: consent.declined }),
+    ).not.toBeChecked();
     expect(screen.getByText(consent.unansweredHint)).toBeInTheDocument();
 
-    // No third radio. Making "not asked" selectable turns the absence of
-    // an answer into an answer, and the clinic would then have two ways
-    // to record the same nothing.
-    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    // "Not asked" is now a radio of its own, and it starts selected.
+    //
+    // This reverses what stood here, so the old reason is worth keeping:
+    // making the absence of an answer selectable was said to give the
+    // clinic two ways to record the same nothing. That is still true of
+    // the STORED value -- both write null, and the schema is what keeps
+    // them one -- but it was never true of the reader. An empty radio
+    // group reads as a form somebody has not finished, not as a state
+    // somebody recorded, and the vet said what an unfinished-looking
+    // control does at the counter: "if you force me I will tick one at
+    // random, and that means messaging someone who never agreed."
+    //
+    // So the third radio does not add a stored state. It stops the one
+    // we already had from looking like a mistake.
+    expect(
+      screen.getByRole("radio", { name: consent.unanswered }),
+    ).toBeChecked();
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
   });
 
   it("tells the vet what a yes buys, not only what a no costs", () => {
@@ -91,14 +106,15 @@ describe("the client's notification consent", () => {
     renderForm();
 
     const radios = screen.getAllByRole("radio") as HTMLInputElement[];
-    expect(radios.map((r) => r.name)).toEqual([
-      "notificationsOptIn",
-      "notificationsOptIn",
-    ]);
+    expect(new Set(radios.map((r) => r.name))).toEqual(
+      new Set(["notificationsOptIn"]),
+    );
     // The wire format, asserted because the other half of it is in
-    // `modules/clients/schema.ts` and the two have to agree. Neither
-    // being present is what the server reads as unanswered.
-    expect(radios.map((r) => r.value)).toEqual(["true", "false"]);
+    // `modules/clients/schema.ts` and the two have to agree. The empty
+    // value is what carries "not asked": the schema turns anything that
+    // is not "true" or "false" into no value at all, so the third radio
+    // and an untouched form arrive at the column as the same null.
+    expect(radios.map((r) => r.value)).toEqual(["true", "false", ""]);
   });
 
   it("names the question, in both languages", () => {

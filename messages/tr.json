@@ -158,6 +158,8 @@
     "overdueVaccinationsUndo": "Geri al"
   },
   "client": {
+    "optionalDetails": "İsteğe bağlı bilgiler",
+    "optionalDetailsHint": "E-posta, ikinci telefon, tercihler, adres ve notlar. Daha sonra da doldurabilirsiniz.",
     "title": "Müşteriler",
     "subtitle": "Kliniğinizdeki hayvan sahipleri.",
     "new": "Yeni müşteri",

@@ -158,6 +158,8 @@
     "overdueVaccinationsUndo": "Undo"
   },
   "client": {
+    "optionalDetails": "Optional details",
+    "optionalDetailsHint": "Email, second phone, preferences, address and notes. You can fill these in later.",
     "title": "Clients",
     "subtitle": "Pet owners in your clinic.",
     "new": "New client",

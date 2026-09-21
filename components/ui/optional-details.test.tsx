@@ -11,10 +11,13 @@ vi.mock("@/modules/pets/actions", () => ({
 }));
 vi.mock("@/modules/clients/actions", () => ({
   searchClientsAction: async () => [],
+  createClientAction: async () => ({}),
+  updateClientAction: async () => ({}),
 }));
 
 import { OptionalDetails } from "@/components/ui/optional-details";
 import { PetForm } from "@/components/forms/pet-form";
+import { ClientForm } from "@/components/forms/client-form";
 
 const OWNERS = [{ id: "c-1", firstName: "Ayşe", lastName: "Yılmaz" }];
 
@@ -90,5 +93,35 @@ describe("what may not be folded away", () => {
     // being empty -- which is how a guard quietly stops guarding.
     expect(fold!.querySelectorAll("input, select, textarea").length).toBeGreaterThan(0);
     expect(fold!.querySelectorAll("[required]")).toHaveLength(0);
+  });
+
+  it("hides nothing the client form will refuse to submit without", () => {
+    const { container } = wrap(<ClientForm />);
+
+    const fold = container.querySelector("details");
+    expect(fold).not.toBeNull();
+    expect(fold!.querySelectorAll("input, select, textarea").length).toBeGreaterThan(0);
+    expect(fold!.querySelectorAll("[required]")).toHaveLength(0);
+  });
+
+  // The constraint that does not follow from "required", and the one
+  // that would have been lost first. Notification consent is optional,
+  // so nothing above catches it -- but its unanswered value is acted
+  // on: null means no automatic message ever goes to that owner, and
+  // the dashboard counts exactly those owners. Folded, every client
+  // opened at the counter would be born silent, and the counter is the
+  // cheapest moment the question will ever be asked.
+  it("leaves the consent question where the counter will answer it", () => {
+    const { container } = wrap(<ClientForm />);
+
+    const fold = container.querySelector("details")!;
+    const consent = container.querySelectorAll(
+      'input[name="notificationsOptIn"]',
+    );
+
+    expect(consent.length).toBeGreaterThan(0);
+    for (const radio of consent) {
+      expect(fold.contains(radio)).toBe(false);
+    }
   });
 });
