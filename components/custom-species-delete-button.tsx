@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { buttonVariants } from "@/components/ui/button";
 
 export function CustomSpeciesDeleteButton({
@@ -15,21 +17,40 @@ export function CustomSpeciesDeleteButton({
   disabled?: boolean;
   disabledTitle?: string;
 }) {
-  return (
-    <form
-      action={action as unknown as (formData: FormData) => Promise<void>}
-      onSubmit={(e) => {
-        if (!window.confirm(confirmText)) e.preventDefault();
-      }}
-    >
+  const tCommon = useTranslations("common");
+
+  // The one real deletion left in the app: a species the clinic added by
+  // hand, with no animals on it, disappears for good.
+  if (disabled) {
+    return (
       <button
-        type="submit"
-        disabled={disabled}
-        title={disabled ? disabledTitle : undefined}
+        type="button"
+        disabled
+        title={disabledTitle}
         className={buttonVariants({ variant: "ghost", size: "sm" })}
       >
         {label}
       </button>
-    </form>
+    );
+  }
+
+  return (
+    <ConfirmDialog
+      title={confirmText}
+      confirmLabel={label}
+      cancelLabel={tCommon("nevermind")}
+      tone="destructive"
+      action={action as unknown as (formData: FormData) => Promise<unknown>}
+    >
+      {(open) => (
+        <button
+          type="button"
+          onClick={open}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
+        >
+          {label}
+        </button>
+      )}
+    </ConfirmDialog>
   );
 }

@@ -20,6 +20,7 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
+    "nevermind": "Cancel",
     "edit": "Edit",
     "delete": "Delete",
     "archive": "Archive",
