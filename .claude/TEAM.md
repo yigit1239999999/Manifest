@@ -411,6 +411,19 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    paylaşımlı dosyayı elde tutma.** Birincisi silmeyi, ikincisi
    silinmeyi önlüyor.
 
+   **Üçüncü madde, kuralı kullanırken bulundu ve olmazsa kural kendi
+   mayınını üretiyor:** özel indeksle commit etmek **senin** commit'ini
+   korur, ama paylaşılan indeksi **bayat bırakır** — orada o dosyanın
+   commit'inden **önceki** hâli asılı kalır, ve bir sonraki kişi onu
+   götürür. Yani sen kendini korurken **arkanda bir mayın** bırakmış
+   olursun. Aynı gün iki kez oldu, ikisinde de kurbanı `TEAM.md`'nin
+   **kural 9'u** olacaktı.
+
+   **Bu yüzden commit'ten sonra paylaşılan indeksi kendi yollarınla
+   tazele:** `git reset <commit ettiğin yollar>`. **Düz `git reset`
+   değil** — başkasının sahnelediği iş o an orada duruyor olabilir, ve
+   onu boşaltmak kuralın önlemeye çalıştığı şeyin aynısıdır.
+
    **Ve kuralın yazılma sebebi, uyarının neden yetmediği:** ana oturum
    *"commit'ten önce `git diff --cached --stat` oku"* kuralını aynı gün
    koydu, başkasına yazdırdı, **kendisi çalıştırdı** — ve çıktıda duran
