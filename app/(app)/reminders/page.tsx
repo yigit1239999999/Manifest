@@ -358,6 +358,14 @@ export default async function RemindersPage({
                 className={cn(
                   surface,
                   "flex flex-col gap-3 p-4 transition-colors sm:flex-row sm:items-start sm:justify-between",
+                  // Breathing room for the scroll that lands here after a
+                  // save. `block: "nearest"` moves the minimum distance,
+                  // which put the row flush against the bottom edge with
+                  // zero pixels under it -- fully visible and looking like
+                  // the end of the page. `scroll-margin` is the one thing
+                  // `scrollIntoView` honours, and it works from whichever
+                  // direction the row is approached.
+                  "scroll-my-6",
                 )}
               >
                 <div className="flex min-w-0 flex-col">

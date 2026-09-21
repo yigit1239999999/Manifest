@@ -208,6 +208,16 @@ describe("pointing at the row that was just created", () => {
  * WHAT IT DOES NOT CHECK: that the browser paints anything. It checks
  * that the attribute this component writes is the attribute the
  * stylesheet selects on. Only a browser can do the rest.
+ *
+ * AND IF YOU GO AND CHECK IT IN A BROWSER, read the computed style
+ * AFTER the transition, not on the next line. The row carries
+ * `transition-colors`, so `getComputedStyle` immediately after setting
+ * the attribute returns the first frame of the fade and looks exactly
+ * like a rule that never applied. pm reported "the background does not
+ * change" three times from that reading before measuring 0ms, 51ms and
+ * 201ms and finding the colour arriving on schedule. Their rule, worth
+ * carrying: before saying a thing is not happening, ask how long it
+ * would take to happen.
  */
 describe("the mark and the rule that paints it", () => {
   it("styles the attribute the component actually sets", async () => {
