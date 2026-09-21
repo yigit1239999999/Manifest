@@ -1590,7 +1590,7 @@ araç.** value'nun isteğiyle toplandı.
 "Kod tabanına özgü" altında duruyor — oradakiler **neden**i anlatır, buradaki
 satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzeltilir.
 
-**Bir ölçüm kaydedilmeden önce yedi sorunun yedisi de cevaplanır:**
+**Bir ölçüm kaydedilmeden önce sekiz sorunun sekizi de cevaplanır:**
 
 1. **Hangi commit'te?** Rapor hash taşır. Zemin değişince o zeminde alınmış
    **açık** ölçümler işaretlenir. *(pm'in aynı turdaki iki raporu: hash'li
@@ -1600,6 +1600,14 @@ satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzel
    ölçülür. pm'in üç geri çekmesi **tek bir araç hatasından** geldi ve
    üçüncüsü neredeyse atlanıyordu. Tek tek bulguyu düzeltmek yetmez; **hata
    yöntemdeyse hasat da hatalıdır.**
+   **Ve ux'in genişletmesi — kural yalnızca ölçümler için değil:** zemin
+   değişince işaretlenecek şey bir ölçüm olabileceği gibi bir **KABUL** de
+   olabilir. İlk somut vaka: pm kartı *"₺ cinsinden"* diye kabul etti, ux
+   aynı cümleyi *"TRY cinsinden"* diye ölçtü; **ikisi de kendi zemininde
+   haklıydı**, sembol düzeltmesi 14:40'ta inmişti ve ux'in derlemesi
+   14:32'de duruyordu. **Bayatlayan bir kabul, bayatlayan bir ölçümden
+   tehlikelidir** — çünkü kabul bir kapıyı kapatır ve kimse arkasına
+   bakmaz.
 2. **Hangi zeminde?** Dev sunucusu mu, üretim derlemesi mi, temiz mi kirli
    mi. **Zemini değiştiren, ölçen HERKESE söyler.** Ve zemin **lehine**
    yanıldığında hiçbir alarm çalmaz — *"bulamadım" en az "buldum" kadar
@@ -1621,7 +1629,12 @@ satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzel
    `content-visibility: hidden` altında eski geometri döndürür, `next-intl`
    bütün kataloğu HTML'e gömer. *"DOM'da var" ile "ekranda var" ayrı
    iddialardır.*
-7. **Mutasyon iki yönde mi doğrulandı?** Kusuru geri koyup testin kırmızıya
+7. **Veri, kusuru barındırabiliyor mu?** pm `vet` sütununu **boş** veriyle
+   ölçtü ve *"gizli"* ile *"-"* arasını ayıramadı; ölçüm sessizce "temiz"
+   dedi. **Araç doğru olsa bile, veri kusuru taşıyamıyorsa ölçüm hiçbir şey
+   kanıtlamaz.** Her `hideBelow` kabulü, o alanın **dolu olduğu bir kayıt**
+   ister. *(ux: "ölçüm aracı ölçümün parçasıdır"ın veri tarafı.)*
+8. **Mutasyon iki yönde mi doğrulandı?** Kusuru geri koyup testin kırmızıya
    **döndüğünü görmek** gerekir; *"eski dal bunu render etmiyordu"* metinsel
    bir olgudur, kırmızı gördüm değildir. Ve doğrulama **paylaşılan ağaçta
    değil** kopyada yapılır.
