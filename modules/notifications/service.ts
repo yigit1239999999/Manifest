@@ -11,7 +11,7 @@ import {
   whatsappLink,
   type AppointmentMessageKind,
 } from "@/lib/whatsapp/messages";
-import { normalizePhone } from "@/lib/phone";
+import { maskPhone, normalizePhone } from "@/lib/phone";
 import { isPetSilenced } from "@/lib/pet-status";
 import { isReminderDue, isReminderNoticeDue, reminderNoticeDueAt } from "@/lib/whatsapp/schedule";
 import { composeAppointmentFor, composeReminderFor } from "@/lib/messaging/compose";
@@ -508,6 +508,21 @@ export interface SweepKindSummary {
   skipped: Record<SweepSkipReason, number>;
 }
 
+/**
+ * A message the sweep would send, when it is only rehearsing.
+ *
+ * The number is masked because this is printed: four digits tell two
+ * recipients apart and will not dial either.
+ */
+export interface PlannedMessage {
+  kind: "APPOINTMENT_REMINDER" | "REMINDER_DUE";
+  /** Masked. See `maskPhone`. */
+  recipient: string;
+  body: string;
+  appointmentId?: string;
+  reminderId?: string;
+}
+
 export interface SweepSummary {
   configured: boolean;
   clinics: {
@@ -519,6 +534,14 @@ export interface SweepSummary {
   };
   appointments: SweepKindSummary;
   reminders: SweepKindSummary;
+  /**
+   * What would have gone out, filled only on a dry run.
+   *
+   * Empty on a real sweep rather than duplicating what was sent:
+   * `message_logs` is the record of that, and a second copy in a
+   * return value would be a second answer to one question.
+   */
+  planned: PlannedMessage[];
 }
 
 function emptyKindSummary(): SweepKindSummary {
@@ -727,12 +750,40 @@ export function automaticSendBlocked(
   return automaticSendBlock(messages, now) !== null;
 }
 
-export async function runReminderSweep(now = new Date()): Promise<SweepSummary> {
+/**
+ * Runs the sweep, or rehearses it.
+ *
+ * `dryRun` answers "what would go out if I ran this now" without
+ * anything going out: the same candidate query, the same
+ * eliminations, the same composed text, and one branch at the very
+ * end where a real run hands the message to a transport and a
+ * rehearsal writes it down instead.
+ *
+ * Deliberately not a second function. Two code paths answering one
+ * question drift, and the day they do the rehearsal says "two
+ * messages" while the real run sends three -- which is worse than
+ * having no rehearsal, because somebody trusted it. The branch is as
+ * late as it can be for the same reason.
+ *
+ * Nothing is written: no `MessageLog` row, no reminder moved to
+ * SENT, no attempt spent, no suppression recorded. The counts still
+ * come out as they would have, so the summary reads the same.
+ *
+ * It exists because `SMS_PROVIDER=log` made rehearsal and reality
+ * indistinguishable, and the day a real gateway is connected that
+ * difference becomes the whole thing: without this, the first run
+ * against Netgsm is the live one.
+ */
+export async function runReminderSweep(
+  now = new Date(),
+  { dryRun = false }: { dryRun?: boolean } = {},
+): Promise<SweepSummary> {
   const summary: SweepSummary = {
     configured: false,
     clinics: { total: 0, swept: 0, messagingOff: 0, channelNotConfigured: 0 },
     appointments: emptyKindSummary(),
     reminders: emptyKindSummary(),
+    planned: [],
   };
 
   // Only the clinics that could send anything, chosen in the database.
@@ -835,6 +886,16 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           target = appointmentTarget(appointment, "APPOINTMENT_REMINDER", clinic);
         } catch {
           hold("noRecipient");
+          continue;
+        }
+        if (dryRun) {
+          summary.planned.push({
+            kind: "APPOINTMENT_REMINDER",
+            recipient: maskPhone(target.recipient),
+            body: target.body,
+            appointmentId: appointment.id,
+          });
+          appointments.sent++;
           continue;
         }
         try {
@@ -944,6 +1005,13 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
             select: { id: true },
           }));
         if (alreadySaid) {
+          // A rehearsal records the decision in its counts and
+          // nowhere else: writing the suppression row would leave the
+          // twin blocked for ever by a run that sent nothing.
+          if (dryRun) {
+            hold("duplicateSuppressed");
+            continue;
+          }
           // A row of its own, and this is the point of it. Left with
           // nothing the reminder is indistinguishable from one waiting
           // its turn -- the screen would promise a send that is never
@@ -968,6 +1036,21 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           continue;
         }
 
+        if (dryRun) {
+          summary.planned.push({
+            kind: "REMINDER_DUE",
+            recipient: maskPhone(recipient),
+            body,
+            reminderId: reminder.id,
+          });
+          // Counted as it would be, and remembered as it would be:
+          // the twin of this message must still be held back in the
+          // rehearsal, or the rehearsal reports one more message than
+          // the real run would send.
+          sentInRun.add(twinKey);
+          remindersSummary.sent++;
+          continue;
+        }
         try {
           await deliver(
             clinic,

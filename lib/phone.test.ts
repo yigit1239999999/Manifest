@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPossiblePhoneText, normalizePhone, telHref } from "./phone";
+import { isPossiblePhoneText, maskPhone, normalizePhone, telHref } from "./phone";
 
 describe("normalizePhone", () => {
   it("turns Turkish local formats into international digits", () => {
@@ -107,5 +107,22 @@ describe("a field filled with zeros is not a phone number", () => {
     // mobiles start with one.
     expect(normalizePhone("0532 000 00 00")).toBe("905320000000");
     expect(isPossiblePhoneText("0500 000 00 01")).toBe(true);
+  });
+});
+
+// The dry run prints what would go out, and a rehearsal that spreads
+// real numbers through a terminal is a poor rehearsal. One reached
+// mine today from a read-only query selecting a column it did not
+// need.
+describe("maskPhone", () => {
+  it("keeps enough to tell two recipients apart, and no more", () => {
+    expect(maskPhone("905321234567")).toBe("•••• 4567");
+    expect(maskPhone("0532 123 45 67")).toBe("•••• 4567");
+  });
+
+  it("gives nothing away when there is nothing to keep", () => {
+    expect(maskPhone(null)).toBe("••••");
+    expect(maskPhone("")).toBe("••••");
+    expect(maskPhone("12")).toBe("••••");
   });
 });

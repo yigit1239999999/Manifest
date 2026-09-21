@@ -505,6 +505,114 @@ describe("runReminderSweep", () => {
     expect(suppressed).toMatchObject({ reminderId: "r-2", recipient: "905321234567" });
   });
 
+  // Until now the only way to answer "what would go out" was to send
+  // it. With `SMS_PROVIDER=log` rehearsal and reality were the same
+  // thing; the day a real gateway is connected, the first run is the
+  // live one.
+  describe("rehearsing it", () => {
+    beforeEach(() => {
+      vi.mocked(prisma.$queryRaw).mockImplementation((async () => [
+        { reason: "eligible", n: 1 },
+      ]) as never);
+      vi.mocked(prisma.messageLog.findFirst).mockResolvedValue(null as never);
+      vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+        {
+          id: "r-1",
+          type: "VACCINATION_DUE",
+          title: "Kuduz aşısı",
+          body: null,
+          dueAt: new Date("2026-09-22T09:00:00.000Z"),
+          pet: { name: "Sarı" },
+          client: {
+            id: "c-1",
+            firstName: "Ayşe",
+            lastName: "Yılmaz",
+            phone: "0532 123 45 67",
+            preferredLanguage: "tr",
+            notificationsOptIn: true,
+          },
+          messages: [],
+        },
+      ] as never);
+    });
+
+    it("says what would go out, and sends none of it", async () => {
+      const summary = await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"), {
+        dryRun: true,
+      });
+
+      expect(summary.reminders.sent).toBe(1);
+      expect(summary.planned).toHaveLength(1);
+      expect(summary.planned[0]).toMatchObject({
+        kind: "REMINDER_DUE",
+        reminderId: "r-1",
+      });
+      expect(summary.planned[0].body).toContain("Sarı");
+      expect(transport.send).not.toHaveBeenCalled();
+    });
+
+    // The rehearsal must leave the database exactly as it found it,
+    // or running it costs the thing it was meant to protect.
+    it("writes nothing at all", async () => {
+      await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"), { dryRun: true });
+
+      expect(prisma.messageLog.create).not.toHaveBeenCalled();
+      expect(prisma.reminder.update).not.toHaveBeenCalled();
+      expect(prisma.messageLog.update).not.toHaveBeenCalled();
+    });
+
+    // Four digits tell two recipients apart and dial neither. This
+    // output is printed.
+    it("prints a number nobody can call from", async () => {
+      const summary = await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"), {
+        dryRun: true,
+      });
+
+      expect(summary.planned[0].recipient).toBe("•••• 4567");
+    });
+
+    // The twin rule has to hold in rehearsal too, or the rehearsal
+    // reports one more message than the real run would send -- and a
+    // rehearsal that overcounts is worse than none, because somebody
+    // trusted it.
+    it("holds a twin back without recording that it did", async () => {
+      const twin = (id: string, title: string) => ({
+        id,
+        type: "VACCINATION_DUE",
+        title,
+        body: null,
+        dueAt: new Date("2026-09-22T09:00:00.000Z"),
+        pet: { name: "Sarı" },
+        client: {
+          id: "c-1",
+          firstName: "Ayşe",
+          lastName: "Yılmaz",
+          phone: "0532 123 45 67",
+          preferredLanguage: "tr",
+          notificationsOptIn: true,
+        },
+        messages: [],
+      });
+      vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+        twin("r-1", "Kuduz aşısı"),
+        twin("r-2", "Karma aşı"),
+      ] as never);
+      vi.mocked(prisma.$queryRaw).mockImplementation((async () => [
+        { reason: "eligible", n: 2 },
+      ]) as never);
+
+      const summary = await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"), {
+        dryRun: true,
+      });
+
+      expect(summary.planned).toHaveLength(1);
+      expect(summary.reminders.skipped.duplicateSuppressed).toBe(1);
+      // And no SUPPRESSED row: a rehearsal that wrote one would block
+      // the twin for ever on the strength of a run that sent nothing.
+      expect(prisma.messageLog.create).not.toHaveBeenCalled();
+    });
+  });
+
   it("keeps a reminder that names no animal, drops one whose animal is gone", async () => {
     await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
 

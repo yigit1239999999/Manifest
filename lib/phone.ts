@@ -130,3 +130,25 @@ export function telHref(
   const digits = normalizePhone(raw, defaultCallingCode);
   return digits ? `tel:+${digits}` : null;
 }
+
+/**
+ * A number with only its last four digits left, for output a person
+ * reads but no one should be able to dial from.
+ *
+ *   "905321234567" → "•••• 4567"
+ *
+ * Written for the sweep's dry run, which prints what would go out.
+ * The rehearsal exists so nobody has to send a real message to find
+ * out what a real message would say -- and it would be a poor
+ * rehearsal that spread the numbers around a terminal to do it. One
+ * of them reached mine today, from a read-only query that selected a
+ * column it did not need.
+ *
+ * Four digits is enough to tell two recipients apart and not enough
+ * to call either.
+ */
+export function maskPhone(raw: string | null | undefined): string {
+  const digits = (raw ?? "").replace(/\D/g, "");
+  if (digits.length < 4) return "••••";
+  return `•••• ${digits.slice(-4)}`;
+}
