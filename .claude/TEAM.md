@@ -2867,6 +2867,15 @@ kurmak yetmiyor, **yerin de bir tazelik kanıtı taşıması** gerekiyor —
 yoksa yer, hatırlamaya dayanan kuralın yerini alırken **sessizce** aynı
 hataya düşüyor.
 
+**value'nun eklemesi, ve iflasın tanımı:** çelişki **dosyaya bakarak
+değil, sunulan DOM'a bakarak** çözüldü.
+
+> **Bir gösterge, güvenilmediği anda atlanır — ve atlanması onun
+> iflasının tanımıdır.** Yanlış olması değil, **başvurulmaması.**
+
+Damga ile kimlik arasındaki fark da bu yüzden niteliksel: **damga
+hatırlamaya, kimlik üretime bağlı.**
+
 ### Ölçüm, ALETİ BİLİNEN BİR DEĞERLE SINAYARAK başlar
 
 ux'in kalıcı çaresi, bugünkü onuncu araç hatasından sonra — ve bu
@@ -2908,3 +2917,24 @@ ve bu kez sebep zaman değil, **kendi test altyapımız.**
 
 Bir kuralın değeri, **onu uygulayanın aramadığı bir şeyi bulduğunda**
 ölçülür.
+
+### Bir istisnanın bedeli, ONDAN ÖNCEKİ ÜÇ KARARI geriye dönük ucuzlatmasıdır
+
+value, v0.9.0'ı *"yakınız, geçelim"* diye kesmeyi reddederken:
+
+> Bu turda üç kez *"yakınız, geçelim"* demedim — v0.8.0'ın adını ölçüm
+> gelene kadar onaylamadım, ölçek kesimini ipucunun çaresi inene kadar
+> beklettim, gerçek bir `false` görülmeden kabul etmedim. **Üçünde de
+> haklı çıktı. Şimdi geçmek, o üçünü de geriye dönük ucuzlatırdı.**
+
+**Bu, bir eşiğin nasıl çalıştığı hakkında:** eşik, **tutulduğu sürece**
+bir bilgi taşır — *"bu ekip beklediğini söylediğinde gerçekten bekler."*
+Bir kez esnetildiğinde o bilgi **geçmişe dönük** olarak da siliniyor,
+çünkü önceki üç beklemenin de **o gün esnetilmemiş olması** tesadüf gibi
+okunmaya başlıyor.
+
+**Pratik sonucu:** bir istisnanın maliyeti hesaplanırken *"bu seferlik ne
+kaybederiz"* yetmez; **"bu istisna, daha önce aynı eşiği tutmuş kaç
+kararı açıklamasız bırakır"** sorulur. Ve bu, "abartılmış şiddet" ile
+"sahte pozitif" kurallarının üçüncü kardeşi: üçü de **bugünkü kararın
+bedelini yarınki karara** ödetiyor.
