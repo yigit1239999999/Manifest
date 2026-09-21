@@ -227,6 +227,33 @@ if (notReal.length > 0) {
 // reads like a finding. "No vaccination came back" and "no vaccination
 // exists" are the same distinction `ratio` was written for, one level
 // up: here the whole population is missing, not one denominator.
+// When the data underneath last changed, read before anything is
+// counted.
+//
+// Three ways exist to check which code is being served and there was
+// nothing for the data. A reseed drops every session and changes every
+// id without telling anyone: ux lost a measurement to one mid-run and
+// read "record not found" as a product defect, because the commit had
+// not moved. Whoever measures reads this line before and after, the
+// same bracket pm put around the code ground.
+//
+// Read from the state clinic's own settings rather than a file on
+// disk, because a file describes one person's checkout and several
+// people share this database. `public.clinics` because the views
+// created above hide that clinic by design.
+{
+  const stamp = await client.query(
+    `SELECT settings -> 'seed' AS seed FROM public.clinics WHERE name = $1`,
+    [STATE_CLINIC_NAME],
+  );
+  const seed = stamp.rows[0]?.seed;
+  console.log(
+    seed?.at
+      ? `DATA_GROUND [seeded ${seed.at} · ${seed.states} states]`
+      : "DATA_GROUND [unstamped — seed not run since this line was added, or not run at all]",
+  );
+}
+
 noRealClinics = real.length === 0;
 if (noRealClinics) {
   console.log(

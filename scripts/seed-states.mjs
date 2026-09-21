@@ -327,13 +327,20 @@ export async function buildStateClinic(db) {
         : [clinic.id, client.id, name, species],
     );
 
-  const active = await pet("Etkin", "DOG");
+  // Ordinary names, on purpose. They used to be "Etkin", "Arşivli" and
+  // "Vefat" -- the state written on the animal -- which reads as a
+  // convenience until you see what it costs: ux could tell a dead
+  // animal apart in a picker because its NAME said so, and that makes
+  // it impossible to test whether the SCREEN says so. A fixture whose
+  // labels leak the state cannot measure whether the product shows it.
+  // The state belongs in `covers`, above, and nowhere else.
+  const active = await pet("Zeytin", "DOG");
   made("pet.active");
-  const archived = await pet("Arşivli", "CAT", '"archivedAt"=', [ago(30)]);
+  const archived = await pet("Pamuk", "CAT", '"archivedAt"=', [ago(30)]);
   made("pet.archived");
   const dead = await one(
     `INSERT INTO pets (id, "clinicId", "ownerId", name, species, deceased, "deceasedAt", "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, $2, 'Vefat', 'RABBIT', true, $3, now())
+     VALUES (gen_random_uuid()::text, $1, $2, 'Fındık', 'RABBIT', true, $3, now())
      RETURNING id`,
     [clinic.id, client.id, ago(60)],
   );
@@ -524,6 +531,30 @@ export async function buildStateClinic(db) {
       [clinic.id, petId, client.id, when, type],
     );
   }
+
+  // The data ground, stamped where the data is.
+  //
+  // There are three ways to check which CODE is being served
+  // (SERVED_COMMIT.txt, a BUILD_ID match, the file's absence meaning a
+  // build is running) and there was nothing at all for the data. A
+  // reseed drops every session, changes every id, and says nothing: ux
+  // lost a measurement to one mid-run and read "record not found" as a
+  // product defect, because the commit had not moved.
+  //
+  // In the database, not in a file. A file describes the checkout of
+  // whoever is looking, and here several people share one database --
+  // the stamp has to belong to the thing that actually changed. It goes
+  // in the state clinic's own settings, so the seed that writes it also
+  // deletes it, and it cannot outlive the data it describes.
+  await db.query(
+    `UPDATE clinics SET settings = settings || $2::jsonb WHERE id = $1`,
+    [
+      clinic.id,
+      JSON.stringify({
+        seed: { at: new Date().toISOString(), states: produced.length },
+      }),
+    ],
+  );
 
   return produced;
 }
