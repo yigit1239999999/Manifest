@@ -636,15 +636,25 @@ describe("every focusable thing has a focus mark of ours", () => {
     expect(rule![0]).not.toMatch(/#[0-9a-f]{3,8}|rgb\(/i);
   });
 
-  it("uses the same token buttons use", () => {
-    // The two marks are allowed to be drawn differently — a ring is a
-    // box-shadow, an outline is an outline — but not to be different
-    // colours, which is what "two systems" looked like.
+  it("marks a button the same way, on any surface", () => {
+    // These started as two drawings of one idea — a ring on buttons, an
+    // outline on links — until ux measured the ring on a card: its gap
+    // is painted `ring-offset-background`, the page colour, which is a
+    // second place encoding what the button is sitting on. It is wrong
+    // wherever that guess is wrong, and most buttons here sit on cards.
+    //
+    // An outline's gap is transparent, so the surface shows itself and
+    // there is no second colour to keep in step.
     const button = readFileSync(
       fileURLToPath(new URL("../components/ui/button.tsx", import.meta.url)),
       "utf8",
     );
-    expect(button).toContain("focus-visible:ring-ring");
+    expect(button).toContain("focus-visible:outline-ring");
+    expect(button).toContain("focus-visible:outline-offset-2");
+    // The ring is gone, and so is the `outline-none` that existed only
+    // to clear the browser's mark before drawing it.
+    expect(button).not.toMatch(/focus-visible:ring-offset/);
+    expect(button).not.toMatch(/focus-visible:outline-none/);
     expect(css.match(/a:focus-visible\s*\{[^}]*\}/)![0]).toContain("--color-ring");
   });
 });

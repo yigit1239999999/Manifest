@@ -2,8 +2,25 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
+// The focus mark is an outline, not a ring, and ux measured why.
+//
+// A `ring` draws its gap with `ring-offset-background` — the page colour —
+// which is a second place encoding an assumption about what the button is
+// sitting on. On a card that assumption is wrong, and cards are where most
+// buttons in this app live: form submits, the collapsible clinical blocks,
+// the dashboard. A focused button on a card had a two-pixel band of page
+// colour around it.
+//
+// `outline-offset` leaves the gap transparent, so the real surface shows
+// through and no second colour is defined anywhere. Same width, same
+// `--ring`, same gap as the link rule in `globals.css` — and now the same
+// behaviour on every surface.
+//
+// `outline-none` is gone with it: it was there to clear the browser's own
+// outline before drawing a ring in its place, and there is nothing to
+// clear now.
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
