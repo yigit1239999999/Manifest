@@ -491,6 +491,43 @@ describe("what the box says when fields are wrong", () => {
     );
   });
 
+  it("sends a group's line to the chip a keyboard can reach", async () => {
+    // The line pointed at the element carrying the `name`, which for
+    // a chip group is a hidden input: it cannot take focus, so the
+    // press either did nothing or put the cursor somewhere invisible.
+    // Both are silent, which is what the summary exists to stop.
+    //
+    // The group uses a roving tabindex, so exactly one chip is
+    // reachable — the chosen answer, or the first. This file does not
+    // need to know that; `[tabindex="0"]` does.
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(
+      <ActionForm
+        form={{ ...api({ fieldErrors: { species: ["Tür gerekli."] } }), responseToken: 1 }}
+      >
+        <div>
+          <label htmlFor="species-group">Tür</label>
+          <div role="group" aria-label="Tür">
+            <input type="hidden" name="species" value="" />
+            <button type="button" tabIndex={-1}>
+              Kedi
+            </button>
+            <button type="button" tabIndex={0}>
+              Köpek
+            </button>
+          </div>
+        </div>
+      </ActionForm>,
+    );
+    await act(async () => {});
+
+    view.getByRole("button", { name: "Tür alanına git" }).click();
+
+    expect(document.activeElement).toBe(
+      view.getByRole("button", { name: "Köpek" }),
+    );
+  });
+
   it("counts the fields and names each one", () => {
     Element.prototype.scrollIntoView = vi.fn();
     const view = render(harness({}, 0));

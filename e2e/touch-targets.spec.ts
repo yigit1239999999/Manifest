@@ -33,7 +33,7 @@ async function signUp(page: Page, stamp: number) {
 }
 
 test.describe("Tap targets", () => {
-  test("a label wrapping a tick or radio is at least 24px tall", async ({
+  test("nothing is too small to tap, and nothing hangs off the side", async ({
     page,
   }) => {
     await signUp(page, Date.now());
@@ -84,6 +84,19 @@ test.describe("Tap targets", () => {
         }
         return out.filter(() => true).map((r) => ({ ...r, under: r.h < min }));
       }, MIN);
+
+      // Nothing should reach past the right edge of a phone. ux found
+      // two of these by hand today — /staff at 413px and the species
+      // suggestion chip at 76px — and neither sweep asked, because
+      // one measures target size and the other measures focus marks.
+      // The most visible defect on a narrow screen had no guard at
+      // all.
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      if (overflow > 0) {
+        offenders.push(`${route}: page scrolls sideways by ${overflow}px`);
+      }
 
       expect(
         found.length,

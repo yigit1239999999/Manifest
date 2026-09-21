@@ -71,6 +71,29 @@ interface Props {
   hiddenBuiltIns?: HiddenSpecies[];
   /** Reads after the name on the chip: "· turned off for this clinic". */
   hiddenQualifier?: string;
+  /**
+   * Whether the field this picker answers came back rejected.
+   *
+   * `Field` injects this into its single child, and this component
+   * was that child and dropped it — so on a form with three errors
+   * only two controls were marked, and the unmarked one was where a
+   * summary line sent you. ux measured it.
+   *
+   * Read, and deliberately not passed on. `aria-invalid` is a widget
+   * attribute and `role="group"` is a structure role that does not
+   * support it; ESLint says so and it is right. So the value drives
+   * the visible border, and the part a screen reader needs travels
+   * the way a group can carry it — `aria-describedby`, below.
+   */
+  "aria-invalid"?: boolean | "true" | "false";
+  /**
+   * The error text `Field` has already rendered under this group.
+   *
+   * Forwarded to the group, which is where it is allowed and where it
+   * is read on arrival. Without it the group announced its name and
+   * nothing about being rejected.
+   */
+  "aria-describedby"?: string;
 }
 
 // There is deliberately no way to turn the species back on from here,
@@ -100,6 +123,8 @@ export function SpeciesPicker({
   manageLabel,
   hiddenBuiltIns,
   hiddenQualifier,
+  "aria-invalid": invalid,
+  "aria-describedby": describedBy,
 }: Props) {
   const [value, setValue] = React.useState(defaultValue);
   const [added, setAdded] = React.useState<SpeciesChoice[]>(() =>
@@ -223,7 +248,29 @@ export function SpeciesPicker({
   return (
     <div className="flex flex-col gap-2">
       <input type="hidden" name={name} value={value} />
-      <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+      <div
+        role="group"
+        aria-label={label}
+        aria-describedby={describedBy}
+        className={cn(
+          // The border is here even when nothing is wrong, transparent,
+          // so going wrong changes a colour rather than adding a pixel
+          // — otherwise the group grows on rejection and everything
+          // below it jumps.
+          "flex flex-wrap gap-2 rounded-control border border-transparent",
+          // A border and not an outline: `outline` is the focus
+          // mechanism everywhere here, and a group that is both
+          // focused and rejected would wear two of them with nothing
+          // to tell them apart. One channel each — border for wrong,
+          // outline for where you are.
+          //
+          // On the group, not the chips. "No species chosen" means
+          // none of them is wrong, there is simply no answer;
+          // colouring them would say each had failed, and the chosen
+          // chip already carries a state in its fill.
+          invalid && invalid !== "false" && "border-destructive",
+        )}
+      >
         {all.map((o, i) => {
           const active = o.value === value;
           return (
@@ -269,7 +316,16 @@ export function SpeciesPicker({
 
       {adding && (
         <div className="flex flex-col gap-1.5 rounded-control border border-border bg-muted/30 p-3">
-          <div className="flex gap-2">
+          {/* `flex-wrap`, and this is the whole of the 390px fix. The
+              row holds the text input and, when what is typed names a
+              species that is switched off, the suggestion chip. At 390
+              the input kept its width and the chip was pushed 76px
+              past the edge of the screen — not clipped, so the page
+              scrolled sideways, and the qualifier that is the entire
+              point of the chip was the part off screen. Wrapping puts
+              the chip under the input: name and qualifier both fit,
+              and the wide layout is unchanged. */}
+          <div className="flex flex-wrap gap-2">
             <input
               ref={inputRef}
               type="text"

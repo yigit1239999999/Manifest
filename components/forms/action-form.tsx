@@ -263,13 +263,7 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
     const element = ref.current;
     if (!element) return;
     const control = element.querySelector(`[name="${CSS.escape(name)}"]`);
-    // A hidden input carries the value for comboboxes and chip pickers;
-    // the thing a person types into is the one marked invalid.
-    const target =
-      control instanceof HTMLElement &&
-      !(control instanceof HTMLInputElement && control.type === "hidden")
-        ? control
-        : element.querySelector<HTMLElement>('[aria-invalid="true"]');
+    const target = focusTargetFor(control);
     target?.focus();
     target?.scrollIntoView({ block: "nearest" });
   }, []);
@@ -464,6 +458,48 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
       {children}
     </form>
   );
+}
+
+/**
+ * Where a summary line should put the cursor.
+ *
+ * Not on the element carrying the `name`, which for a combobox or a
+ * chip group is a hidden input: it cannot take focus, so the line
+ * either did nothing or put the cursor somewhere invisible. Both are
+ * silent, which is the thing the summary exists to stop.
+ *
+ * So a hidden input hands over to whatever in its field a keyboard
+ * can actually reach. For `SpeciesPicker` that is one chip and only
+ * one, because the group uses a roving tabindex — the chosen answer
+ * if there is one, otherwise the first — and from there the arrow
+ * keys do the rest. `[tabindex="0"]` finds it without this file
+ * having to know any of that.
+ */
+function focusTargetFor(control: Element | null): HTMLElement | null {
+  if (!(control instanceof HTMLElement)) return null;
+  const hidden =
+    control instanceof HTMLInputElement && control.type === "hidden";
+  if (!hidden) return control;
+
+  const field = control.closest("div");
+  if (!field) return null;
+  // In order, one at a time, because a selector list does not mean
+  // "prefer the first": `querySelector` returns whichever matches
+  // earliest in the document, so a group whose second chip carries
+  // the tab stop handed back its first chip instead — the one the
+  // keyboard cannot reach. The test caught it; the single-call
+  // version looked right and was not.
+  for (const selector of [
+    '[tabindex="0"]',
+    'input:not([type="hidden"])',
+    "select",
+    "textarea",
+    "button",
+  ]) {
+    const found = field.querySelector<HTMLElement>(selector);
+    if (found) return found;
+  }
+  return null;
 }
 
 /**
