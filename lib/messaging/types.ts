@@ -79,12 +79,20 @@ export interface MessageTransport {
  * forty owners.
  *
  * `MESSAGE`: this message, on its own terms. A body the provider would
- * not take, a duplicate it refused.
+ * not take.
+ *
+ * `PRODUCT`: we did it. The clearest case is the duplicate block --
+ * the provider refuses the same text to the same number inside an
+ * hour, so it fires when WE sent the same thing twice. Nothing about
+ * the owner, the clinic or the operator is wrong, and the refusal is
+ * in fact proof that the earlier message was accepted. It has no
+ * sentence on any screen and it lives only in diagnosis.
  *
  * The distinction is what keeps a vet from opening forty rows and
- * phoning forty people over one wrong setting.
+ * phoning forty people over one wrong setting -- and, for `PRODUCT`,
+ * from being told about a fault that is not theirs at all.
  */
-export type FailureScope = "CLINIC" | "MESSAGE";
+export type FailureScope = "CLINIC" | "MESSAGE" | "PRODUCT";
 
 /** Thrown by transports; `code` is stable for logs, `message` is provider detail. */
 export class TransportError extends Error {

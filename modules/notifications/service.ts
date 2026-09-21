@@ -593,6 +593,14 @@ function reminderCensus(clinicId: string, from: Date, to: Date) {
 export const MIN_RETRY_INTERVAL_MS = 6 * 3_600_000;
 
 /**
+ * How long the provider refuses a repeat of the same text to the same
+ * number. Netgsm's own filter, not a rule of ours, which is why it is
+ * an hour and not something we chose -- and why the sweep's six-hour
+ * wait clears it six times over.
+ */
+export const DUPLICATE_WINDOW_MS = 3_600_000;
+
+/**
  * Whether the sweep should leave this candidate alone for now.
  *
  * Three rules, and the middle one is why this function exists: a provider
@@ -607,13 +615,29 @@ export const MIN_RETRY_INTERVAL_MS = 6 * 3_600_000;
  * - Failed recently: wait, the attempt is not lost.
  */
 export function automaticSendBlock(
-  messages: { status: string; createdAt: Date }[],
+  messages: { status: string; createdAt: Date; error?: string | null }[],
   now: Date,
 ): Extract<SweepSkipReason, "alreadySent" | "attemptsExhausted" | "coolingOff"> | null {
   if (messages.some((m) => m.status === "SENT" || m.status === "MANUAL")) return "alreadySent";
 
   const failures = messages.filter((m) => m.status === "FAILED");
-  if (failures.length >= MAX_AUTOMATIC_ATTEMPTS) return "attemptsExhausted";
+  // A failure we caused does not spend one of the reminder's three
+  // attempts.
+  //
+  // The duplicate block is the case: the provider refuses the same
+  // text to the same number inside an hour, so it fires when we sent
+  // the same thing twice -- and it is evidence the earlier message was
+  // ACCEPTED, not that this one cannot be. Counting it meant three of
+  // our own repeats could exhaust a reminder's budget and the sweep
+  // would abandon it for good, silently. That is this morning's defect
+  // with a new cause.
+  //
+  // Clinic-caused failures still count, deliberately. Three attempts
+  // against an unapproved sender title are equally futile, but a
+  // banner is already saying so on the screen: that abandonment is
+  // visible, and this one was not.
+  const spent = failures.filter((m) => failureScope(m.error) !== "PRODUCT");
+  if (spent.length >= MAX_AUTOMATIC_ATTEMPTS) return "attemptsExhausted";
   if (failures.length === 0) return null;
 
   const lastFailure = Math.max(...failures.map((m) => m.createdAt.getTime()));
@@ -622,7 +646,7 @@ export function automaticSendBlock(
 
 /** The same decision as a yes-or-no, for callers that do not report why. */
 export function automaticSendBlocked(
-  messages: { status: string; createdAt: Date }[],
+  messages: { status: string; createdAt: Date; error?: string | null }[],
   now: Date,
 ): boolean {
   return automaticSendBlock(messages, now) !== null;
@@ -1059,16 +1083,52 @@ export async function sendReminderNow(reminderId: string, ctx: ActionContext) {
     throw new AppError("VALIDATION_FAILED", "error.notifications.optedOut");
   if (automaticSendBlock(reminder.messages, new Date()) === "alreadySent")
     throw new AppError("VALIDATION_FAILED", "error.notifications.alreadySent");
-  // Note for whoever shortens the sweep's own wait: Netgsm blocks the
-  // same text to the same number inside an hour as a duplicate, and
-  // reports it as a failure that is ours rather than the owner's. The
-  // sweep waits six hours so it cannot trip that; this path does not
-  // wait at all, by design -- a person pressing send twice in a minute
-  // may see the provider refuse the second one.
+  // Note for whoever shortens the sweep's own wait: the sweep waits six
+  // hours, the provider's duplicate window is one, so the sweep cannot
+  // trip it. This path does not wait at all, by design -- which is why
+  // it has to check for itself, below.
 
   const language = toMessageLocale(reminder.client.preferredLanguage);
   const recipient = normalizePhone(reminder.client.phone, countryCallingCode(clinic.country));
   if (!recipient) throw new AppError("VALIDATION_FAILED", "error.notifications.noPhone");
+
+  const body = composeReminderFor(clinic.notifications.channel, {
+    locale: language,
+    clientName: `${reminder.client.firstName} ${reminder.client.lastName}`.trim(),
+    petName: reminder.pet?.name,
+    type: reminder.type,
+    title: reminder.title,
+    body: reminder.body,
+    dueAt: reminder.dueAt,
+    clinic,
+  });
+
+  // Refused here rather than by the provider, and the difference is
+  // what the vet learns.
+  //
+  // The operator blocks the same text to the same number inside an
+  // hour. Pressing send after a failure -- the one moment this button
+  // exists for -- can land inside that window, and the provider's
+  // answer arrives as another failed row: a second failure that says
+  // nothing, for a message that already went. A vet reasonably
+  // concludes the product is broken.
+  //
+  // Checked across the clinic and not just this reminder, because the
+  // provider's filter is on the text and the number, and two different
+  // reminders for one animal on one day compose the same words.
+  const duplicateWindowStart = new Date(Date.now() - DUPLICATE_WINDOW_MS);
+  const recentlyAccepted = await prisma.messageLog.findFirst({
+    where: {
+      clinicId: ctx.clinicId,
+      recipient,
+      body,
+      status: { in: ["SENT", "MANUAL"] },
+      createdAt: { gte: duplicateWindowStart },
+    },
+    select: { id: true },
+  });
+  if (recentlyAccepted)
+    throw new AppError("VALIDATION_FAILED", "error.notifications.duplicateWindow");
 
   const log = await deliver(
     clinic,
@@ -1078,16 +1138,7 @@ export async function sendReminderNow(reminderId: string, ctx: ActionContext) {
       kind: "REMINDER_DUE",
       recipient,
       language,
-      body: composeReminderFor(clinic.notifications.channel, {
-        locale: language,
-        clientName: `${reminder.client.firstName} ${reminder.client.lastName}`.trim(),
-        petName: reminder.pet?.name,
-        type: reminder.type,
-        title: reminder.title,
-        body: reminder.body,
-        dueAt: reminder.dueAt,
-        clinic,
-      }),
+      body,
     },
     ctx.userId,
   );

@@ -254,7 +254,12 @@ export const STATES = [
   {
     id: "notification.reminder.failedExhausted",
     covers:
-      "three failures against one reminder: nothing automatic will try again, which is a different sentence from 'it will be retried' and the only state where the button is the whole answer",
+      "three failures against one reminder, six hours apart as the sweep would actually space them: nothing automatic will try again, which is a different sentence from 'it will be retried' and the only state where the button is the whole answer",
+  },
+  {
+    id: "notification.reminder.failedProduct",
+    covers:
+      "a failure we caused: the operator refused a repeat of a message it had just accepted, which is evidence the first one went. It must not spend one of the three attempts, and the row must not accuse the owner's phone",
   },
 
   // The loop's four resting places.
@@ -1101,16 +1106,34 @@ export async function buildStateClinic(db) {
   made("notification.reminder.failedClinic");
 
   await failedReminder("failed-message", "Karma aşı zamanı", [
-    ["duplicate_send_blocked", hoursAgo(1)],
+    ["message_too_long_or_invalid", hoursAgo(1)],
   ]);
   made("notification.reminder.failedMessage");
 
-  // Three failures, days apart: the sweep has given up, and the only
-  // thing that can move this row now is a person pressing send.
+  // A failure that is ours. The provider refuses the same text to the
+  // same number inside an hour, so this row is evidence that an
+  // earlier message was ACCEPTED -- and it must not spend one of the
+  // three attempts, or our own repeats could make the sweep abandon a
+  // reminder for good.
+  await failedReminder("failed-product", "Kontrol hatırlatması", [
+    ["duplicate_send_blocked", hoursAgo(1)],
+  ]);
+  made("notification.reminder.failedProduct");
+
+  // Three failures the sweep could actually have produced, and that is
+  // the repair: this fixture used to hold three duplicate blocks less
+  // than an hour apart, which the sweep cannot make (it waits six
+  // hours, and the provider's duplicate window is one) -- and which,
+  // now that our own failures no longer spend attempts, would not even
+  // be "exhausted". A fixture for an unreachable state teaches
+  // something that is not true.
+  //
+  // So: a genuine message-level rejection, three times, spaced the way
+  // the sweep spaces its retries.
   await failedReminder("failed-exhausted", "Bronşin aşısı zamanı", [
-    ["duplicate_send_blocked", hoursAgo(2)],
-    ["duplicate_send_blocked", ago(1)],
-    ["duplicate_send_blocked", ago(2)],
+    ["message_too_long_or_invalid", hoursAgo(2)],
+    ["message_too_long_or_invalid", hoursAgo(9)],
+    ["message_too_long_or_invalid", hoursAgo(16)],
   ]);
   made("notification.reminder.failedExhausted");
 

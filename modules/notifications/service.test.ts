@@ -5,7 +5,13 @@ vi.mock("@/lib/prisma", () => ({
     clinic: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn(), count: vi.fn() },
     appointment: { findFirst: vi.fn(), findMany: vi.fn() },
     reminder: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
-    messageLog: { create: vi.fn(), count: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+    messageLog: {
+      create: vi.fn(),
+      count: vi.fn(),
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
     auditLog: { create: vi.fn() },
     $queryRaw: vi.fn(),
   },
@@ -333,6 +339,36 @@ describe("automaticSendBlocked", () => {
 
   // Three different situations, and the sweep summary has to tell them
   // apart: one is finished, one is waiting, and one wants a person.
+  // A failure we caused must not spend one of the reminder's three
+  // attempts. The duplicate block is the case: the provider refuses a
+  // repeat of the same text within an hour, so it fires when WE sent
+  // twice -- and it is evidence the earlier one was accepted. Counting
+  // it let three of our own repeats make the sweep abandon a reminder
+  // for good, which is this morning's silent abandonment with a new
+  // cause.
+  it("does not spend an attempt on a failure of our own making", () => {
+    const ours = (hoursAgo: number) => ({
+      status: "FAILED",
+      createdAt: new Date(now.getTime() - hoursAgo * 3_600_000),
+      error: "duplicate_send_blocked",
+    });
+
+    expect(automaticSendBlock([ours(20), ours(30), ours(40)], now)).toBeNull();
+    // Clinic-caused ones still count, deliberately: three attempts
+    // against an unapproved sender title are equally futile, but a
+    // banner is already saying so -- that abandonment is visible.
+    const theirs = (hoursAgo: number) => ({
+      ...ours(hoursAgo),
+      error: "sender_title_not_registered",
+    });
+    expect(automaticSendBlock([theirs(20), theirs(30), theirs(40)], now)).toBe(
+      "attemptsExhausted",
+    );
+    // And the wait still applies to ours: a repeat refused a minute
+    // ago will be refused again a minute from now.
+    expect(automaticSendBlock([ours(1)], now)).toBe("coolingOff");
+  });
+
   it("names which of the three rules held the candidate back", () => {
     expect(automaticSendBlock([{ status: "SENT", createdAt: now }], now)).toBe("alreadySent");
     expect(automaticSendBlock([failedAt(1)], now)).toBe("coolingOff");
@@ -866,6 +902,30 @@ describe("sendReminderNow", () => {
     await sendReminderNow("r-1", ctx);
 
     expect(transport.send).toHaveBeenCalled();
+  });
+
+  // The provider blocks a repeat of the same text to the same number
+  // inside an hour. Pressing send after a failure -- the moment this
+  // button exists for -- can land inside that window, and the answer
+  // comes back as another failed row for a message that already went.
+  // A vet reasonably concludes the product is broken.
+  it("refuses a repeat the operator would refuse anyway", async () => {
+    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(reminderRow() as never);
+    vi.mocked(prisma.messageLog.findFirst).mockResolvedValue({ id: "m-earlier" } as never);
+
+    await expect(sendReminderNow("r-1", ctx)).rejects.toMatchObject({
+      messageKey: "error.notifications.duplicateWindow",
+    });
+    expect(transport.send).not.toHaveBeenCalled();
+
+    // Across the clinic, not just this reminder: the filter is on the
+    // text and the number, and two reminders for one animal on one day
+    // compose the same words.
+    const where = vi.mocked(prisma.messageLog.findFirst).mock.calls[0][0]
+      ?.where as Record<string, unknown>;
+    expect(where.recipient).toBe("905321234567");
+    expect(where.status).toEqual({ in: ["SENT", "MANUAL"] });
+    expect(where.reminderId).toBeUndefined();
   });
 
   it("refuses when the owner never consented, whatever the screen offered", async () => {
