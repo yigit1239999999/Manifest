@@ -107,8 +107,9 @@ export async function listReminders({
  * wrongly; this session removed several sentences for being the
  * second kind.
  *
- * Bounded in time by the sweep's own suppression window, and that is
- * not an optimisation. Unbounded, the match looked at the clinic's
+ * Bounded in both directions, and neither bound is an optimisation.
+ *
+ * Backwards, by the sweep's own suppression window. Unbounded, the match looked at the clinic's
  * whole history -- and a vaccination reminder is annual, so next year
  * the same owner and animal compose the same words again. The year
  * after that there would be two accepted messages carrying that text,
@@ -122,15 +123,27 @@ export async function listReminders({
  * the oldest suppressed message rather than from now: a message held
  * back twenty hours ago had a partner up to a window before THAT.
  *
+ * Forwards, by the suppressed message itself: a message is only ever
+ * held back BECAUSE another had already gone, so its partner cannot
+ * be newer than it is. Without that the query would match forward in
+ * time, and a row could say "the same message had already gone out"
+ * while pointing at one sent an hour later. pm found exactly that in
+ * the fixture data before measuring anything -- the direction is as
+ * much a part of the guarantee as the window, and the same rule
+ * applies: where the guarantee ends, the answer goes quiet.
+ *
  * One extra query for the page, and only when something was actually
  * suppressed: the pairs are collected first and asked for together,
- * rather than a lookup per row.
+ * rather than a lookup per row. The query carries the coarse bounds
+ * and each message checks its own, because one `where` cannot hold a
+ * different upper bound per row.
  */
 async function withSuppressedPartners<
   T extends { messages: { status: string; recipient: string; body: string; createdAt: Date }[] },
 >(clinicId: string, reminders: T[]) {
   const pairs = new Map<string, { recipient: string; body: string }>();
   let oldestSuppressed: Date | null = null;
+  let newestSuppressed: Date | null = null;
   for (const reminder of reminders)
     for (const message of reminder.messages)
       if (message.status === "SUPPRESSED") {
@@ -140,6 +153,8 @@ async function withSuppressedPartners<
         });
         if (!oldestSuppressed || message.createdAt < oldestSuppressed)
           oldestSuppressed = message.createdAt;
+        if (!newestSuppressed || message.createdAt > newestSuppressed)
+          newestSuppressed = message.createdAt;
       }
   if (pairs.size === 0)
     return reminders.map((r) => ({
@@ -153,26 +168,39 @@ async function withSuppressedPartners<
       status: { in: ["SENT", "MANUAL"] },
       createdAt: {
         gte: new Date(oldestSuppressed!.getTime() - DUPLICATE_SUPPRESSION_WINDOW_MS),
+        lte: newestSuppressed!,
       },
       OR: [...pairs.values()],
     },
-    select: { recipient: true, body: true, reminder: { select: { id: true, title: true } } },
+    select: {
+      recipient: true,
+      body: true,
+      createdAt: true,
+      reminder: { select: { id: true, title: true } },
+    },
   });
 
-  // Ambiguity is resolved by refusing to answer, not by picking one.
-  const byPair = new Map<string, SentInstead | "ambiguous">();
+  const candidates = new Map<string, { at: Date; reminder: { id: string; title: string } }[]>();
   for (const row of accepted) {
     if (!row.reminder) continue;
     const key = `${row.recipient}|${row.body}`;
-    byPair.set(key, byPair.has(key) ? "ambiguous" : row.reminder);
+    candidates.set(key, [
+      ...(candidates.get(key) ?? []),
+      { at: row.createdAt, reminder: row.reminder },
+    ]);
   }
 
   return reminders.map((r) => ({
     ...r,
     messages: r.messages.map((m) => {
       if (m.status !== "SUPPRESSED") return { ...m, sentInstead: null as SentInstead };
-      const found = byPair.get(`${m.recipient}|${m.body}`);
-      return { ...m, sentInstead: found && found !== "ambiguous" ? found : null };
+      // Its own upper bound: only a message that had already gone can
+      // be the reason this one did not.
+      const earlier = (candidates.get(`${m.recipient}|${m.body}`) ?? []).filter(
+        (c) => c.at <= m.createdAt,
+      );
+      // Ambiguity is resolved by refusing to answer, not by picking one.
+      return { ...m, sentInstead: earlier.length === 1 ? earlier[0].reminder : null };
     }),
   }));
 }

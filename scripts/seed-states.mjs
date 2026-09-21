@@ -1243,20 +1243,52 @@ export async function buildStateClinic(db) {
   // The pair is the fixture, not the row: the point on screen is that
   // a vet sees BOTH pieces of work and decides what the second one
   // still needs. `hal-reminder-due` above is the one that went.
+  // A self-contained pair, in the order the sweep would actually
+  // produce it: the one that went, then the one held back because it
+  // had.
+  //
+  // It used to lean on `hal-reminder-due`, whose message the sweep
+  // writes at run time -- so the suppressed row was an hour OLDER
+  // than its own partner, a sequence the sweep cannot make. pm caught
+  // it in the data before measuring anything, and it was the same
+  // defect as the three-duplicates-in-an-hour fixture earlier today:
+  // a fixture for an unreachable state teaches something untrue.
+  //
+  // Its own wording, too. Sharing the sweep's text would put two
+  // accepted messages behind the same words, the match would go
+  // ambiguous by design, and the row would show nothing -- leaving
+  // the screen half unmeasurable for the opposite reason.
+  const twinBody =
+    "Sayın Hâl Sahibi, Zeytin için diş kontrolü zamanı geldi (24 Eyl Per). Randevu için bize ulaşabilirsiniz. HÂL KLİNİĞİ";
+
+  const twinSent = await one(
+    `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
+                            "dueAt", status, "sentAt", "updatedAt")
+     VALUES ($5, $1, $2, $3, 'CHECKUP', 'Diş kontrolü', $4, 'SENT', $6, now())
+     RETURNING id`,
+    [clinic.id, client.id, active.id, ahead(2), halId("reminder", "twin-sent"), hoursAgo(2)],
+  );
+  await db.query(
+    `INSERT INTO message_logs (id, "clinicId", "clientId", "reminderId", channel, kind,
+                               recipient, language, body, status, "providerId", "createdAt")
+     VALUES ($4, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr', $6,
+             'SENT', 'netgsm-seed-twin', $5)`,
+    [clinic.id, client.id, twinSent.id, halId("messagelog", "twin-sent"), hoursAgo(2), twinBody],
+  );
+
   const twin = await one(
     `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
                             "dueAt", status, "updatedAt")
-     VALUES ($5, $1, $2, $3, 'VACCINATION_DUE', 'Kuduz aşısı zamanı', $4, 'PENDING', now())
+     VALUES ($5, $1, $2, $3, 'CHECKUP', 'Diş taşı temizliği', $4, 'PENDING', now())
      RETURNING id`,
     [clinic.id, client.id, active.id, ahead(2), halId("reminder", "twin")],
   );
   await db.query(
     `INSERT INTO message_logs (id, "clinicId", "clientId", "reminderId", channel, kind,
                                recipient, language, body, status, "createdAt")
-     VALUES ($4, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr',
-             'Sayın Hâl Sahibi, Zeytin için aşı zamanı yaklaşıyor (23 Eyl Çar). Randevu için bize ulaşabilirsiniz. HÂL KLİNİĞİ',
+     VALUES ($4, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr', $6,
              'SUPPRESSED', $5)`,
-    [clinic.id, client.id, twin.id, halId("messagelog", "twin"), hoursAgo(1)],
+    [clinic.id, client.id, twin.id, halId("messagelog", "twin"), hoursAgo(1), twinBody],
   );
   made("notification.reminder.duplicateSuppressed");
 

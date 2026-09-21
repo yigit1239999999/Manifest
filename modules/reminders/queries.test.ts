@@ -39,6 +39,7 @@ describe("naming the message that went instead", () => {
       {
         recipient: "905321234567",
         body: "Sayın Ayşe, Sarı için aşı zamanı.",
+        createdAt: new Date("2026-09-21T11:00:00.000Z"),
         reminder: { id: "r-1", title: "Kuduz aşısı" },
       },
     ] as never);
@@ -60,11 +61,13 @@ describe("naming the message that went instead", () => {
       {
         recipient: "905321234567",
         body: "Sayın Ayşe, Sarı için aşı zamanı.",
+        createdAt: new Date("2026-09-21T11:00:00.000Z"),
         reminder: { id: "r-1", title: "Kuduz aşısı" },
       },
       {
         recipient: "905321234567",
         body: "Sayın Ayşe, Sarı için aşı zamanı.",
+        createdAt: new Date("2026-09-21T11:30:00.000Z"),
         reminder: { id: "r-3", title: "Karma aşı" },
       },
     ] as never);
@@ -86,6 +89,7 @@ describe("naming the message that went instead", () => {
       {
         recipient: "905321234567",
         body: "Sayın Ayşe, Sarı için aşı zamanı.",
+        createdAt: new Date("2026-09-21T11:00:00.000Z"),
         reminder: { id: "r-1", title: "Kuduz aşısı" },
       },
     ] as never);
@@ -98,6 +102,31 @@ describe("naming the message that went instead", () => {
       ?.where as { createdAt?: { gte?: Date } };
     expect(where.createdAt?.gte).toEqual(new Date("2026-09-20T12:00:00.000Z"));
     expect(row.messages[0].sentInstead).toEqual({ id: "r-1", title: "Kuduz aşısı" });
+  });
+
+  // A message is only ever held back BECAUSE another had already
+  // gone, so its partner cannot be newer than it is. Without a
+  // direction the row would say "the same message had already gone
+  // out" while pointing at one sent an hour later -- which is what pm
+  // found in the fixture data.
+  it("does not accept a partner that went out afterwards", async () => {
+    vi.mocked(prisma.messageLog.findMany).mockResolvedValue([
+      {
+        recipient: "905321234567",
+        body: "Sayın Ayşe, Sarı için aşı zamanı.",
+        createdAt: new Date("2026-09-21T13:00:00.000Z"),
+        reminder: { id: "r-later", title: "Karma aşı" },
+      },
+    ] as never);
+
+    const [row] = await listReminders({ clinicId: "clinic-1" });
+
+    expect(row.messages[0].sentInstead).toBeNull();
+    // The coarse bound is in the query too, so most of them never
+    // come back at all.
+    const where = vi.mocked(prisma.messageLog.findMany).mock.calls[0][0]
+      ?.where as { createdAt?: { lte?: Date } };
+    expect(where.createdAt?.lte).toEqual(suppressedAt);
   });
 
   it("says nothing when the partner is gone", async () => {
