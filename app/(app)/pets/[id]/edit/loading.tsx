@@ -5,7 +5,11 @@ import {
 } from "@/components/loaders";
 
 /**
- * `PetForm`, as far as it can be reserved.
+ * The same form as `/pets/new`, and short for the same reason.
+ *
+ * Its own `loading.tsx` because without one this route inherits `[id]`'s
+ * detail skeleton -- an animal's record, two columns and four cards,
+ * under a route that settles into a single-column form.
  *
  * It stops after the owner and the name, and the species picker is the
  * reason. That control is a row of chips, one per species the clinic has
@@ -18,7 +22,7 @@ import {
  */
 export default function Loading() {
   return (
-    <FormSkeleton>
+    <FormSkeleton description>
       <div className="flex flex-col gap-8">
         <FormSectionSkeleton description>
           <FieldSkeleton />

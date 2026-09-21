@@ -5,13 +5,11 @@ import {
 } from "@/components/loaders";
 
 /**
- * `AppointmentForm`, box for box.
- *
- * The one thing this cannot know is whether the page will draw the form
- * at all: a clinic with no animals gets `MissingLink` here instead. That
- * is the first-run screen and it is short, so the skeleton reserves the
- * form -- the shape every clinic past its first animal sees -- and a
- * brand new clinic sees the page settle upward once.
+ * The same form as `/appointments/new`, and its own `loading.tsx`
+ * because without one this route falls through to `[id]`'s -- which
+ * draws a record's two-column detail page. Waiting for a form under the
+ * shape of a page that is not coming is worse than waiting under
+ * nothing: everything on screen moves when the form arrives.
  */
 export default function Loading() {
   return (

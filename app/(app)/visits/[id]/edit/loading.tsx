@@ -6,12 +6,12 @@ import {
 } from "@/components/loaders";
 
 /**
- * `VisitForm`, box for box, at its width (`wide`).
+ * The same form as `/visits/new`. Its own `loading.tsx` because without
+ * one this route inherits `[id]`'s, which draws the two-column detail
+ * page of a visit -- a shape the edit form never settles into.
  *
- * One thing it cannot reserve: the new-animal block, which opens when a
- * vet comes back to a draft they left with it open. It is theirs and it
- * is rare; drawing it for everybody would move the button down for the
- * many to keep it still for the few.
+ * An edit never opens the new-animal block (`createVisitIntakeAction` is
+ * for new visits only), so here the mirror is exact.
  */
 export default function Loading() {
   return (
