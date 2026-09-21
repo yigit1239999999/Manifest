@@ -73,6 +73,16 @@ export function Combobox({
   // Only filter once the user actually types; merely opening the dropdown
   // (with a committed selection in the input) must show the full list.
   const [typed, setTyped] = React.useState(false);
+  // Whether the highlight has been moved since the list opened.
+  //
+  // Focusing the field opens the list, so by the time a keyboard user
+  // presses Down it is already open and the old handler read that as
+  // "advance" — the first Down landed on the *second* option. On the
+  // vaccination picker that meant the first press skipped "Kuduz
+  // (Rabies)", the most common vaccination in the country, and reaching
+  // it took Down then Up. The first press now settles the highlight
+  // where opening put it; the second one moves.
+  const [moved, setMoved] = React.useState(false);
   const listId = React.useId();
 
   const query = display.trim();
@@ -87,6 +97,7 @@ export function Combobox({
 
   function openList() {
     setOpen(true);
+    setMoved(false);
     if (!typed) {
       // Highlight the current selection when browsing the full list.
       const i = options.findIndex((o) => o.value === value);
@@ -115,6 +126,9 @@ export function Combobox({
     setOpen(true);
     setTyped(true);
     setActive(0);
+    // Typing re-aims the list, so the first Down after it should move
+    // rather than settle: the highlight is already where typing put it.
+    setMoved(true);
     if (freeText) {
       setValue(text);
       onValueChange?.(text);
@@ -148,9 +162,11 @@ export function Combobox({
     if (e.key === "ArrowDown") {
       e.preventDefault();
       if (!open) openList();
+      else if (!moved) setMoved(true);
       else setActive((a) => Math.min(a + 1, rows.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      setMoved(true);
       setActive((a) => Math.max(a - 1, 0));
     } else if (e.key === "Enter") {
       if (!open || rows.length === 0) return;
