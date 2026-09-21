@@ -77,17 +77,39 @@ interface Props {
   className?: string;
 }
 
-// Lowercase both Turkish-style and ASCII-style, so "Istanbul" finds
-// "İstanbul" and lowercase-dotless input still matches.
-function fold(s: string): [string, string] {
-  return [s.toLocaleLowerCase("tr").replaceAll("ı", "i"), s.toLowerCase()];
+// Combining marks. Not `\p{Diacritic}`, which needs a newer target than
+// this file is compiled with.
+const MARKS = /[\u0300-\u036f]/g;
+
+/**
+ * One comparable form of a name, so that typing it without a Turkish
+ * keyboard still finds it: "Ayse" finds "Ayşe", "Cigdem" finds "Çiğdem".
+ *
+ * Only `ı` used to be folded, and the half-measure was worse than none:
+ * the picker answered "no such client" about a client who is right
+ * there, and a vet who believes it opens a second record for the same
+ * person. Silent absence, and the four pickers that grew a search all
+ * inherited it.
+ *
+ * Order matters and so does the leftover `ı` replacement. `ı` is a
+ * letter, not an `i` wearing a mark, so decomposition does not touch it
+ * and it has to be mapped by hand — deleting that line would break the
+ * one case that worked before. Lowercasing first, in Turkish, turns `I`
+ * into `ı` (mapped next) and `İ` into `i` plus a combining dot, which
+ * the mark strip then removes. So "Istanbul", "İstanbul" and "istanbul"
+ * all arrive at the same string.
+ */
+function fold(s: string): string {
+  return s
+    .toLocaleLowerCase("tr")
+    .replaceAll("ı", "i")
+    .normalize("NFD")
+    .replace(MARKS, "");
 }
 
 function matches(label: string, query: string): boolean {
   if (!query) return true;
-  const [trLabel, enLabel] = fold(label);
-  const [trQ, enQ] = fold(query);
-  return trLabel.includes(trQ) || enLabel.includes(enQ);
+  return fold(label).includes(fold(query));
 }
 
 export function Combobox({
@@ -206,8 +228,8 @@ export function Combobox({
     );
   }
   const exact =
-    options.find((o) => fold(o.label)[0] === fold(query)[0]) ??
-    remote.find((o) => fold(o.label)[0] === fold(query)[0]);
+    options.find((o) => fold(o.label) === fold(query)) ??
+    remote.find((o) => fold(o.label) === fold(query));
   const showAdd =
     allowCustom && !freeText && typed && query.length > 0 && !exact;
 
