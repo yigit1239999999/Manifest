@@ -1,3 +1,4 @@
+import { pickOption } from "./helpers";
 import { test, expect } from "@playwright/test";
 
 // A failed validation must never cost the user their typing, and the
@@ -34,7 +35,7 @@ test.describe("Form validation", () => {
 
     await page.goto("/pets/new");
     const owner = page.getByLabel(/owner|sahibi/i);
-    await owner.selectOption({ label: "Ayse Yilmaz" });
+    await pickOption(page, owner, "Ayse");
     const name = page.getByLabel(/^name$|^i̇sim$|^isim$/i);
     await name.fill("Boncuk");
 
@@ -48,9 +49,10 @@ test.describe("Form validation", () => {
     // Species is left empty on purpose.
     await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
 
-    const speciesError = page.getByText(
-      /species is required|tür gerekli|select species|tür seçiniz/i,
-    );
+    // Once in the summary at the top, once beside the field.
+    const speciesError = page
+      .getByText(/species is required|tür gerekli|select species|tür seçiniz/i)
+      .first();
     await expect(speciesError).toBeVisible();
 
     // Nothing the user filled in may be lost.
@@ -75,18 +77,21 @@ test.describe("Form validation", () => {
     await createOwner(page);
 
     await page.goto("/pets/new");
+    // The current language is shown as pressed, not disabled.
     const english = page.getByRole("button", { name: "EN", exact: true });
-    if (await english.isEnabled()) await english.click();
-    await expect(english).toBeDisabled();
+    if ((await english.getAttribute("aria-pressed")) !== "true") {
+      await english.click();
+    }
+    await expect(english).toHaveAttribute("aria-pressed", "true");
 
     // Owner and name are filled so the browser lets the form through; the
     // empty species is caught on the server.
-    await page.getByLabel(/owner/i).selectOption({ label: "Ayse Yilmaz" });
+    await pickOption(page, page.getByLabel(/owner/i), "Ayse");
     await page.getByLabel(/^name$/i).fill("Boncuk");
     await page.getByRole("button", { name: /create pet/i }).click();
 
     await expect(
-      page.getByText(/species is required|select species/i),
+      page.getByText(/species is required|select species/i).first(),
     ).toBeVisible();
     await expect(page.getByText(/gerekli|seçiniz/i)).toHaveCount(0);
   });
@@ -101,7 +106,7 @@ test.describe("Medical records", () => {
     await createOwner(page);
 
     await page.goto("/pets/new");
-    await page.getByLabel(/owner/i).selectOption({ label: "Ayse Yilmaz" });
+    await pickOption(page, page.getByLabel(/owner/i), "Ayse");
     await page.getByLabel(/^name$/i).fill("Boncuk");
     await page.getByRole("button", { name: /^cat$/i }).click();
     await page.getByRole("button", { name: /create pet/i }).click();
@@ -132,19 +137,19 @@ test.describe("Clinic time zone", () => {
     await page.getByLabel(/first name/i).fill("Ayse");
     await page.getByLabel(/last name/i).fill("Yilmaz");
     await page.getByLabel(/^phone$/i).fill("+905321112233");
-    await page.getByLabel(/consented to (notification messages|whatsapp)/i).check();
+    await page.getByLabel(/^(gave consent|izin verdi)$/i).check();
     await page.getByRole("button", { name: /create client/i }).click();
     await expect(page.getByRole("heading", { name: /ayse yilmaz/i })).toBeVisible();
 
     await page.goto("/pets/new");
-    await page.getByLabel(/owner/i).selectOption({ label: "Ayse Yilmaz" });
+    await pickOption(page, page.getByLabel(/owner/i), "Ayse");
     await page.getByLabel(/^name$/i).fill("Boncuk");
     await page.getByRole("button", { name: /^cat$/i }).click();
     await page.getByRole("button", { name: /create pet/i }).click();
     await expect(page.getByRole("heading", { name: /boncuk/i })).toBeVisible();
 
     await page.goto("/appointments/new");
-    await page.getByLabel(/^pet$/i).selectOption({ index: 1 });
+    await pickOption(page, page.getByLabel(/^pet$/i));
     await page.getByLabel(/starts at/i).fill("2026-11-23T11:30");
     await page.getByRole("button", { name: /create appointment/i }).click();
     await expect(page).toHaveURL(/\/appointments\/(?!new)[\w-]+$/);
@@ -165,11 +170,31 @@ test.describe("Saving without leaving the page", () => {
     await createOwner(page);
 
     await page.goto("/reminders");
-    await page.getByLabel(/^client$/i).selectOption({ index: 1 });
+    await pickOption(page, page.getByLabel(/^client$/i));
     await page.getByLabel(/^name$|^title$/i).fill("Rabies booster due");
     await page.getByRole("button", { name: /create reminder/i }).click();
 
     await expect(page.getByText("Rabies booster due")).toBeVisible();
     await expect(page.getByText(/no reminders/i)).toHaveCount(0);
+
+    // Closing and reopening keep the list in step as well. A closed row
+    // leaves the open list and is found under "Closed"; reopened, it comes
+    // back. Each step is a server action followed by a client refresh
+    // (components/forms/use-refresh-action.ts).
+    const done = page.getByRole("button", {
+      name: /^(mark done|tamam)\b.*rabies booster due/i,
+    });
+    const reopen = page.getByRole("button", {
+      name: /^(reopen|geri aç)\b.*rabies booster due/i,
+    });
+    await done.click();
+    await expect(done).toBeHidden();
+
+    await page.goto("/reminders?status=closed");
+    await reopen.click();
+    await expect(reopen).toBeHidden();
+
+    await page.goto("/reminders");
+    await expect(done).toBeVisible();
   });
 });

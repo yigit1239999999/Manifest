@@ -50,6 +50,19 @@ interface ConfirmDialogProps {
    * or report it on the page they return to.
    */
   action: (formData: FormData) => Promise<unknown>;
+  /**
+   * Load the page again once the action has answered, instead of closing
+   * the dialog and expecting the page to re-render itself.
+   *
+   * For an action that changes the page it is on (archive, cancel, void,
+   * delete a species) and stays there. Re-rendering the current page
+   * through the client router, whether by `revalidatePath` in the action
+   * or `router.refresh()` after it, stalled about one confirm in three
+   * with the record looking unchanged; the traces and the alternatives
+   * tried are recorded in `components/forms/use-refresh-action.ts`.
+   * A reload has not stalled once.
+   */
+  reloadAfter?: boolean;
 }
 
 export function ConfirmDialog({
@@ -60,6 +73,7 @@ export function ConfirmDialog({
   tone,
   children,
   action,
+  reloadAfter = false,
 }: ConfirmDialogProps) {
   const ref = React.useRef<HTMLDialogElement>(null);
   const titleId = React.useId();
@@ -77,9 +91,13 @@ export function ConfirmDialog({
   const confirm = React.useCallback(() => {
     startTransition(async () => {
       await action(new FormData());
+      if (reloadAfter) {
+        window.location.reload();
+        return;
+      }
       ref.current?.close();
     });
-  }, [action]);
+  }, [action, reloadAfter]);
 
   return (
     <>

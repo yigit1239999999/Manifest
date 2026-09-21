@@ -50,9 +50,6 @@ export const archiveClientAction = action(
   "client.archive",
   async (ctx, id: string): Promise<void> => {
     await archiveClient(id, ctx);
-    revalidatePath("/clients");
-    revalidatePath(`/clients/${id}`);
-    revalidatePath("/");
     // No redirect: archiving is a state change on a record that still
     // exists, and its own page is the one place that says so and offers
     // the way back. Being thrown to the list instead hides the notice and
@@ -67,8 +64,6 @@ export const restoreClientAction = action(
   "client.restore",
   async (ctx, id: string): Promise<void> => {
     await restoreClient(id, ctx);
-    revalidatePath("/clients");
-    revalidatePath(`/clients/${id}`);
   },
 );
 

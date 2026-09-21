@@ -60,9 +60,5 @@ export const cancelAppointmentAction = action(
   "appointment.cancel",
   async (ctx, id: string): Promise<void> => {
     const { petId } = await cancelAppointment(id, ctx);
-    revalidatePath("/appointments");
-    revalidatePath(`/appointments/${id}`);
-    revalidatePath(`/pets/${petId}`);
-    revalidatePath("/");
   },
 );

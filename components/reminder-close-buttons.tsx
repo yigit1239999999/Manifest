@@ -1,5 +1,9 @@
+"use client";
+
+import type * as React from "react";
 import { Check, RotateCcw, X } from "lucide-react";
 import { SubmitButton } from "@/components/submit-button";
+import { useRefreshAction } from "@/components/forms/use-refresh-action";
 
 /**
  * The two ways a reminder stops being work, and the one way back.
@@ -60,33 +64,61 @@ export function ReminderCloseButtons({
   return (
     <>
       {acknowledge && (
-        <form action={acknowledge as (formData: FormData) => Promise<void>}>
-          <SubmitButton
-            variant="secondary"
-            size="sm"
-            aria-label={acknowledgeName}
-          >
-            <Check />
-            {acknowledgeLabel}
-          </SubmitButton>
-        </form>
+        <RowAction
+          action={acknowledge}
+          variant="secondary"
+          name={acknowledgeName}
+          label={acknowledgeLabel}
+          icon={<Check />}
+        />
       )}
       {dismiss && (
-        <form action={dismiss as (formData: FormData) => Promise<void>}>
-          <SubmitButton variant="ghost" size="sm" aria-label={dismissName}>
-            <X />
-            {dismissLabel}
-          </SubmitButton>
-        </form>
+        <RowAction
+          action={dismiss}
+          variant="ghost"
+          name={dismissName}
+          label={dismissLabel}
+          icon={<X />}
+        />
       )}
       {reopen && (
-        <form action={reopen as (formData: FormData) => Promise<void>}>
-          <SubmitButton variant="ghost" size="sm" aria-label={reopenName}>
-            <RotateCcw />
-            {reopenLabel}
-          </SubmitButton>
-        </form>
+        <RowAction
+          action={reopen}
+          variant="ghost"
+          name={reopenName}
+          label={reopenLabel}
+          icon={<RotateCcw />}
+        />
       )}
     </>
+  );
+}
+
+/**
+ * One button in its own form, so one pending state is one button. The list
+ * is loaded again once the action has answered; see `useRefreshAction`
+ * for why nothing lighter was reliable here.
+ */
+function RowAction({
+  action,
+  variant,
+  name,
+  label,
+  icon,
+}: {
+  action: (formData: FormData) => Promise<unknown>;
+  variant: "secondary" | "ghost";
+  name: string;
+  label: string;
+  icon: React.ReactNode;
+}) {
+  const formAction = useRefreshAction(action);
+  return (
+    <form action={formAction}>
+      <SubmitButton variant={variant} size="sm" aria-label={name}>
+        {icon}
+        {label}
+      </SubmitButton>
+    </form>
   );
 }

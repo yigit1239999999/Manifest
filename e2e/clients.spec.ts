@@ -64,7 +64,12 @@ test.describe("Clients", () => {
       .getByRole("dialog")
       .getByRole("button", { name: /^archive$|^arşivle$/i })
       .click();
-    await expect(page).toHaveURL(/\/clients$/);
+    // Archiving keeps the record on screen, with the way back on it; the
+    // list is where the client has gone from.
+    await expect(
+      page.getByRole("button", { name: /restore from archive|arşivden çıkar/i }),
+    ).toBeVisible();
+    await page.goto("/clients");
     await expect(page.getByText("Robin Vale")).toBeHidden();
 
     // The filter is the way back in: without it the record exists and is

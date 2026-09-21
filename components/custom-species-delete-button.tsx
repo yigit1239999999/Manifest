@@ -41,6 +41,7 @@ export function CustomSpeciesDeleteButton({
       cancelLabel={tCommon("nevermind")}
       tone="destructive"
       action={action as unknown as (formData: FormData) => Promise<unknown>}
+      reloadAfter
     >
       {(open) => (
         <button

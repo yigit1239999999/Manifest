@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { action, parse, type FormState } from "@/lib/action";
 import { reminderSchema } from "./schema";
 import { createReminder, markReminderStatus } from "./service";
@@ -20,8 +19,6 @@ export const acknowledgeReminderAction = action(
   "reminder.acknowledge",
   async (ctx, id: string): Promise<void> => {
     await markReminderStatus(id, "ACKNOWLEDGED", ctx);
-    revalidatePath("/reminders");
-    revalidatePath("/");
   },
 );
 
@@ -29,8 +26,6 @@ export const dismissReminderAction = action(
   "reminder.dismiss",
   async (ctx, id: string): Promise<void> => {
     await markReminderStatus(id, "DISMISSED", ctx);
-    revalidatePath("/reminders");
-    revalidatePath("/");
   },
 );
 
@@ -38,7 +33,5 @@ export const reopenReminderAction = action(
   "reminder.reopen",
   async (ctx, id: string): Promise<void> => {
     await markReminderStatus(id, "PENDING", ctx);
-    revalidatePath("/reminders");
-    revalidatePath("/");
   },
 );

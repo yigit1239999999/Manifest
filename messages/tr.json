@@ -22,8 +22,6 @@
   "common": {
     "save": "Kaydet",
     "cancel": "İptal",
-    "cancelConfirm": "Bu randevu iptal edilsin mi?",
-    "cancelUndoHint": "Randevu listede kalır, durumu iptal edildi olur. İsterseniz düzenleme ekranından yeniden planlayabilirsiniz.",
     "nevermind": "Vazgeç",
     "edit": "Düzenle",
     "delete": "Sil",
@@ -311,8 +309,8 @@
       "optedOut": "Bu müşteri için bildirim mesajları pasif. Otomatik mesaj gönderilmez; gerekirse mesajı kopyalayıp elle iletebilirsiniz.",
       "cancelledNotice": "Bu randevu iptal edildiği için onay ve hatırlatma mesajları artık sunulmuyor. Müşteri bilgilendirilmediyse lütfen kendiniz haber veriniz.",
       "completedNotice": "Bu randevu tamamlandığı için onay ve hatırlatma mesajları artık sunulmuyor.",
-    "pastNotice": "Randevu saati geçtiği için onay ve hatırlatma mesajları artık sunulmuyor. Bu randevunun sonucu henüz kaydedilmedi.",
-    "recordOutcome": "Sonucu kaydedin",
+      "pastNotice": "Randevu saati geçtiği için onay ve hatırlatma mesajları artık sunulmuyor. Bu randevunun sonucu henüz kaydedilmedi.",
+      "recordOutcome": "Sonucu kaydedin",
       "petSilencedNotice": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için mesaj gönderilmiyor."
     },
     "today": "Bugün",
@@ -324,7 +322,9 @@
     "phone": "Telefon",
     "emptyDay": "{date} için randevu bulunmuyor.",
     "emptyDayHint": "Başka bir güne bakmak için okları kullanabilir veya yeni randevu oluşturabilirsiniz.",
-    "emptyHint": "Oluşturduğunuz randevular, en yakın tarihli olan başta olmak üzere burada görünür."
+    "emptyHint": "Oluşturduğunuz randevular, en yakın tarihli olan başta olmak üzere burada görünür.",
+    "cancelConfirm": "Bu randevu iptal edilsin mi?",
+    "cancelUndoHint": "Randevu listede kalır, durumu iptal edildi olur. İsterseniz düzenleme ekranından yeniden planlayabilirsiniz."
   },
   "staff": {
     "title": "Ekip",
@@ -774,7 +774,7 @@
       "optedOut": "Bu müşteri için bildirim mesajları pasif.",
       "sendFailed": "Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin.",
       "appointmentClosed": "Bu randevu kapandığı için mesaj gönderilemez.",
-    "appointmentPast": "Randevu saati geçtiği için bu mesaj artık doğru değil.",
+      "appointmentPast": "Randevu saati geçtiği için bu mesaj artık doğru değil.",
       "petSilenced": "Bu hayvan için mesaj gönderilmez."
     },
     "validation": {
@@ -782,9 +782,9 @@
       "petNotInClinic": "Bu hayvan bu klinikte bulunamadı.",
       "clientRequired": "Müşteri bulunamadı.",
       "petRequired": "Hayvan bulunamadı.",
-    "vetRequired": "Seçilen kişi bu kliniğin veterineri olarak kaydedilemez.",
-    "petSilenced": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için onun adına hatırlatma oluşturulamaz.",
-    "clientArchived": "Bu müşteri arşivlenmiş olduğu için hatırlatma oluşturulamaz. Önce müşteriyi arşivden çıkarabilirsiniz.",
+      "vetRequired": "Seçilen kişi bu kliniğin veterineri olarak kaydedilemez.",
+      "petSilenced": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için onun adına hatırlatma oluşturulamaz.",
+      "clientArchived": "Bu müşteri arşivlenmiş olduğu için hatırlatma oluşturulamaz. Önce müşteriyi arşivden çıkarabilirsiniz.",
       "speciesUnknown": "Geçersiz tür.",
       "speciesInUse": "Bu tür hayvanlarda kullanıldığı için silinemez.",
       "speciesNoneEnabled": "En az bir tür seçili olmalı.",

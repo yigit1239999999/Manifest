@@ -15,6 +15,10 @@ const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Only the .spec.ts files: e2e/ also holds a vitest file (clinic-name.test.ts),
+  // and Playwright's default pattern would load it, import vitest under
+  // CommonJS and take the whole suite down before a single test runs.
+  testMatch: /.*\.spec\.ts$/,
   // Against `npm run dev` the first hit on a route waits for it to compile,
   // which is far longer than Playwright's defaults allow for.
   timeout: 120_000,

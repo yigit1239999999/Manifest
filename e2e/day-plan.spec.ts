@@ -1,3 +1,4 @@
+import { pickOption } from "./helpers";
 import { test, expect } from "@playwright/test";
 
 // /appointments answers "what is happening today", so the default view is
@@ -25,7 +26,7 @@ async function createPet(page: import("@playwright/test").Page, name: string) {
   await expect(page.getByRole("heading", { name: /ayse yilmaz/i })).toBeVisible();
 
   await page.goto("/pets/new");
-  await page.getByLabel(/owner/i).selectOption({ index: 1 });
+  await pickOption(page, page.getByLabel(/owner/i));
   await page.getByLabel(/^name$/i).fill(name);
   await page.getByRole("button", { name: /^cat$/i }).click();
   await page.getByRole("button", { name: /create pet/i }).click();
@@ -36,7 +37,7 @@ async function createPet(page: import("@playwright/test").Page, name: string) {
 
 async function book(page: import("@playwright/test").Page, wallTime: string) {
   await page.goto("/appointments/new");
-  await page.getByLabel(/^pet$/i).selectOption({ index: 1 });
+  await pickOption(page, page.getByLabel(/^pet$/i));
   await page.getByLabel(/starts at/i).fill(wallTime);
   await page.getByRole("button", { name: /create appointment/i }).click();
   await expect(page).toHaveURL(/\/appointments\/(?!new)[\w-]+$/);
@@ -83,8 +84,10 @@ test.describe("Appointments day plan", () => {
     await page.reload();
     await expect(page.getByText(/\b(14:00|2:00 PM)\b/)).toBeVisible();
 
-    // A day with nothing on it says so.
+    // A day with nothing on it says so. The URL first, so a failure here
+    // says whether the day moved at all or moved and rendered wrongly.
     await page.getByRole("link", { name: /next day/i }).click();
+    await expect(page).toHaveURL(new RegExp(`date=${dayKey(2)}`));
     await expect(page.getByText(/no appointments on|randevu bulunmuyor/i)).toBeVisible();
 
     // Back to today.
