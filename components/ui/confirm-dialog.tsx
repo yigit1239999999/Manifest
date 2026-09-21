@@ -37,7 +37,18 @@ interface ConfirmDialogProps {
   tone: "destructive" | "default";
   /** Rendered as the trigger. Receives the handler that opens the dialog. */
   children: (open: () => void) => React.ReactNode;
-  /** Submitted when the user confirms. */
+  /**
+   * Called when the user confirms — called, not submitted.
+   *
+   * The dialog holds no fields, so the `FormData` it passes is always
+   * empty; it is there because every call site binds a server action whose
+   * last parameter is one. A dialog that needs a value closes over it
+   * (`clinic-settings-form` does) rather than expecting to find it here.
+   *
+   * A returned error state is not handled: the call sites that can fail
+   * either report it themselves before returning (`staff-status-button`)
+   * or report it on the page they return to.
+   */
   action: (formData: FormData) => Promise<unknown>;
 }
 

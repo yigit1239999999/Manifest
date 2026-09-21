@@ -152,6 +152,13 @@ describe("confirming an action", () => {
   // putting the old `<form>` back leaves that test green. What can be
   // stated truthfully is that the component contributes no form of its
   // own, which is exactly the property that was missing.
+  // Verified by putting the defect back: with the confirming button wrapped
+  // in its own `<form action=…>` again, this test fails and the one below
+  // it does not. That is the wrong way round from what you would expect and
+  // it is the point — jsdom builds the DOM through `appendChild`, so the
+  // nesting survives here, while a browser's parser flattens it and the
+  // inner action never runs. The behavioural test cannot see the bug; the
+  // structural one is what actually holds the rule.
   it("renders no form of its own, so it is safe inside one", () => {
     const { container } = withIntl(
       <ConfirmDialog

@@ -74,8 +74,11 @@ export function ClinicSettingsForm({ action, currency, invoiceCount }: Props) {
             confirmLabel={t("save")}
             cancelLabel={tCommon("nevermind")}
             tone="default"
-            // The dialog submits its own form, which holds no fields, so
-            // the chosen value is handed over explicitly.
+            // The dialog calls this rather than submitting anything, so
+            // the chosen value is put into the form data here. It used to
+            // say "the dialog submits its own form" — which was true, and
+            // was the bug: a `<form>` inside this one is invalid HTML, the
+            // browser dropped it, and the currency silently never saved.
             action={async () => {
               const data = new FormData();
               data.set("currency", selected);
