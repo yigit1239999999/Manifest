@@ -67,7 +67,10 @@ export default async function NewPetPage({
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <BackLink href="/pets" label={tCommon("back")} />
+      {/* Back means where they came from. Arriving on an errand, that
+          is the form they left half-written, not the animal list --
+          sending them to the list is how the visit gets abandoned. */}
+      <BackLink href={errand ?? "/pets"} label={tCommon("back")} />
       <PageHeader title={t("new")} />
       {owners.items.length === 0 ? (
         <MissingLink need="client" next={ownErrand} />

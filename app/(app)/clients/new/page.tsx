@@ -27,7 +27,9 @@ export default async function NewClientPage({
   const errand = safeNext(next);
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <BackLink href="/clients" label={tCommon("back")} />
+      {/* See `pets/new`: on an errand the way back is the form that
+          sent them here, which may itself be another errand. */}
+      <BackLink href={errand ?? "/clients"} label={tCommon("back")} />
       <PageHeader title={t("new")} />
       <Card className="p-6">
         <ClientForm next={errand ?? undefined} />
