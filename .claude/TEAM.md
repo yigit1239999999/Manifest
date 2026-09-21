@@ -2486,3 +2486,29 @@ gereken *"daha fazlası var"* değil **"henüz aramadım, bir harf yetmiyor."**
 `searchMore` orada dursaydı kullanıcı **aramanın bozuk olduğunu** düşünürdü.
 *İki mesaj aynı eylemi istiyor diye aynı mesaj değildir; hangi soruyu
 cevapladıkları farklı.*
+
+### Bir disiplini kural yapmak yerine, onu GEREKSİZ KILAN BİR YER bul
+
+Bu oturumun en taşınabilir kalıbı, ve **üç bağımsız uygulaması** olduğu için
+desen sayılıyor:
+
+| disiplin (kural olarak zayıf) | onu gereksiz kılan yer |
+|---|---|
+| *"zemini değiştiren herkese söylesin"* | **`SERVED_COMMIT.txt`** — zemin kendini söyler |
+| *"kesim tabanını taze oku"* | **migration kendi içinde sayar** ve log'una yazar |
+| *"oranı kesim tarihine sabitle"* | **`INPUT_FILL_RATE_SINCE`** — damga verinin yanında |
+
+**Neden kural zayıf:** kural **insanın hatırlamasına** dayanır ve pm'in
+teşhisiyle *"talimatla taşınan bir davranış, talimat gelmeyince düşer"* —
+düştüğünde de fark edilmez, çünkü eksik olan bir çıktı değil **bir satır.**
+Yer ise hatırlamamaya dayanır.
+
+**Ölçüt:** bir kural yazmak üzereyken sor — *"bu kuralı gereksiz kılacak bir
+yer var mı?"* Varsa kural yerine **yeri** kur; kuralı yalnızca yerin
+**nasıl okunacağını** anlatmak için yaz.
+
+**Ve tersi uyarı, aynı turda öğrenildi:** yer de bir tuzağa dönüşebilir.
+`_whatsapp_opt_in_backup` iyi niyetli bir **yer**di (eski değerleri sakla)
+ve **iki kişiyi yanılttı**, sonunda silindi. Farkı yapan şey: iyi bir yer
+**bugünkü doğruyu** taşır (`SERVED_COMMIT.txt` şu an ne sunulduğunu),
+kötü bir yer **dünkü doğruyu** taşır ve bugünkü sanılır.
