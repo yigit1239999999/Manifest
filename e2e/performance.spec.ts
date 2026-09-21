@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 
 // Page-load performance budget.
@@ -22,12 +22,11 @@ import { test, expect, type Page } from "@playwright/test";
 
 const BUDGET_MS = Number(process.env.PERF_BUDGET_MS ?? 6000);
 
+// Resolved from the repo root: Playwright compiles specs to CommonJS, where
+// `import.meta` is not available, and always runs them with cwd at the root.
 const messages = (locale: string) =>
   JSON.parse(
-    readFileSync(
-      fileURLToPath(new URL(`../messages/${locale}.json`, import.meta.url)),
-      "utf8",
-    ),
+    readFileSync(join(process.cwd(), "messages", `${locale}.json`), "utf8"),
   ) as Record<string, Record<string, string>>;
 
 const TR = messages("tr");

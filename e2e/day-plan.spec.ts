@@ -85,7 +85,7 @@ test.describe("Appointments day plan", () => {
 
     // A day with nothing on it says so.
     await page.getByRole("link", { name: /next day/i }).click();
-    await expect(page.getByText(/no appointments on this day/i)).toBeVisible();
+    await expect(page.getByText(/no appointments on|randevu bulunmuyor/i)).toBeVisible();
 
     // Back to today.
     await page.getByRole("link", { name: /^today$/i }).click();
@@ -126,6 +126,9 @@ test.describe("Appointments day plan", () => {
 
     await page.getByRole("link", { name: /^completed$/i }).click();
     await expect(page).toHaveURL(new RegExp(`date=${dayKey(0)}`));
-    await expect(page.getByText(/no appointments on this day/i)).toBeVisible();
+    // A filter that matches nothing says so as a filter, with a way out.
+    await expect(
+      page.getByText(/nothing matches this filter|bu filtreye uyan kayıt yok/i),
+    ).toBeVisible();
   });
 });
