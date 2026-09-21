@@ -671,7 +671,8 @@
     },
     "conflict": {
       "invoiceDuplicate": "Invoice number is already in use.",
-      "emailInUse": "This email is already in use."
+      "emailInUse": "This email is already in use.",
+      "lastAdmin": "This clinic's last administrator cannot be deactivated. Add another administrator first."
     },
     "auth": {
       "signupFailed": "Sign-up failed. Please try again.",

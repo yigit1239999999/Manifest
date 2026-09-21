@@ -671,7 +671,8 @@
     },
     "conflict": {
       "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",
-      "emailInUse": "Bu e-posta adresi zaten kullanılıyor."
+      "emailInUse": "Bu e-posta adresi zaten kullanılıyor.",
+      "lastAdmin": "Bu kliniğin son yöneticisi devre dışı bırakılamaz. Önce başka bir yönetici ekleyiniz."
     },
     "auth": {
       "signupFailed": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",

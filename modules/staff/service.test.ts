@@ -7,6 +7,7 @@ vi.mock("@/lib/prisma", () => {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+      count: vi.fn(),
     },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(),
@@ -88,7 +89,10 @@ describe("setStaffActive", () => {
   });
 
   it("deactivates a clinic user and audits an ARCHIVE", async () => {
-    vi.mocked(prisma.user.findFirst).mockResolvedValue({ id: "u-1" } as never);
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      id: "u-1",
+      role: "VETERINARIAN",
+    } as never);
     vi.mocked(prisma.user.update).mockResolvedValue({ id: "u-1" } as never);
 
     await setStaffActive("u-1", false, ctx);
@@ -100,6 +104,58 @@ describe("setStaffActive", () => {
     });
     expect(prisma.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: "ARCHIVE", entityType: "User" }),
+    });
+  });
+
+  // Locking every administrator out of a clinic cannot be undone from
+  // inside it: the way back is a hand-written database update.
+  it("refuses to deactivate the last active administrator", async () => {
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      id: "u-1",
+      role: "ADMIN",
+    } as never);
+    vi.mocked(prisma.user.count).mockResolvedValue(0);
+
+    await expect(setStaffActive("u-1", false, ctx)).rejects.toBeInstanceOf(
+      AppError,
+    );
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("allows deactivating an administrator while another one is left", async () => {
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      id: "u-1",
+      role: "ADMIN",
+    } as never);
+    vi.mocked(prisma.user.count).mockResolvedValue(1);
+    vi.mocked(prisma.user.update).mockResolvedValue({ id: "u-1" } as never);
+
+    await setStaffActive("u-1", false, ctx);
+
+    expect(prisma.user.count).toHaveBeenCalledWith({
+      where: {
+        clinicId: "clinic-1",
+        role: "ADMIN",
+        active: true,
+        id: { not: "u-1" },
+      },
+    });
+    expect(prisma.user.update).toHaveBeenCalled();
+  });
+
+  // Reactivation is not a lock-out risk and must not be blocked by the guard.
+  it("reactivates without counting administrators", async () => {
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      id: "u-1",
+      role: "ADMIN",
+    } as never);
+    vi.mocked(prisma.user.update).mockResolvedValue({ id: "u-1" } as never);
+
+    await setStaffActive("u-1", true, ctx);
+
+    expect(prisma.user.count).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: "RESTORE", entityType: "User" }),
     });
   });
 });

@@ -18,10 +18,15 @@ export const createStaffAction = action(
   },
 );
 
+// Returns a state rather than nothing: refusing to deactivate the last
+// administrator has to reach the screen, and a void action has nowhere to
+// put the message. The list is refreshed on the client after the result
+// arrives (see StaffStatusButton) — calling revalidatePath here would race
+// that transition and leave the button pending.
 export const setStaffActiveAction = action(
   "staff.setActive",
-  async (ctx, id: string, active: boolean): Promise<void> => {
+  async (ctx, id: string, active: boolean): Promise<FormState> => {
     await setStaffActive(id, active, ctx);
-    revalidatePath("/staff");
+    return { success: true };
   },
 );

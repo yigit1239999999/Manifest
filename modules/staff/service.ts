@@ -1,10 +1,13 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { conflict, notFound } from "@/lib/errors";
-import { redact, withAudited } from "@/lib/audit";
+import { redact, withAudited, writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { StaffInput } from "./schema";
+
+/** The only role that carries `users.manage` (see lib/permissions.ts). */
+const ADMIN_ROLE = "ADMIN";
 
 export async function createStaff(input: StaffInput, ctx: ActionContext) {
   requirePermission(ctx.userRole, "users.manage");
@@ -45,23 +48,49 @@ export async function setStaffActive(
 
   const existing = await prisma.user.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: { id: true, role: true },
   });
   if (!existing) throw notFound("user", id);
 
-  await withAudited(
-    {
-      clinicId: ctx.clinicId,
-      actorId: ctx.userId,
-      action: active ? "RESTORE" : "ARCHIVE",
-      entityType: "User",
-      entityId: id,
-    },
-    (tx) =>
-      tx.user.update({
+  // Deactivating the last administrator locks the clinic out of its own
+  // staff, settings and permissions, and nobody left inside can undo it —
+  // the way back is a hand-written database update. The page hides the
+  // button, but a hidden button is not a rule.
+  //
+  // Serializable so two admins deactivating each other at the same moment
+  // cannot both pass a count taken before the other's write, which would
+  // leave the clinic with none.
+  await prisma.$transaction(
+    async (tx) => {
+      if (!active && existing.role === ADMIN_ROLE) {
+        const otherAdmins = await tx.user.count({
+          where: {
+            clinicId: ctx.clinicId,
+            role: ADMIN_ROLE,
+            active: true,
+            id: { not: id },
+          },
+        });
+        if (otherAdmins === 0) throw conflict("error.conflict.lastAdmin");
+      }
+
+      await tx.user.update({
         where: { id },
         data: { active },
         select: { id: true },
-      }),
+      });
+
+      await writeAudit(
+        {
+          clinicId: ctx.clinicId,
+          actorId: ctx.userId,
+          action: active ? "RESTORE" : "ARCHIVE",
+          entityType: "User",
+          entityId: id,
+        },
+        tx,
+      );
+    },
+    { isolationLevel: "Serializable" },
   );
 }
