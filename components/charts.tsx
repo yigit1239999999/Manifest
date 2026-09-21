@@ -87,6 +87,7 @@ export function ColumnBars({
   emptyLabel,
   formatValue,
   partialLast,
+  footnote,
 }: {
   data: BarDatum[];
   height?: number;
@@ -107,6 +108,21 @@ export function ColumnBars({
    * user with the same false fall the chart used to show everyone.
    */
   partialLast?: { note: string; inProgress: string };
+  /**
+   * A fact about what the chart is NOT showing, printed under the bars and
+   * appended to the summary.
+   *
+   * Both channels, and that is the whole reason this is a prop rather than
+   * a `<p>` the caller puts underneath. The caller can draw a line; it
+   * cannot reach the `aria-label`, which is built in here. A chart that
+   * tells a sighted vet it is incomplete and tells a screen reader user it
+   * is complete is worse than one that says nothing to either — the same
+   * requirement `partialLast` carries, for the same reason (TEAM.md #26).
+   *
+   * Undefined prints nothing at all: no empty line, no dash, no "0 of 0"
+   * (TEAM.md #21).
+   */
+  footnote?: string;
 }) {
   // Two different kinds of "nothing", and the second is the one that actually
   // happens: the dashboard series are gap-filled to a fixed 12 weeks / 6
@@ -120,7 +136,7 @@ export function ColumnBars({
 
   const max = Math.max(...data.map((d) => d.value), 1);
   const lastIndex = data.length - 1;
-  const summary = data
+  const series = data
     .map((d, i) => {
       const text = describe(d, formatValue);
       return partialLast && i === lastIndex
@@ -128,6 +144,7 @@ export function ColumnBars({
         : text;
     })
     .join(", ");
+  const summary = footnote ? `${series}. ${footnote}` : series;
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -189,6 +206,12 @@ export function ColumnBars({
         // this line is also the only explanation a sighted user gets for the
         // stripes.
         <p className="text-[10px] text-muted-foreground">{partialLast.note}</p>
+      )}
+      {footnote && (
+        // `text-xs`, a step above the partial-period note: that one explains
+        // a texture, this one says part of the answer is missing from the
+        // picture.
+        <p className="mt-2 text-xs text-muted-foreground">{footnote}</p>
       )}
     </div>
   );

@@ -19,7 +19,56 @@ describe("ColumnBars", () => {
     // The dashboard gap-fills its series to a fixed 12 weeks / 6 months, so
     // `data` is never empty. A new clinic arrives as twelve zeroes, and the
     // old length check never fired for it.
-    it("shows the empty label when every bucket is zero", () => {
+    describe("a footnote about what is not in the picture", () => {
+    // dev needed this for the dashboard: revenue in other currencies
+    // cannot be added to the total, so the chart plots one currency and
+    // has to say so. The reason it is a prop and not a `<p>` the page
+    // puts underneath is the second assertion here — a caller can draw a
+    // line, but it cannot reach inside the `aria-label`.
+    it("prints under the bars and joins the summary", () => {
+      const note = "Ayrıca $11.595,67 · 4 fatura · grafikte yok";
+      render(
+        <ColumnBars
+          data={weeks(10, 8, 3)}
+          emptyLabel="Veri yok."
+          footnote={note}
+        />,
+      );
+
+      expect(screen.getByText(note)).toBeInTheDocument();
+      expect(screen.getByRole("img").getAttribute("aria-label")).toContain(
+        note,
+      );
+    });
+
+    it("says nothing at all when there is nothing to say", () => {
+      // Not an empty line, not a dash, not "0 invoices" (TEAM.md #21).
+      const { container } = render(
+        <ColumnBars data={weeks(10, 8, 3)} emptyLabel="Veri yok." />,
+      );
+      expect(container.querySelectorAll("p")).toHaveLength(0);
+      expect(
+        screen.getByRole("img").getAttribute("aria-label"),
+      ).not.toContain("undefined");
+    });
+
+    it("still reads the series first, with the footnote after it", () => {
+      // The summary is the chart; the footnote is a caveat on it. Read in
+      // the other order it sounds like the chart is about the caveat.
+      render(
+        <ColumnBars
+          data={weeks(10, 8, 3)}
+          emptyLabel="Veri yok."
+          footnote="grafikte yok"
+        />,
+      );
+      const label = screen.getByRole("img").getAttribute("aria-label")!;
+      expect(label.indexOf("grafikte yok")).toBeGreaterThan(0);
+      expect(label.startsWith("grafikte yok")).toBe(false);
+    });
+  });
+
+  it("shows the empty label when every bucket is zero", () => {
       render(
         <ColumnBars data={weeks(0, 0, 0, 0)} emptyLabel="Henüz vizit yok." />,
       );
