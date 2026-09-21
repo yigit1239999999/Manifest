@@ -3875,3 +3875,99 @@ pm, hâl kliniği taramasında dokuz rotanın dokuzunda da timeout aldı ve
 
 Bugünkü alet kusurlarının altısının da ortak yanı bu. **Bir ölçüm
 "her şey bozuk" diyorsa, ilk şüpheli ölçendir.**
+
+### Geri alınamazlık, kaydın kendisinde değil ONUN AŞAĞISINDA olabilir
+
+value, aşı zinciri seçeneklerini geri alınabilirliğe göre ayırdı ve
+(c)'de kritik ayrımı buldu:
+
+> Hatırlatma **silinebilir** — ama **süpürge mesajı önce gönderdiyse
+> mesaj geri alınamaz.** Müşteri, kliniğin **hiç kurmadığı** bir
+> hatırlatmadan mesaj almış olur.
+
+Yani kayıt geri alınabilir, **sonucu** değil. Bir kaydın
+geri alınabilirliğine bakarken **onu okuyan şeylere** de bakılır.
+Bugün üç durumlu onayı tam bu sebeple yaptık — *olmamış bir şeyi
+kayda yazmamak*; (c) aynı riski **mesaj tarafında** açıyor.
+
+Ve value'nun çerçevesi, üç seçeneği hızdan daha iyi ayırıyor:
+**farkları hız değil, müşteriye giden mesajı KİMİN yazdığı.**
+
+Önden yazdığı şey de doğru refleks: **üç seçenekte de aralığı ürün
+belirlemiyor**, hepsi veterinerin kendi girdiği tarihi kullanıyor.
+*"Kuduz 1 yıl sonra"* demek tıbbi bir iddiadır ve hiçbir seçenekte
+yok (#14) — bir soruyu sunarken **sorulmayan şeyi de yazmak**,
+cevabın yanlış okunmasını engelliyor.
+
+### Koşul aynı kalır, İDDİA değişir
+
+value, randevu işaretini dev-ui'nin 100/100 sayısından sonra
+düzeltti ve düzeltmenin biçimi kuralın kendisi:
+
+> Önerdiğim işaret *"geçmiş"* **ve** *"hâlâ açık"*ı birden söylüyordu.
+> Geçmiş bir günde **her satır geçmiştir**, o yarı hiçbir şey ayırt
+> etmiyor. İşaret **"sonucu kaydedilmedi"** desin — **koşul aynı,
+> iddia değişiyor.**
+
+ux'in bugün kurduğu kuralın uygulanması: *uyarının koşulu, iddiasıyla
+aynı şeyi ölçmeli.* Bir işaretin yanlış olması için koşulunun yanlış
+olması gerekmiyor; **iddiasının koşuldan geniş olması yetiyor.**
+
+### Dürüst olamayacak bir iddiayı yeşil bırakmaktansa sil
+
+dev-ui bir test iddiası **yazdı ve sildi**: düğmeye basıldıktan sonra
+odağın düğmede kaldığı. Sebep — `fireEvent.click` jsdom'da odağı
+**hiç oynatmıyor**, yani kaybedilecek bir şey yoktu:
+
+> Yeşil bir iddia **ürünü değil, test ortamını** anlatırdı.
+
+Bıraktığı şey jsdom'un dürüstçe söyleyebileceği tek şey: düğme hâlâ
+**etkin**. Bugün altı kez "ölçenin kusuru ölçülenin kusuru gibi
+okunuyor" dedik; bu onun tersi — **ölçenin yeteneği, ürünün özelliği
+gibi okunuyor.** İkisi de aynı kusur ailesinin üyesi.
+
+Aynı commit'te bir kavram ayrımı daha: `disabled` **iki iş** yapıyordu
+ve yalnızca biri isteniyordu — *ikinci basışı reddetmek* kalıyor,
+*denetimi kullanıcının parmağının altından çekmek* gidiyor. **Diyalogda
+bu daha kötü:** odak `body`'ye düşüyor ve diyalogdan **tamamen**
+çıkıyor.
+
+### Bilgi bayatlarsa, kusur bilgiyi verende değil RAPORLAMADADIR
+
+value'nun listesindeki 2. madde **zaten kapalıydı** (`08bb800`,
+`ba18e8e`) ve ux ölçmüştü bile. dev-ui'nin cümlesi doğru yeri
+gösteriyor: *"onların bilgisi bayattı ve **boşluk benim
+raporlamamdı**."*
+
+Bugün "kontrol bayatladı" ailesinin beşinci üyesi — ama bu kez
+çaresi kontrol değil **akış**: iş veren tarafın listesi, iş yapan
+tarafın rapor hızından daha yavaşsa liste her turda biraz daha
+yanlış olur.
+
+### Başkasının kırığını düzeltme, ama alışkanlık da yapma
+
+`npx tsc --noEmit`, takip edilmeyen bir dosyada (`app/
+picker-refusals.test.ts`, dev'in sürmekte olan işi) hata veriyordu.
+dev-ui **dokunmadı**, kendi dosyaları için süzdü, ve bildirdi —
+eklediği cümle kuralın kendisi:
+
+> **O süzmenin alışkanlık hâline gelmesini istemiyorum.**
+
+Paylaşımlı ağaçta *"benim kısmım temiz"* geçerli bir kapı çıktısı
+değil; geçici olduğu **yazıldığı sürece** kabul edilebilir.
+(Lead kontrol etti: iki tur sonra ağaç temiz — kırık, sahibi
+tarafından kapanmış. Kontrolün kendisi de bayatlayan türden, o yüzden
+zaman damgasıyla: 16:47.)
+
+### Dokunmadan önce SORMAK, haber vermekten farklıdır
+
+ux, veri zemini kuralının insan yarısını kendi `browser_resize`
+pratiğiyle eşledi ve ikisini tek cümlede topladı:
+
+> **Paylaşılan bir kaynağa dokunmadan önce sormak, haber vermekten
+> farklıdır.**
+
+Haber vermek, işi yaptıktan sonra karşıdakine **zararı öğretir**;
+sormak, zararın **doğmasını** engeller. Paylaşılan kaynaklarımız:
+tarayıcı penceresi · üretim derlemesi · veritabanı (`db:seed`) · git
+indeksi. Dördünde de kural aynı.
