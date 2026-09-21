@@ -1,48 +1,52 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
+import { formatTime, formatWeekday } from "@/lib/format";
 
 /**
  * What this dashboard will look like once the clinic has records in it.
  *
  * A clinic on its first morning otherwise reads a grid of zeroes and a
- * column of "nothing yet" sentences — a page that works perfectly and
- * says only that you have done nothing. This shows the shape instead,
- * and the shape is the reassurance: the panel is real, it is simply
- * waiting.
+ * column of "nothing yet" sentences: a page that works perfectly and
+ * says only that you have done nothing.
  *
- * NOT `Skeleton`, and the two reasons are why this is its own file
- * (ux). `animate-pulse` means "loading", and a screen that pulses
- * permanently says the opposite of calm at half past seven in the
- * evening. And `bg-muted` (#1f2521) on `bg-card` (#161c18) is very
- * nearly nothing in the dark theme: the bars would vanish and the
- * preview would read as a grid of empty boxes, which is worse than the
- * zeroes it replaced. The bars are `bg-border`, visible in both.
+ * This is the second shape it has had, and the first one failed for a
+ * reason worth keeping. It was the loading skeleton's outline -- seven
+ * tiles and four cards, all grey bars, no words. Two vets looked at it
+ * independently and both said the same thing: "the page isn't
+ * loading." The bars measured 1.33:1 in the light theme and 1.27:1 in
+ * the dark against the card they sit on, where WCAG asks 3:1 of any
+ * graphic that carries meaning -- so they were either meaningful and
+ * failing, or decoration filling most of the screen. One of the vets
+ * added the thing none of us could see from inside: the real panel's
+ * charts and invoice boxes were not in that outline at all, so it was
+ * not even a preview of the panel.
  *
- * The SHAPE is `DashboardSkeleton`'s, deliberately and to the box:
- * seven tiles and four cards. That is what closes the jump between
- * loading and loaded — and, here, between waiting and arriving.
+ * So it says something now. Names, a weekday, a time.
  *
- * The section titles are real and readable. The information lives in
- * them; the bars are only form, which is why they are the part hidden
- * from a screen reader. What a reader is told instead is the one
- * sentence above this panel.
+ * WHAT IT STILL MAY NOT SAY, and the boundary moved rather than
+ * dissolved. No counter, no amount, no percentage, no chart silhouette.
+ * The rule came from a vet who left a product after seeing 11 on screen
+ * and 4 in the drawer -- "what made me leave was not that the number
+ * was wrong, it was learning that a number COULD be wrong" -- and that
+ * same vet drew this line: their story was a story about a COUNTER. A
+ * date does not tell anyone that figures here are arbitrary; a total
+ * does.
  *
- * NOTHING HERE MAY BE READ AS DATA, and that is three rules working
- * together rather than one (ux, from a vet who left a product after
- * seeing 11 on screen and 4 in the drawer -- "what made me leave was
- * not that the number was wrong, it was learning that a number COULD
- * be wrong"). No digits anywhere, placeholder or not. No chart
- * silhouettes -- six bars of differing heights under "revenue, last
- * six months" is a claim about revenue whether or not a figure sits
- * beneath them, which is exactly where an instinct to "make it look
- * more real" leads. And a dashed frame, because real data in this
- * product is never drawn in one.
+ * NOTHING HERE IS A RECORD, and the protection is not the sentence at
+ * the top. The vet was blunt about that: "a little badge is no
+ * protection, I would not read it either." What protects is that these
+ * rows go nowhere. They are not links, they are not in any list, they
+ * do not answer a search, nothing is written to the database, and the
+ * whole panel is gone the moment a real record exists -- the dashboard
+ * only renders it while the clinic has no clients, no animals and no
+ * visits.
  *
- * Any one of the three alone fails the screenshot test; the three
- * together pass it. This is also why the shape stays exactly the
- * skeleton's four list-shaped cards and is not "improved" into
- * something that resembles the real panel more closely.
+ * The names are checked, not chosen carefully. Twice now a name picked
+ * for an example turned out to exist -- once in a real clinic, once in
+ * our own seed script -- and the second time was after being warned
+ * about the first. `preview-panel.test` is what stops a third: hand
+ * checking did not work, and the answer to that is not more care.
  *
  * Held back with a dashed border and no shadow rather than with
  * opacity. In the dark theme card and page are already close (#161c18
@@ -52,97 +56,80 @@ import { surface } from "@/components/ui/card";
  * the shadow this must not have: the one fully-present, shadowed thing
  * on the screen is the card asking for the first record.
  */
-export async function PreviewPanel() {
-  const t = await getTranslations("dashboard.sections");
 
-  // The real panel's own reading order, checked against it rather than
-  // chosen: appointments, visits, species, vaccinations last and full
-  // width (`app/(app)/page.tsx`). That order is the point of the whole
-  // panel -- the moment it exists for is a vet writing their first
-  // visit, coming back, and finding their own animal in the place the
-  // grey draft had held. That only happens if the places match.
-  //
-  // The two money-and-volume charts are DELIBERATELY ABSENT, and this
-  // is the note for whoever thinks the preview looks incomplete. A
-  // placeholder under "revenue, last six months" sets up an
-  // expectation of an amount no matter what is drawn beneath it, and
-  // the preview saying too little is safe where saying too much about
-  // money is not. `visitsLast12Weeks` is out for the same reason.
-  //
-  // It costs something and we are paying it knowingly: the preview
-  // describes the panel incompletely, missing its two largest cards.
-  // The skeleton already makes that trade -- four list-shaped cards
-  // for a panel that has charts -- and matching the skeleton exactly
-  // is what buys the measurable thing, which is no layout jump. A
-  // soft incompleteness is not worth a hard gain.
-  const titles = [
-    t("upcomingAppointments"),
-    t("recentVisits"),
-    t("petsBySpecies"),
-    t("upcomingVaccinations"),
-  ];
+/**
+ * The example week, as data rather than as markup.
+ *
+ * Names carry across both languages because names do not translate: a
+ * Turkish clinic's animals are called these things whichever language
+ * the vet reads the interface in. The day and the time do translate,
+ * and go through `lib/format` like every other date in the product --
+ * Turkish writes 09:30, English writes 9:30 AM, and a preview that got
+ * that wrong would be teaching the reader the wrong shape.
+ *
+ * `inDays` rather than a fixed date: a written-out calendar day is a
+ * claim about a day the clinic can go and check, and this is an
+ * example of a week, not of a Tuesday in January.
+ */
+const EXAMPLE_WEEK = [
+  { name: "Poyraz", inDays: 1, hour: 9, minute: 30 },
+  { name: "Maviş", inDays: 1, hour: 14, minute: 0 },
+  { name: "Lokum", inDays: 2, hour: 11, minute: 15 },
+  { name: "Nazlı", inDays: 3, hour: 16, minute: 45 },
+] as const;
+
+export const EXAMPLE_NAMES = EXAMPLE_WEEK.map((row) => row.name);
+
+export async function PreviewPanel() {
+  const [t, locale] = await Promise.all([
+    getTranslations("dashboard"),
+    getLocale(),
+  ]);
+
+  const now = new Date();
+  const rows = EXAMPLE_WEEK.map((row) => {
+    const when = new Date(now);
+    when.setDate(when.getDate() + row.inDays);
+    when.setHours(row.hour, row.minute, 0, 0);
+    return { name: row.name, when };
+  });
 
   return (
     <div
-      // Not reachable, not selectable, not focusable: nothing here is
-      // an action, and a tab stop on a picture of a dashboard is a
-      // promise that something will happen.
-      className="pointer-events-none select-none flex flex-col gap-8"
-      aria-hidden="true"
+      className={cn(
+        surface,
+        "flex flex-col gap-4 border-dashed p-6 shadow-none",
+      )}
     >
-      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-        {Array.from({ length: 7 }).map((_, i) => (
-          <div
-            key={i}
-            className={cn(
-              surface,
-              "flex h-24 flex-col justify-between border-dashed p-4 shadow-none",
-            )}
+      {/* Read, unlike the rows below it. Describing a shape to somebody
+          who cannot see it is noise; telling them what this region is
+          costs one sentence and there is no reason to withhold it.
+
+          It also carries the whole explanation, which is why the mock's
+          separate "example clinic" badge is not here: saying one fact
+          in two places weakens both, and this sentence already does the
+          badge's job and the caption's. */}
+      <p className="text-sm text-muted-foreground">{t("previewNote")}</p>
+
+      <ul
+        // Not reachable, not selectable, not focusable, not announced:
+        // nothing here is an action, and a tab stop on a picture of a
+        // dashboard is a promise that something will happen.
+        className="pointer-events-none select-none flex flex-col gap-3"
+        aria-hidden="true"
+      >
+        {rows.map((row) => (
+          <li
+            key={row.name}
+            className="flex items-baseline justify-between gap-4 text-sm text-muted-foreground"
           >
-            {/* Two bars where a label and a figure will be, and every
-                tile gets the SAME two. A digit here would be a claim --
-                even as a placeholder -- and identical bars cannot be
-                read as one tile having more of something than another.
-                Empty tiles were the other failure: a grid of blank
-                boxes says less than the zeroes it replaced. */}
-            <div className="h-2.5 w-20 rounded bg-border" />
-            <div className="h-5 w-10 rounded bg-border" />
-          </div>
+            <span className="min-w-0 truncate">{row.name}</span>
+            <span className="shrink-0 tabular-nums">
+              {formatWeekday(locale, row.when)} {formatTime(locale, row.when)}
+            </span>
+          </li>
         ))}
-      </div>
-      {/* `[&>*]:min-w-0`, matching the real grid rather than earning it
-          here: a grid item's `min-width` is `auto`, so it refuses to be
-          narrower than its own content, and that is what produced the
-          140px overflow measured at 390px on the panel this one is a
-          picture of.
-          Nothing in here can overflow today -- every width is a
-          percentage or a small constant -- so this buys nothing now. It
-          is here because the contract is "the skeleton's shape
-          exactly", and the day somebody puts real content in, the
-          overflow would come back on the screen everyone assumes is
-          safe. */}
-      <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
-        {titles.map((title) => (
-          <div
-            key={title}
-            className={cn(
-              surface,
-              "flex flex-col gap-3 border-dashed p-6 shadow-none",
-            )}
-          >
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            {Array.from({ length: 3 }).map((_, j) => (
-              <div key={j} className="flex items-center gap-3">
-                <div className="size-8 shrink-0 rounded-control bg-border" />
-                <div className="flex flex-1 flex-col gap-1">
-                  <div className="h-3 w-1/2 rounded bg-border" />
-                  <div className="h-2.5 w-1/4 rounded bg-border" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+      </ul>
     </div>
   );
 }

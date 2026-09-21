@@ -260,13 +260,12 @@ export default async function DashboardPage() {
 
         {/* Outside the two-column grid below on purpose -- that grid is
             where a 140px overflow was measured at 390px -- and set off
-            by its own space. The sentence is the only centred text on
-            the page: it does not belong to the left-aligned column
-            above it, it names the block beneath it. */}
-        <div className="mt-4 flex flex-col gap-4">
-          <p className="text-center text-sm text-muted-foreground">
-            {t("preview")}
-          </p>
+            by its own space. The sentence that used to sit here, centred
+            above the panel, is now the panel's first line: ux moved it
+            inside the frame so that what the block is and the fact that
+            it is an example are said once, in the place they are about,
+            rather than split between a caption and a badge. */}
+        <div className="mt-4">
           <PreviewPanel />
         </div>
       </div>

@@ -99,7 +99,6 @@
     "greeting": "Merhaba {name}",
     "subtitle": "Bugünün özeti.",
     "readyFor": "{clinic} için her şey hazır. Panel ilk kayıtla birlikte dolmaya başlar.",
-    "preview": "Kayıtlar girmeye başladığında panel böyle görünecek.",
     "metrics": {
       "clients": "Müşteri",
       "pets": "Hayvan",
@@ -156,7 +155,8 @@
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
     "overdueVaccinationsDismiss": "Kapat",
     "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
-    "overdueVaccinationsUndo": "Geri al"
+    "overdueVaccinationsUndo": "Geri al",
+    "previewNote": "Örnek bir klinik. Kayıtlarınız girmeye başladığında paneliniz böyle görünecek."
   },
   "client": {
     "optionalDetails": "İsteğe bağlı detaylar",

@@ -99,7 +99,6 @@
     "greeting": "Hi, {name}",
     "subtitle": "Here's what's happening today.",
     "readyFor": "{clinic} is ready. The panel starts filling with your first record.",
-    "preview": "This is how the panel will look once records come in.",
     "metrics": {
       "clients": "Clients",
       "pets": "Pets",
@@ -156,7 +155,8 @@
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
     "overdueVaccinationsDismiss": "Close",
     "overdueVaccinationsDismissed": "Vaccination row closed.",
-    "overdueVaccinationsUndo": "Undo"
+    "overdueVaccinationsUndo": "Undo",
+    "previewNote": "An example clinic. This is how your panel will look once records start coming in."
   },
   "client": {
     "optionalDetails": "Optional details",

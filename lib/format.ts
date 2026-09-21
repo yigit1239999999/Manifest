@@ -198,6 +198,21 @@ export function formatTime(
   return dateFormat(target, hourOptions(target)).format(date);
 }
 
+/**
+ * The weekday on its own, e.g. "Salı" / "Tuesday".
+ *
+ * For places that want to say *when* without claiming a calendar date:
+ * the dashboard preview shows an example week, and a full date there
+ * would be a statement about a day the clinic can check.
+ */
+export function formatWeekday(
+  target: FormatTarget,
+  date: Date | null | undefined,
+): string {
+  if (!date) return EMPTY;
+  return dateFormat(target, { weekday: "long" }).format(date);
+}
+
 /** Weekday and day, e.g. "Wednesday, 23 September" — for day headings. */
 export function formatDayHeading(
   target: FormatTarget,

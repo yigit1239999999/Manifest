@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { createTranslator } from "next-intl";
@@ -7,29 +8,32 @@ import tr from "@/messages/tr.json";
 vi.mock("next-intl/server", () => ({
   getTranslations: async (namespace: never) =>
     createTranslator({ locale: "tr", messages: tr, namespace }),
+  getLocale: async () => "tr",
 }));
 
-import { PreviewPanel } from "@/components/preview-panel";
+import { EXAMPLE_NAMES, PreviewPanel } from "@/components/preview-panel";
 
 /**
  * The preview is a picture of a dashboard, and every one of these is a
- * condition ux attached to it rather than a preference.
+ * condition a vet attached to it rather than a preference.
  *
  * Half of the first-run conditions can be held by a test and half cannot,
  * and the next person needs to know which half they are standing on. The
  * split is written here because this is the larger of the two files that
  * hold any of them.
  *
- * Held here, so nobody can undo one quietly: the bar colour against the
- * dark card, no animation, `aria-hidden` plus no keyboard reach, no digit
- * anywhere, the seven tiles having two identical bars each, the shape
- * agreeing with the loading state, the money and volume cards staying
- * out, and the tile order matching the real panel. `first-step-card.test`
- * holds the card drawing one link at a time, the branch that falls back
- * for a reader who cannot write a visit, and the waiting sentence
- * shown to a reader who can reach neither -- both that it appears and
- * that it carries no button and no errand; `pet-picker-owner.test`
- * holds the picker naming an owner.
+ * Held here, so nobody can undo one quietly: no counter, amount or
+ * percentage; no money or volume card; the rows carrying no link and no
+ * tab stop; the rows hidden from a screen reader while the sentence
+ * above them is not; no animation; and the example names not existing
+ * anywhere the product's own data does. `first-step-card.test` holds the
+ * card drawing one link at a time, the branch that falls back for a
+ * reader who cannot write a visit, and the waiting sentence shown to a
+ * reader who can reach neither -- both that it appears and that it
+ * carries no button and no errand; `optional-details.test` holds what
+ * may not be folded away in either form, including the consent question
+ * the counter has to answer; `pet-picker-owner.test` holds the picker
+ * naming an owner.
  *
  * Not held anywhere, and a violation of one ships silently: "no negative
  * sentence in the first-run state" -- which shipped violated, and is the
@@ -50,133 +54,134 @@ import { PreviewPanel } from "@/components/preview-panel";
  * much as the condition.
  */
 describe("the panel a clinic sees before it has records", () => {
-  it("draws its bars in a colour that survives the dark theme", async () => {
+  it("says nothing that could be read as a figure", async () => {
     const { container } = render(await PreviewPanel());
-    const bars = [...container.querySelectorAll("div")].filter((d) =>
-      /\bbg-(border|muted)\b/.test(d.className),
-    );
+    const said = container.textContent ?? "";
 
-    expect(bars.length).toBeGreaterThan(0);
-    // `--muted` (#1f2521) on `--card` (#161c18) is very nearly nothing:
-    // the bars would vanish and the preview would read as a grid of
-    // empty boxes, which is worse than the zeroes it replaced. ux named
-    // this one as the line between done and not done.
-    for (const bar of bars) {
-      expect(bar.className, "a bar using --muted disappears in the dark")
-        .not.toMatch(/\bbg-muted\b/);
-    }
+    // The line the vet drew themselves, and the reason it is here rather
+    // than "no digits at all": their story -- 11 on the screen, 4 in the
+    // drawer -- was a story about a COUNTER. A weekday and a clock do not
+    // tell anyone that figures in this product are arbitrary. A total
+    // does, and so does a percentage.
+    expect(said).not.toMatch(/%/);
+    expect(said).not.toMatch(/[₺$€]|\bTL\b/);
   });
 
-  // `animate-pulse` means "loading". A screen that pulses for ever says
-  // the opposite of calm on the evening somebody has just finished
-  // setting the product up.
-  it("does not pretend to be loading", async () => {
+  it("draws no chart, and no shape that stands in for one", async () => {
     const { container } = render(await PreviewPanel());
-    expect(container.innerHTML).not.toMatch(/animate-pulse|animate-/);
-  });
 
-  /**
-   * The bars carry no meaning, so they are not read out; the sentence
-   * above the panel carries it instead. And nothing here is an action,
-   * so nothing here may be reached: a tab stop on a picture of a
-   * dashboard promises something will happen when it is pressed.
-   */
-  it("is out of reach of both the keyboard and the screen reader", async () => {
-    const { container } = render(await PreviewPanel());
-    const root = container.firstElementChild!;
-
-    expect(root).toHaveAttribute("aria-hidden", "true");
-    expect(root.className).toContain("pointer-events-none");
-    expect(container.querySelectorAll("a, button, input, [tabindex]")).toHaveLength(
+    expect(container.querySelector("svg")).toBeNull();
+    // Six bars of differing heights under a revenue heading is a claim
+    // about revenue whether or not a figure sits beneath them, which is
+    // where an instinct to "make it look more real" leads.
+    expect(container.querySelectorAll('[class*="h-"][class*="bg-"]')).toHaveLength(
       0,
     );
   });
 
-  /**
-   * No crop of this panel may read as data.
-   *
-   * A vet left a product after seeing 11 on screen and 4 in the
-   * drawer, and said what actually cost it: "not that the number was
-   * wrong -- that I learned a number COULD be wrong." Once that is
-   * learned about a panel, every future number on it is damaged. A
-   * placeholder digit here is the cheapest possible way to teach it.
-   *
-   * The sibling rule cannot be tested from here and is held by the
-   * shape instead: no chart silhouettes. Six bars of differing heights
-   * under "revenue, last six months" claim something about revenue
-   * with no figure beneath them at all, which is where wanting it to
-   * look more real leads. The skeleton draws four list-shaped cards
-   * and this copies them rather than improving on them.
-   */
-  it("contains no digit anywhere, placeholder or not", async () => {
-    const { container } = render(await PreviewPanel());
-    // Section titles are real text and may legitimately contain none;
-    // what must not appear is a number standing where a figure goes.
-    const bars = [...container.querySelectorAll("div")].filter((d) =>
-      d.className.includes("bg-border"),
-    );
-    for (const bar of bars) {
-      expect(bar.textContent, "a bar is carrying a figure").toBe("");
-    }
-    const titles = [...container.querySelectorAll("p")].map((p) => p.textContent);
-    expect(container.textContent).toBe(titles.join(""));
-  });
-
-  // Every counter tile carries the same two bars: identical shapes
-  // cannot be read as one tile holding more of something than another.
-  it("gives every counter tile the same two bars", async () => {
-    const { container } = render(await PreviewPanel());
-    const tiles = [...container.querySelectorAll(".h-24")];
-    const shapes = tiles.map((t) =>
-      [...t.children].map((c) => (c as HTMLElement).className).join("|"),
-    );
-    expect(tiles).toHaveLength(7);
-    expect(new Set(shapes).size, "the tiles are not identical").toBe(1);
-    expect(shapes[0]).not.toBe("");
-  });
-
-  // The shape is `DashboardSkeleton`'s to the box -- seven tiles and
-  // four cards -- because matching it is what stops the page jumping
-  // between what was shown while loading and what arrives after.
-  it("keeps the shape the loading state already used", async () => {
-    const { container } = render(await PreviewPanel());
-    const tiles = container.querySelectorAll(".h-24");
-    expect(tiles).toHaveLength(7);
-    // Real, readable titles: the information is in them.
-    expect(container.textContent).toContain(tr.dashboard.sections.recentVisits);
-  });
-
-  /**
-   * Two cards stay out, and the guard is here because their absence
-   * looks like an oversight.
-   *
-   * A placeholder under "revenue, last six months" sets up an
-   * expectation of an amount whatever is drawn beneath it, and this
-   * panel may say too little but not too much about money. The cost
-   * is real and accepted: the preview describes the panel
-   * incompletely, missing its two largest cards.
-   */
   it("says nothing about money or volume", async () => {
     const { container } = render(await PreviewPanel());
-    for (const title of [
+    const said = container.textContent ?? "";
+
+    for (const heading of [
       tr.dashboard.sections.revenueLast6Months,
       tr.dashboard.sections.visitsLast12Weeks,
     ]) {
-      expect(container.textContent, `${title} sets up an expectation`)
-        .not.toContain(title);
+      expect(said).not.toContain(heading);
     }
   });
 
-  // The order is the real panel's, and matching it is what lets a vet
-  // find their first visit in the place the grey draft had held.
-  it("keeps the order the real panel reads in", async () => {
+  it("does not pretend to be loading", async () => {
     const { container } = render(await PreviewPanel());
-    const shown = [...container.querySelectorAll("p")].map((p) => p.textContent);
-    expect(shown).toEqual([
-      tr.dashboard.sections.upcomingAppointments,
-      tr.dashboard.sections.recentVisits,
-      tr.dashboard.sections.petsBySpecies,
-      tr.dashboard.sections.upcomingVaccinations,
-    ]);
+
+    // Two vets read the previous version -- an outline of grey bars --
+    // and both said "the page isn't loading". A permanent pulse says the
+    // same thing louder.
+    expect(container.querySelector(".animate-pulse")).toBeNull();
+    expect(container.innerHTML).not.toContain("animate-pulse");
+  });
+
+  it("goes nowhere, which is the only protection that works", async () => {
+    const { container } = render(await PreviewPanel());
+
+    // "A little badge is no protection, I would not read it either."
+    // What keeps these rows from being mistaken for records is that
+    // there is nothing to do with them.
+    expect(container.querySelector("a")).toBeNull();
+    expect(container.querySelector("button")).toBeNull();
+    expect(container.querySelector("[tabindex]")).toBeNull();
+    expect(container.querySelector("[href]")).toBeNull();
+  });
+
+  it("tells a screen reader what this is, and spares it the shape", async () => {
+    const { container } = render(await PreviewPanel());
+
+    const note = container.querySelector("p")!;
+    expect(note.textContent).toBe(tr.dashboard.previewNote);
+    expect(note.closest("[aria-hidden]")).toBeNull();
+
+    // The rows are form, and describing a shape to somebody who cannot
+    // see it is noise. Withholding what the region IS would not be.
+    expect(container.querySelector("ul")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+  });
+
+  it("is held back by a dashed frame rather than by opacity", async () => {
+    const { container } = render(await PreviewPanel());
+    const frame = container.firstElementChild as HTMLElement;
+
+    expect(frame.className).toContain("border-dashed");
+    expect(frame.className).toContain("shadow-none");
+    // In the dark theme card and page are already close (#161c18 on
+    // #0f1411); opacity dissolves what little separation there is.
+    expect(frame.className).not.toMatch(/\bopacity-/);
+  });
+});
+
+/**
+ * The guard that exists because care did not work.
+ *
+ * An example name that turns out to be a real one is the exact thing the
+ * preview is built to avoid: a reader meeting their own animal in a
+ * panel that is not their data. It has now happened twice -- once with
+ * names a vet recognised from their own clinic, and once with a name
+ * sitting in our own seed script -- and the second time was after we had
+ * been warned about the first.
+ *
+ * So the names are checked rather than chosen carefully, and the check
+ * is against the files that actually put names in front of somebody: the
+ * seed script the development database is built from, and the message
+ * catalogues. A list without this test collides again within months, and
+ * the collision is invisible on the day it happens.
+ */
+describe("the example names", () => {
+  const sources = {
+    "scripts/seed-states.mjs": readFileSync("scripts/seed-states.mjs", "utf8"),
+    "messages/tr.json": readFileSync("messages/tr.json", "utf8"),
+    "messages/en.json": readFileSync("messages/en.json", "utf8"),
+  };
+
+  it("are not names the product uses anywhere else", () => {
+    expect(EXAMPLE_NAMES.length).toBeGreaterThan(0);
+
+    for (const name of EXAMPLE_NAMES) {
+      for (const [file, text] of Object.entries(sources)) {
+        expect(
+          text.includes(name),
+          `${name} already appears in ${file}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("are all actually on screen, so the check covers what is shown", async () => {
+    const { container } = render(await PreviewPanel());
+    const said = container.textContent ?? "";
+
+    for (const name of EXAMPLE_NAMES) {
+      expect(said).toContain(name);
+    }
   });
 });
