@@ -78,3 +78,54 @@ describe("quickSearchClients, the way past the cap", () => {
     expect(callOf()?.where).toMatchObject({ clinicId: "clinic-1" });
   });
 });
+
+// ILIKE folds case and nothing else, so the server never found "Ayse".
+//
+// The browser's half was fixed first and it is the smaller half: the
+// command palette (`app/api/search/route.ts`) calls `quickSearchClients`
+// straight through, with no local list in front of it and no cap to
+// cross first, so a clinic of twelve was already being told "no such
+// client" about a client it has.
+//
+// Asserted on the `where`, because that is where the decision now
+// lives. The folded term has to reach the query -- a search that folds
+// the column and not the term finds nothing at all, which is the same
+// silence wearing the opposite mask.
+describe("searching for a name typed without Turkish letters", () => {
+  it("asks for the folded key, not four case-insensitive columns", async () => {
+    await listClients({ clinicId: "clinic-1", search: "Ayşe" });
+
+    const where = callOf()?.where as Record<string, unknown>;
+    expect(where.searchKey).toEqual({ contains: "ayse" });
+    expect(where.OR).toBeUndefined();
+  });
+
+  it("arrives at the same query however the name was typed", async () => {
+    // The point of folding both sides: these four are one question.
+    for (const typed of ["Ayşe", "Ayse", "AYŞE", "ayse"]) {
+      vi.mocked(prisma.client.findMany).mockClear();
+      await listClients({ clinicId: "clinic-1", search: typed });
+      const where = vi.mocked(prisma.client.findMany).mock.calls[0][0]
+        ?.where as Record<string, unknown>;
+      expect(where.searchKey).toEqual({ contains: "ayse" });
+    }
+  });
+
+  it("does not filter at all when nothing was typed", async () => {
+    // `contains: ""` matches every row, which is the right answer here
+    // and the wrong one everywhere it might be mistaken for a search.
+    // The empty term has to disappear before it reaches the query.
+    await listClients({ clinicId: "clinic-1", search: "   " });
+
+    expect(callOf()?.where).not.toHaveProperty("searchKey");
+  });
+
+  it("refuses a single character before it reaches the database", async () => {
+    // The palette's floor. One letter matches most of a clinic, and the
+    // trigram index cannot help a term shorter than three characters.
+    const rows = await quickSearchClients("clinic-1", "a");
+
+    expect(rows).toEqual([]);
+    expect(prisma.client.findMany).not.toHaveBeenCalled();
+  });
+});

@@ -139,6 +139,13 @@ model Client {
   notificationsOptIn Boolean?
   marketingOptIn     Boolean        @default(false)
   notes              String?
+  /// Accent-folded first name, last name, email and phone, joined by
+  /// spaces. A STORED generated column: Postgres writes it, nothing here
+  /// ever may, and `20260921190000_search_key_accent_folded` holds the
+  /// expression and its trigram index. Searches compare it against a
+  /// term folded by `lib/search.ts`; the two must agree, and
+  /// `scripts/fold-parity.mjs` is what checks that they do.
+  searchKey          String?
   archivedAt         DateTime?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -219,6 +226,11 @@ model Pet {
   deceasedAt        DateTime?
   archivedAt        DateTime?
   notes             String?
+  /// Accent-folded name, breed and microchip id. See `Client.searchKey`
+  /// -- same generated column, same migration. The owner's name is not
+  /// in here: a generated column cannot read another table, so a search
+  /// for an owner goes through `owner.searchKey`.
+  searchKey         String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 

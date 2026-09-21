@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PAGE_SIZES } from "@/lib/pagination";
+import { fold } from "@/lib/search";
 import type { Prisma } from "@/generated/prisma/client";
 
 export interface ListPetsArgs {
@@ -30,20 +31,17 @@ function buildPetWhere(args: {
         }),
     ...(args.ownerId ? { ownerId: args.ownerId } : {}),
     ...(args.species ? { species: args.species as never } : {}),
+    // Two folded columns, one of them the owner's. See the same change
+    // in `modules/clients/queries.ts` for why ILIKE was not enough: the
+    // animal's own fields are generated into `searchKey`, and the owner
+    // lives in another table, which a generated column cannot reach --
+    // so that half goes through the client's key rather than copying a
+    // name that changes when somebody marries.
     ...(term
       ? {
           OR: [
-            { name: { contains: term, mode: "insensitive" } },
-            { breed: { contains: term, mode: "insensitive" } },
-            { microchipId: { contains: term } },
-            {
-              owner: {
-                OR: [
-                  { firstName: { contains: term, mode: "insensitive" } },
-                  { lastName: { contains: term, mode: "insensitive" } },
-                ],
-              },
-            },
+            { searchKey: { contains: fold(term) } },
+            { owner: { searchKey: { contains: fold(term) } } },
           ],
         }
       : {}),
@@ -138,10 +136,21 @@ export async function quickSearchPets(
   // Annotated rather than inferred from the default: without it the
   // parameter's type is the literal 5 and the picker cannot ask for 20.
   take: number = PAGE_SIZES.COMMAND_PALETTE,
+  /**
+   * Restricts the answer to one client's animals.
+   *
+   * A form that has already asked whose animal this is must not offer
+   * somebody else's. Without it the animal picker on such a form could
+   * not search at all -- the list was narrowed locally and any search
+   * would have widened it straight back to the whole clinic -- so the
+   * 51st animal of a client was unreachable, which is the same silent
+   * absence one step further in.
+   */
+  ownerId?: string,
 ) {
   if (term.length < 2) return [];
   return prisma.pet.findMany({
-    where: buildPetWhere({ clinicId, search: term }),
+    where: buildPetWhere({ clinicId, search: term, ownerId }),
     orderBy: { name: "asc" },
     take,
     select: {

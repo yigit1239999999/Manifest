@@ -7,7 +7,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { listPets, listPetsPage } from "./queries";
+import { listPets, listPetsPage, quickSearchPets } from "./queries";
 
 // See `modules/visits/queries.test.ts`: an archive nobody can list is an
 // archive nobody can undo (backlog 39).
@@ -86,5 +86,42 @@ describe("listPets, the dropdown list", () => {
 
     expect(items).toHaveLength(1);
     expect(hasMore).toBe(false);
+  });
+});
+
+// The same accent fix as `modules/clients/queries.test.ts`, plus the one
+// thing an animal has that a client does not: an owner in another table.
+describe("searching for an animal, or for whose animal it is", () => {
+  it("folds the term and asks both keys", async () => {
+    await listPets({ clinicId: "clinic-1", search: "Karabaş" });
+
+    // The animal's own fields are generated into its `searchKey`; the
+    // owner's name cannot be, because a generated column cannot read
+    // another table -- and copying the name in would go stale the day
+    // somebody marries. So the owner is reached through the client's
+    // own key.
+    expect(whereOf().OR).toEqual([
+      { searchKey: { contains: "karabas" } },
+      { owner: { searchKey: { contains: "karabas" } } },
+    ]);
+  });
+
+  it("narrows to one owner's animals when the form already knows the owner", async () => {
+    // A form that has asked whose animal this is must not answer with
+    // somebody else's. Without this the animal picker on such a form
+    // could not search at all: any search would widen the list straight
+    // back to the whole clinic, so the owner's 51st animal was
+    // unreachable -- the cap defect, one step further in.
+    await quickSearchPets("clinic-1", "Karabaş", 20, "c-7");
+
+    expect(whereOf().ownerId).toBe("c-7");
+  });
+
+  it("spans the clinic when no owner was given", async () => {
+    // The other half, and the reason the parameter is optional: on a
+    // visit or an appointment the animal is the first question asked.
+    await quickSearchPets("clinic-1", "Karabaş", 20);
+
+    expect(whereOf()).not.toHaveProperty("ownerId");
   });
 });

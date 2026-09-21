@@ -94,7 +94,15 @@ export const markDeceasedAction = action(
  * search spans owners by definition, and two animals called Karabaş are
  * indistinguishable without it.
  */
-export async function searchPetsAction(term: string): Promise<
+export async function searchPetsAction(
+  term: string,
+  /**
+   * Passed by a form that has already chosen the client, so the search
+   * answers within that choice. Omitted, the search spans the clinic --
+   * which is right for a form where the animal is the first question.
+   */
+  ownerId?: string,
+): Promise<
   {
     value: string;
     label: string;
@@ -117,6 +125,7 @@ export async function searchPetsAction(term: string): Promise<
     session.user.clinicId,
     term,
     PAGE_SIZES.SEARCH_RESULTS,
+    ownerId,
   );
   return rows.map((p) => ({
     value: p.id,

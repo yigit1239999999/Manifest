@@ -30,6 +30,17 @@ import { test, expect, type Page } from "@playwright/test";
 const RING = { light: "rgb(15, 122, 110)", dark: "rgb(52, 192, 168)" };
 
 /**
+ * Ours, not the dev server's.
+ *
+ * `next dev` injects its own toolbar button into every page, and it has
+ * no focus mark of ours because it is not ours. Four false offenders on
+ * every route, on a test whose only value is that a red line means
+ * something — and the fastest way to kill that value is to let people
+ * learn which red lines to ignore.
+ */
+const OURS = ":not(nextjs-portal):not(nextjs-portal *)";
+
+/**
  * Longer than the 150ms `transition-colors` takes.
  *
  * A fixed wait rather than "read twice and compare": two fast reads
@@ -75,11 +86,61 @@ async function ringColour(page: Page) {
   });
 }
 
+/**
+ * Fail loudly when the page under test does not contain the rules under
+ * test, rather than reporting every control as broken.
+ */
+async function assertRulesAreServed(page: Page) {
+  const sheets = await page.evaluate(async () => {
+    const links = [...document.querySelectorAll('link[rel="stylesheet"]')].map(
+      (l) => (l as HTMLLinkElement).href,
+    );
+    const texts = await Promise.all(
+      links.map((href) =>
+        fetch(href)
+          .then((r) => r.text())
+          .catch(() => ""),
+      ),
+    );
+    const inline = [...document.querySelectorAll("style")].map(
+      (s) => s.textContent ?? "",
+    );
+    return [...texts, ...inline].join("\n");
+  });
+
+  const stripped = sheets.replace(/["'\s]/g, "");
+  for (const rule of [
+    "a:focus-visible",
+    "input[type=checkbox]:focus-visible",
+    "input[type=radio]:focus-visible",
+  ]) {
+    expect(
+      stripped.includes(rule.replace(/["'\s]/g, "")),
+      `The served CSS has no \`${rule}\` rule, so this run would report ` +
+        `every control as broken and none of it would be about the ` +
+        `product. Rebuild the server you are pointing at.`,
+    ).toBe(true);
+  }
+}
+
 test.describe("Focus ring", () => {
   test("every button on a page carries --ring, in both themes", async ({
     page,
   }) => {
     await signUp(page, Date.now());
+
+    // The ground, checked before anything is measured on it.
+    //
+    // This has cost the team four false findings in one day, every one
+    // of them the same shape: the source has the rule, the page does
+    // not, and the measurement is real but of something else. A dev
+    // server can serve a stale CSS chunk while `git show` on the same
+    // commit shows the rule perfectly well — and the stale sheet is
+    // internally consistent, so nothing else looks wrong.
+    //
+    // Reading the served stylesheet turns that from a day of debate
+    // into one failed assertion with an instruction in it.
+    await assertRulesAreServed(page);
 
     // Three routes, and no variant named anywhere in here. Naming
     // variants is how one gets measured and the others assumed, which is
@@ -115,9 +176,9 @@ test.describe("Focus ring", () => {
       // selector, and the next hole will be in whatever this still
       // does not name.
       const buttons = page.locator(
-        "button:not([disabled]):visible, " +
-          "input[type=checkbox]:not([disabled]):visible, " +
-          "input[type=radio]:not([disabled]):visible",
+        `${OURS}button:not([disabled]):visible, ` +
+          `${OURS}input[type=checkbox]:not([disabled]):visible, ` +
+          `${OURS}input[type=radio]:not([disabled]):visible`,
       );
       const count = await buttons.count();
 
@@ -201,7 +262,7 @@ test.describe("Focus ring", () => {
     // counting by hand is not done twice.
     for (const route of ["/", "/clients", "/clients/new"]) {
       await page.goto(route);
-      const groups = page.locator("[role=group]:visible");
+      const groups = page.locator(`${OURS}[role=group]:visible`);
       for (let g = 0; g < (await groups.count()); g++) {
         const group = groups.nth(g);
         const name = await group.getAttribute("aria-label");
