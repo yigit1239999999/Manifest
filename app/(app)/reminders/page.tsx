@@ -11,6 +11,8 @@ import {
   listReminders,
   OPEN_REMINDER_STATUSES,
 } from "@/modules/reminders/queries";
+import { blockedReminders } from "@/modules/notifications/queries";
+import { PAGE_SIZES } from "@/lib/pagination";
 import { REMINDER_STATUSES } from "@/modules/reminders/schema";
 import {
   acknowledgeReminderAction,
@@ -69,7 +71,10 @@ export default async function RemindersPage({
   // No parameter means open, because open is the working list. "All" is a
   // deliberate ask, not the resting state (TEAM.md #16c: the list has to be
   // countable against the vet's own memory, and "everything ever" is not).
-  const view = status === "closed" || status === "all" ? status : "open";
+  const view =
+    status === "closed" || status === "all" || status === "blocked"
+      ? status
+      : "open";
   const statuses =
     view === "open"
       ? [...OPEN_REMINDER_STATUSES]
@@ -77,7 +82,7 @@ export default async function RemindersPage({
         ? [...CLOSED_REMINDER_STATUSES]
         : [...REMINDER_STATUSES];
 
-  const [t, tType, tStatus, tCommon, tChannel, tFailure, clinic, reminders, clients, pets] =
+  const [t, tType, tStatus, tCommon, tChannel, tFailure, clinic, reminders, blocked, clients, pets] =
     await Promise.all([
       getTranslations("reminder"),
       getTranslations("enum.reminderType"),
@@ -91,6 +96,14 @@ export default async function RemindersPage({
       // while nothing was going out and no screen said so.
       getClinicMessagingProfile(session.user.clinicId),
       listReminders({ clinicId: session.user.clinicId, statuses }),
+      // Always, not only on that tab: the count belongs on the tab so a
+      // vet sees it without going looking, and the list and the number
+      // come out of one call so they cannot describe different sets
+      // (value's condition). `take: 0` when we only need the number --
+      // the window is read either way, and this saves the shaping.
+      blockedReminders(session.user.clinicId, {
+        take: view === "blocked" ? PAGE_SIZES.LIST : 0,
+      }),
       listClients({ clinicId: session.user.clinicId }),
       // Without `excludeDeceased` the picker offers an animal the
       // server will refuse: `createReminder` rejects a dead one, so the
@@ -343,12 +356,105 @@ export default async function RemindersPage({
         // says "Sent" while the tab above it said "Pending" (TEAM.md #25).
         allLabel={t("filterOpen")}
         options={[
+          // The number rides on the tab because the answer to "who will
+          // I not reach" is useless a click away -- a vet who has to
+          // open the tab to learn it is empty opens it every morning
+          // for nothing. It comes from the same call that fills the
+          // tab, so the two cannot disagree about which set they mean.
+          {
+            value: "blocked",
+            label: blocked.total
+              ? t("filterBlockedCount", { count: blocked.total })
+              : t("filterBlocked"),
+          },
           { value: "closed", label: t("filterClosed") },
           { value: "all", label: t("filterAll") },
         ]}
       />
 
-      {reminders.length === 0 ? (
+      {/* A list of its own rather than a filter over the one below,
+          because membership is decided by `reminderDeliveryState` and
+          deriving it a second time here is how a tab and a badge end up
+          describing different sets. The rows are thinner on purpose --
+          there is no send to offer and no message log to fold open, and
+          the only action any of them has is a phone call. */}
+      {view === "blocked" ? (
+        blocked.items.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title={t("emptyBlocked")}
+            description={t("emptyBlockedHint")}
+          />
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {blocked.items.map((b) => {
+              const dial = telHref(b.client.phone);
+              return (
+                <li
+                  key={b.id}
+                  className={cn(surface, "flex flex-col gap-1 p-4")}
+                >
+                  <p className="text-sm font-semibold">{b.title}</p>
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                    <span>{formatDate(fmt, b.dueAt)}</span>
+                    <span aria-hidden="true">·</span>
+                    <Link
+                      href={`/clients/${b.client.id}`}
+                      className="hover:underline"
+                    >
+                      {b.client.firstName} {b.client.lastName}
+                    </Link>
+                    {b.pet && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <Link href={`/pets/${b.pet.id}`} className="hover:underline">
+                          {b.pet.name}
+                        </Link>
+                      </>
+                    )}
+                    {/* The number is the point of this tab: four of the
+                        six reasons end in somebody picking up a phone.
+                        Dialable becomes a link, unparseable stays as
+                        text the vet can read and key in, absent shows
+                        nothing at all -- the same three states the main
+                        list uses. */}
+                    {b.client.phone && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        {dial ? (
+                          <a href={dial} className="hover:underline">
+                            {b.client.phone}
+                          </a>
+                        ) : (
+                          <span>{b.client.phone}</span>
+                        )}
+                      </>
+                    )}
+                  </p>
+                  {/* `disabled` renders nothing, exactly as in the main
+                      list: it is one fact about the clinic and the
+                      banner above already carries it. On this tab that
+                      means a clinic with the switch off sees every row
+                      without a reason line -- which is correct, and is
+                      why the banner is the thing explaining them. */}
+                  {b.reason !== "disabled" && (
+                    <ReminderDeliveryLine
+                      {...(b.reason === "notConfigured"
+                        ? {
+                            state: "notConfigured" as const,
+                            channel: tChannel(
+                              clinic?.notifications.channel ?? "SMS",
+                            ),
+                          }
+                        : { state: b.reason })}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )
+      ) : reminders.length === 0 ? (
         view === "closed" ? (
           <EmptyState
             icon={ClipboardList}

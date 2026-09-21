@@ -14,6 +14,7 @@ import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { dashboardInsights } from "@/modules/dashboard/queries";
+import { blockedReminders } from "@/modules/notifications/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
 import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
@@ -37,15 +38,19 @@ import {
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const [t, tCommon, tSpecies, tVisitType, insights, currency, fmt] = await Promise.all([
-    getTranslations("dashboard"),
-    getTranslations("common"),
-    getTranslations("enum.species"),
-    getTranslations("enum.visitType"),
-    dashboardInsights(session.user.clinicId),
-    getClinicCurrency(session.user.clinicId),
-    getFormatContext(),
-  ]);
+  const [t, tCommon, tSpecies, tVisitType, insights, blocked, currency, fmt] =
+    await Promise.all([
+      getTranslations("dashboard"),
+      getTranslations("common"),
+      getTranslations("enum.species"),
+      getTranslations("enum.visitType"),
+      dashboardInsights(session.user.clinicId),
+      // Only the number here; the rows live on the tab this card sends
+      // the reader to.
+      blockedReminders(session.user.clinicId, { take: 0 }),
+      getClinicCurrency(session.user.clinicId),
+      getFormatContext(),
+    ]);
 
   const weekFmt = new Intl.DateTimeFormat(intlLocale(fmt.locale), {
     day: "numeric",
@@ -118,7 +123,17 @@ export default async function DashboardPage() {
       icon: ClipboardList,
       value: insights.counts.openReminders,
       href: "/reminders",
-      hint: undefined,
+      // How many of those open reminders will reach nobody. From the
+      // same function that fills the "will not reach" tab, which is the
+      // condition value put on this number: a card saying 3 above a tab
+      // listing 5 teaches a vet that neither is worth reading.
+      //
+      // Absent rather than zero when there are none. A nought here
+      // would take a line of the card every morning to say that
+      // nothing is wrong, which is the least useful day to speak.
+      hint: blocked.total
+        ? t("blockedRemindersCount", { count: blocked.total })
+        : undefined,
     },
   ];
 

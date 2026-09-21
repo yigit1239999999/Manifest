@@ -126,6 +126,7 @@
       "visits": "No visits yet.",
       "vaccinations": "No vaccinations due soon."
     },
+    "blockedRemindersCount": "{count, plural, one {1 will not reach anyone} other {# will not reach anyone}}",
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
     "overdueVaccinationsDismiss": "Close",
     "overdueVaccinationsDismissed": "Vaccination row closed.",
@@ -530,6 +531,10 @@
     "emptyHint": "Reminders you create (vaccination due, check-up, follow-up) are listed here until you close them.",
     "statusFilter": "Status",
     "filterOpen": "Open",
+    "filterBlocked": "Will not reach",
+    "filterBlockedCount": "Will not reach ({count})",
+    "emptyBlocked": "No reminder is blocked.",
+    "emptyBlockedHint": "Reminders whose message will not go out collect here: clients who have not consented, have no number, or whose animal is no longer followed.",
     "filterClosed": "Closed",
     "filterAll": "All",
     "emptyClosed": "No closed reminders.",
