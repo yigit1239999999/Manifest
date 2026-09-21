@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarX, Edit3 } from "lucide-react";
+import { Edit3 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
@@ -117,7 +117,7 @@ export default async function AppointmentPage({
             action={cancelAppointmentAction.bind(null, appointment.id)}
             label={t("cancel")}
             tone="default"
-            icon={CalendarX}
+            mark="cancel"
             // Was `t("cancel") + "?"`, which asked "Cancel the
             // appointment?" by gluing a question mark to a button label.
             confirmText={t("cancelConfirm")}

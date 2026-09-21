@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, type LucideIcon } from "lucide-react";
+import { Archive, CalendarX, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { buttonVariants } from "@/components/ui/button";
@@ -25,17 +25,32 @@ import { buttonVariants } from "@/components/ui/button";
  * The default stays `destructive`: the one true deletion in the app is the
  * one that must not be softened by an oversight.
  *
- * The icon is its own prop rather than derived from the tone, because they
- * do not move together. Cancelling an appointment is reversible and would
- * be `default`, but an `Archive` mark on it would be a lie.
+ * The mark is its own prop rather than derived from the tone, because they
+ * do not move together: `tone` says whether an action can be undone, `mark`
+ * says what the action is. Cancelling an appointment is `default` and
+ * `cancel` — reversible, but nothing is being filed away.
+ *
+ * It is a name and not the icon itself, and that is load-bearing twice
+ * over. This component is `"use client"` and every call site is a server
+ * component, so a component reference cannot cross the boundary at all —
+ * passing `icon={Archive}` compiled, type-checked, passed every test and
+ * took four detail pages to the error boundary. And a closed set of names
+ * means a call site cannot invent a mark of its own, so "the same action
+ * looks the same everywhere" stops being something we check by hand
+ * (TEAM.md #18).
  */
+const MARKS = {
+  delete: Trash2,
+  archive: Archive,
+  cancel: CalendarX,
+} as const;
 export function DeleteButton({
   action,
   label,
   confirmText,
   description,
   tone = "destructive",
-  icon: Icon = Trash2,
+  mark = "delete",
 }: {
   action: (formData: FormData) => Promise<unknown>;
   /** Names the action, on the trigger and on the confirming button. */
@@ -45,10 +60,12 @@ export function DeleteButton({
   /** What exactly happens, and whether it can be undone. */
   description?: string;
   tone?: "destructive" | "default";
-  /** The mark on the trigger. Defaults to the bin, for a real deletion. */
-  icon?: LucideIcon;
+  /** What the trigger is marked with. Defaults to the bin, for a real
+   * deletion. */
+  mark?: keyof typeof MARKS;
 }) {
   const tCommon = useTranslations("common");
+  const Icon = MARKS[mark];
 
   return (
     <ConfirmDialog

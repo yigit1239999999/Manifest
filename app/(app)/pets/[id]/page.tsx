@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Archive, CalendarClock, Edit3, Plus, Stethoscope } from "lucide-react";
+import { CalendarClock, Edit3, Plus, Stethoscope } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
@@ -178,7 +178,7 @@ export default async function PetPage({
             action={archivePetAction.bind(null, pet.id)}
             label={tCommon("archive")}
             tone="default"
-            icon={Archive}
+            mark="archive"
             confirmText={t("archiveConfirm")}
             description={tCommon("archiveUndoHint")}
           />

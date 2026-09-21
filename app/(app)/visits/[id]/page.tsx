@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Archive, Edit3, Plus } from "lucide-react";
+import { Edit3, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
@@ -123,7 +123,7 @@ export default async function VisitPage({
             action={archiveVisitAction.bind(null, visit.id)}
             label={tCommon("archive")}
             tone="default"
-            icon={Archive}
+            mark="archive"
             // Was `tCommon("archive") + "?"`, which asked "Archive?" with no
             // object and read as a stub in both languages.
             confirmText={t("archiveConfirm")}

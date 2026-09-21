@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Archive, Edit3, Plus } from "lucide-react";
+import { Edit3, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
@@ -92,7 +92,7 @@ export default async function ClientPage({
             action={archiveClientAction.bind(null, client.id)}
             label={tCommon("archive")}
             tone="default"
-            icon={Archive}
+            mark="archive"
             confirmText={t("archiveConfirm")}
             description={tCommon("archiveUndoHint")}
           />
