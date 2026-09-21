@@ -426,6 +426,71 @@ describe("what the box says when fields are wrong", () => {
     expect(document.activeElement).toBe(box);
   });
 
+  it("names the control a person can see, not the input carrying the value", async () => {
+    // ux produced the hard case and measured the right thing rather
+    // than the obvious one. The box was printing "ownerId" and
+    // "species" on a form where both controls are properly labelled,
+    // and the tempting reading was "so they are unlabelled". They are
+    // not: a combobox and a chip group each submit through a hidden
+    // input, and the label belongs to the visible control beside it,
+    // under a different id.
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(
+      <ActionForm
+        form={{ ...api({ fieldErrors: { ownerId: ["Sahibi seçiniz."] } }), responseToken: 1 }}
+      >
+        <div>
+          <label htmlFor="owner-visible">Sahibi</label>
+          <input id="owner-visible" type="text" />
+          <input type="hidden" name="ownerId" value="" />
+        </div>
+      </ActionForm>,
+    );
+    await act(async () => {});
+
+    expect(view.container.querySelector("[data-form-error]")).toHaveTextContent(
+      "Sahibi: Sahibi seçiniz.",
+    );
+  });
+
+  it("asks a group for its own name, since it has no label element", async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(
+      <ActionForm
+        form={{ ...api({ fieldErrors: { species: ["Tür gerekli."] } }), responseToken: 1 }}
+      >
+        <div role="group" aria-label="Tür">
+          <input type="hidden" name="species" value="" />
+          <button type="button">Kedi</button>
+        </div>
+      </ActionForm>,
+    );
+    await act(async () => {});
+
+    expect(view.container.querySelector("[data-form-error]")).toHaveTextContent(
+      "Tür: Tür gerekli.",
+    );
+  });
+
+  it("still prints the raw name when there is no name anywhere", async () => {
+    // The ugly fallback stays, and being ugly is what made the defect
+    // above visible in the first place. It just means what it says
+    // now — no name at all — rather than "the name is elsewhere".
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(
+      <ActionForm
+        form={{ ...api({ fieldErrors: { petId: ["Gerekli."] } }), responseToken: 1 }}
+      >
+        <input type="hidden" name="petId" value="" />
+      </ActionForm>,
+    );
+    await act(async () => {});
+
+    expect(view.container.querySelector("[data-form-error]")).toHaveTextContent(
+      "petId: Gerekli.",
+    );
+  });
+
   it("counts the fields and names each one", () => {
     Element.prototype.scrollIntoView = vi.fn();
     const view = render(harness({}, 0));

@@ -245,17 +245,13 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
     for (const [name, messages] of Object.entries(fieldErrors)) {
       const control = element.querySelector(`[name="${CSS.escape(name)}"]`);
       if (!control) continue; // Homeless: it is in the box's first line.
-      const id = control.getAttribute("id");
-      const label = id
-        ? element.querySelector(`label[for="${CSS.escape(id)}"]`)
-        : null;
       next.push({
         name,
-        // Falling back to the field's own name is deliberate and ugly on
-        // purpose: an entry reading "petId" is a visible sign that a
-        // control is unlabelled, which is a defect worth seeing rather
-        // than an entry silently going missing.
-        label: label?.textContent?.trim() || name,
+        // Falling back to the field's own name is deliberate and ugly
+        // on purpose: an entry reading "petId" is a visible sign that
+        // a control has no name of its own, which is a defect worth
+        // seeing rather than an entry quietly going missing.
+        label: labelFor(element, control) || name,
         message: messages[0],
       });
     }
@@ -468,6 +464,47 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
       {children}
     </form>
   );
+}
+
+/**
+ * What to call the field an error belongs to.
+ *
+ * Reading `label[for]` off the element carrying the `name` is the
+ * obvious way and it is wrong here, which ux measured rather than
+ * assumed: the summary was printing "ownerId" and "species" on a form
+ * whose owner picker and species group are both properly labelled.
+ *
+ * The reason is that the thing carrying the `name` is a hidden input.
+ * A combobox and a chip group each submit through one, and the label
+ * belongs to the visible control beside it, under a different id. So
+ * the lookup walks out to the surrounding field and takes the label
+ * there, then asks the visible control for its own accessible name —
+ * a `role="group"` has `aria-label` and no `<label>` at all.
+ *
+ * Only then does it give up and return nothing, which is how the
+ * caller comes to print the raw `name`. That fallback stays: it is
+ * meant to be ugly, and being ugly is what made this visible. But it
+ * now means what it says — no name anywhere — rather than "the name
+ * is on a different element".
+ */
+function labelFor(form: HTMLElement, control: Element): string {
+  const id = control.getAttribute("id");
+  const direct = id
+    ? form.querySelector(`label[for="${CSS.escape(id)}"]`)
+    : null;
+  if (direct?.textContent?.trim()) return direct.textContent.trim();
+
+  // The field this control sits in, and the label at the top of it.
+  const field = control.closest("div");
+  const nearby = field?.querySelector("label");
+  if (nearby?.textContent?.trim()) return nearby.textContent.trim();
+
+  // A group names itself; there is no `<label>` to find.
+  const group = control
+    .closest("[aria-label]")
+    ?.getAttribute("aria-label")
+    ?.trim();
+  return group || "";
 }
 
 /** Puts a failed submission's values back into the fields React reset. */
