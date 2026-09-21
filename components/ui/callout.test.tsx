@@ -56,6 +56,45 @@ describe("Callout", () => {
       expect(screen.queryByRole("alert")).toBeNull();
     });
 
+    // A box that reads as a warning to anyone looking at it and as an
+    // unnamed `div` to anyone not. pm found it on the reminder banner --
+    // "message sending has stopped" was undiscoverable without reading
+    // the whole page -- and every standing notice had the same hole: an
+    // archived client, a deceased animal, "bites".
+    //
+    // `status`, not `alert`: these are conditions, not events, and
+    // assertive would interrupt. Neither announces on first paint, so
+    // this buys a name in the accessibility tree rather than noise.
+    it("still names a notice that is not announcing", () => {
+      render(<Callout variant="warning">Isırır</Callout>);
+      expect(screen.getByRole("status")).toBeInTheDocument();
+    });
+
+    it("gives a silenced danger callout a status role, not nothing", () => {
+      render(
+        <Callout variant="danger" live={false}>
+          Hata
+        </Callout>,
+      );
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(screen.getByRole("status")).toBeInTheDocument();
+    });
+
+    // The third case, and there is exactly one of it. `ActionForm` moves
+    // focus to its error box; a focused live region is read twice, so the
+    // focus is the announcement and the role would be the second copy.
+    // Without this the change above would have quietly reintroduced the
+    // double reading that `live={false}` was added to stop.
+    it("leaves the role off entirely when the caller takes focus instead", () => {
+      render(
+        <Callout variant="danger" live="none" tabIndex={-1}>
+          Hata
+        </Callout>,
+      );
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(screen.queryByRole("status")).toBeNull();
+    });
+
     it("never sets aria-live next to role=alert", () => {
       // role="alert" already implies an assertive live region; declaring both
       // double-announces in some screen reader and browser pairings.

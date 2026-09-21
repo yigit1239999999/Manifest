@@ -74,8 +74,14 @@ export interface CalloutProps
    * loads). Callers with the opposite situation pass it explicitly — the
    * notification settings box appears only after the main switch is turned
    * on, so it announces.
+   *
+   * `false` still leaves a `status` role behind, so the notice has a name
+   * in the accessibility tree even when it is not announcing. `"none"` is
+   * the third case and there is one of it: `ActionForm` moves focus to its
+   * error box, and a focused live region is read twice. Whoever announces
+   * it, only one thing may.
    */
-  live?: boolean;
+  live?: boolean | "none";
 }
 
 export function Callout({
@@ -88,15 +94,33 @@ export function Callout({
   ...props
 }: CalloutProps & { ref?: React.Ref<HTMLDivElement> }) {
   const Icon = variantIcon[variant];
-  const announce = live ?? variant === "danger";
+  const announce = (live ?? variant === "danger") === true;
 
   return (
     <div
       ref={ref}
+      // Always a role, and which one is the only question.
+      //
+      // It used to be `alert` or nothing, and "nothing" meant a box that
+      // reads as a warning to anyone looking at it and as an unnamed
+      // `div` to anyone not. pm found it on the reminder banner -- the
+      // notice telling a clinic that no message is going out at all was
+      // undiscoverable without reading the page end to end -- and every
+      // standing notice here had the same hole: an archived client, a
+      // deceased animal, "bites".
+      //
+      // `status` and not `alert` for those, because they are conditions
+      // rather than events; `alert` is assertive and would interrupt.
+      // Neither announces on first paint -- a live region only speaks for
+      // content arriving after it mounts -- so this buys discoverability,
+      // not noise. What it does change: a non-`live` callout that appears
+      // after mount now gets a polite announcement, which is the right
+      // answer for every case above.
+      //
       // `role="alert"` carries an implicit assertive live region; adding
       // aria-live alongside it is redundant and double-announces in some
       // screen reader / browser pairings.
-      role={announce ? "alert" : undefined}
+      role={live === "none" ? undefined : announce ? "alert" : "status"}
       className={cn(calloutVariants({ variant }), className)}
       {...props}
     >

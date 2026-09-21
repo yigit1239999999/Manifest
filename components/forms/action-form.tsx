@@ -414,9 +414,12 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
         <Callout
           ref={errorBox}
           variant="danger"
-          // Not a live region, because it takes focus. See the note
-          // above: one or the other, never both.
-          live={false}
+          // Not a live region and not even a `status` role, because it
+          // takes focus and a focused live region is read twice. See the
+          // note above: one channel or the other, never both. The only
+          // caller that needs this — every other notice is found rather
+          // than focused, and wants the role.
+          live="none"
           tabIndex={-1}
           // The one place a failure is reported, named so that a test
           // can find it without asserting the mechanism. It used to be
