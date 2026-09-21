@@ -41,6 +41,32 @@ describe("ColumnBars", () => {
       );
     });
 
+    it("survives the empty state, which is where it matters most", () => {
+      // pm found this on the dashboard: a clinic whose paid invoices are
+      // all in another currency saw "no invoices paid in this period"
+      // over four paid invoices. The early return for an all-zero series
+      // happens before the footnote is rendered, so the line vanished at
+      // exactly the moment the chart was missing *everything* rather
+      // than a little.
+      const note = "Ayrıca $11.595,67 · 4 fatura · grafikte yok";
+      render(
+        <ColumnBars data={weeks(0, 0, 0)} emptyLabel="Veri yok." footnote={note} />,
+      );
+
+      expect(screen.getByText("Veri yok.")).toBeInTheDocument();
+      expect(screen.getByText(note)).toBeInTheDocument();
+    });
+
+    it("leaves the empty state alone when there is no footnote", () => {
+      // The other half: nothing anywhere means one sentence, not one
+      // sentence and a blank line under it.
+      const { container } = render(
+        <ColumnBars data={weeks(0, 0, 0)} emptyLabel="Veri yok." />,
+      );
+      expect(screen.getByText("Veri yok.")).toBeInTheDocument();
+      expect(container.querySelectorAll("p")).toHaveLength(1);
+    });
+
     it("says nothing at all when there is nothing to say", () => {
       // Not an empty line, not a dash, not "0 invoices" (TEAM.md #21).
       const { container } = render(

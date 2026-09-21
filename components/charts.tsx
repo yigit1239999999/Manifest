@@ -131,7 +131,29 @@ export function ColumnBars({
   // new clinic saw twelve stubby bars instead of an empty state.
   const total = data.reduce((sum, d) => sum + d.value, 0);
   if (data.length === 0 || total === 0) {
-    return <EmptyState size="inline" title={emptyLabel} />;
+    // The footnote comes with, and this is the case it matters most in.
+    //
+    // It used to be dropped here, because this return happens before the
+    // footnote is rendered or added to the summary. So the line saying
+    // "there is more, elsewhere" appeared while a little was missing and
+    // vanished when *everything* was: a clinic whose paid invoices are
+    // all in another currency read "no invoices paid in this period"
+    // under four paid invoices. The wrong number this prop was added to
+    // fix became a wrong sentence, which is the same class of defect
+    // wearing different clothes (TEAM.md #2).
+    //
+    // No `role="img"` here and so no `aria-label`: the footnote is plain
+    // text in the accessibility tree already, which is what a static
+    // region should be (TEAM.md #30). Above, the bars are decorative and
+    // the label is the only channel there is.
+    return (
+      <div className={cn("flex flex-col", className)}>
+        <EmptyState size="inline" title={emptyLabel} />
+        {footnote && (
+          <p className="mt-2 text-xs text-muted-foreground">{footnote}</p>
+        )}
+      </div>
+    );
   }
 
   const max = Math.max(...data.map((d) => d.value), 1);
