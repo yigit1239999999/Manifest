@@ -78,6 +78,18 @@ export default async function VisitPage({
   // checks for editing and for archiving alike.
   const canArchive = can(session.user.role, "visits.write");
 
+  // The same rule one level down, for the forms inside the cards. Each
+  // clinical record type has its own permission and the service checks it
+  // (`modules/<type>/service.ts`), so a role without it can open the form,
+  // write a prescription into it, and lose the work on submit. Only the
+  // "Add" block goes; the records already there stay readable, because
+  // reading them is allowed and a row that disappears reads as data loss
+  // (TEAM.md #16c).
+  const canAddVaccination = can(session.user.role, "vaccinations.write");
+  const canAddPrescription = can(session.user.role, "prescriptions.write");
+  const canAddTreatment = can(session.user.role, "treatments.write");
+  const canAddDiagnostic = can(session.user.role, "diagnostics.write");
+
   // Needs the animal's species, so it follows the load rather than joining
   // it. See `/pets/[id]`, which renders the same form.
   const vaccineIntervals = await vaccinationIntervalSuggestions(
@@ -249,19 +261,21 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-control border border-dashed border-border p-3 text-sm">
-            <summary className="cursor-pointer font-medium">
-              <Plus className="mr-1 inline size-3.5" />
-              {tVacc("new")}
-            </summary>
-            <div className="mt-3">
-              <VaccinationForm
-                petId={visit.petId}
-                visitId={visit.id}
-                suggestions={vaccineIntervals}
-              />
-            </div>
-          </details>
+          {canAddVaccination && (
+            <details className="rounded-control border border-dashed border-border p-3 text-sm">
+              <summary className="cursor-pointer font-medium">
+                <Plus className="me-1 inline size-3.5" />
+                {tVacc("new")}
+              </summary>
+              <div className="mt-3">
+                <VaccinationForm
+                  petId={visit.petId}
+                  visitId={visit.id}
+                  suggestions={vaccineIntervals}
+                />
+              </div>
+            </details>
+          )}
         </CardContent>
       </Card>
 
@@ -282,15 +296,17 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-control border border-dashed border-border p-3 text-sm">
-            <summary className="cursor-pointer font-medium">
-              <Plus className="mr-1 inline size-3.5" />
-              {tRx("new")}
-            </summary>
-            <div className="mt-3">
-              <PrescriptionForm petId={visit.petId} visitId={visit.id} />
-            </div>
-          </details>
+          {canAddPrescription && (
+            <details className="rounded-control border border-dashed border-border p-3 text-sm">
+              <summary className="cursor-pointer font-medium">
+                <Plus className="me-1 inline size-3.5" />
+                {tRx("new")}
+              </summary>
+              <div className="mt-3">
+                <PrescriptionForm petId={visit.petId} visitId={visit.id} />
+              </div>
+            </details>
+          )}
         </CardContent>
       </Card>
 
@@ -313,15 +329,17 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-control border border-dashed border-border p-3 text-sm">
-            <summary className="cursor-pointer font-medium">
-              <Plus className="mr-1 inline size-3.5" />
-              {tTreatment("new")}
-            </summary>
-            <div className="mt-3">
-              <TreatmentForm petId={visit.petId} visitId={visit.id} />
-            </div>
-          </details>
+          {canAddTreatment && (
+            <details className="rounded-control border border-dashed border-border p-3 text-sm">
+              <summary className="cursor-pointer font-medium">
+                <Plus className="me-1 inline size-3.5" />
+                {tTreatment("new")}
+              </summary>
+              <div className="mt-3">
+                <TreatmentForm petId={visit.petId} visitId={visit.id} />
+              </div>
+            </details>
+          )}
         </CardContent>
       </Card>
 
@@ -344,15 +362,17 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-control border border-dashed border-border p-3 text-sm">
-            <summary className="cursor-pointer font-medium">
-              <Plus className="mr-1 inline size-3.5" />
-              {tDiag("new")}
-            </summary>
-            <div className="mt-3">
-              <DiagnosticForm petId={visit.petId} visitId={visit.id} />
-            </div>
-          </details>
+          {canAddDiagnostic && (
+            <details className="rounded-control border border-dashed border-border p-3 text-sm">
+              <summary className="cursor-pointer font-medium">
+                <Plus className="me-1 inline size-3.5" />
+                {tDiag("new")}
+              </summary>
+              <div className="mt-3">
+                <DiagnosticForm petId={visit.petId} visitId={visit.id} />
+              </div>
+            </details>
+          )}
         </CardContent>
       </Card>
     </div>

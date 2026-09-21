@@ -39,6 +39,10 @@ export default async function InvoicePage({
   // holds, so until now every other role — the vets included — was shown
   // a button that always refused.
   const canVoid = can(session.user.role, "invoices.void");
+  // Recording money taken is its own permission and its own service check
+  // (`modules/invoices/service.ts:79`). The list of payments already made
+  // stays visible either way: it is what the invoice says, not an action.
+  const canRecordPayment = can(session.user.role, "payments.write");
 
   // The invoice's own currency, not the clinic's current setting: changing
   // the setting must not restate an invoice that was issued in another one.
@@ -168,7 +172,7 @@ export default async function InvoicePage({
             </CardContent>
           </Card>
 
-          {invoice.status !== "PAID" && invoice.status !== "VOID" && (
+          {canRecordPayment && invoice.status !== "PAID" && invoice.status !== "VOID" && (
             <Card>
               <CardHeader>
                 <CardTitle>{t("recordPayment")}</CardTitle>

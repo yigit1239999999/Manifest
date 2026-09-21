@@ -119,6 +119,18 @@ export default async function PetPage({
   const canStartVisit = can(session.user.role, "visits.write");
   const canBook = can(session.user.role, "appointments.write");
   const canArchive = can(session.user.role, "pets.archive");
+  // And the same again for the forms inside the cards, each with the
+  // permission its own service checks — they differ per record type, which
+  // is the whole reason one flag would not do: a vet tech may record a
+  // vaccination but not a prescription, and a receptionist neither. Before
+  // this, either of them could write a prescription out in full and lose it
+  // on submit. The records already listed stay visible: reading them is
+  // allowed, and a row that vanishes reads as data loss (TEAM.md #16c).
+  const canAddVaccination = can(session.user.role, "vaccinations.write");
+  const canAddPrescription = can(session.user.role, "prescriptions.write");
+  const canAddTreatment = can(session.user.role, "treatments.write");
+  const canAddDiagnostic = can(session.user.role, "diagnostics.write");
+  const canAddNote = can(session.user.role, "notes.write");
 
   const vets = staff
     .filter((m) => m.active && (m.role === "VETERINARIAN" || m.role === "ADMIN"))
@@ -298,15 +310,17 @@ export default async function PetPage({
                   ))}
                 </ul>
               )}
-              <details className="rounded-control border border-dashed border-border p-3 text-sm">
-                <summary className="cursor-pointer font-medium">
-                  <Plus className="mr-1 inline size-3.5" />
-                  {tVacc("new")}
-                </summary>
-                <div className="mt-3">
-                  <VaccinationForm petId={pet.id} suggestions={vaccineIntervals} />
-                </div>
-              </details>
+              {canAddVaccination && (
+                <details className="rounded-control border border-dashed border-border p-3 text-sm">
+                  <summary className="cursor-pointer font-medium">
+                    <Plus className="me-1 inline size-3.5" />
+                    {tVacc("new")}
+                  </summary>
+                  <div className="mt-3">
+                    <VaccinationForm petId={pet.id} suggestions={vaccineIntervals} />
+                  </div>
+                </details>
+              )}
             </CardContent>
           </Card>
 
@@ -341,15 +355,17 @@ export default async function PetPage({
                   ))}
                 </ul>
               )}
-              <details className="rounded-control border border-dashed border-border p-3 text-sm">
-                <summary className="cursor-pointer font-medium">
-                  <Plus className="mr-1 inline size-3.5" />
-                  {tRx("new")}
-                </summary>
-                <div className="mt-3">
-                  <PrescriptionForm petId={pet.id} />
-                </div>
-              </details>
+              {canAddPrescription && (
+                <details className="rounded-control border border-dashed border-border p-3 text-sm">
+                  <summary className="cursor-pointer font-medium">
+                    <Plus className="me-1 inline size-3.5" />
+                    {tRx("new")}
+                  </summary>
+                  <div className="mt-3">
+                    <PrescriptionForm petId={pet.id} />
+                  </div>
+                </details>
+              )}
             </CardContent>
           </Card>
 
@@ -386,19 +402,21 @@ export default async function PetPage({
                   ))}
                 </ul>
               )}
-              <details className="rounded-control border border-dashed border-border p-3 text-sm">
-                <summary className="cursor-pointer font-medium">
-                  <Plus className="mr-1 inline size-3.5" />
-                  {tTreatment("new")}
-                </summary>
-                <div className="mt-3">
-                  <TreatmentForm
-                    petId={pet.id}
-                    vets={vets}
-                    defaultVetId={session.user.id}
-                  />
-                </div>
-              </details>
+              {canAddTreatment && (
+                <details className="rounded-control border border-dashed border-border p-3 text-sm">
+                  <summary className="cursor-pointer font-medium">
+                    <Plus className="me-1 inline size-3.5" />
+                    {tTreatment("new")}
+                  </summary>
+                  <div className="mt-3">
+                    <TreatmentForm
+                      petId={pet.id}
+                      vets={vets}
+                      defaultVetId={session.user.id}
+                    />
+                  </div>
+                </details>
+              )}
             </CardContent>
           </Card>
 
@@ -450,30 +468,37 @@ export default async function PetPage({
                   ))}
                 </ul>
               )}
-              <details className="rounded-control border border-dashed border-border p-3 text-sm">
-                <summary className="cursor-pointer font-medium">
-                  <Plus className="mr-1 inline size-3.5" />
-                  {tDiag("new")}
-                </summary>
-                <div className="mt-3">
-                  <DiagnosticForm petId={pet.id} />
-                </div>
-              </details>
+              {canAddDiagnostic && (
+                <details className="rounded-control border border-dashed border-border p-3 text-sm">
+                  <summary className="cursor-pointer font-medium">
+                    <Plus className="me-1 inline size-3.5" />
+                    {tDiag("new")}
+                  </summary>
+                  <div className="mt-3">
+                    <DiagnosticForm petId={pet.id} />
+                  </div>
+                </details>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {(await getTranslations("note"))("new")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <NoteForm petId={pet.id} />
-        </CardContent>
-      </Card>
+      {/* The whole card, not just the form: `NoteForm` is its only content
+          and the heading reads "New note", so hiding one and keeping the
+          other would leave a titled empty box. */}
+      {canAddNote && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {(await getTranslations("note"))("new")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <NoteForm petId={pet.id} />
+          </CardContent>
+        </Card>
+      )}
 
       <div>
         <h2 className="mb-3 text-base font-semibold text-foreground">

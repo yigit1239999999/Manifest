@@ -1,6 +1,14 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { can, type Permission, type UserRole } from "@/lib/permissions";
+
+const ROLES: readonly UserRole[] = [
+  "ADMIN",
+  "VETERINARIAN",
+  "VET_TECH",
+  "RECEPTIONIST",
+];
 
 // Two of the five states of a screen (TEAM.md #19) are decided by routing,
 // not by a component: what a user sees when the record is gone, and what a
@@ -125,6 +133,131 @@ describe("actions that lead somewhere the role may not go", () => {
   // open, or a visible one that is shut.
 });
 
+describe("the permission a screen reads is the one a service enforces", () => {
+  // The coarse check above asks whether a page thought about roles at all.
+  // This one asks the question the fixes were actually about: the permission
+  // the screen reads has to be the permission the server demands for the
+  // route it is offering, not a neighbour of it. `can(role, "clients.write")`
+  // beside a link to `/pets/new` reads as guarded and is not — a receptionist
+  // passes, a vet tech is shown a door that shuts.
+  //
+  // The expectation is read out of the service rather than listed here, so
+  // that moving a mutation to another permission moves the test with it
+  // instead of leaving a copy behind that is right about a past release.
+
+  const modulesDir = fileURLToPath(new URL("../modules", import.meta.url));
+
+  /** `/pets/${id}/edit` -> "pets"/"edit"; anything else -> null. */
+  function writeRoute(
+    href: string,
+  ): { section: string; kind: "new" | "edit" } | null {
+    const [path] = href.split("?");
+    const segments = path.split("/").filter(Boolean);
+    const kind = segments.at(-1);
+    if (kind !== "new" && kind !== "edit") return null;
+    if (!path.startsWith("/")) return null;
+    return { section: segments[0], kind };
+  }
+
+  /** The permission `createX`/`updateX` demands, read from the service. */
+  function servicePermission(section: string, kind: "new" | "edit") {
+    const verb = kind === "new" ? "create" : "update";
+    const source = readFileSync(`${modulesDir}/${section}/service.ts`, "utf8");
+    const declarations = [
+      ...source.matchAll(
+        new RegExp(`^export (?:async )?function ${verb}[A-Za-z]*\\(`, "gm"),
+      ),
+    ];
+    // Two of them and the route no longer names one mutation; resolving it
+    // to the first would guess. Let the unresolved case fail instead.
+    if (declarations.length !== 1) return null;
+    const body = source.slice(declarations[0].index);
+    return body.match(/requirePermission\([^,]+,\s*"([^"]+)"\)/)?.[1] ?? null;
+  }
+
+  const HREF = /href=(?:\{`([^`]*)`\}|"([^"]*)")/g;
+
+  type Offer = {
+    file: string;
+    source: string;
+    href: string;
+    section: string;
+    kind: "new" | "edit";
+  };
+
+  // Typed here rather than inferred: spreading `route` through two
+  // `flatMap`s widens `kind` back to `string`, and then every call below
+  // has to narrow it again.
+  const offers: Offer[] = pages.flatMap((file) => {
+    const source = readFileSync(file, "utf8");
+    return [...source.matchAll(HREF)].flatMap((match) => {
+      const href = match[1] ?? match[2];
+      const route = writeRoute(href);
+      return route ? [{ file, source, href, ...route }] : [];
+    });
+  });
+
+  it("finds the links at all, so an href style it cannot read cannot pass", () => {
+    expect(offers.length).toBeGreaterThan(10);
+  });
+
+  it("can name the permission behind every route it found", () => {
+    const unresolved = offers.filter(
+      (offer) => servicePermission(offer.section, offer.kind) === null,
+    );
+
+    expect(unresolved.map((o) => `${routeOf(o.file)} -> ${o.href}`)).toEqual([]);
+  });
+
+  // One link is allowed to go unasked, and the exemption carries its own
+  // expiry date below rather than a promise to remember.
+  //
+  // `/pets/new` shows "no clients yet — add one" when the clinic is empty.
+  // The page itself is already behind `pets.write`, and no role in the
+  // matrix holds `pets.write` without `clients.write`, so a guard here
+  // would be a condition that cannot be false: dead code that tells the
+  // next reader a case exists when it does not (TEAM.md #30).
+  const EXEMPT = new Set(["pets/new/page.tsx -> /clients/new"]);
+
+  it("the one exemption still has nothing to catch", () => {
+    // The reason above is a measurement, and measurements go stale. If a
+    // role is ever given `pets.write` without `clients.write`, the empty
+    // state starts offering that role a door it cannot open, and this
+    // fails here instead of in front of them.
+    const stranded = ROLES.filter(
+      (role) => can(role, "pets.write") && !can(role, "clients.write"),
+    );
+
+    expect(stranded).toEqual([]);
+  });
+
+  it("every screen asks about that permission before offering the route", () => {
+    const offenders = offers.filter((offer) => {
+      if (EXEMPT.has(`${routeOf(offer.file)} -> ${offer.href}`)) return false;
+      const permission = servicePermission(offer.section, offer.kind);
+      return (
+        permission !== null &&
+        !new RegExp(`can\\([^)]*"${permission}"\\)`).test(offer.source)
+      );
+    });
+
+    expect(
+      offenders.map(
+        (o) =>
+          `${routeOf(o.file)} offers ${o.href} without ` +
+          `${servicePermission(o.section, o.kind)}`,
+      ),
+    ).toEqual([]);
+  });
+
+  // Still out of scope, and the line matters: this pairs a page with a
+  // permission, not a *button* with one. A page holding both `pets.write`
+  // and a link to `/pets/new` passes even if the link is rendered under the
+  // other check it happens to hold. Catching that needs the render tree, and
+  // the failure that actually happened twice is the one caught here — the
+  // permission nobody read.
+});
+
 describe("the write routes themselves", () => {
   // The buttons were put behind permission checks one screen at a time, and
   // that turned out to be half the job: the doors they led to were still
@@ -160,5 +293,91 @@ describe("the write routes themselves", () => {
     });
 
     expect(ungated.map(routeOf)).toEqual([]);
+  });
+});
+
+describe("the forms inside a record's page", () => {
+  // The sweep above walks links. These are not links: they are forms that
+  // post straight from a detail page — add a vaccination, write a
+  // prescription, record a payment — and the first pass missed them
+  // entirely, because it was looking for `href`.
+  //
+  // They are the worse half. A button that refuses costs a click; a
+  // prescription form costs the drug, the dose and the instructions,
+  // typed out in full and gone on submit. A vet tech has no
+  // `prescriptions.write` and a receptionist has none of the clinical
+  // permissions at all, so between them that was eight of nine forms on
+  // two screens.
+  //
+  // Each form is paired with the permission its own service enforces, and
+  // the pairing is the assertion: the pages did hold `can()` calls — four
+  // of them on `/pets/[id]` — and none were connected to these blocks, so
+  // "does the page ask" was already true and already useless.
+  const FORMS: { page: string; form: string; permission: Permission }[] = [
+    { page: "visits/[id]", form: "VaccinationForm", permission: "vaccinations.write" },
+    { page: "visits/[id]", form: "PrescriptionForm", permission: "prescriptions.write" },
+    { page: "visits/[id]", form: "TreatmentForm", permission: "treatments.write" },
+    { page: "visits/[id]", form: "DiagnosticForm", permission: "diagnostics.write" },
+    { page: "pets/[id]", form: "VaccinationForm", permission: "vaccinations.write" },
+    { page: "pets/[id]", form: "PrescriptionForm", permission: "prescriptions.write" },
+    { page: "pets/[id]", form: "TreatmentForm", permission: "treatments.write" },
+    { page: "pets/[id]", form: "DiagnosticForm", permission: "diagnostics.write" },
+    { page: "pets/[id]", form: "NoteForm", permission: "notes.write" },
+    { page: "invoices/[id]", form: "PaymentForm", permission: "payments.write" },
+  ];
+
+  const sourceOf = (page: string) =>
+    readFileSync(`${appDir}/${page}/page.tsx`, "utf8");
+
+  it("every one of them is rendered behind its own permission", () => {
+    const offenders = FORMS.filter(({ page, form, permission }) => {
+      const source = sourceOf(page);
+      // The flag has to be read from that permission *and* be the condition
+      // this form renders under. Both halves matter: `/pets/[id]` carried
+      // four correct `can()` calls while all four forms rendered
+      // unconditionally.
+      const flag = source.match(
+        new RegExp(`const (\\w+) = can\\([^)]*"${permission}"\\)`),
+      )?.[1];
+      if (!flag) return true;
+      const rendered = source.indexOf(`<${form}`);
+      // `{flag && (` and `{flag && somethingElse && (` alike — the payment
+      // form also waits for the invoice to be unpaid.
+      return !source.slice(0, rendered).includes(`{${flag} &&`);
+    });
+
+    expect(offenders.map((f) => `${f.page} ${f.form} (${f.permission})`)).toEqual([]);
+  });
+
+  it("leaves the records already there on screen", () => {
+    // The list is reading, and reading is allowed. Hiding it would take the
+    // vaccination history away from a receptionist who is allowed to see it,
+    // and a row that disappears reads as data loss rather than as a limit
+    // (TEAM.md #16c). Only the "Add" block goes.
+    for (const page of ["visits/[id]", "pets/[id]"]) {
+      const source = sourceOf(page);
+      // The empty state and the list both sit outside any `canAdd…` block:
+      // if one had been swept up with the form, it would be inside one.
+      const emptyStates = [...source.matchAll(/<EmptyState[\s\S]{0,200}?\/>/g)];
+      expect(emptyStates.length).toBeGreaterThan(0);
+      for (const match of emptyStates) {
+        const before = source.slice(0, match.index);
+        const opened = (before.match(/\{canAdd\w+ && \(/g) ?? []).length;
+        const closed = (before.match(/^\s{10,}\)\}$/gm) ?? []).length;
+        expect(opened).toBeLessThanOrEqual(closed);
+      }
+    }
+  });
+
+  it("covers every action form on those pages, so none is simply forgotten", () => {
+    for (const page of ["visits/[id]", "pets/[id]", "invoices/[id]"]) {
+      const rendered = new Set(
+        [...sourceOf(page).matchAll(/<([A-Z]\w*Form)\b/g)].map((m) => m[1]),
+      );
+      const listed = new Set(
+        FORMS.filter((f) => f.page === page).map((f) => f.form),
+      );
+      expect([...rendered].filter((f) => !listed.has(f))).toEqual([]);
+    }
   });
 });

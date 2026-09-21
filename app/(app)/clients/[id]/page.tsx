@@ -58,6 +58,11 @@ export default async function ClientPage({
   // from arriving as a click that silently does nothing.
   const canEdit = can(session.user.role, "clients.write");
   const canArchive = can(session.user.role, "clients.archive");
+  // "Add" in the pets card creates an animal, so it asks what the pet
+  // service asks, not what this page's own actions ask. Editing a client
+  // and adding one of their animals are different permissions and a role
+  // can hold either without the other.
+  const canAddPet = can(session.user.role, "pets.write");
 
   return (
     <div className="flex flex-col gap-6">
@@ -136,12 +141,14 @@ export default async function ClientPage({
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>{tNav("pets")}</CardTitle>
-              <Link
-                href={`/pets/new?ownerId=${client.id}`}
-                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-              >
-                <Plus className="size-4" /> {tCommon("add")}
-              </Link>
+              {canAddPet && (
+                <Link
+                  href={`/pets/new?ownerId=${client.id}`}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  <Plus className="size-4" /> {tCommon("add")}
+                </Link>
+              )}
             </CardHeader>
             <CardContent>
               {client.pets.length === 0 ? (
