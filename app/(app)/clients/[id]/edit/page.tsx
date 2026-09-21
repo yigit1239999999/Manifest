@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { getClientById } from "@/modules/clients/queries";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -14,6 +16,7 @@ export default async function EditClientPage({
 }) {
   const { id } = await params;
   const session = await requireSession();
+  if (!can(session.user.role, "clients.write")) return <ForbiddenState />;
   const [client, t, tCommon] = await Promise.all([
     getClientById(session.user.clinicId, id),
     getTranslations("client"),

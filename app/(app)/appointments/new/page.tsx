@@ -1,5 +1,7 @@
 import { getTranslations } from "next-intl/server";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { listPets } from "@/modules/pets/queries";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/page-header";
@@ -13,6 +15,7 @@ export default async function NewAppointmentPage({
   searchParams: Promise<{ petId?: string }>;
 }) {
   const session = await requireSession();
+  if (!can(session.user.role, "appointments.write")) return <ForbiddenState />;
   const { petId } = await searchParams;
   const [t, tCommon, pets, vets] = await Promise.all([
     getTranslations("appointment"),

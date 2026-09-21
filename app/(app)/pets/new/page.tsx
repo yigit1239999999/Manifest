@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getEnabledSpecies } from "@/modules/species/queries";
@@ -22,6 +23,7 @@ export default async function NewPetPage({
   searchParams: Promise<{ ownerId?: string }>;
 }) {
   const session = await requireSession();
+  if (!can(session.user.role, "pets.write")) return <ForbiddenState />;
   const { ownerId } = await searchParams;
   const [t, tCommon, tClient, owners, customSpecies, clinicBreeds, enabledSpecies] =
     await Promise.all([

@@ -1,5 +1,7 @@
 import { getTranslations } from "next-intl/server";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { listClients } from "@/modules/clients/queries";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -12,6 +14,7 @@ export default async function NewInvoicePage({
   searchParams: Promise<{ clientId?: string }>;
 }) {
   const session = await requireSession();
+  if (!can(session.user.role, "invoices.write")) return <ForbiddenState />;
   const { clientId } = await searchParams;
   const [t, tCommon, clients] = await Promise.all([
     getTranslations("invoice"),

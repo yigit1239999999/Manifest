@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
 import { listPets } from "@/modules/pets/queries";
 import { prisma } from "@/lib/prisma";
@@ -16,6 +18,7 @@ export default async function EditVisitPage({
 }) {
   const { id } = await params;
   const session = await requireSession();
+  if (!can(session.user.role, "visits.write")) return <ForbiddenState />;
   const [visit, pets, vets, t, tCommon] = await Promise.all([
     getVisitById(session.user.clinicId, id),
     listPets({ clinicId: session.user.clinicId }),

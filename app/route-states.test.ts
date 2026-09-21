@@ -124,3 +124,41 @@ describe("actions that lead somewhere the role may not go", () => {
   // question the server answers, or the two drift into a hidden door that is
   // open, or a visible one that is shut.
 });
+
+describe("the write routes themselves", () => {
+  // The buttons were put behind permission checks one screen at a time, and
+  // that turned out to be half the job: the doors they led to were still
+  // open. A `VET_TECH` could type `/pets/new` — or follow a link from
+  // somewhere the sweep had not reached — fill the form in, submit it, and
+  // be refused by the service after the typing. Nine of the ten write routes
+  // were like that; only `/staff/new` had ever asked.
+  //
+  // Hiding a button is a courtesy. This is the part that makes the courtesy
+  // true, and it is still not the security boundary: the services enforce
+  // these permissions themselves and always did. The failure being prevented
+  // is wasted work and a screen that behaved as though it would accept
+  // something it could not.
+  //
+  // The route decides, not the file's contents: anything under `/new` or
+  // `/edit` exists to write, so there is no judgement call about which pages
+  // this covers and no way to add one that quietly falls outside.
+  const writeRoutes = pages.filter((file) =>
+    /\/(new|edit)\/page\.tsx$/.test(file),
+  );
+
+  it("finds them at all, so a path that stopped matching cannot pass", () => {
+    expect(writeRoutes.length).toBeGreaterThan(5);
+  });
+
+  it("every one of them refuses a role that cannot write", () => {
+    // `!can(` and not merely `can(`: two of these pages already called
+    // `can()` to decide whether to offer a link to the species settings,
+    // which looks like a guard from a distance and stops nobody.
+    const ungated = writeRoutes.filter((file) => {
+      const source = readFileSync(file, "utf8");
+      return !source.includes("!can(") || !source.includes("ForbiddenState");
+    });
+
+    expect(ungated.map(routeOf)).toEqual([]);
+  });
+});

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getEnabledSpecies } from "@/modules/species/queries";
@@ -21,6 +22,7 @@ export default async function EditPetPage({
 }) {
   const { id } = await params;
   const session = await requireSession();
+  if (!can(session.user.role, "pets.write")) return <ForbiddenState />;
   const [pet, owners, t, tCommon, customSpecies, clinicBreeds, enabledSpecies] =
     await Promise.all([
       getPetById(session.user.clinicId, id),
