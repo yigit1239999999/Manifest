@@ -5921,3 +5921,30 @@ boyutu pikselle ölçtüm, kullanıcı **sığma** ile ölçüyor."* Ekledi:
 **sekiz piksel taşmak, taşımanın en kötü miktarı** — çubuk iki kat
 uzun bir liste için çıkacağı gibi çıkıyor, ve onu doğuran kıl payı
 algılanamıyor.
+
+### Ayrımı kullanan biri yoksa, ayrım bir maliyettir
+
+Bütün gün birbirine karışmış şeyleri ayırdık: `null` ile `false`,
+*"hiç sorulmadı"* ile *"hayır dedi"*, *"hiç kurulmadı"* ile
+*"kapatıldı"*, *"ulaşmadı"* ile *"rapor gelmedi"*. Sonra aynı
+refleksle bir ayrım daha kurmaya kalktık — kaldırılan bir numaranın
+yerine `000` yazıp *"hiç yoktu"* ile *"kaldırıldı"*yı ayırmak.
+
+dev-ui ekran maliyetini gösterdi, ben `NULL`'a döndüm, ve **ayrımı
+savunan dev kendi argümanının neden düşdüğünü yazdı:**
+
+> Ayrım doğru. Ama sorulmayan soru şuydu: **kim, ne zaman, ne için
+> kullanacak?** Cevap: bugünden sonra **kimse.** Yani ayrım **bir
+> kez** işe yarıyor — onu kurarken — ve maliyeti **her okumada**
+> ödeniyor.
+>
+> ***Ayrım kendi başına bir değer değil; ayrımı kullanan biri varsa
+> değerli.***
+
+Ve fark şurada: bugün ayırdığımız her şeyin **bir okuyucusu** vardı —
+veteriner, süpürge özeti, ekran cümlesi, panel sayısı. Bunun yoktu.
+
+**Kural:** bir ayrım önerirken okuyucusunu adıyla söyle. Söyleyemiyorsan
+ayrım değil, **süs**. Ve bu kural bu ekibin kendi en güçlü
+alışkanlığına karşı yazılmıştır — iyi bir refleks, uygulanacak yer
+kalmayınca da uygulanmaya devam eder.
