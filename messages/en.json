@@ -148,8 +148,14 @@
     "preferredContact": "Preferred contact",
     "preferredLanguage": "Preferred language",
     "preferredLanguageHint": "Messages sent to this client are written in this language.",
-    "notificationsOptIn": "The client consented to notification messages",
-    "notificationsOptInHint": "Tick this only if the client has agreed to receive messages. Left unticked, no automatic appointment confirmation, reminder or vaccination notice is sent to them.",
+    "consent": {
+      "legend": "Client's notification consent",
+      "granted": "Gave consent",
+      "declined": "Declined",
+      "unansweredHint": "Not asked yet. No automatic messages are sent to this client until an answer is recorded.",
+      "grantedHint": "Appointment confirmations, reminders and vaccination notices are sent to this client.",
+      "declinedHint": "No automatic messages are sent to this client."
+    },
     "notes": "Notes",
     "archiveConfirm": "Archive this client?",
     "petsCount": "{count, plural, =0 {No pets} one {1 pet} other {# pets}}",
@@ -162,8 +168,8 @@
       "contactHint": "How to reach them. Kept private.",
       "address": "Address",
       "addressHint": "Useful for home visits and correspondence.",
-      "preferences": "Preferences & notes",
-      "preferencesHint": "How they like to be contacted and any context worth remembering."
+      "notes": "Notes",
+      "notesHint": "Context worth remembering about this client."
     },
     "tabs": {
       "overview": "Overview",

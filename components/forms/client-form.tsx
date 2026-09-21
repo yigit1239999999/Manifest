@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
@@ -30,6 +31,24 @@ export function ClientForm({ client }: Props) {
     : createClientAction;
   const form = useActionForm(action, {});
   const { state } = form;
+
+  // Three states, not two, and the third is the one that matters: a
+  // client nobody has asked yet is not a client who said no. They get
+  // the same silence and they are owed different work, so the record
+  // has to be able to say "unanswered" and the form has to be able to
+  // leave it that way. Nothing is selected until someone selects it.
+  //
+  // Held in state only because the sentence underneath changes with it;
+  // the radios are what the form submits. `=== true` / `=== false`
+  // rather than a truthiness test, so that a null arrives here as null
+  // instead of collapsing into "declined" on its way through.
+  const [consent, setConsent] = useState<"true" | "false" | null>(
+    client?.notificationsOptIn === true
+      ? "true"
+      : client?.notificationsOptIn === false
+        ? "false"
+        : null,
+  );
 
   return (
     <ActionForm form={form} className="flex flex-col gap-8">
@@ -84,6 +103,68 @@ export function ClientForm({ client }: Props) {
               defaultValue={client?.secondaryPhone ?? ""}
             />
           </Field>
+          {/* Between the phones and the preferred channel, and that is
+              the order of the two questions: consent is whether a
+              message goes at all, the channel is which one it goes by.
+              Asking which door to knock on before asking whether to
+              knock reads as though the answer to the second is assumed.
+
+              A plain `fieldset` rather than `Field`: `Field` associates
+              one label with one control and injects the id, and a group
+              of radios needs a `legend` instead — the name of the
+              question, not of any one answer. `min-w-0` because a
+              fieldset's default minimum width is its min-content, which
+              in a grid column is how a long legend pushes the page
+              wider than the phone it is on. */}
+          <fieldset className="min-w-0 sm:col-span-2">
+            {/* The fieldset stays a plain block and the contents get
+                their own flex wrapper. A `legend` is laid out by the
+                engine rather than by its parent's display mode, so a
+                flex or grid fieldset puts it somewhere none of the
+                three agree on; keeping the layout one level in is the
+                boring arrangement that renders the same everywhere. */}
+            <legend className="mb-2 text-sm font-medium text-foreground">
+              {t("consent.legend")}
+            </legend>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {(["true", "false"] as const).map((answer) => (
+                <label
+                  key={answer}
+                  className="flex items-center gap-2 text-sm text-foreground"
+                >
+                  <input
+                    type="radio"
+                    name="notificationsOptIn"
+                    value={answer}
+                    checked={consent === answer}
+                    onChange={() => setConsent(answer)}
+                    // The focus mark the buttons carry. A native radio
+                    // falls through to Chromium's own ring otherwise,
+                    // which is the one blue in the product — the same
+                    // defect `e2e/focus-ring.spec.ts` found on five
+                    // controls in the topbar.
+                    className="size-4 accent-[var(--color-primary)] focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2"
+                  />
+                  {t(answer === "true" ? "consent.granted" : "consent.declined")}
+                </label>
+              ))}
+            </div>
+            {/* All three states say something, including the empty one
+                (TEAM.md #21). Unanswered and declined end in the same
+                silence and are not the same fact: one is work still to
+                do, the other is a closed question. And consent needs a
+                sentence of its own — copy that only describes the
+                refusal leaves the vet to infer what a yes buys. */}
+            <p className="mt-2 text-xs text-muted-foreground">
+              {t(
+                consent === "true"
+                  ? "consent.grantedHint"
+                  : consent === "false"
+                    ? "consent.declinedHint"
+                    : "consent.unansweredHint",
+              )}
+            </p>
+          </fieldset>
           <Field
             label={t("preferredContact")}
             error={state.fieldErrors?.preferredContact}
@@ -141,24 +222,14 @@ export function ClientForm({ client }: Props) {
         </div>
       </FormSection>
 
+      {/* "Preferences & notes" with the consent box gone is a section
+          named after something that left it: what remains is notes.
+          The heading follows the content rather than the other way
+          round. */}
       <FormSection
-        title={t("sections.preferences")}
-        description={t("sections.preferencesHint")}
+        title={t("sections.notes")}
+        description={t("sections.notesHint")}
       >
-        {/* Consent is a record of something the client said, so the box
-            starts empty and the copy says what ticking it means. */}
-        <label className="flex items-start gap-3 rounded-control border border-border bg-muted/20 p-3 text-sm">
-          <input
-            type="checkbox"
-            name="notificationsOptIn"
-            defaultChecked={client?.notificationsOptIn ?? false}
-            className="mt-0.5 size-4 rounded border-border"
-          />
-          <span className="flex flex-col gap-1">
-            <span className="font-medium text-foreground">{t("notificationsOptIn")}</span>
-            <span className="text-xs text-muted-foreground">{t("notificationsOptInHint")}</span>
-          </span>
-        </label>
         <Field label={t("notes")} error={state.fieldErrors?.notes}>
           <Textarea name="notes" rows={4} defaultValue={client?.notes ?? ""} />
         </Field>

@@ -148,8 +148,14 @@
     "preferredContact": "Tercih edilen iletişim",
     "preferredLanguage": "Tercih edilen dil",
     "preferredLanguageHint": "Bu müşteriye gönderilen mesajlar bu dilde yazılır.",
-    "notificationsOptIn": "Müşteri bildirim mesajlarına onay verdi",
-    "notificationsOptInHint": "Bu kutuyu yalnızca müşteri mesaj almayı kabul ettiyse işaretleyiniz. İşaretlenmediğinde bu müşteriye otomatik randevu onayı, hatırlatma veya aşı bildirimi gönderilmez.",
+    "consent": {
+      "legend": "Müşterinin bildirim izni",
+      "granted": "İzin verdi",
+      "declined": "İzin vermedi",
+      "unansweredHint": "Henüz sorulmadı. Cevap kaydedilene kadar bu müşteriye otomatik mesaj gönderilmez.",
+      "grantedHint": "Randevu onayı, hatırlatma ve aşı bildirimleri bu müşteriye gönderilir.",
+      "declinedHint": "Bu müşteriye otomatik mesaj gönderilmez."
+    },
     "notes": "Notlar",
     "archiveConfirm": "Bu müşteri arşivlensin mi?",
     "petsCount": "{count, plural, =0 {Hayvan yok} one {1 hayvan} other {# hayvan}}",
@@ -162,8 +168,8 @@
       "contactHint": "Müşteriye nasıl ulaşılacağı. Bu bilgiler gizli tutulur.",
       "address": "Adres",
       "addressHint": "Ev ziyaretleri ve yazışmalar için faydalı.",
-      "preferences": "Tercihler ve notlar",
-      "preferencesHint": "Nasıl iletişim tercih ettikleri ve hatırlanması gereken bağlam."
+      "notes": "Notlar",
+      "notesHint": "Bu müşteri hakkında hatırlanması gereken bağlam."
     },
     "tabs": {
       "overview": "Genel",
