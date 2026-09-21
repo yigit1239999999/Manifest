@@ -20,6 +20,18 @@ import { describe, expect, it } from "vitest";
 // untidy. Hiding it earlier loses it, which is a defect. So a page may
 // hide its stand-in at the widest `hideBelow` it uses, and no sooner.
 //
+// ux named the class "mismatched pair" and named the real reason it got
+// through: the two numbers live in different halves of the file, one as a
+// Tailwind class and one as a prop, and nothing says they have to agree.
+// Review cannot catch that. This can, which is the only reason it exists.
+//
+// The proper fix is for a column to describe its own stand-in and the
+// table to emit one breakpoint for both. ux weighed it and said not yet:
+// two call sites do not justify the API (TEAM.md #30). Written down here
+// rather than in a backlog line, because here is where the third list
+// will be standing when it wants the same thing — and that is the day to
+// build it.
+//
 // NOT CHECKED, so the next reader knows where this stops:
 //   - whether the stand-in actually carries what the hidden columns held.
 //     It checks the breakpoints line up, not the content.
