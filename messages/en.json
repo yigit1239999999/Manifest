@@ -52,7 +52,6 @@
     "emptyFiltered": "Nothing matches this filter.",
     "emptyFilteredHint": "Clear the filter to see every record.",
     "clearFilter": "Clear filter",
-    "open": "Open",
     "details": "Details",
     "emailPlaceholder": "example@email.com",
     "language": "Language",
@@ -492,7 +491,14 @@
     "dueAt": "Due at",
     "acknowledge": "Mark done",
     "dismiss": "Dismiss",
-    "emptyHint": "Reminders you create — vaccination due, check-up, follow-up — are listed here until they are sent."
+    "emptyHint": "Reminders you create (vaccination due, check-up, follow-up) are listed here until you close them.",
+    "statusFilter": "Status",
+    "filterClosed": "Closed",
+    "filterAll": "All",
+    "emptyClosed": "No closed reminders.",
+    "emptyClosedHint": "Reminders you have completed, or closed because they were no longer needed, collect here.",
+    "acknowledgeFor": "{title}: mark as done",
+    "dismissFor": "{title}: no longer needed"
   },
   "invoice": {
     "title": "Invoices",
