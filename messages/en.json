@@ -133,6 +133,10 @@
       "visits": "No visits yet.",
       "vaccinations": "No vaccinations due soon."
     },
+    "firstStep": {
+      "client": "There are no clients in your clinic yet. Pets, visits, appointments and invoices are all recorded against one, so start by adding your first client.",
+      "pet": "No animals are registered yet. Visits, appointments, vaccinations and prescriptions are all recorded against one, so add the first animal to one of your clients."
+    },
     "unreachedRemindersCount": "{count, plural, one {1 did not arrive} other {# did not arrive}}",
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
     "overdueVaccinationsDismiss": "Close",
@@ -476,7 +480,7 @@
     "complete": "Mark completed",
     "cancel": "Cancel",
     "durationShort": "{count} days",
-    "emptyHint": "Prescriptions written from a pet's page appear here, the newest first."
+    "emptyHint": "A prescription is written from inside a visit or a pet's page; the ones you write appear here, the newest first."
   },
   "treatment": {
     "title": "Treatments and procedures",

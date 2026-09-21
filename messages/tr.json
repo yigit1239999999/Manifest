@@ -133,6 +133,10 @@
       "visits": "Henüz vizit yok.",
       "vaccinations": "Yaklaşan aşı yok."
     },
+    "firstStep": {
+      "client": "Kliniğinizde henüz müşteri yok. Hayvan, vizit, randevu ve fatura kaydı bir müşteriye bağlanır; ilk müşterinizi ekleyerek başlayınız.",
+      "pet": "Kayıtlı hayvan yok. Vizit, randevu, aşı ve reçete kaydı bir hayvana bağlanır; müşterilerinizden birine ilk hayvanı ekleyiniz."
+    },
     "unreachedRemindersCount": "{count, plural, one {1 tanesi ulaşmadı} other {# tanesi ulaşmadı}}",
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
     "overdueVaccinationsDismiss": "Kapat",
@@ -476,7 +480,7 @@
     "complete": "Tamamlandı olarak işaretle",
     "cancel": "İptal et",
     "durationShort": "{count} gün",
-    "emptyHint": "Hayvan sayfasından yazılan reçeteler, en yenisi başta olmak üzere burada görünür."
+    "emptyHint": "Reçete bir vizit ya da hayvan sayfası içinden yazılır; yazdıklarınız en yenisi başta olmak üzere burada görünür."
   },
   "treatment": {
     "title": "Tedaviler ve işlemler",

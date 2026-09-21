@@ -73,6 +73,25 @@ export default async function ClientsPage({
           icon={Users}
           title={q ? t("emptySearch") : t("empty")}
           description={q ? t("emptySearchHint") : t("emptyHint")}
+          // The root of the chain, and the only button on a new
+          // clinic's seven list screens that leads to a form which can
+          // actually be filled in: everything else wants a client or an
+          // animal that does not exist yet. The header carries the same
+          // link, but on an empty screen the reader is looking at the
+          // middle of the page, not the top right corner.
+          //
+          // Not under a search: "no client named Y" is answered by
+          // trying another name, and a create button there invites
+          // registering a client who is already on the books under a
+          // different spelling.
+          action={
+            !q && canCreate ? (
+              <Link href="/clients/new" className={buttonVariants()}>
+                <Plus />
+                {t("new")}
+              </Link>
+            ) : undefined
+          }
         />
       ) : (
         <>

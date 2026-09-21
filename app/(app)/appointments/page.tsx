@@ -7,6 +7,8 @@ import { telHref } from "@/lib/phone";
 import { can } from "@/lib/permissions";
 import { listAppointmentsPage } from "@/modules/appointments/queries";
 import { APPOINTMENT_STATUSES } from "@/modules/appointments/schema";
+import { countPets } from "@/modules/pets/queries";
+import { MissingLink } from "@/components/missing-link";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
@@ -86,6 +88,22 @@ export default async function AppointmentsPage({
     }),
   ]);
 
+  // An appointment is booked for an animal, so on a clinic with none
+  // "Yeni randevu" opens a form whose animal picker is empty and says
+  // nothing about why. The animal and not the client, even on a clinic
+  // that has neither: this screen's own precondition is the animal, and
+  // "this record belongs to a client" would be a false sentence about an
+  // appointment. `/pets/new` names the next link when it comes to it,
+  // which is the same chain walk `/appointments/new` already does
+  // (`e2e/first-run.spec.ts`) — one screen, one true sentence.
+  //
+  // Asked only when the list came back empty and no status is filtering
+  // it. A clinic with a day's work on the books never reaches this line.
+  const needsPet =
+    result.items.length === 0 &&
+    !status &&
+    (await countPets(session.user.clinicId)) === 0;
+
   // Every link keeps the other filter, so the day and the status work
   // together rather than resetting each other.
   const hrefFor = (params: { date?: string | null; status?: string | null }) => {
@@ -158,6 +176,13 @@ export default async function AppointmentsPage({
               </Link>
             }
           />
+        ) : needsPet ? (
+          // A fourth piece of news, and the one a clinic sees on its
+          // first morning: there is nothing to book an appointment for
+          // yet. The day is not worth naming here -- no day has any --
+          // so this replaces the empty-day sentence rather than sitting
+          // under it.
+          <MissingLink need="pet" />
         ) : (
           <EmptyState
             icon={CalendarClock}

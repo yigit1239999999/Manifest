@@ -6,6 +6,8 @@ import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { listInvoicesPage } from "@/modules/invoices/queries";
 import { INVOICE_STATUSES } from "@/modules/invoices/schema";
+import { countClients } from "@/modules/clients/queries";
+import { MissingLink } from "@/components/missing-link";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
@@ -40,6 +42,17 @@ export default async function InvoicesPage({
       page,
     }),
   ]);
+
+  // An invoice is raised against a client and nothing more: the line
+  // items may name an animal, but only when the bill came from a visit,
+  // and the field is optional (`components/forms/invoice-form.tsx`). So
+  // this screen's precondition is one link, not two -- sending a vet to
+  // `/pets/new` here would be a detour on the way to a form that never
+  // asked for an animal. Asked only on an unfiltered empty list.
+  const needsClient =
+    result.items.length === 0 &&
+    !status &&
+    (await countClients(session.user.clinicId)) === 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,6 +94,8 @@ export default async function InvoicesPage({
               </Link>
             }
           />
+        ) : needsClient ? (
+          <MissingLink need="client" />
         ) : (
           <EmptyState
             icon={Receipt}

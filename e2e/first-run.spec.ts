@@ -42,4 +42,109 @@ test.describe("First run", () => {
       await expect(main.getByRole("combobox")).toHaveCount(0);
     }
   });
+
+  // The `/new` routes above are reached by typing a URL. The screens a vet
+  // actually lands on are the lists, and on a first morning three of them
+  // offered "New appointment" / "New visit" / "New invoice" — buttons whose
+  // form has an empty picker behind it. Each list now names the same link
+  // its `/new` route does: the animal for appointments and visits, the
+  // client for pets and invoices, because a bill needs no animal.
+  //
+  // `/clients` is the exception and the point of the whole exercise: it is
+  // the one screen on a fresh clinic whose button leads to a form that can
+  // be filled in, and it had no button at all.
+  const lists = [
+    { path: "/pets", says: /a client comes first|önce müşteri gerekir/i, to: "/clients/new" },
+    { path: "/invoices", says: /a client comes first|önce müşteri gerekir/i, to: "/clients/new" },
+    { path: "/appointments", says: /a pet comes first|önce hayvan gerekir/i, to: "/pets/new" },
+    { path: "/visits", says: /a pet comes first|önce hayvan gerekir/i, to: "/pets/new" },
+  ];
+
+  test("every empty list names the link that is missing", async ({ page }) => {
+    await signUp(page, Date.now());
+
+    for (const list of lists) {
+      await page.goto(list.path);
+      const main = page.getByRole("main");
+      await expect(main.getByText(list.says)).toBeVisible();
+      await expect(
+        main.getByRole("link", { name: /new client|yeni müşteri|new pet|yeni hayvan/i }),
+      ).toHaveAttribute("href", list.to);
+    }
+
+    await page.goto("/clients");
+    await expect(
+      page
+        .getByRole("main")
+        .getByRole("link", { name: /new client|yeni müşteri/i })
+        .last(),
+    ).toHaveAttribute("href", "/clients/new");
+  });
+
+  // No `/prescriptions/new` route exists: a prescription is written inside
+  // a visit or on an animal's page. A button here would be the same fault
+  // the four above were built to remove, so the screen keeps its sentence
+  // and offers nothing.
+  test("the one list with nowhere to send anybody offers no button", async ({
+    page,
+  }) => {
+    await signUp(page, Date.now());
+
+    await page.goto("/prescriptions");
+    const main = page.getByRole("main");
+    await expect(main.getByRole("link")).toHaveCount(0);
+  });
+
+  // One line at the top, naming one link, and it has to be the one that is
+  // actually missing — not a checklist that stays on screen after the work
+  // is done. The second half of this test is the half that matters: the
+  // card is gone for good the moment the chain is complete.
+  test("the dashboard names one missing link, then stops", async ({ page }) => {
+    await signUp(page, Date.now());
+
+    const main = page.getByRole("main");
+    const firstStep = main.getByRole("link", {
+      name: /new client|yeni müşteri|new pet|yeni hayvan/i,
+    });
+
+    await expect(firstStep).toHaveAttribute("href", "/clients/new");
+
+    await page.goto("/clients/new");
+    await page.getByLabel(/first name|^ad$/i).fill("Devrim");
+    await page.getByLabel(/last name|soyad/i).fill("Aksoy");
+    await page
+      .getByRole("button", { name: /create client|müşteri oluştur/i })
+      .click();
+    await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
+
+    // The chain moved on by exactly one link, and no further: no third
+    // card about staff, species or notification settings.
+    await page.goto("/");
+    await expect(firstStep).toHaveAttribute("href", "/pets/new");
+  });
+
+  // 390px, because the dashboard's chart card produced 140px of sideways
+  // scroll at this width and nobody had looked. The card added above it is
+  // a sentence and a button in a row, which is exactly the shape that
+  // stops fitting first.
+  test("the first-step card fits a phone in both catalogues", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signUp(page, Date.now());
+
+    for (const locale of ["tr", "en"]) {
+      // The language is a cookie, not a query parameter (`i18n/request.ts`).
+      await page.context().addCookies([
+        { name: "locale", value: locale, url: new URL(page.url()).origin },
+      ]);
+      await page.goto("/");
+      const overflow = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      );
+      expect(overflow, `sideways scroll in ${locale}`).toBeLessThanOrEqual(0);
+    }
+  });
 });
