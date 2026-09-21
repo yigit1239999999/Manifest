@@ -48,3 +48,38 @@ describe("reminder notices", () => {
     expect(isReminderNoticeDue(dueAt, new Date("2026-10-02T00:00:00.000Z"), 3, 9, TZ)).toBe(false);
   });
 });
+
+// How often the sweep runs is part of whether a reminder is ever sent, and
+// `vercel.json` is the only place that says so. A reminder is due inside a
+// window that closes when the appointment starts, so a sweep that runs once
+// a day can step straight over it.
+describe("the cron cadence the schedule needs", () => {
+  const cfg = { mode: "morningOf" as const, hoursBefore: 3, morningHour: 9 };
+
+  /** The sweep instants a cron expression produces over one day, in UTC. */
+  const sweeps = (hoursUtc: number[]) =>
+    hoursUtc.map((h) => new Date(Date.UTC(2026, 8, 20, h, 0)));
+
+  it("a daily 05:00 UTC sweep never catches a 09:00 clinic-time reminder", () => {
+    // Due at 06:00 UTC (09:00 Istanbul), appointment starts 11:30 UTC. The
+    // day's only run is at 05:00 UTC: an hour too early, and the next one is
+    // a day too late.
+    const caught = sweeps([5]).some((now) => isReminderDue(startsAt, now, cfg, TZ));
+    expect(caught).toBe(false);
+  });
+
+  it("an hourly sweep catches it", () => {
+    const caught = sweeps([...Array(24).keys()]).filter((now) =>
+      isReminderDue(startsAt, now, cfg, TZ),
+    );
+    expect(caught.map((d) => d.getUTCHours())).toEqual([6, 7, 8, 9, 10, 11]);
+  });
+
+  it("vercel.json runs the sweep hourly", async () => {
+    const { crons } = (await import("../../vercel.json")).default as {
+      crons: { path: string; schedule: string }[];
+    };
+    const sweep = crons.find((c) => c.path === "/api/cron/reminders");
+    expect(sweep?.schedule).toBe("0 * * * *");
+  });
+});
