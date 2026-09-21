@@ -74,6 +74,19 @@ export const STATES = [
   // behaviour was never wrong.
   { id: "appointment.vet.named", covers: "an appointment with a vet on it" },
   { id: "appointment.vet.none", covers: "an appointment with none" },
+  // pm came here to measure the past-appointment filter and could not:
+  // both appointments were in the future. The clinic held the column
+  // and not the situation, for the fourth time this session.
+  {
+    id: "appointment.past.scheduled",
+    covers:
+      "an appointment whose time has gone by and is still SCHEDULED: nobody came, and nobody wrote that down",
+  },
+  {
+    id: "appointment.past.arrived",
+    covers:
+      "one whose time has gone by and is ARRIVED: they came, and the outcome was never recorded. A different job from the one above, and the status filter shows one at a time",
+  },
 
   // Five invoice statuses. PARTIAL is the only one needing a chain: an
   // invoice, a line, and a payment smaller than the total.
@@ -342,6 +355,39 @@ export async function buildStateClinic(db) {
     [clinic.id, active.id, client.id, ahead(3)],
   );
   made("appointment.vet.none");
+
+  // Two appointments whose time has gone by, still open, and open in two
+  // different ways. `/appointments` filters by one status at a time, so
+  // "nobody came" and "they came and nothing was written down" are
+  // walked separately -- and a suggestion that means to mark both has to
+  // be able to produce both.
+  //
+  // Relative to the moment of seeding, never a fixed date. A fixed one
+  // is in the past today and in the past in a year, but it reads
+  // stranger every month until somebody asks why the data is from 2026.
+  // `ago()` carries the definition of the state; a date carries one
+  // example of it.
+  //
+  // The ordinary animal for both, not the archived or the deceased one:
+  // the list hides those, so an appointment hung on one would be a
+  // state that exists in the table and not on the screen -- the exact
+  // failure this clinic is here to prevent. Two instants keep them
+  // apart, which is all the per-animal-per-instant index asks
+  // (20260921140000).
+  for (const [status, when, reason] of [
+    ["SCHEDULED", ago(1), "Gelmedi"],
+    ["ARRIVED", ago(2), "Geldi, sonuç yazılmadı"],
+  ]) {
+    await db.query(
+      `INSERT INTO appointments (id, "clinicId", "petId", "clientId", "vetId", "startsAt",
+                                 type, status, reason, "updatedAt")
+       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, 'WELLNESS_CHECK',
+               $6::"AppointmentStatus", $7, now())`,
+      [clinic.id, active.id, client.id, vet.id, when, status, reason],
+    );
+  }
+  made("appointment.past.scheduled");
+  made("appointment.past.arrived");
 
   const visit = await one(
     `INSERT INTO visits (id, "clinicId", "petId", "clientId", "vetId", "visitedAt", type,
