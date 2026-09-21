@@ -72,6 +72,19 @@ tek bir yer bırakmayacağız — eksik gedik kabul edilmiyor.
   telefonda ekran dışında kalan bir eylem — bunların hiçbiri "sonra
   bakarız" değildir. Bir ürünü dünya standardı yapan şey büyük fikirler
   değil, bu küçüklerin hiçbirinin atlanmamış olmasıdır.
+- **UX önce gelir: iş tasarımdan başlar, şemadan değil.** Bir işin ilk sorusu
+  "hangi kolon, hangi endpoint" değil, **veteriner o an ekranda ne görüyor ve
+  ne yapmaya çalışıyor**. Akış ve hâlleri kararlaştırılmadan görev yazılmaz,
+  görev yazılmadan kod yazılmaz. Bu sıra tersine döndüğünde çıkan şey
+  çalışıyor ama kimsenin tarif edemediği bir ekran oluyor ve bedeli yeniden
+  yazmak.
+  **Pratik karşılığı:** (a) her görev metni, bittiğinde ekranın nasıl
+  görüneceğini bir cümleyle söyler; (b) A hattı bir iş kullanıcıya görünen
+  bir şey değiştiriyorsa `ux` haberdar edilir, sonradan değil; (c) "arka uç
+  indi, arayüzü sonra" bir teslim değil, yarım iştir (madde 9); (d) teknik
+  bir kısıt tasarımı değiştirecekse tartışma tasarım masasında yapılır,
+  sessizce koda gömülmez.
+
 - **Şüphedeyken kullanıcıya sor, varsayma.** Ama sormadan önce koda bak:
   cevabın yarısı çoğu zaman zaten orada duruyor.
 
@@ -162,6 +175,14 @@ kayıt sessizce listeden düşmez, daha görünür olur. Kaybolan tek bir satır
 **17. Kesme çizgisini önceden çiz.** Zaman sıkıştığında karar vermek kolaydır
 ama o an kötü karar verilir. Neyin kesileceği baskıdan önce yazılır.
 
+**17b. Kesme çizgisi işler arasında olduğu kadar bir işin kendi parçaları
+arasında da çizilir.** Baskı geldiğinde kesilen şey genelde "en görünür
+olmayan" olur ve bu çoğu zaman tersidir: gösterişli parça kesilmez, işi asıl
+yapan parça kesilir. Kanıtı 20'de çıktı — öneri çipi gösterişli ama geçmiş
+veri gerektiriyor, yani yeni bir klinikte hiç görünmüyor; alanın yerleşimi ve
+sonuç satırı ise ilk gün çalışan **tek** parça. Bir işi tarif ederken
+parçalarının hangisinin önce korunacağı da yazılır.
+
 ## Tasarım ilkeleri
 
 **18. Tutarlılık her şeyden önce.** Aynı eylem her ekranda aynı yerde, aynı
@@ -225,6 +246,23 @@ sistemin yanına ikincisini kurma: iki sistem kaçınılmaz olarak ayrışır.
 duyurulmaz — canlı bölge ancak mount'tan sonra değişirse duyurur; duyuru
 gerekiyorsa onu varyanttan ayrı bir tercih olarak kur.
 
+**30b. Bir işi kapatırken, o işin başka bir kararın gerekçesi olarak anıldığı
+yerlere bakılır.** Düşen gerekçe üstü çizilerek bırakılır ve karar yeniden
+gerekçelendirilir ya da geri alınır. Karar doğru kalabilir — çürüyen
+gerekçedir, ve yazılı duran çürük gerekçe sonraki okuyucuya yanlış bir
+serbestlik ya da yanlış bir yasak verir. Bu tek turda üç kez oldu
+(`marketingOptIn`, para birimi listesinin dörtte kalması, 14b'nin
+sınıflandırması) ve üçü de yalnızca biri tesadüfen fark ettiği için yakalandı:
+hiçbir test düşmez, hiçbir ekran bozulmaz.
+
+**30c. Bir alanı kapatan her not, neyi kapsamadığını da yazar.** "Burası
+tarandı" cümlesi bir sonraki kişinin oraya bakmamasını sağlar; kapsamı yazılı
+değilse, notun dışında kalan her şey sessizce temiz sayılır. *"`modules/`
+altındaki servis çağrıları tarandı"* ile *"yetkilendirme temiz"* arasındaki
+fark, bir erişim açığı kadardır. 30b'den farkı ve neden ayrı madde: **bayat
+gerekçe yanlış bir kararı savunur ve karara bakan onu görebilir; bayat kapsam
+notu ise bakmayı engeller** — aramayı durdurduğu için daha sinsidir.
+
 **31. Yeni kodda mantıksal yön sınıfı kullanılır** (`ms-*`/`me-*`/`ps-*`/
 `pe-*`/`text-start`/`text-end`), fiziksel değil. Bugün sağdan sola bir dili
 desteklemeye karar vermek zorunda değiliz; kuralı bugün koymak bedava,
@@ -233,6 +271,79 @@ sonra koymak yüzlerce satır demek. Var olan kodu toplu çevirmek ayrı bir iş
 **32. Bir bileşen en uzun çeviriyle test edilmeden bitmiş sayılmaz.** Metin
 uzunluğu farkı bu kod tabanında teorik değil, kanıtlı: `PageHeader` zaten
 390px'te eylemlerini ekran dışına atıyor.
+
+**32b. Hangi dilin uzun olduğu yüzey başına değişir ve ölçülür,
+varsayılmaz.** Herkesin içgüdüsü İngilizcedir ve bu kod tabanında içgüdü
+yanlış: durum rozetleri ve boş hâl metinlerinde uzun olan dil **Türkçedir**
+— `invoiceStatus.PARTIAL` "Kısmen ödendi" (13) / "Partial" (7), `SENT`
+"Gönderildi" (10) / "Sent" (4), `audit.emptyHint` 103 / 80. En dar yer
+`DataTable`'ın durum sütunu ve oradaki en uzun etiket TR. Yalnızca
+İngilizcede test etmek bu yüzeylerde yeterli değildir.
+
+**32c. Konan bir kuralın tuttuğu ölçülür.** Her sürüm sonunda o sürümde
+konmuş kurallardan en az biri seçilir ve ölçülür: tuttuysa kanıtı yazılır,
+tutmadıysa kural ya güçlendirilir ya kaldırılır. Kural koymak kadar tuttuğunu
+kanıtlamak da gerekiyor, ve bu genelde yapılmıyor. İlk örnek 31'dir: gerekçesi
+"bugün bedava, sonra yüzlerce satır" diye bir **tahmindi**; bu turda yazılan
+dört bileşende sıfır fiziksel yön sınıfı çıktı ve kimse ek maliyet ödemedi —
+kalan iki kullanım kuraldan öncedir. Performans eşiklerinin her sürümde
+sıkılması da aynı ritüelin parçasıdır.
+
+**Ölçülecek kural bir sonraki sürüm için önceden seçilir** (value'nun
+eklemesi, ve ritüeli törene dönüşmekten kurtaran şey bu): "sürüm sonunda bir
+kural seçeriz" denirse o an **en kolay ölçülen** kural seçilir ve ritüel
+kendini doğrular. Seçim ölçütü tersidir — **sessizce geri gelmeye en yatkın
+olan** seçilir. Bu sürümde ölçülen 31'di; bir sonraki sürümde ölçülecek olan
+*"para alanı taşıyan şema modül sabiti olamaz, istek başına kurulur"*, çünkü
+ihlali hiçbir ekranı bozmuyor, hiçbir testi düşürmüyor, yalnızca locale'i
+yanlış okuyor.
+
+**32d. Ölçüm kurallara olduğu kadar SIRA kararlarına da uygulanır.**
+Bir sıralama gerekçesi de bir tahmindir; tahmin olduğu için ölçülebilir.
+Bir işin sırasını *"şu olmazsa şu olur"* diye gerekçelendirdiysen, o cümle
+bir **iddiadır**; sıra bozulduğunda iddianın tutup tutmadığına bakılır ve
+sonuç yazılır. Ölçülmeyen sıralama gerekçesi, tekrarlandıkça doğruymuş gibi
+görünen bir alışkanlığa dönüşür.
+
+**İlk örnek — ve iddia DÜŞTÜ. Maddenin kıymeti burada.** ux, B-1'in (yarıçap
+ve yüzey token'ları) önce inmesini şöyle gerekçelendirmişti: *"o iki primitif
+de yazılırken komşusuna bakıp bir yarıçap seçecek ve iki değer daha
+çivilenecek."* Sıra bozuldu, B-2 önce indi (`3eb6be6`), ve tahmine bakıldı:
+**yeni değer çivilenmedi.** Tersine, dev-ui o commit'te aynı dosyadan çağrı
+yeri olmayan **iki soyutlamayı söktü** (varyantsız `cva`, referanssız
+`ConfirmDialogTone`).
+
+**Ara adım da kayda geçiyor, çünkü asıl ders orada.** value önce "tahmin
+doğrulandı" diye raporladı; dayanağı `confirm-dialog.tsx`'teki `Card`
+dizgisinin diff'te `+` görünmesiydi. Sonra kendi geri aldı: `git show
+3eb6be6^:components/ui/confirm-dialog.tsx` satır 14 — dizgi **birebir aynı
+hâliyle zaten oradaydı**, `+` görünmesinin sebebi `cva()` sarmalayıcısının
+kaldırılıp satırın yeniden girintilenmesiydi. Buradan çıkan ve madde 1'in
+altına düşen kural: **diff'teki `+` bir kodun yeni olduğunun kanıtı
+değildir; kanıt iki hâlin karşılaştırılmasıdır.** ("`git status`'ta `M` bir
+işin yapıldığının kanıtı değildir" dersinin kardeşi.)
+
+**KURAL İKİ YÖNLÜDÜR ve bunu ikinci bir olay öğretti (aynı gün):**
+**`-` de bir kodun gittiğinin kanıtı değildir.** `7ff7c9a`'nın gölgeyi
+kaldırdığı sanıldı, çünkü diff'te `shadow-sm` taşıyan 24 satır `-`/`+` olarak
+görünüyordu; önce value bunu raporladı, sonra ana oturum aynı sayımı yaparak
+**doğruladığını sandı** ve paketi bu gerekçeyle erken kesti. dev-ui itiraz
+etti, iki hâl sayıldı: `app`+`components` altında `shadow-sm` **19 → 9**, ama
+`components/ui/card.tsx:19` `cn(surface, "shadow-sm", className)` diyor —
+**`Card` gölgeyi hâlâ uyguluyor.** Düşüş, elle yazılmış 25 kart dizgisinin
+`<Card>`'a inmesinden geliyor. **Hiçbir yüzey gölgesini kaybetmedi; ux'in
+şartı çiğnenmedi.**
+
+**Dersin dersi: bir kez yazılması yetmedi.** Aynı hata aynı gün, ters yönden,
+**iki kişi tarafından** tekrarlandı. Bir şeyin **kalktığını** söylemek için de
+**iki hâlin sayılması** gerekir — `git grep -c <şey> <ref>` iki ref için,
+diff'e bakarak değil.
+
+
+
+**Bu maddenin ilk ölçümünün "haklıydık" diye bitmemesi bir kusur değil,
+maddeyi ayakta tutan şeydir.** Her ölçümü kendini doğrulayan bir ritüel
+zaten 32c'nin kaçınmak istediği şeydir.
 
 **33. Ekran, kodun yapmadığı bir şeyi vaat etmez.** Sessiz yanlışın tersi
 ama aynı derecede zararlı: görünür bir vaat, arkasında davranış yok.
@@ -247,11 +358,63 @@ durduran kod inmeden ekrana giremez. Metin ile davranış aynı sürümde gider.
   neyin "bitti" sayıldığına ve sürümün içeriğine karar verir.
 - **ux** tasarım otoritesidir: nasıl görüneceğine, akışın nasıl kurulacağına
   karar verir. Kafasına oturmayan akışı söylemekle **yükümlüdür**.
-- **dev** uygular. Yalnızca açık görevleri alır, görev dışına çıkmaz.
-- Şema değişikliği, migration, geri alınamaz veri işlemi ve yeni özellik
-  **kullanıcı onayına** gider. Bir ajanın istemesi onay yerine geçmez.
+- **dev** uygular — **A hattı**: `modules/`, `lib/`, `prisma/`, `app/api/`.
+- **dev-ui** uygular — **B hattı**: `components/`, `app/globals.css`, durum
+  dosyaları, tema ve token'lar. Tasarım görevleri ux'ten gelir, raporu ux'e
+  gider. Tarayıcı onda da yoktur; davranış teyidini pm'den ister.
+- İki geliştirici de **yalnızca açık görevleri** alır ve görev dışına çıkmaz.
+  Paylaşımlı dosyalar: `messages/*.json` ve `app/(app)/**/page.tsx` —
+  dokunmadan önce diğerine haber verilir, anlaşmazlıkta hakem `value`.
+- **Onaya gelenler (21 Eylül 2026'da daraltıldı):** geri alınamaz **veri**
+  işlemi ve yeni özellik **kullanıcı onayına** gider. Bir ajanın istemesi onay
+  yerine geçmez.
+- **Şema değişikliği ve migration artık onay kapısı değildir.** Uygulama henüz
+  canlıda değil, kaybedilecek üretim verisi yok. Bir iş kolon, enum ya da
+  varsayılan değişikliği gerektiriyorsa migration'ı **aynı işin içinde** üretilir
+  ve uygulanır — sonraya bırakılmaz. **Veritabanı koddan geri kalmaz:** şema ile
+  veritabanının eşit olduğu her işin sonunda doğrulanır. Kolon değişikliği
+  gerektiren bir işi "şema dokunuşu var" diye ertelemek geçerli bir gerekçe
+  değildir.
+- Ayrım net: **şema** serbest, **veri** onaya tabi. Mevcut satırları toplu
+  güncelleyen ya da silen her işlem onaya gider; eklemeli kolon, enum değeri ve
+  varsayılan değişikliği gitmez.
+- **Ölçüt: yok edilen bilgi var mı?** Onay kapısının arkasındaki şey var olan
+  bir değerin üstüne yazmak ya da satır silmektir. **Yeni bir kolonun mevcut
+  satırlar için doldurulması onay gerektirmez** — boş kolona yazmak hiçbir
+  şeyin üstüne yazmaz ve geri alma yolu kolonu düşürmektir, yani kayıp yok.
+  Backfill, sonradan çalıştırılacak ayrı bir script olarak değil
+  **migration'ın içinde** yapılır; aksi hâlde kolon bir süre boş kalır ve o
+  aralıkta okuyan kod sessizce varsayılana düşer.
+- **Bir işi öne çıkarmak için kullanılan gerekçe, sıradaki başka bir işi de
+  arkaya iter — vurgu tek yönlü değildir.** (21 Eylül 2026, value'nun kendi
+  gözlemi.) Beş mesaj boyunca *"20 kuyruktaki tek vadesi dolan iş"* diye
+  bastırıldı; dev sinyali aldı ve 42a yerine 20'ye geçti. Sıralamayı veren
+  taraf, bir işi vurgularken **hangi işin arkaya düştüğünü de** söylemiş
+  olur; itirazı sonradan etmek kendi vurgusunu çürütmek olur. Vurgu
+  yaparken bunun bilinmesi, sonradan "sıra bozuldu" demekten ucuzdur.
+- **Hat kuralı, iki kişinin birbirinin işini bozmasını önlemek için vardır;
+  birbirini beklemesini sağlamak için değil.** (21 Eylül 2026, value'nun
+  cümlesi ve yetki kararı.) Bir hat sınırı, işin kendisinden pahalıya mal
+  oluyorsa **hakem onu kaldırabilir.** İlk uygulaması: 43b'nin `permissions`
+  Set'ini üreten beş satır `app/(app)/layout.tsx`'te, yani A hattında;
+  value dev-ui'ye o beş satırı yazma izni verdi — **şartlı**: yalnızca o
+  beş satır, `lib/permissions.ts`'e dokunmadan, dev'e **commit'ten önce**
+  haber vererek, tek commit. Gerekçe: 43b v0.3.0'ın kesim şartı ve paketin
+  başlığı; beş satırlık bir prop yüzünden düşmesi, hat kuralının koruduğu
+  şeyden pahalı olurdu.
 - Bir ajan kendi izin sınırında engellendiyse, aynı işi başka bir ajana
   yaptırmaz; konuyu ana oturuma taşır.
+- **Bir konu birden fazla yerde açıksa, kimin kapatacağı önce söylenir.**
+  Beş ajan asenkron yazışıyor; çakışma istisna değil normaldir ve bedelini
+  çoğu zaman üçüncü bir taraf (bekleyen geliştirici) öder. Ayrım genelde şu
+  eksende durur: **karar** ürün/tasarım tarafındadır, **yazma** TEAM.md'ye
+  ana oturumdadır — ikisi farklı şeydir ve ayrıldığında çakışma kalmaz.
+  Karar mesajlarının başlığı madde numarasıyla başlar, böylece çakışan iki
+  mesaj özet okunmadan eşleşir.
+- **Bir kararı vermek onu bitirmez.** "Onaylıyorum" bir niyet bildirir,
+  uygulanma anını söylemez; kararın sonu eyleme bağlanır — "beklemeden
+  uygula" ya da "önce şunu bitir". Bu kural bir turda üç kez onaylanmış bir
+  işin hiç yapılmamasıyla kazanıldı.
 - **İki geliştirici aynı ağaçta çalışırken `git add -A` / `-a` kullanılmaz**,
   yalnızca `git add <dosya>`. Aksi hâlde diğerinin yarım işi commit'e girer.
   Paylaşımlı dosyaya dokunmadan önce diğerine haber verilir.
@@ -259,12 +422,100 @@ durduran kod inmeden ekrana giremez. Metin ile davranış aynı sürümde gider.
   gerçekte üstünde durduğu yüzeye karşı yapılır. Ham değeri düz bir zemine
   karşı ölçmek yanıltır; bozuk olanı da geçirir.
 
+## Sürüm ritmi (21 Eylül 2026, kullanıcı kararı)
+
+**main bir anda çok fazla değişiklik almaz.** İş `next` dalında birikir,
+kalite kapılarından geçtikten sonra **toplu ve etiketli** olarak main'e
+alınır. Gerekçe kullanıcının kendi cümlesi: *"es verip sürüm geçişlerimiz
+olsun."*
+
+**Sürümün içeriğine `value` karar verir** (21 Eylül 2026, kullanıcı kararı).
+Hangi işin hangi pakete gireceği, kesme çizgisinin nereye çizileceği ve "es"in
+ne zaman verileceği **value'nun yetkisindedir**; ana oturum uygular
+(birleştirme, etiket, push) ve eksikleri etikete yazar. Kullanıcı doğrudan
+"sürüm çıkalım" derse bu yetkiyi aşar, ama o zaman bile paketin **içeriğini**
+value belirler.
+
+**Paket küçük tutulur — bu bir tercih değil, kural.** Kullanıcının cümlesi:
+*"çok büyütmeden paketler çıkmalı."* Bir sürüm, tek cümleyle
+anlatılabilecek kadar dar olmalı; anlatmak için "bir de, bir de" gerekiyorsa
+paket ikiye bölünür. Pratik karşılığı:
+- **Bir iş pakete girmiyorsa bu bir erteleme değil, paketleme kararıdır.**
+  Kesme çizgisi baskı gelmeden çizilir (madde 17) ve dışarıda kalanlar bir
+  sonraki paketin ilk işi olarak **adıyla** yazılır.
+- **Bir paket, bir önceki paketin açık borcunu taşımaz.** Taşırsa paket değil
+  birikmedir. (v0.1.0 açık bir P0 taşıdı; v0.2.0'ın ilk şartı onu kapatmaktı.)
+  **Bu kuralın durumu: henüz SINANMADI.** v0.2.0 bir borç (43b) taşıyarak
+  çıktı, ama kural **kesimle aynı anda konmuştu** — yani çiğnenmedi,
+  sınanmadı. *Bir kuralın tutmadığını söylemek için önce tutabileceği bir
+  durum olması gerekir* (value, 32c'nin ölçüm mantığı). **İlk gerçek sınavı
+  v0.3.0'dır** ve orada sınanabilir, çünkü kesim şartını value koydu ve
+  zamanlama tartışmalı değil. **Olduğundan kötü yazmak, olduğundan iyi
+  yazmak kadar yanıltıcıdır** — bu satır ana oturumun "kural ilk pakette
+  tutmadı" fazla sert ifadesini düzeltir.
+- **Beklemek büyütmekten kötüdür ama büyütmek de beklemekten iyi değildir:**
+  bir iş dış bir girdiyi bekliyorsa (ölçüm, kullanıcı cevabı, sağlayıcı
+  kimliği) pakete **girmez**, paketi bekletmez.
+
+**Günlük çalışma:** herkes `next` dalında commit eder. **main'e doğrudan
+commit edilmez, main'e kimse push etmez** — birleştirme ve etiketleme **ana
+oturumun** işidir.
+
+**Sürüm geçişi (checkpoint) şu sırayla yapılır:**
+1. **Es.** Yeni iş başlatılmaz; eldeki iş bitirilip commit edilir. Yarım iş
+   sürüm geçişine giremez (madde 9).
+2. **Kapılar, hepsi ana oturumda çalıştırılır ve sonucu yazılır:**
+   `npx tsc --noEmit` · `npx vitest run` · `npx eslint .` · gerekirse
+   `npm run build`. Biri kırmızıysa geçiş yapılmaz.
+3. **pm kabulü.** O partideki işlerin kabul testi biter. "İndi" ≠ "bitti"
+   (madde 28); sürümü açan şey pm'in kabulüdür.
+4. **Birleştirme ve etiket.** `next` → `main`, etiket `vX.Y.Z`, etiket
+   mesajında **ölçülen kapı sonuçları ve partinin içeriği** yazılı olur.
+   Sonra push.
+5. **Devam.** `next` main'den yeniden ayrılır ve ekip çalışmaya döner.
+
+**Bir checkpoint'te açık P0 varsa etiket mesajına yazılır** — gizlenmez.
+İlk örnek `v0.1.0`: 43 (`/audit` yetki kontrolü yok) açıkken etiketlendi ve
+bu etiket mesajında duruyor.
+
+**Paketi koruyan şey süreç olmalı, talimat değil.** (21 Eylül 2026, v0.2.0'ın
+dersi.) value, C ayağının commit'lenmemesini ve sürüme girmemesini **açıkça
+yazmıştı**; iş yine de indi (`7ff7c9a`). Paketi kapsam dışında tutan şey o
+talimat olmadı, **kesim noktasının seçilmesi** oldu. Ders: kapsamı sözle
+değil **kesimle** korursun. Talimat gerekli ama yeterli değildir; bir işin
+pakete girmemesini gerçekten istiyorsan paketi ondan **önce** kes.
+
+**Yayımlanmış bir etiket yeniden yazılmaz.** Eksik çıkmışsa etiket öyle
+kalır ve eksik metninde durur; düzeltme bir **sonraki pakette** yapılır.
+Etiketi yeniden yazmak, onu hiç yazmamaktan kötüdür.
+
+**Ölçü — geçiş ne zaman geç kalmıştır?** İlk konan ölçü *"bir partide kırktan
+fazla commit"*tı (ana oturum koydu). **Değiştirildi**, çünkü value'nun
+itirazı haklıydı ve v0.1.0 onu kanıtladı: kırk commit'lik **temiz** bir parti
+sorun değildir; `v0.1.0` sorunlu olmasının sebebi commit sayısı değil,
+**açık bir P0 ile çıkmış olmasıydı.** Sayı bizim arıza modumuz değil.
+Geçerli ölçü:
+
+> Bir geçiş, **inmiş ama pm kabulünden geçmemiş** commit sayısı onu aşarsa,
+> **ya da açık bir P0 bir geçişten fazla yaşarsa** geç kalmış demektir.
+
+İkisi de gözlenmiş arıza modudur: kabul boşluğu ve taşınan P0.
+
 ## Kod tabanına özgü
 
 - **Bu, bilinen Next.js değil.** Kod yazmadan önce ilgili rehber
   `node_modules/next/dist/docs/` altından okunur (AGENTS.md kuralı).
 - TR arayüz resmi "siz" dilindedir; hayvanlara "hasta" değil **"hayvan"**
-  denir; em işareti (—) kullanılmaz; "Email" değil "E-posta".
+  denir; "Email" değil "E-posta".
+- **Em işareti (—) kuralının kapsamı Türkçedir.** Belirsizdi, 21 Eylül
+  2026'da netleştirildi. EN'e genişletilmedi: İngilizcede em işareti yerleşik
+  ve doğru; orada yasaklamak, geçerli olmadığı bir dile Türkçe kuralı
+  dayatmak olur. Simetri tek başına bir gerekçe değildir.
+  **Ayrı ve üsluptan bağımsız bir tasarım kısıtı var:** em işareti 390px'te
+  kötü sarıyor ve satır başına tek tire bırakabiliyor, o yüzden **dar alanda
+  duran metinlerde** (boş hâl, ipucu, rozet, tablo başlığı) hiçbir dilde
+  kullanılmaz. İki kuralı karıştırma: biri üslup ve TR'ye özgü, diğeri düzen
+  ve her dile ait.
 - Para tam sayı kuruş olarak saklanır; kuruş dönüşümü tek noktadan yapılır.
 - Her ekran TR/EN × açık/koyu × 390px doğrulanır. Bunlar sonradan kontrol
   edilecek maddeler değil, işin kendisidir.
