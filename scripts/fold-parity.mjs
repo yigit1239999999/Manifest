@@ -10,8 +10,14 @@
 //
 // So this compares them character by character against the live
 // function, and refuses quietly passing: it exits non-zero on any
-// disagreement. It is also where the exception table in lib/search.ts
-// comes from. `unaccent` folds letters that Unicode decomposition does
+// disagreement.
+//
+// It is also the source of the exception table in lib/search.ts, and
+// that makes it more than a helper: whoever writes an exception table
+// leaves behind the measurement that produced it, or the next person
+// cannot update the table -- they can only believe it. Deleting this
+// script does not remove a check, it orphans a list of letters nobody
+// can re-derive. `unaccent` folds letters that Unicode decomposition does
 // not (ß, ø, æ, ...), because they are separate letters rather than a
 // base plus a mark; the only honest way to know which ones is to ask.
 //
