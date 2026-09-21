@@ -20,6 +20,7 @@ import { PrescriptionForm } from "@/components/forms/prescription-form";
 import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Callout } from "@/components/ui/callout";
 import { DetailList } from "@/components/ui/detail-list";
 import {
@@ -199,7 +200,7 @@ export default async function VisitPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {visit.vaccinations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{tVacc("empty")}</p>
+            <EmptyState size="inline" title={tVacc("empty")} />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {visit.vaccinations.map((v) => (
@@ -233,7 +234,7 @@ export default async function VisitPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {visit.prescriptions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{tRx("empty")}</p>
+            <EmptyState size="inline" title={tRx("empty")} />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {visit.prescriptions.map((p) => (
@@ -262,9 +263,7 @@ export default async function VisitPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {visit.treatments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {tTreatment("empty")}
-            </p>
+            <EmptyState size="inline" title={tTreatment("empty")} />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {visit.treatments.map((t) => (
@@ -295,7 +294,7 @@ export default async function VisitPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {visit.diagnostics.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{tDiag("empty")}</p>
+            <EmptyState size="inline" title={tDiag("empty")} />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {visit.diagnostics.map((d) => (

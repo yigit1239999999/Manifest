@@ -30,6 +30,7 @@ import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { listStaff } from "@/modules/staff/queries";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DetailList } from "@/components/ui/detail-list";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Callout } from "@/components/ui/callout";
@@ -255,9 +256,7 @@ export default async function PetPage({
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {vaccinations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {tVacc("empty")}
-                </p>
+                <EmptyState size="inline" title={tVacc("empty")} />
               ) : (
                 <ul className="flex flex-col gap-2">
                   {vaccinations.map((v) => (
@@ -295,7 +294,7 @@ export default async function PetPage({
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {prescriptions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{tRx("empty")}</p>
+                <EmptyState size="inline" title={tRx("empty")} />
               ) : (
                 <ul className="flex flex-col gap-2">
                   {prescriptions.map((p) => (
@@ -338,9 +337,7 @@ export default async function PetPage({
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {treatments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {tTreatment("empty")}
-                </p>
+                <EmptyState size="inline" title={tTreatment("empty")} />
               ) : (
                 <ul className="flex flex-col gap-2">
                   {treatments.map((tr) => (
@@ -389,7 +386,7 @@ export default async function PetPage({
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {diagnostics.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{tDiag("empty")}</p>
+                <EmptyState size="inline" title={tDiag("empty")} />
               ) : (
                 <ul className="flex flex-col gap-2">
                   {diagnostics.map((d) => (
