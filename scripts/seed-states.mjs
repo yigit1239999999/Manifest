@@ -38,8 +38,10 @@
 
 import pg from "pg";
 import bcrypt from "bcryptjs";
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
 /** The name `loop-metrics.mjs` filters on. Changing it changes both. */
 export const STATE_CLINIC_NAME = "HÂL KLİNİĞİ";
@@ -327,6 +329,43 @@ function localStamp(date) {
   const sign = minutes < 0 ? "-" : "+";
   const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
   return `${local}${sign}${pad(minutes / 60)}:${pad(minutes % 60)}`;
+}
+
+/**
+ * Which checkout the seed ran from, and whether it was clean.
+ *
+ * `SERVED_COMMIT.txt` says what code is being served and `SEEDED.txt`
+ * says when the data last changed. Both were correct this afternoon
+ * and together told a false story: a fixture was in the build and not
+ * in the database, because the seed had run two minutes before the
+ * commit that added it. Two grounds, each right, and nobody reading
+ * the pair.
+ *
+ * A time cannot answer that -- "17:57" is only earlier than "17:59" if
+ * you already know what landed at 17:59. A commit can: put it beside
+ * the served one and the question becomes a string comparison.
+ *
+ * The dirty flag is the other half, and the more honest one here. A
+ * bare hash claims more than it knows: seeding from a tree with
+ * uncommitted changes produces data that matches no commit at all,
+ * which is the state this repository is in most of the day.
+ */
+function seedingCheckout() {
+  const git = (...args) =>
+    execFileSync("git", args, {
+      cwd: fileURLToPath(new URL("..", import.meta.url)),
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  try {
+    const commit = git("rev-parse", "--short", "HEAD");
+    return git("status", "--porcelain") ? `${commit} (+ commit'lenmemiş değişiklik)` : commit;
+  } catch {
+    // Seeding does not depend on git, and not knowing is an answer --
+    // a better one than a hash that might have come from anywhere.
+    return "bilinmiyor";
+  }
 }
 
 /**
@@ -1073,7 +1112,14 @@ export async function buildStateClinic(db) {
         // one is read by a person standing next to SERVED_COMMIT.txt.
         // Two notations, one instant, and both say which clock they
         // are on.
-        seed: { at: seededAt.toISOString(), states: produced.length },
+        seed: {
+          at: seededAt.toISOString(),
+          states: produced.length,
+          // In the database for the same reason the time is: whoever
+          // reads the data ground later is rarely whoever made it, and
+          // this copy outlives any one checkout.
+          commit: seedingCheckout(),
+        },
       }),
     ],
   );
@@ -1155,6 +1201,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         `# kodun değişmemiş olması yetmez.\n` +
         `#\n` +
         `seeded_at: ${localStamp(new Date())}\n` +
+        `commit:    ${seedingCheckout()}\n` +
+        `#          ^ SERVED_COMMIT.txt ile KARŞILAŞTIRIN. Tutmuyorsa derlemedeki\n` +
+        `#            bir fikstür veritabanında olmayabilir: yeniden tohumlayın.\n` +
         `clinic:    ${STATE_CLINIC_NAME}  ${produced.length}/${STATES.length}\n` +
         `login:     ${STATE_CLINIC_LOGIN.email} / ${STATE_CLINIC_LOGIN.password}\n` +
         `note:      oturumlar düştü, kayıt kimlikleri YENİ\n`,
