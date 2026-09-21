@@ -11,6 +11,7 @@ import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DetailList } from "@/components/ui/detail-list";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
@@ -184,7 +185,7 @@ export default async function AppointmentPage({
               {t("notifications.history")}
             </p>
             {log.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("notifications.historyEmpty")}</p>
+              <EmptyState size="inline" title={t("notifications.historyEmpty")} />
             ) : (
               <ul className="divide-y divide-border text-sm">
                 {log.map((m) => (

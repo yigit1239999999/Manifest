@@ -23,6 +23,7 @@ import {
 import { SpeciesSettingsForm } from "@/components/forms/species-settings-form";
 import { CustomSpeciesDeleteButton } from "@/components/custom-species-delete-button";
 import { SpeciesIcon } from "@/components/species-icon";
+import { EmptyState } from "@/components/ui/empty-state";
 import { NotificationSettingsForm } from "@/components/forms/notification-settings-form";
 import { setNotificationSettingsAction } from "@/modules/notifications/actions";
 import { getClinicMessagingProfile } from "@/modules/notifications/settings";
@@ -184,7 +185,7 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           {customs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("species.customEmpty")}</p>
+            <EmptyState size="inline" title={t("species.customEmpty")} />
           ) : (
             <ul className="divide-y divide-border">
               {customs.map((cs) => (

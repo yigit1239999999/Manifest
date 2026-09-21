@@ -19,6 +19,7 @@ import { PetCard } from "@/components/pet-card";
 import { Timeline } from "@/components/timeline";
 import { NoteForm } from "@/components/forms/note-form";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DetailList } from "@/components/ui/detail-list";
 import { Callout } from "@/components/ui/callout";
 import {
@@ -139,9 +140,10 @@ export default async function ClientPage({
             </CardHeader>
             <CardContent>
               {client.pets.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("petsCount", { count: 0 })}
-                </p>
+                <EmptyState
+                  size="inline"
+                  title={t("petsCount", { count: 0 })}
+                />
               ) : (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {client.pets.map((p) => (
