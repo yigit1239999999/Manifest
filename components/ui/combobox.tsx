@@ -33,6 +33,36 @@ export interface ComboOption {
   caption?: string;
 }
 
+/**
+ * What the typed text hit in the list it is being offered alongside.
+ *
+ * Not WHO it hit, and that limit is the whole design. An option carries
+ * no owner id and its caption is a rendered sentence -- "Ayşe Yılmaz ·
+ * 7 ay önce" -- that cannot be taken apart again without making the
+ * separator load-bearing. So the row can say what KIND of line matched
+ * and no more.
+ *
+ * That is enough for the thing it has to stop. The local filter reads
+ * the caption as well as the label, so typing an owner's name brings
+ * their animals up and then offers, underneath them, to create a new
+ * ANIMAL by that name: one click and the clinic has a cat called Ali
+ * Kaya, which is the duplicate family this picker exists to prevent. A
+ * caller that knows the match came from the quieter line can offer
+ * something else instead.
+ *
+ * `"label"` wins when both lines match, because the label is the thing
+ * the row is named after: "Pamuk" typed against an animal called Pamuk
+ * whose owner is also a Pamuk is a hit on the name.
+ *
+ * One honest gap, stated rather than papered over: rows that came back
+ * from `onSearch` were matched by the server, which searches folded
+ * keys the row does not show -- a pet's breed or microchip, a client's
+ * phone. A remote row found by microchip is on screen while this says
+ * `"none"`, because "none" here means "nothing VISIBLE matched", which
+ * is the only question a component that can see two lines can answer.
+ */
+export type CreateMatch = "label" | "caption" | "none";
+
 interface Props {
   name: string;
   options: ComboOption[];
@@ -92,9 +122,9 @@ interface Props {
    * same reason -- two animals with one name is normal, so the
    * existing one cannot be assumed to be the one meant.
    */
-  onCreate?: (query: string) => void;
+  onCreate?: (query: string, match: CreateMatch) => void;
   /** Renders the label for that row from the typed query. */
-  createLabel?: (value: string) => string;
+  createLabel?: (value: string, match: CreateMatch) => string;
   noResultsLabel?: string;
   /**
    * Asks the server instead of filtering `options` locally.
@@ -370,6 +400,25 @@ export function Combobox({
     typed &&
     query.trim().length > 0 &&
     (!onSearch || answeredFor === query);
+  // Read off the list as it stands, which is the only list the answer
+  // can be about: local matches plus whatever the server added. Only
+  // worked out when the row is on screen -- below that `filtered` is
+  // the whole handed list and every question about it is meaningless.
+  const createMatch: CreateMatch = !showCreate
+    ? "none"
+    : filtered.some((o) => matches(o.label, query))
+      ? "label"
+      : filtered.some((o) => matches(o.caption ?? "", query))
+        ? "caption"
+        : "none";
+
+  // One place, so the keyboard and the mouse cannot come to answer
+  // differently -- the two used to call `onCreate` from their own
+  // handlers, which is exactly where a second argument drifts.
+  function fireCreate() {
+    setOpen(false);
+    onCreate?.(query.trim(), createMatch);
+  }
 
   function openList() {
     setOpen(true);
@@ -503,10 +552,8 @@ export function Combobox({
       e.preventDefault();
       const row = rows[Math.min(active, rows.length - 1)];
       if (row.kind === "add") selectCustom();
-      else if (row.kind === "create") {
-        setOpen(false);
-        onCreate?.(query.trim());
-      } else if (row.option) selectOption(row.option);
+      else if (row.kind === "create") fireCreate();
+      else if (row.option) selectOption(row.option);
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -645,8 +692,7 @@ export function Combobox({
                   aria-selected={active === i}
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    setOpen(false);
-                    onCreate?.(query.trim());
+                    fireCreate();
                   }}
                   onMouseEnter={() => setActive(i)}
                   className={cn(
@@ -665,7 +711,9 @@ export function Combobox({
                   )}
                 >
                   <Plus className="size-4 shrink-0" />
-                  {createLabel ? createLabel(query.trim()) : `+ "${query.trim()}"`}
+                  {createLabel
+                    ? createLabel(query.trim(), createMatch)
+                    : `+ "${query.trim()}"`}
                 </li>
               ) : row.kind === "add" ? (
                 <li

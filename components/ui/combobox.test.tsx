@@ -830,7 +830,7 @@ describe("making the record the typed name does not match yet", () => {
     fireEvent.keyDown(input, { key: "ArrowDown" });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(onCreate).toHaveBeenCalledWith("Limon");
+    expect(onCreate).toHaveBeenCalledWith("Limon", "label");
   });
 
   it("says nothing about creating before anything is typed", () => {
@@ -840,6 +840,90 @@ describe("making the record the typed name does not match yet", () => {
     fireEvent.focus(document.querySelector('input[type="text"]')!);
 
     expect(rowText()).toEqual(["Limon · Ayşe Çelik", "Limon · Kerem Doğan"]);
+  });
+});
+
+// What the row is allowed to know about the name it is carrying.
+//
+// pm found the hole: the local filter reads the caption as well as the
+// label, so an owner's name brings their animals up -- and offers,
+// under them, to create a new ANIMAL called "Ali Kaya". One click and
+// the clinic has a cat named after its owner, which is the duplicate
+// family this picker was built to prevent.
+//
+// The row cannot say WHO it matched: the option carries no owner id and
+// the caption is a rendered sentence. It can say what KIND of line
+// matched, and that is what the caller needs in order to offer the
+// right thing.
+describe("telling the caller what the typed name matched", () => {
+  const PETS: ComboOption[] = [
+    { value: "p-1", label: "Pamuk · kedi", caption: "Ali Kaya · 7 ay önce" },
+    // An owner surnamed Pamuk, under an animal called Zeytin. That is
+    // the case where one query hits both lines at once.
+    { value: "p-2", label: "Zeytin · köpek", caption: "Pamuk Yıldız · 2 gün önce" },
+  ];
+
+  const typed = (text: string) => {
+    const onCreate = vi.fn();
+    const createLabel = vi.fn((q: string) => `+ ${q}`);
+    const view = render(
+      <Combobox
+        name="petId"
+        options={PETS}
+        onCreate={onCreate}
+        createLabel={createLabel}
+      />,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: text } });
+    return { ...view, input, onCreate, createLabel };
+  };
+
+  // The mouse rather than the keyboard, because the two used to call
+  // `onCreate` from their own handlers: if the meta ever drifts between
+  // them, it drifts here.
+  const create = () => {
+    const rows = screen.getAllByRole("option");
+    fireEvent.mouseDown(rows[rows.length - 1]);
+  };
+
+  it("says the name was found on the first line", () => {
+    const { onCreate, createLabel } = typed("Zeytin");
+
+    expect(createLabel).toHaveBeenLastCalledWith("Zeytin", "label");
+    create();
+    expect(onCreate).toHaveBeenCalledWith("Zeytin", "label");
+  });
+
+  // The one that matters: "Ali Kaya" is an owner, and an owner's name
+  // is not an animal's name. The row said nothing about the difference
+  // and the caller could not tell.
+  it("says the name was found on the quieter second line", () => {
+    const { onCreate, createLabel } = typed("Ali Kaya");
+
+    expect(createLabel).toHaveBeenLastCalledWith("Ali Kaya", "caption");
+    create();
+    expect(onCreate).toHaveBeenCalledWith("Ali Kaya", "caption");
+  });
+
+  it("says so when nothing on screen matched at all", () => {
+    const { onCreate, createLabel } = typed("Zzz");
+
+    expect(createLabel).toHaveBeenLastCalledWith("Zzz", "none");
+    create();
+    expect(onCreate).toHaveBeenCalledWith("Zzz", "none");
+  });
+
+  // Both lines can match one query, and the first line wins: the row is
+  // named after its label, so a hit there is a hit on the name.
+  it("prefers the first line when both of them match", () => {
+    // "Pamuk" is one animal's name and another animal's owner's
+    // surname, and both rows are on screen.
+    const { onCreate } = typed("Pamuk");
+
+    create();
+    expect(onCreate).toHaveBeenCalledWith("Pamuk", "label");
   });
 });
 
