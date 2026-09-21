@@ -132,7 +132,7 @@ test.describe("Clinic time zone", () => {
     await page.getByLabel(/first name/i).fill("Ayse");
     await page.getByLabel(/last name/i).fill("Yilmaz");
     await page.getByLabel(/^phone$/i).fill("+905321112233");
-    await page.getByLabel(/consented to whatsapp/i).check();
+    await page.getByLabel(/consented to (notification messages|whatsapp)/i).check();
     await page.getByRole("button", { name: /create client/i }).click();
     await expect(page.getByRole("heading", { name: /ayse yilmaz/i })).toBeVisible();
 
