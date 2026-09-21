@@ -159,6 +159,52 @@ olan bir göstergenin bayatlaması imkânsızdır.*
 tazelesin"* bir kuraldı ve her seferinde bir tur yiyordu; **betik onu
 gereksiz kılıyor.**
 
+## HER ÖNERİNİN BİR EKRAN AYAĞI OLUR (21 Eylül 2026, kullanıcı kararı)
+
+Kullanıcının cümlesi: *"UX-first yaklaşımımızı asla kaçırmayalım."*
+
+**Vaka:** value PO olarak iki öneri getirdi, ikisi de gerçek ve
+doğrulanmış — ama **ikisinin de kanıtı `scripts/loop-metrics.mjs`'ten**
+geldi (`PRICE_SPREAD`, `PAST_APPOINTMENT_STATUS`). Veterinerin cümlesi
+her ikisinde de **yazılmıştı** ama **çerçeveydi, kanıt değildi.**
+
+> **Bir dedektör, sorunun CEVAPLANABİLİR olduğunu söyler; veterinerin o
+> soruyu SORDUĞUNU söylemez.**
+
+**Kural:** her öneri, ux'in **ölçtüğü ya da ölçebileceği** bir ekran
+gözlemine bağlanır. Bağlanamıyorsa öneride **açıkça yazılır** —
+*"mekanizma kodda, ekran kanıtı yok"* — ve o gözlem ux'ten **istenir.**
+
+**Farkın somut hâli, aynı konuda iki kanıt:**
+
+| kaynak | ürettiği cümle |
+|---|---|
+| dedektör | *"`LINES_LINKED_TO_VISIT` 7 satır / 0 bağlı"* |
+| ux'in yolculuğu | *"3 ekran · 3 bilgi ikinci kez yazılıyor · vizit sayfasında ₺450 duruyor ve 'fatura' kelimesi hiç geçmiyor"* |
+
+**Ve ikincisi birincinin ŞEKLİNİ düzeltti:** *"bir alan eksik"* tezi
+*"bir eylem eksik"*e döndü, ve **kazanç olduğundan büyük çıktı.** Bir
+dedektör bunu asla üretemezdi.
+
+**Dedektör taraması bırakılmaz** — `loop-metrics`'i *"ürünün
+cevaplayabildiği ama sormadığı soruların listesi"* diye okumak
+sistematik ve değerli. **Yalnız tek ayak üstünde durmaz.**
+
+**Bu, hafızadaki uyarının ekip hâli:** *ürün düşüncesi, kolon arkeolojisi
+değil.* Tek başına dedektöre dayanan bir kuyruk, **"kodda ne var"**a göre
+sıralanır; *"veteriner ne yaşıyor"*a göre değil.
+
+### Ve bu, ana oturumun SÜREKLİ görevidir
+
+Kullanıcı: *"Biraz daha team lead gibi kültürlerine ve iş beklentisini
+karşılayıp karşılamadıklarına bak. Gerektiğinde eğit, mentoring yap."*
+
+**Yani ana oturum yalnız tıkanıklık açmaz ve kesim yapmaz:** her turda
+**işin biçimine** bakar — kanıt nereden geliyor, kimin hattında duruyor,
+UX-first korunuyor mu. **Bir çıktı doğru olabilir ve yine de yanlış
+yerden gelmiş olabilir**; bunu söylemek liderin işidir, ve **iyi giden
+şeyi de adıyla söylemek** aynı işin yarısıdır.
+
 ## SIRALAMA ÖLÇÜTÜ — geri alınabilirlik, şiddetten önce gelir
 
 ux formüle etti, value *"bütün oturumun uyguladığı şeyin özeti"* diye
