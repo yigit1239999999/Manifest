@@ -1711,3 +1711,41 @@ seçildiği** — kusurun yaşayabileceği yer koddan bellidir.
 
 **Ve pm'in kuralıyla birlikte çalışır:** kod hangi eşiklerin var olduğunu
 söyler, ölçüm o eşikte gerçekten kaybolup kaybolmadığını.
+
+### Bir ders bir yüzeyde öğrenilip komşusuna taşınmıyor — bu artık bir SINIF
+
+Dördüncü vakadan sonra tek tek kusur saymayı bırakıyoruz:
+
+| öğrenen yüzey | öğrenmeyen komşusu |
+|---|---|
+| `/appointments`, `/invoices`: `empty` ≠ `emptyFiltered` | panel grafiği |
+| çizelgede **randevu** girdisi kendi başlığını taşıyor | **vizit** girdisi (`?? "Vizit"`) |
+| `/appointments`: gün gezinmesi var | `/visits`: yok |
+| `/staff`: stand-in eşikleri hizalı | `/appointments`: `vet`'in karşılığı yok |
+
+**Ortak biçim:** desen **evde var**, ikinci çağrı yerine uygulanmamış. Yani
+kusur bilgi eksikliği değil — doğru cevap aynı kod tabanında, çoğu zaman aynı
+dosyada duruyor.
+
+**İki pratik sonuç:**
+1. **Bir kural yazıldığında çağrı yerleri aynı işte taranır**, "sonra" değil.
+   İkinci yüzey aynı commit'e girmezse genellikle hiç girmiyor.
+2. **Bir kusuru sınıflandırırken emsali önce evde aranır:** *"bu ekran
+   komşusunun bildiği bir şeyi bilmiyor mu?"* Bu soru, dört vakanın dördünü
+   de tek okumada bulurdu.
+
+### Bir test, bir şeyin halledildiğine dair verilebilecek EN GÜÇLÜ sinyaldir
+
+dev-ui'nin kuralı ve kendi testine uyguladı: kuralın üç hâlinden birini
+kapatan bir test yazdı ve **testin başına hangi ikisini kapatmadığını yazdı.**
+
+> Gerekçesi: yazmasaydı sonraki okuyan **aramayı bırakırdı.**
+
+Bu, "bir şeyin var olması bakmayı durdurur" ailesinin en keskin üyesi, çünkü
+test **bakmayı durdurmak için** vardır — işi budur. Kapsamını söylemeyen bir
+test, kapsamadığı şeyi de kapsıyormuş gibi okunur.
+
+**Ve tersi de dev-ui'den:** `vet` kusuru **muhakemeyle** vardı, gözlemle
+değil (altı randevunun hepsinde `vetId` boş). Düzeltmedi ve **teste de
+yazmadı** — *muhakemeyle vardığımız bir kusurun önüne kapı kurmak, olmayan
+bir vaka için kural yazmaktır.*
