@@ -224,6 +224,33 @@ export const STATES = [
       "one naming an animal that died: nothing will be sent and nothing was refused, which used to be no sentence at all",
   },
 
+  // Delivery is a second question from sending, and the four answers
+  // to it existed only in code: every message_log row in the database
+  // was UNKNOWN, so four sentences were written against data that
+  // could not produce them. The poller can produce them, but only for
+  // messages it has already sent, which makes them appear and vanish
+  // with a sweep -- these four stand still.
+  {
+    id: "notification.delivery.delivered",
+    covers:
+      "a message the operator says reached the handset: the only state that may claim arrival, and the one a row must not show for anything else",
+  },
+  {
+    id: "notification.delivery.awaiting",
+    covers:
+      "one accepted and asked about, with the operator not answering yet: a wait, and whether the row can say so without reading as a failure",
+  },
+  {
+    id: "notification.delivery.undelivered",
+    covers:
+      "one the operator could not deliver to the number: the same position for a vet as no phone number at all, and the only delivery state with an action attached",
+  },
+  {
+    id: "notification.delivery.expired",
+    covers:
+      "one whose retry window closed: we know the operator stopped, not that the handset refused, and the row must not turn that into a failure it cannot establish",
+  },
+
   {
     id: "notification.reminder.failedExhausted",
     covers:
@@ -1086,6 +1113,67 @@ export async function buildStateClinic(db) {
     ["duplicate_send_blocked", ago(2)],
   ]);
   made("notification.reminder.failedExhausted");
+
+  // What became of a message, once it has been accepted.
+  //
+  // Each of these is a reminder the app already sent, with its own
+  // message log carrying one delivery answer. They are `SENT`
+  // reminders on purpose: the sweep only looks at PENDING ones, so
+  // these hold still instead of being re-sent, and they stay on the
+  // list because a sent reminder is still open work until the animal
+  // comes back.
+  //
+  // The provider ids deliberately do NOT start with `log-`: the log
+  // transport only answers about its own, so the poller cannot resolve
+  // these and turn `awaiting` into `delivered` on the next run. A
+  // fixture that a background job rewrites is a fixture nobody can
+  // measure twice.
+  const deliveryCase = async (key, title, status, code, deliveredAt) => {
+    const row = await one(
+      `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
+                              "dueAt", status, "sentAt", "updatedAt")
+       VALUES ($5, $1, $2, $3, 'CHECKUP', $6, $4, 'SENT', $7, now())
+       RETURNING id`,
+      [clinic.id, client.id, active.id, ago(1), halId("reminder", key), title, ago(1)],
+    );
+    await db.query(
+      `INSERT INTO message_logs (id, "clinicId", "clientId", "reminderId", channel, kind,
+                                 recipient, language, body, status, "providerId",
+                                 "deliveryStatus", "deliveryCode", "deliveredAt",
+                                 "deliveryCheckedAt", "createdAt")
+       VALUES ($6, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr',
+               'Sayın Hâl Sahibi, Zeytin için kontrol zamanı geldi. HÂL KLİNİĞİ',
+               'SENT', $7, $4::"MessageDeliveryStatus", $5, $8, $9, $10)`,
+      [
+        clinic.id,
+        client.id,
+        row.id,
+        status,
+        code,
+        halId("messagelog", key),
+        `netgsm-seed-${key}`,
+        deliveredAt,
+        // Asked, in every case: an unasked message is the UNKNOWN the
+        // rest of this clinic is already full of.
+        hoursAgo(1),
+        ago(1),
+      ],
+    );
+  };
+
+  await deliveryCase("delivered", "Kontrol hatırlatması", "DELIVERED", "1", hoursAgo(23));
+  made("notification.delivery.delivered");
+  // Asked, and the operator has not decided. `0` is its "still in the
+  // retry window" code -- not a failure, and the row must not read as
+  // one.
+  await deliveryCase("awaiting", "Kontrol hatırlatması", "PENDING", "0", null);
+  made("notification.delivery.awaiting");
+  // `3`, a wrong or restricted number: the one delivery answer with
+  // something for the vet to do.
+  await deliveryCase("undelivered", "Kontrol hatırlatması", "UNDELIVERED", "3", null);
+  made("notification.delivery.undelivered");
+  await deliveryCase("expired", "Kontrol hatırlatması", "EXPIRED", "2", null);
+  made("notification.delivery.expired");
 
   // The four reasons a reminder will never go out, one row each.
   //
