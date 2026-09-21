@@ -5569,3 +5569,29 @@ kaymış olursa olsun.** Eşleşmeyi gördüğün an tazele, ölçme.
 Aynı ailenin kod tarafı zaten yazılı: bir commit hakkında konuşurken
 `cat` değil `git show <commit>:<file>`. Bu, onun **çalışan uygulama**
 tarafı.
+
+### Cevabını kendimizin yazdığı bir ölçüm, kullanıcı hakkında bir şey söylemez
+
+value'nun şablon önerisinin çürütme koşulu şuydu: *veterinerler
+`title` alanına fiilen aşı adı mı yazıyor, serbest not mu?* Ben bunu
+**bugün veride ölçülebilir** bir soru sanıp pm'e sıraya sokmayı
+önerdim.
+
+value reddetti, ve gerekçe ölçümün kendisinden önce geliyor:
+
+> *Bugünkü `VACCINATION_DUE` başlıklarını yazan kişi veteriner değil,
+> **dev** — fikstürü kurarken makul görüneni yazmış, ki o da doğal
+> olarak "Kuduz aşısı" olur. Ölçüm neredeyse kesinlikle tezi
+> doğrulayacak ve **hiçbir şeyin kanıtı olmayacak.***
+
+**Kural:** bir ölçümü sıraya sokmadan önce sor — *bu sayıyı kim
+yazdı?* Cevabı **biz** isek, ölçüm bir **davranış** sorusunu
+cevaplayamaz; yalnızca kendi varsayımımızı geri okur. Sentetik veri
+**mekanizma** sorularına cevap verir (*kaç kayıt aynı üçlüyü
+paylaşıyor*), **niyet** sorularına vermez (*insanlar oraya ne yazar*).
+
+Bu, bugün iki kez ödediğimiz bedelin üçüncüsüydü ve bu sefer
+**ödenmeden** görüldü. Niyet sorusunun tek geçerli kaynağı sahadaki
+veteriner — ve cevabın **ne zaman** gerektiği de ayrı bir soru:
+önizleme şablonun önünde olduğu için bu sorunun **aciliyeti yok**,
+yani sormadan beklemek de bir karar.
