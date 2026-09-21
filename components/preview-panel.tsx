@@ -110,7 +110,18 @@ export async function PreviewPanel() {
           </div>
         ))}
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* `[&>*]:min-w-0`, matching the real grid rather than earning it
+          here: a grid item's `min-width` is `auto`, so it refuses to be
+          narrower than its own content, and that is what produced the
+          140px overflow measured at 390px on the panel this one is a
+          picture of.
+          Nothing in here can overflow today -- every width is a
+          percentage or a small constant -- so this buys nothing now. It
+          is here because the contract is "the skeleton's shape
+          exactly", and the day somebody puts real content in, the
+          overflow would come back on the screen everyone assumes is
+          safe. */}
+      <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         {titles.map((title) => (
           <div
             key={title}
