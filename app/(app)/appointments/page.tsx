@@ -186,7 +186,7 @@ export default async function AppointmentsPage({
           // yet. The day is not worth naming here -- no day has any --
           // so this replaces the empty-day sentence rather than sitting
           // under it.
-          <MissingLink need="pet" />
+          <MissingLink need="pet" next="/appointments" />
         ) : (
           <EmptyState
             icon={CalendarClock}

@@ -99,7 +99,7 @@ export default async function InvoicesPage({
             }
           />
         ) : needsClient ? (
-          <MissingLink need="client" />
+          <MissingLink need="client" next="/invoices" />
         ) : (
           <EmptyState
             icon={Receipt}

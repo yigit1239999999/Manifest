@@ -120,7 +120,7 @@ export default async function VisitsPage({
             }
           />
         ) : needsPet ? (
-          <MissingLink need="pet" />
+          <MissingLink need="pet" next="/visits" />
         ) : (
           <EmptyState
             icon={Stethoscope}

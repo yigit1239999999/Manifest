@@ -94,7 +94,7 @@ export default async function PetsPage({
 
       {result.items.length === 0 ? (
         needsClient ? (
-          <MissingLink need="client" />
+          <MissingLink need="client" next="/pets" />
         ) : (
           <EmptyState
             icon={PawPrint}

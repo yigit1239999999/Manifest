@@ -232,4 +232,50 @@ test.describe("First run", () => {
       "Selin Kaya",
     );
   });
+
+  // The other kind of errand, and the difference is not cosmetic. The two
+  // cases above start on a form: the vet had begun the work, so they are
+  // handed back to it with the new record already in the field. This one
+  // starts on a list, where they had begun nothing -- they were reading
+  // -- and the right ending is the list they were reading, now with the
+  // thing that was missing on it. Handing them /appointments/new instead
+  // would assume they meant to book something, which is the assumption
+  // this whole piece of work exists to stop making.
+  test("an errand begun on a list ends on that list, not on a form", async ({
+    page,
+  }) => {
+    await signUp(page, Date.now());
+
+    await page.goto("/appointments");
+    const main = page.getByRole("main");
+    await main.getByRole("link", { name: /new pet|yeni hayvan/i }).click();
+    await expect(page).toHaveURL("/pets/new?next=%2Fappointments");
+
+    // Two links deep from a list, so the list has to survive being
+    // nested inside another errand and not just being the first one.
+    await main.getByRole("link", { name: /new client|yeni müşteri/i }).click();
+    await page.getByLabel(/first name|^ad$/i).fill("Kerem");
+    await page.getByLabel(/last name|soyad/i).fill("Doğan");
+    await page
+      .getByRole("button", { name: /create client|müşteri oluştur/i })
+      .click();
+    await expect(page).toHaveURL(/\/pets\/new\?.*ownerId=/);
+
+    await page.getByLabel(/^name$|^isim$/i).fill("Pamuk");
+    await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
+    await page.getByLabel(/^sex$|^cinsiyet$/i).selectOption("FEMALE");
+    await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
+
+    // The list, with no id appended: a list has no slot to put one in.
+    await expect(page).toHaveURL("/appointments");
+
+    // And the reason they were sent away in the first place is gone, so
+    // the screen they come back to is not the screen they left.
+    await expect(
+      main.getByText(/a pet comes first|önce hayvan gerekir/i),
+    ).toHaveCount(0);
+    await expect(
+      main.getByRole("link", { name: /new appointment|yeni randevu/i }),
+    ).toHaveCount(1);
+  });
 });
