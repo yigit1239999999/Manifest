@@ -63,7 +63,23 @@ export default async function AppLayout({
             id="main"
             // Focusable only as a jump target, never in the tab order.
             tabIndex={-1}
-            className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-8"
+            // No reading-width cap. There was one — `max-w-6xl`, 1152px,
+            // centred — and on a 1920 screen it left 528px of empty
+            // gutter beside a sidebar of 240, about a quarter of the
+            // display; on 2560 it was closer to half. A cap like that
+            // buys short text lines, and this product's main screens
+            // are not text: /appointments, /invoices, /visits and
+            // /clients are tables, and every column they cannot fit is
+            // a fact the vet has to open a detail page to read. That is
+            // the defect we spent the day closing, so paying for it
+            // with whitespace was the wrong trade.
+            //
+            // The cost is real and known: on a very wide display a long
+            // prose field — an invoice note, a visit's history — runs to
+            // a line length that is hard to read. If that starts to
+            // bite, the answer is a cap on those blocks where the prose
+            // is, not one on every screen.
+            className="w-full flex-1 px-4 py-6 md:px-8 md:py-8"
           >
             {children}
           </main>
