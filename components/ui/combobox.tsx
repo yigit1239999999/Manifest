@@ -61,6 +61,26 @@ interface Props {
   allowCustom?: boolean;
   /** Renders the label for the "add new" row from the typed query. */
   addLabel?: (value: string) => string;
+  /**
+   * Offers to go and make the record the typed text names, instead of
+   * a door in front of the form saying one has to exist first.
+   *
+   * The vet's own account of the door: "the dog is on the table, the
+   * owner is crying, and what I got was not a blank page but a door".
+   * The card had already promised the animal and the owner could be
+   * made on the way, so the screen was making the product a liar.
+   *
+   * The row sits BELOW every match and is never selected for anybody:
+   * a clinic with three Zeytins and four Pamuks is the ordinary case,
+   * and a picker that jumps to "create" ahead of what it found is how
+   * the fifth duplicate Limon gets its own separate vaccination
+   * history. It is also offered when there IS an exact match, for the
+   * same reason -- two animals with one name is normal, so the
+   * existing one cannot be assumed to be the one meant.
+   */
+  onCreate?: (query: string) => void;
+  /** Renders the label for that row from the typed query. */
+  createLabel?: (value: string) => string;
   noResultsLabel?: string;
   /**
    * Asks the server instead of filtering `options` locally.
@@ -131,6 +151,8 @@ export function Combobox({
   freeText = false,
   allowCustom = false,
   addLabel,
+  onCreate,
+  createLabel,
   noResultsLabel,
   onSearch,
   hasMore = false,
@@ -297,6 +319,9 @@ export function Combobox({
     remote.find((o) => fold(o.label) === fold(query));
   const showAdd =
     allowCustom && !freeText && typed && query.length > 0 && !exact;
+  // Not conditioned on `exact`: see `onCreate`. The second Limon is a
+  // different animal, and only the vet can say which one they meant.
+  const showCreate = Boolean(onCreate) && typed && query.trim().length > 0;
 
   function openList() {
     setOpen(true);
@@ -400,7 +425,7 @@ export function Combobox({
 
   const rows: Array<{
     key: string;
-    kind: "option" | "add";
+    kind: "option" | "add" | "create";
     option?: ComboOption;
   }> = [
     ...filtered.map((o) => ({
@@ -409,6 +434,9 @@ export function Combobox({
       option: o,
     })),
     ...(showAdd ? [{ key: "__add__", kind: "add" as const }] : []),
+    // Last, always. Above the matches it would be the row a hurried
+    // hand lands on.
+    ...(showCreate ? [{ key: "__create__", kind: "create" as const }] : []),
   ];
   const showNote = rows.length > 0 && (showCapNote || showSearchHint);
 
@@ -427,7 +455,10 @@ export function Combobox({
       e.preventDefault();
       const row = rows[Math.min(active, rows.length - 1)];
       if (row.kind === "add") selectCustom();
-      else if (row.option) selectOption(row.option);
+      else if (row.kind === "create") {
+        setOpen(false);
+        onCreate?.(query.trim());
+      } else if (row.option) selectOption(row.option);
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -558,7 +589,29 @@ export function Combobox({
               </li>
             )}
             {rows.map((row, i) =>
-              row.kind === "add" ? (
+              row.kind === "create" ? (
+                <li
+                  key={row.key}
+                  id={`${listId}-${i}`}
+                  role="option"
+                  aria-selected={active === i}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setOpen(false);
+                    onCreate?.(query.trim());
+                  }}
+                  onMouseEnter={() => setActive(i)}
+                  className={cn(
+                    // A line above it, because this row does something
+                    // the rows over it do not: it leaves the screen.
+                    "mt-1 flex cursor-pointer items-center gap-2 rounded-control border-t border-border px-2.5 pb-1.5 pt-2 text-sm font-medium text-primary",
+                    active === i && "bg-accent text-accent-foreground",
+                  )}
+                >
+                  <Plus className="size-4" />
+                  {createLabel ? createLabel(query.trim()) : `+ "${query.trim()}"`}
+                </li>
+              ) : row.kind === "add" ? (
                 <li
                   key={row.key}
                   id={`${listId}-${i}`}

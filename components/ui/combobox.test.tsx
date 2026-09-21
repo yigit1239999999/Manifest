@@ -758,3 +758,87 @@ describe("the note when the list is short of the clinic", () => {
     expect(screen.queryByText("En az iki harf yazın.")).toBeNull();
   });
 });
+
+// The door, and why it is gone. The vet's own account: "the dog is on
+// the table, the owner is crying, and what I got was not a blank page
+// but a door" -- two of them, and the box for the animal's name was on
+// the third screen. The card had promised the animal and the owner
+// could be made on the way, so the screen was making the product a
+// liar. The way out is not a door in front of the form; it is a row
+// inside the picker.
+describe("making the record the typed name does not match yet", () => {
+  const PETS: ComboOption[] = [
+    { value: "p-1", label: "Limon · Ayşe Çelik" },
+    { value: "p-2", label: "Limon · Kerem Doğan" },
+  ];
+
+  const typed = (text: string, onCreate = vi.fn()) => {
+    const view = render(
+      <Combobox
+        name="petId"
+        options={PETS}
+        onCreate={onCreate}
+        createLabel={(q) => `+ "${q}" adıyla yeni hayvan aç`}
+      />,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: text } });
+    return { ...view, input, onCreate };
+  };
+
+  const rowText = () =>
+    screen.getAllByRole("option").map((o) => o.textContent);
+
+  // Three Zeytins and four Pamuks is what this clinic actually has, so
+  // the row that leaves the screen may never stand above the records
+  // that are already here.
+  it("offers to create only under what it found", () => {
+    typed("Limon");
+
+    expect(rowText()).toEqual([
+      "Limon · Ayşe Çelik",
+      "Limon · Kerem Doğan",
+      '+ "Limon" adıyla yeni hayvan aç',
+    ]);
+  });
+
+  // An exact match is not an answer either: the second Limon is a
+  // different animal, and only the vet knows which one is on the table.
+  it("still offers it when a name matches exactly", () => {
+    typed("Limon · Ayşe Çelik");
+
+    expect(rowText().at(-1)).toBe('+ "Limon · Ayşe Çelik" adıyla yeni hayvan aç');
+  });
+
+  // Nothing is created by pressing Enter on arrival. This is how the
+  // fifth duplicate Limon would be born, each with its own vaccination
+  // history.
+  it("is never the row a hurried hand lands on", () => {
+    const { input, onCreate } = typed("Limon");
+
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+
+  it("carries the typed name to whoever makes the record", () => {
+    const { input, onCreate } = typed("  Limon  ");
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onCreate).toHaveBeenCalledWith("Limon");
+  });
+
+  it("says nothing about creating before anything is typed", () => {
+    render(
+      <Combobox name="petId" options={PETS} onCreate={vi.fn()} createLabel={(q) => q} />,
+    );
+    fireEvent.focus(document.querySelector('input[type="text"]')!);
+
+    expect(rowText()).toEqual(["Limon · Ayşe Çelik", "Limon · Kerem Doğan"]);
+  });
+});
