@@ -9,7 +9,6 @@ import { SearchForm } from "@/components/search-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
-import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
@@ -91,9 +90,38 @@ export default async function ClientsPage({
                     <Link href={`/clients/${c.id}`} className="hover:underline">
                       {c.firstName} {c.lastName}
                     </Link>
-                    <Badge className="ms-2">
-                      {t("petsCount", { count: c._count.pets })}
-                    </Badge>
+                    {/* The animals, where a count used to be.
+                        A vet rang eleven people called Ayşe looking for
+                        the one whose cat they had seen, and said the
+                        quiet part: "I was never scanning for a name, I
+                        was scanning for whose cat it was." A `[2]` badge
+                        answers neither question -- and most of those
+                        eleven rows said `[2]`.
+                        The names carry the count as well: up to two by
+                        being readable, beyond that as `+N`. So the badge
+                        is gone, and NOT because it was pointless -- it
+                        is gone because something better arrived, which
+                        is the answer to "why is there no number here".
+                        Deceased animals are included on purpose: the
+                        person on the phone may be asking about the one
+                        that died, and this row is for recognising them.
+                        Same filter as the count, so the two names and
+                        the `+N` can never come from different sets. */}
+                    <span className="ms-2 text-muted-foreground">
+                      {c.pets.length === 0
+                        ? // Said, not left blank. Scanning eleven people
+                          // called Ayşe for the one with a cat, "no
+                          // animals" rules a row OUT, which is half of
+                          // what the scan is for -- and an empty space
+                          // reads as "not loaded" rather than "none".
+                          // The `=0` branch of the count key, which the
+                          // client page still uses, so nothing is
+                          // orphaned by the badge leaving.
+                          t("petsCount", { count: 0 })
+                        : c.pets.map((p) => p.name).join(", ")}
+                      {c._count.pets > c.pets.length &&
+                        ` +${c._count.pets - c.pets.length}`}
+                    </span>
                     {c.archivedAt && (
                       <StatusBadge
                         kind="archive"
