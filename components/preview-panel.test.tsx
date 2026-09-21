@@ -37,6 +37,15 @@ import { PreviewPanel } from "@/components/preview-panel";
  * missing sentence and never a bad one; the quality of the words is ux's
  * job and cannot be moved here without writing a test that lies about
  * what it checks.
+ *
+ * Both lists are updated when a condition is agreed, not once the work
+ * around it is finished, because an inventory is only true on the day it
+ * is written and this one has a known expiry: hide-and-undo arrives with
+ * conditions of its own, and a list nobody extends goes on claiming
+ * cover over a set that no longer includes the feature. A condition is
+ * not agreed until it is known which list it joins -- either a test holds
+ * it or somebody has to look -- and which of the two it is matters as
+ * much as the condition.
  */
 describe("the panel a clinic sees before it has records", () => {
   it("draws its bars in a colour that survives the dark theme", async () => {
