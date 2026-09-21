@@ -5636,3 +5636,40 @@ sonradan yeniden hak edilmesi gereken güven verici bir cümleden iyi.
 **Ve kaybedilen cümle bir kaleme yazılır, yoksa kaybolur:** güvence
 metni, engeli kaldıran işin **kapsamının parçası** — ondan sonra
 yazılacak bir iyileştirme değil.
+
+### Bir kapı, görülmediği yerde duruyorsa kapı değildir
+
+dev yeni bir eleme sebebi ekledi, Türkçe açıklamasını yazmayı
+unuttu, ve süpürge özeti **`1 undefined`** bastı. Koruma **vardı ve
+çalıştı** — ama `stderr`'e yazıyordu, ve oraya kimse bakmıyordu.
+Artık eksik açıklama **sayının olduğu satırda** bağırıyor.
+
+Cümle dev'in: ***bir kapı, görülmediği yerde duruyorsa kapı
+değildir.***
+
+Bugün ikinci örneği: dev-ui'nin boru hatasında da gate gerçekten
+kırmızı verdi, `grep` çıktıyı yuttu ve zincir yeşil göründü.
+
+**Kural:** bir koruma yazarken *"ne zaman ateşler"* kadar *"ateşlediğinde
+kim görür"* de tasarımın parçası. `stderr`, yalnız hata olduğunda
+bakılan bir yerdir — yani tam olarak korumanın işe yaradığı anda
+bakılmayan yer.
+
+### Ölçümü çöpe atmak, ölçümü kurtarmaya çalışmaktan iyidir
+
+pm geciken aşı kartını ölçerken kart 4702 ms'de kayboldu ve
+*"kapatma işledi"* diye okuyacaktı. Okumadı: **tam o sırada tohum
+yeniden koşmuştu**, ve kartı onun kapatması mı yoksa tohum mu
+sildiği **ayrılamıyordu**.
+
+> *"`dueDismissedAt` `null`'dı — yani kapatmam ya hiç yazmamıştı ya
+> da üzerine yazılmıştı, **ayıramadım.**"*
+
+Damganın beş saniye sabit kaldığını doğrulayıp baştan yaptı, ve
+ikinci turda yazma **kanıtlandı**. Birinci turdan yalnız veriden
+bağımsız olan sayıyı (toast süresi) taşıdı, o da teyit edildi.
+
+**Kural:** bir ölçümün ortasında zemin değiştiyse, o ölçümden
+kurtarılabilecek tek şey zeminle **ilgisiz** olan kısımdır. Gerisi
+atılır — ve **atıldığı yazılır**, yoksa bir sonraki kişi aynı sayıyı
+yeniden üretip güvenir.
