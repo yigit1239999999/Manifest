@@ -2866,3 +2866,45 @@ Yazma işi de bir betiğe alındı (`write-served.sh`), `BUILD_ID` yoksa
 kurmak yetmiyor, **yerin de bir tazelik kanıtı taşıması** gerekiyor —
 yoksa yer, hatırlamaya dayanan kuralın yerini alırken **sessizce** aynı
 hataya düşüyor.
+
+### Ölçüm, ALETİ BİLİNEN BİR DEĞERLE SINAYARAK başlar
+
+ux'in kalıcı çaresi, bugünkü onuncu araç hatasından sonra — ve bu
+oturumun ölçüm disiplininin en son hâli.
+
+**Olay:** 390 px'in ilk koşusunda **bütün sayfa 1,00** döndü. Sebep:
+kanvas yardımcısından `clearRect` düşmüştü, ve onsuz saydam renk **bir
+önceki rengi** okuyor — yani yüzey olarak **çizginin kendisi** geliyordu.
+Koşum atıldı.
+
+> **Her koşum, bilinen bir değerle aleti sınayarak başlar (7,62), ve
+> sınama tutmazsa ölçüm HİÇ ÇALIŞMAZ.**
+
+**Neden bu, "dikkatli ol"dan farklı:** aletin bozulduğu hiçbir yerde
+**hata vermiyor** — 1,00 geçerli bir sayı, ve bütün sayfada tutarlı
+çıktığı için **tutarlılık doğruluk sanılabilirdi** (bu oturumda tam olarak
+öyle bir vaka yaşandı). Sınama, ölçümün **içinde bir adım** — ux'in
+`evaluate` içine koyduğu URL kontrolü ve dev-ui'nin testin başına koyduğu
+servis-edilen-CSS kontrolü ile aynı şekil, **üçüncü uygulama.**
+
+**Bu üçü birlikte bir desen oluşturuyor:** ölçüm, ölçmeden önce **üç
+şeyin** doğru olduğunu kendi içinde kanıtlıyor — **hangi zeminde**
+(URL / servis edilen CSS), **hangi sürümde** (`BUILD_ID`), ve **aletin
+çalıştığı** (bilinen değer). Hiçbiri hatırlamaya bağlı değil; üçü de
+yanlışsa ölçüm **bir sayı değil, bir talimat** döndürüyor.
+
+### Popülasyonu sorguya koymak, DÜZYAZININ GİZLEYECEĞİ şeyi açtı
+
+Aynı gün kanıtlandı: pm popülasyonu `group by`'a koydu (value'nun
+sertleştirmesi), ve o yüzden **dışlamanın deliği görünür oldu** —
+e2e koşuları `/sign-up`'tan geçip **klinik yaratıyor** ve hâl kliniği
+süzgecine takılmıyorlar; bugün dördüncüsü oluştu.
+
+**Yani "gerçek popülasyon" kovası karışık ve taban her koşuda kayıyor** —
+ve bu kez sebep zaman değil, **kendi test altyapımız.**
+
+> value'nun cümlesi: *bu deliği görünür kılan şey, pm'in popülasyonu
+> `group by`'a koymasıydı — **düzyazı notla yazsaydı fark edilmezdi.***
+
+Bir kuralın değeri, **onu uygulayanın aramadığı bir şeyi bulduğunda**
+ölçülür.
