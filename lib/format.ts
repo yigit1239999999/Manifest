@@ -416,6 +416,26 @@ export function relativeTime(
  * two printed "¥1.000,00" for a currency that has no minor unit at all.
  * `Intl` knows the right count for each one.
  */
+/**
+ * The mark a locale puts in front of an amount: "₺", "$", "€".
+ *
+ * Read out of the same formatter `formatMoney` uses rather than a table of
+ * our own, because a table is a second place to add the next currency to
+ * and the one that gets forgotten (TEAM.md #30).
+ *
+ * A locale without a short mark for a currency returns the ISO code —
+ * `en-US` has no sign for lira and says "TRY". That is the honest answer
+ * and not a fallback: inventing "₺" for a reader whose locale does not use
+ * it would be worse than the code.
+ */
+export function currencySymbol(target: FormatTarget, currency: string): string {
+  const parts = new Intl.NumberFormat(intlLocale(localeOf(target)), {
+    style: "currency",
+    currency,
+  }).formatToParts(0);
+  return parts.find((p) => p.type === "currency")?.value ?? currency;
+}
+
 export function formatMoney(
   target: FormatTarget,
   cents: number | null | undefined,

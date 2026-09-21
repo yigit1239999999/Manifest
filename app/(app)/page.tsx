@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { ColumnBars, HorizontalBars } from "@/components/charts";
 import {
+  currencySymbol,
   firstName,
   formatDate,
   formatDateTime,
@@ -214,7 +215,16 @@ export default async function DashboardPage() {
               // (TEAM.md #19).
               emptyLabel={
                 revenueOtherCurrencies.length > 0
-                  ? t("empty.revenueCurrency", { currency })
+                  ? t("empty.revenueCurrency", {
+                      // The symbol, not the ISO code. ux measured the card
+                      // saying "no invoices paid in TRY" directly above
+                      // "$11,595.67" — two ways of naming money in one
+                      // card, and the rest of the panel uses symbols.
+                      // Turkish does not call it TRY either; a vet says
+                      // TL. Read from the same formatter the amounts use,
+                      // so the next currency arrives in one place.
+                      currency: currencySymbol(fmt, currency),
+                    })
                   : t("empty.revenue")
               }
               formatValue={(v) => formatMoney(fmt, v, currency)}

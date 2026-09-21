@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  currencySymbol,
   dayKey,
   firstName,
   formatDate,
@@ -15,6 +16,38 @@ import {
   toDateTimeInput,
   wallTimeToInstant,
 } from "@/lib/format";
+
+describe("currencySymbol", () => {
+  // The dashboard card said "no invoices paid in TRY" with "$11,595.67"
+  // on the line underneath: two ways of naming money in one card, and
+  // the rest of the panel uses symbols. Turkish does not say TRY either
+  // — a vet says TL.
+  it("gives the locale's mark, not the code", () => {
+    expect(currencySymbol("tr", "TRY")).toBe("₺");
+    expect(currencySymbol("tr", "USD")).toBe("$");
+    expect(currencySymbol("en", "USD")).toBe("$");
+    expect(currencySymbol("tr", "EUR")).toBe("€");
+  });
+
+  it("returns the code when the locale has no mark for it", () => {
+    // Not a fallback and not a defect: `en-US` has no sign for lira, so
+    // an English reader sees "TRY" everywhere else too. Inventing "₺"
+    // for them would be worse than the code.
+    expect(currencySymbol("en", "TRY")).toBe("TRY");
+  });
+
+  it("agrees with the amounts beside it", () => {
+    // The whole point of reading it out of the same formatter: a
+    // sentence and a number in one card cannot name the currency two
+    // different ways.
+    expect(formatMoney("tr", 1150, "TRY")).toContain(
+      currencySymbol("tr", "TRY"),
+    );
+    expect(formatMoney("en", 1150, "USD")).toContain(
+      currencySymbol("en", "USD"),
+    );
+  });
+});
 
 describe("speciesLabel", () => {
   it("maps known species to friendly labels", () => {
