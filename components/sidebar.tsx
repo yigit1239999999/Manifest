@@ -60,16 +60,22 @@ export function Sidebar({
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <PawPrint className="size-5" />
         </span>
-        <span className="hidden text-lg font-semibold tracking-tight md:inline">
+        {/* `sr-only`, not `hidden`: below md the rail shows icons only, and
+            `display: none` takes the name out of the accessibility tree as
+            well as off the screen. The link would then be announced as
+            "link", with nothing else. */}
+        <span className="sr-only text-lg font-semibold tracking-tight md:not-sr-only md:inline">
           {tApp("name")}
         </span>
       </Link>
 
-      <nav className="flex flex-col gap-1">
+      <nav aria-label={t("primary")} className="flex flex-col gap-1">
         {items.map(({ href, key, icon: Icon }) => (
           <Link
             key={href}
             href={href}
+            // The active item is currently signalled by colour alone.
+            aria-current={isActive(href) ? "page" : undefined}
             className={cn(
               "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
               isActive(href)
@@ -77,8 +83,10 @@ export function Sidebar({
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
-            <Icon className="size-5 shrink-0" />
-            <span className="hidden md:inline">{t(key)}</span>
+            <Icon className="size-5 shrink-0" aria-hidden="true" />
+            {/* See the note on the logo: on the narrow rail this is the
+                only name the link has. */}
+            <span className="sr-only md:not-sr-only md:inline">{t(key)}</span>
           </Link>
         ))}
       </nav>

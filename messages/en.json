@@ -4,6 +4,8 @@
     "tagline": "Veterinary CRM & Pet Management"
   },
   "nav": {
+    "skipToContent": "Skip to content",
+    "primary": "Main navigation",
     "dashboard": "Dashboard",
     "clients": "Clients",
     "pets": "Pets",

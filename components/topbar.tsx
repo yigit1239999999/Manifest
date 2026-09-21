@@ -31,17 +31,27 @@ export async function Topbar({
         <ThemeToggle initialTheme={theme} />
         <LocaleSwitcher />
         <div className="flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
+          {/* The initials are a picture of the name that follows, so they
+              are hidden from assistive technology rather than read out as
+              two stray letters. */}
+          <span
+            aria-hidden="true"
+            className="flex size-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground"
+          >
             {initials(userName)}
           </span>
-          <span className="hidden text-sm font-medium text-foreground sm:inline">
+          <span className="sr-only text-sm font-medium text-foreground sm:not-sr-only sm:inline">
             {userName}
           </span>
         </div>
         <form action={signOutAction}>
           <Button type="submit" variant="ghost" size="sm">
             <LogOut />
-            <span className="hidden sm:inline">{t("signOut")}</span>
+            {/* Without this the narrow layout leaves an unnamed button whose
+                only action is to sign the user out. */}
+            <span className="sr-only sm:not-sr-only sm:inline">
+              {t("signOut")}
+            </span>
           </Button>
         </form>
       </div>

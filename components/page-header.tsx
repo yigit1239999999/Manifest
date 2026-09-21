@@ -19,7 +19,16 @@ export function PageHeader({
           <p className="text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      {children && <div className="flex items-center gap-2">{children}</div>}
+      {/* `flex-wrap` is load-bearing, not tidiness. The actions are buttons
+          with `whitespace-nowrap`, and `/pets/[id]` puts four of them here
+          ("New visit", "New appointment", "Edit", "Archive"). Without
+          wrapping they ran past the right edge at 390px, and an action off
+          the screen is an action that does not exist (TEAM.md #27). A
+          proper overflow menu would be better and is not built yet; until
+          it is, the actions take a second line rather than disappear. */}
+      {children && (
+        <div className="flex flex-wrap items-center gap-2">{children}</div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { getClinicSettings } from "@/modules/clinics/queries";
@@ -16,10 +17,22 @@ export default async function AppLayout({
     redirect("/sign-in");
   }
 
-  const clinic = await getClinicSettings(session.user.clinicId);
+  const [clinic, t] = await Promise.all([
+    getClinicSettings(session.user.clinicId),
+    getTranslations("nav"),
+  ]);
 
   return (
     <ClinicZoneProvider timeZone={clinic?.timezone}>
+      {/* Eleven navigation links stand between the top of every page and its
+          content. Without this a keyboard user tabs through all of them on
+          every single page (TEAM.md #26). Hidden until focused. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        {t("skipToContent")}
+      </a>
       <div className="flex min-h-screen">
         <Sidebar
           canManageStaff={can(session.user.role, "users.manage")}
@@ -30,7 +43,12 @@ export default async function AppLayout({
             clinicName={clinic?.name ?? "Your clinic"}
             userName={session.user.name ?? "Vet"}
           />
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-8">
+          <main
+            id="main"
+            // Focusable only as a jump target, never in the tab order.
+            tabIndex={-1}
+            className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-8"
+          >
             {children}
           </main>
         </div>

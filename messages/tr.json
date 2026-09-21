@@ -4,6 +4,8 @@
     "tagline": "Veteriner CRM & Hayvan Yönetimi"
   },
   "nav": {
+    "skipToContent": "İçeriğe geç",
+    "primary": "Ana gezinme",
     "dashboard": "Panel",
     "clients": "Müşteriler",
     "pets": "Hayvanlar",
