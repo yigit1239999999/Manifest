@@ -1180,9 +1180,24 @@ export async function sendReminderNow(reminderId: string, ctx: ActionContext) {
   ]);
   if (!reminder || !clinic) throw notFound("reminder", reminderId);
 
-  const cfg = clinic.notifications.whatsapp;
-  if (!cfg.enabled || !cfg.reminders.enabled)
-    throw new AppError("VALIDATION_FAILED", "error.notifications.remindersDisabled");
+  // The clinic's own switches are deliberately NOT checked here, and
+  // this is the one place the manual path and the sweep must differ.
+  //
+  // `whatsapp.enabled` and `reminders.enabled` govern the automatic
+  // loop: whether the app writes to owners unattended. Sending one
+  // message by hand, on purpose, to a person you chose, is a different
+  // act -- and it is how anyone comes to trust the loop enough to turn
+  // it on. The vet who asked for it put it as a deadlock: "to trust it
+  // I have to try it, to try it I have to switch it on, to switch it
+  // on I have to trust it." Gating both on one switch closes the only
+  // door in.
+  //
+  // The appointment page's manual send has never checked them either;
+  // this path checking them was the two halves of one action
+  // disagreeing about what is allowed.
+  //
+  // Everything else still applies below: consent, a dialable number, a
+  // living animal, a configured channel. Those are not preferences.
   if (!isChannelConfigured(clinic.notifications.channel))
     throw new AppError("VALIDATION_FAILED", "error.notifications.notConfigured");
   if (reminder.pet && isPetSilenced(reminder.pet))

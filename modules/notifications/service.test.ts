@@ -963,6 +963,48 @@ describe("sendReminderNow", () => {
   // button exists for -- can land inside that window, and the answer
   // comes back as another failed row for a message that already went.
   // A vet reasonably concludes the product is broken.
+  // The deadlock this exists to break, in the vet's own words: to
+  // trust the loop you have to try it, to try it you have to switch it
+  // on, to switch it on you have to trust it. Sending one message by
+  // hand, to a person you chose, is how anyone gets in -- so the
+  // clinic's automation switches must not gate it.
+  it("sends by hand even while the clinic's automatic sending is off", async () => {
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({
+      ...clinicRow,
+      settings: {
+        notifications: {
+          channel: "SMS",
+          whatsapp: { enabled: false, reminders: { enabled: false } },
+        },
+      },
+    } as never);
+    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(reminderRow() as never);
+    vi.mocked(prisma.messageLog.findFirst).mockResolvedValue(null as never);
+    transport.send.mockResolvedValue({ providerId: "job-80" });
+
+    await sendReminderNow("r-1", ctx);
+
+    expect(transport.send).toHaveBeenCalled();
+  });
+
+  // What is not a preference still applies. The switch decides whether
+  // the app writes to owners unattended; consent decides whether this
+  // owner may be written to at all, and no button overrides that.
+  it("still refuses what was never about the switch", async () => {
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({
+      ...clinicRow,
+      settings: { notifications: { channel: "SMS", whatsapp: { enabled: false } } },
+    } as never);
+    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(
+      reminderRow({ client: { ...reminderRow().client, notificationsOptIn: false } }) as never,
+    );
+
+    await expect(sendReminderNow("r-1", ctx)).rejects.toMatchObject({
+      messageKey: "error.notifications.optedOut",
+    });
+    expect(transport.send).not.toHaveBeenCalled();
+  });
+
   it("refuses a repeat the operator would refuse anyway", async () => {
     vi.mocked(prisma.reminder.findFirst).mockResolvedValue(reminderRow() as never);
     vi.mocked(prisma.messageLog.findFirst).mockResolvedValue({ id: "m-earlier" } as never);
