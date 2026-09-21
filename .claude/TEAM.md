@@ -3750,3 +3750,128 @@ ve value hatayı kabul edip ağaca bakarak dört maddeyi tek tek verdi
 **İş veren taraf, işi sayarak verir.** Alan taraf saymak zorunda
 kalıyorsa iki risk birden doğar: yanlış işi yapmak, ve **hiç iş
 yapmamak**. İkincisi bugün oldu.
+
+### "Küçükse yap ve bak"ın şartı BAKMAK
+
+Kanıt/maliyet kuralına value bir muhafız ekledi ve kural onsuz
+tehlikeliydi:
+
+> Frekansı bilinmeyen bir mekanizmayı **küçük olduğu için**
+> indiriyorsak, **indikten sonra bakılacak şeyi ÖNCEDEN yazmak**
+> zorundayız — yoksa *"yap ve bak"* pratikte **"yap ve unut"** olur.
+
+Ve ikinci bir tehlike daha: bakılmazsa, bir sonraki "S" kararı bu
+vakayı **kanıt** diye gösterir. Ölçülmemiş bir iş, zamanla başarı
+hikâyesine dönüşüyor.
+
+Tutar kolonu için bakılacak şey yazıldı: **kolon indikten sonra ux'in
+tur ölçüsü tekrar alınır** — *"bugünkü vizitlerin toplamını öğrenmek
+kaç ekran"*, bugün N, sonra 1.
+
+### Bir tarama, ayıklama ölçütüyle birlikte verilir
+
+Liste/detay taraması ux'e giderken value bir ölçüt ekledi, çünkü
+yöntemsiz bir tarama kırk madde döndürür ve hiçbiri sıralanamaz:
+
+> Bir eksiklik sayılır ki **veteriner tek bir soruyu cevaplamak için
+> N satırın detayını açmak zorunda kalsın.**
+
+`/visits` (tutar) ve `/appointments` (geçmiş+açık) geçiyor;
+*"mikroçip detayda var, listede yok"* geçmiyor — kimse iş ortasında
+*"mikroçipi olmayanlar hangileri"* diye sormuyor.
+
+**Ölçüt kolonun yokluğu değil, sorunun varlığı.** Her maddenin yanına
+hangi soruyu cevapladığı yazılır; yazılamıyorsa madde düşer.
+
+### Her satıra uyan işaret, başlığa çıkar
+
+dev-ui'nin sayısı ux'in kararını değiştirdi ve ux bunu **genel kural**
+olarak yazdı:
+
+> **Satır başına düşen bir işaret, listedeki her satıra uyduğu anda
+> başlığa çıkar.**
+
+Bugünün listesinde saati geçmiş olanlar işaretlenir (azınlık, bilgi
+taşır). **Geçmiş gün görünümünde satır işareti hiç basılmaz** — yerine
+tek cümle: *"Bu günün 12 randevusundan 12'si hâlâ açık."*
+
+Aynı ailenin başka üyesi: sayfalanmış ya da filtrelenmiş bir listenin
+altındaki **toplam, neyin toplamı olduğunu söylemez** — bugün `hasMore`
+tam bu belirsizlikten yalan söylüyor. Yani toplam satırına cevap
+*"sırası gelmedi"* değil, **"kapsamı tanımlanmadan doğru olamaz"**.
+
+### En kolay düzeltme, başka bir şeyi sessizce kırabilir
+
+Vefat etmiş hayvanın hatırlatma seçicisinde görünmesi için akla yakın
+düzeltme `modules/pets/queries.ts`'e `deceased: false` eklemekti. ux
+durdurdu: **aynı sorgu vizit formunu da besliyor ve nekropsi gerçek
+bir vizittir.** Genel süzgeç bir yeri düzeltirken başka bir yeri
+sessizce kapatırdı.
+
+**Doğru şekil amaca göre ayrıldı:**
+
+| yer | davranış | sebep |
+|---|---|---|
+| hatırlatma formu | **çıkarılır** | sunucu zaten reddediyor |
+| her yer | **sunulur ama işaretlenir** (`Pamuk · vefat etti`) | durum kaydın sayfasında var, **seçildiği yerde** yok |
+
+Bu, aynı gün verilen tür kararının birebir kalıbı: kapalı yerleşik tür
+gizlenmedi, `Kedi · bu klinikte kapalı` diye işaretlendi. **Durumu
+saklamak yerine göstermek; yalnızca geçersiz olduğu yerde sunmamak.**
+
+**Ve paylaşılan bir sorguya süzgeç eklemeden önce, onu kimin daha
+beslediği sayılır.**
+
+### Yanlış şiddetle yazılan kusur, düzeltildiğinde "abartılmıştı" diye okunur
+
+Bir turda **üç kez** uygulandı ve üçünde de kişi kendi bulgusunu
+düşürdü: value ux'in vefat bulgusunu *"kurulabiliyor"*tan **"ekran,
+sunucunun reddedeceğini öneriyor"**a indirdi; ux kabul edip bir kademe
+daha düşürdü (red metni veterinerin dilinde, sebebini söylüyor); pm
+kendi taramasının yanlış "temiz" verdiğini **ux'e karşı değil kendi
+aleyhine** yazdı.
+
+**Şiddeti düşürmek bulguyu zayıflatmaz — şişirmek zayıflatır.** Çünkü
+düzeltme indiğinde geriye kalan tek okuma *"demek abartılmış"* olur ve
+sınıfın tamamı değer kaybeder.
+
+Buna bağlı bir kalem: value, red metninin yanına **"bu metin bilerek
+uzun, kısaltılmamalı"** yorumunu istedi (`tr.json`'a yorum
+yazılamıyor). Sebebi yazılmazsa biri onu budar ve **kusurun şiddetini
+geri yükler** — ekran reddedilecek bir şey sunuyorsa, **reddin
+anlaşılır olması kalan tek korumadır.**
+
+### Bir nöbetçi, koştuğu zemin kadar iyidir
+
+pm panelde **390 px'te 140 px** taşma buldu — ve asıl bulgu yanında:
+
+> Bu kusur **PMTEST'te görünmüyor.** Aynı turda 17 rota tarandı, hepsi
+> 0. Fark **veri**: PMTEST'in paneli *"Henüz vizit yok"* diyor, grafik
+> **hiç çizilmiyor**. Hâl kliniğinde çiziliyor ve taşıyor.
+
+Ve aynı ilkeyi **kendi aleyhine** yazdı: ux'in `/pets/new` 76 px
+taşmasında pm'in taraması 0 diyordu. pm *"ux yanılıyor"* demedi —
+**öneri çipini üretecek geçmiş PMTEST'te yok**, çip render olmayınca
+taşma doğmuyor. **pm'in taraması o kusur için yanlış "temiz" veriyor.**
+
+Sonuç, süpürgeler için bağlayıcı: **yatay taşma süpürgesi `/sign-up`
+ile taze klinik açarsa bugünkü iki taşmanın İKİSİNİ de kaçırır** —
+ikisi de veriye bağlı. **Hâl kliniğine karşı koşmalı.** Artı pm'in
+ikinci uyarısı: `scrollWidth` tek başına yetmiyor, bir kez 390 okuyup
+sayfa yine kaydı — ölçüt `scrollTo` sonucuyla birlikte kurulur.
+
+> **Yeşil bir süpürge, "kusur yok" demez; "bu zeminde bu kusur
+> doğmadı" der.**
+
+Bu, zemin ailesinin **altıncı** bağımsız varışı (kod zemini üç
+katman · veri zemini damgası · ve şimdi nöbetçinin zemini).
+
+### Ölçenin kusuru, ölçülenin kusuru gibi okunuyor — altıncı kez
+
+pm, hâl kliniği taramasında dokuz rotanın dokuzunda da timeout aldı ve
+*"hâl kliniği açılmıyor"* yazmak üzereydi. Giriş çalışıyordu; sorun
+`waitForTimeout`'un **oturum kurulmadan** devam etmesiydi
+(`waitForURL` ile düzeldi).
+
+Bugünkü alet kusurlarının altısının da ortak yanı bu. **Bir ölçüm
+"her şey bozuk" diyorsa, ilk şüpheli ölçendir.**
