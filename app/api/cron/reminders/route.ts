@@ -1,6 +1,6 @@
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
-import { runReminderSweep } from "@/modules/notifications/service";
+import { runDeliveryReportSweep, runReminderSweep } from "@/modules/notifications/service";
 
 // Appointment reminder sweep. Invoke on a schedule (Vercel Cron sends the
 // CRON_SECRET as a bearer token automatically; any external scheduler can
@@ -18,6 +18,12 @@ export async function GET(request: Request) {
   }
   const startedAt = Date.now();
   const summary = await runReminderSweep();
-  logger.info("cron.reminders", { ...summary, ms: Date.now() - startedAt });
-  return Response.json({ ...summary, ms: Date.now() - startedAt });
+  // Sending first, then asking what became of what was sent. Same
+  // schedule on purpose: a second cron entry is a second thing that can
+  // silently stop, and the whole reason this endpoint exists is that
+  // nothing was calling the first one.
+  const delivery = await runDeliveryReportSweep();
+  const body = { ...summary, delivery, ms: Date.now() - startedAt };
+  logger.info("cron.reminders", body);
+  return Response.json(body);
 }

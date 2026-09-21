@@ -133,3 +133,23 @@ bu geçer — arka planda bir şey kurmaz, çalıştığı ekranda görünür.
 Gönderimler tekrarlanmaz; başarısız olanlar en fazla 3 kez, aralarında en az
 6 saat bırakılarak yeniden denenir. Bu yüzden 15 dakikada bir çağırmak
 mükerrer mesaj üretmez.
+
+**Aynı çağrı teslim raporlarını da toplar.** `SENT`, operatörün mesajı kabul
+ettiği anlamına gelir; **ulaştığı anlamına gelmez.** Ulaşıp ulaşmadığı ayrı
+bir sorudur, sonradan ve ayrı bir istekle öğrenilir. Netgsm'in SMS tarafında
+**webhook yoktur** (webhook yalnız İYS ve Sesli Mesaj için), bu yüzden
+yöntem sorgulamadır: gönderimde saklanan `jobid`, rapor ucuna `bulkid` olarak
+sorulur. Sağlayıcı raporları **3 ay** saklar, uygulama da o kadar geriye
+sorar. Tur başına en fazla 50 mesaj sorulur; betiğin çıktısındaki `BİRİKME`
+satırı, zamanlayıcının geriye düştüğünü söyleyen tek sayıdır.
+
+Sorgulama `version=1` ile yapılır ve bu bir ayrıntı değildir: o parametre
+olmadan sağlayıcı `11`, `12` ve `13` durumlarını tek bir "zaman aşımı"
+cevabına katlar. O üçü, *"numara yanlış, sahibinden yenisini isteyin"* ile
+*"yapacak bir şey yok"* arasındaki farktır; katlanırsa ekrandaki dört
+kovadan biri, yani **eylem gerektiren tek kova** kaybolur.
+
+Geliştirmede (`SMS_PROVIDER=log`) taşıyıcı **sahte teslim raporu üretir** —
+bir kısmı ulaştı, bir kısmı ulaşmadı, bir kısmı beklemede. Hesap bağlanmadan
+önce teslim ekranlarının ölçülebilir olmasının tek yolu budur; hepsi
+"beklemede" kalsaydı ekran boş görünür ve kusur ancak canlıda fark edilirdi.

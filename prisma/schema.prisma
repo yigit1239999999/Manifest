@@ -766,6 +766,27 @@ enum MessageStatus {
   MANUAL
 }
 
+/// What became of a message the provider accepted.
+///
+/// Separate from `MessageStatus` on purpose, and the two must never be
+/// collapsed: `SENT` means the operator took it, and that is all it has
+/// ever meant. Whether it reached a handset is a second fact that
+/// arrives later, from a different call, and often not at all.
+///
+/// `UNKNOWN` and `PENDING` are both "not delivered yet" and they are
+/// not the same thing. UNKNOWN is us: nobody has asked the provider.
+/// PENDING is the provider: asked, and it does not know yet. A single
+/// null for both would repeat the defect this whole day was spent
+/// removing -- a zero that cannot say whether it is an answer or an
+/// absence.
+enum MessageDeliveryStatus {
+  UNKNOWN
+  PENDING
+  DELIVERED
+  UNDELIVERED
+  EXPIRED
+}
+
 /// Every outbound message, whether the provider sent it or staff opened it
 /// in WhatsApp by hand. Doubles as the dedupe source for reminders.
 model MessageLog {
@@ -788,9 +809,27 @@ model MessageLog {
   error         String?
   createdAt     DateTime       @default(now())
 
+  /// Delivery, which is a different question from sending. Required and
+  /// defaulted rather than nullable: "nobody has asked yet" is an
+  /// answer and it has a name (`UNKNOWN`), where a null would have to
+  /// stand for that and for "asked, still pending" at once.
+  deliveryStatus    MessageDeliveryStatus @default(UNKNOWN)
+  /// Only ever set when `deliveryStatus` is DELIVERED.
+  deliveredAt       DateTime?
+  /// The provider's own code, kept for tracing. Never shown on screen:
+  /// it is their vocabulary, not a sentence about this clinic's work.
+  deliveryCode      String?
+  /// When the report was last asked for, so the poller can leave alone
+  /// what it has just checked, and so a stalled poller is visible.
+  deliveryCheckedAt DateTime?
+
   @@index([clinicId, createdAt])
   @@index([appointmentId, kind])
   @@index([reminderId, kind])
+  /// The poller's own query: accepted messages whose delivery is still
+  /// open, oldest first. Without this it is a scan of every message the
+  /// clinic has ever sent, every fifteen minutes.
+  @@index([deliveryStatus, createdAt])
   @@map("message_logs")
 }
 

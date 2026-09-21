@@ -5,7 +5,7 @@ vi.mock("@/lib/prisma", () => ({
     clinic: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn(), count: vi.fn() },
     appointment: { findFirst: vi.fn(), findMany: vi.fn() },
     reminder: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
-    messageLog: { create: vi.fn() },
+    messageLog: { create: vi.fn(), count: vi.fn(), findMany: vi.fn(), update: vi.fn() },
     auditLog: { create: vi.fn() },
     $queryRaw: vi.fn(),
   },
@@ -16,6 +16,12 @@ const transport = {
   name: "netgsm",
   isConfigured: vi.fn(() => true),
   send: vi.fn(),
+  // Optional on the interface, because a channel that cannot answer
+  // about delivery has to say so by absence. Declared here so a test
+  // can hand it one.
+  reports: undefined as
+    | ((ids: string[]) => Promise<Record<string, { state: string; code: string | null; at: Date | null }>>)
+    | undefined,
 };
 vi.mock("@/lib/messaging/transports", () => ({
   getTransport: vi.fn(() => transport),
@@ -30,6 +36,7 @@ import {
   automaticSendBlock,
   automaticSendBlocked,
   notifyAppointmentBooked,
+  runDeliveryReportSweep,
   runReminderSweep,
   logManualMessage,
   previewAppointmentMessages,
@@ -806,5 +813,110 @@ describe("sendReminderNow", () => {
       messageKey: "error.notifications.petSilenced",
     });
     expect(transport.send).not.toHaveBeenCalled();
+  });
+});
+
+
+// "Sent" has only ever meant the operator took it. Until this ran,
+// that was the last thing the app ever learned: a message accepted and
+// then never delivered looked exactly like one in somebody's hand.
+describe("runDeliveryReportSweep", () => {
+  const accepted = (id: string, providerId: string) => ({
+    id,
+    channel: "SMS" as const,
+    providerId,
+  });
+
+  beforeEach(() => {
+    vi.mocked(prisma.messageLog.count).mockResolvedValue(3 as never);
+    vi.mocked(prisma.messageLog.findMany).mockResolvedValue([
+      accepted("m-1", "job-1"),
+      accepted("m-2", "job-2"),
+      accepted("m-3", "job-3"),
+    ] as never);
+    vi.mocked(prisma.messageLog.update).mockResolvedValue({} as never);
+  });
+
+  it("asks only about messages the provider accepted and has not answered", async () => {
+    transport.reports = vi.fn(async () => ({}));
+
+    await runDeliveryReportSweep(new Date("2026-09-20T12:00:00.000Z"));
+
+    const where = vi.mocked(prisma.messageLog.findMany).mock.calls[0][0]
+      ?.where as Record<string, unknown>;
+    // A FAILED row never reached the provider and a MANUAL one never
+    // went through it, so neither has a delivery to ask about.
+    expect(where.status).toBe("SENT");
+    expect(where.providerId).toEqual({ not: null });
+    expect(where.deliveryStatus).toEqual({ in: ["UNKNOWN", "PENDING"] });
+  });
+
+  it("writes a delivery time only for the delivered one", async () => {
+    transport.reports = vi.fn(async () => ({
+      "job-1": { state: "delivered" as const, code: "0", at: new Date("2026-09-20T11:00:00.000Z") },
+      "job-2": { state: "undelivered" as const, code: "12", at: null },
+      "job-3": { state: "pending" as const, code: "1", at: null },
+    }));
+
+    const summary = await runDeliveryReportSweep(new Date("2026-09-20T12:00:00.000Z"));
+
+    expect(summary).toMatchObject({ asked: 3, answered: 3, delivered: 1, undelivered: 1, pending: 1 });
+    const writes = vi.mocked(prisma.messageLog.update).mock.calls.map((c) => c[0]);
+    expect(writes[0]).toMatchObject({
+      where: { id: "m-1" },
+      data: { deliveryStatus: "DELIVERED", deliveredAt: new Date("2026-09-20T11:00:00.000Z") },
+    });
+    // Writing "now" here would turn `deliveredAt` into "when we last
+    // heard", and every count drawn from it would be wrong.
+    expect(writes[1]).toMatchObject({
+      where: { id: "m-2" },
+      data: { deliveryStatus: "UNDELIVERED", deliveredAt: null },
+    });
+  });
+
+  // Silence is not a failure, and it is also not nothing: the message
+  // is stamped as asked so the next run moves on to the ones nobody has
+  // asked about rather than circling the same silent ids.
+  it("counts a message the provider said nothing about, and stamps it", async () => {
+    transport.reports = vi.fn(async () => ({}));
+
+    const summary = await runDeliveryReportSweep(new Date("2026-09-20T12:00:00.000Z"));
+
+    expect(summary).toMatchObject({ asked: 3, answered: 0, silent: 3 });
+    for (const call of vi.mocked(prisma.messageLog.update).mock.calls) {
+      expect(call[0].data).toEqual({ deliveryCheckedAt: new Date("2026-09-20T12:00:00.000Z") });
+    }
+  });
+
+  // A provider outage must not be recorded as an answer about anyone.
+  it("writes nothing at all when the provider call throws", async () => {
+    transport.reports = vi.fn(async () => {
+      throw new Error("gateway_timeout");
+    });
+
+    const summary = await runDeliveryReportSweep(new Date("2026-09-20T12:00:00.000Z"));
+
+    expect(summary).toMatchObject({ asked: 3, answered: 0, silent: 0 });
+    expect(prisma.messageLog.update).not.toHaveBeenCalled();
+  });
+
+  // `open` is what makes a small `asked` readable: fifty of fifty is a
+  // finished run, fifty of nine hundred is a schedule falling behind.
+  it("reports how many were open, not just how many it asked about", async () => {
+    vi.mocked(prisma.messageLog.count).mockResolvedValue(900 as never);
+    transport.reports = vi.fn(async () => ({}));
+
+    expect((await runDeliveryReportSweep()).open).toBe(900);
+  });
+
+  it("asks nobody when nothing is open", async () => {
+    vi.mocked(prisma.messageLog.count).mockResolvedValue(0 as never);
+    transport.reports = vi.fn(async () => ({}));
+
+    const summary = await runDeliveryReportSweep();
+
+    expect(summary.asked).toBe(0);
+    expect(prisma.messageLog.findMany).not.toHaveBeenCalled();
+    expect(transport.reports).not.toHaveBeenCalled();
   });
 });

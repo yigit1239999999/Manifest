@@ -35,7 +35,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("..", import.meta.url)).replace(/\/$/, "");
 const jiti = createJiti(import.meta.url, { alias: { "@": root } });
 
-const { runReminderSweep, SWEEP_SKIP_REASONS } = await jiti.import(
+const { runReminderSweep, runDeliveryReportSweep, SWEEP_SKIP_REASONS } = await jiti.import(
   "../modules/notifications/service.ts",
 );
 const { isChannelConfigured } = await jiti.import("../lib/messaging/transports.ts");
@@ -125,6 +125,24 @@ async function sweepOnce() {
 
   printKind("RANDEVU HATIRLATMASI", "şimdi → +8 gün", summary.appointments);
   printKind("HATIRLATMA BİLDİRİMİ", "dün → +gün sayısı", summary.reminders);
+
+  // Sending and delivery are two different questions and the summary
+  // keeps them apart on the page as well: "gönderildi" above is what
+  // the operator accepted, everything below is what became of it.
+  const d = await runDeliveryReportSweep();
+  console.log(`\nTESLİM RAPORU`);
+  console.log(`  açık        ${d.open}  — kabul edilmiş, âkıbeti henüz bilinmeyen mesaj`);
+  console.log(`  soruldu     ${d.asked}  — bu turda sağlayıcıya sorulan (tur başına en fazla 50)`);
+  console.log(`  ULAŞTI      ${d.delivered}`);
+  console.log(`  ulaşmadı    ${d.undelivered}`);
+  console.log(`  süresi doldu ${d.expired}`);
+  console.log(`  beklemede   ${d.pending}  — sorduk, sağlayıcı henüz bilmiyor`);
+  console.log(`  cevapsız    ${d.silent}  — sorduk, sağlayıcı bu mesaj hakkında hiçbir şey demedi`);
+  if (d.open > d.asked) {
+    // The one number that says the schedule is not keeping up, and it
+    // cannot be read off `asked` alone.
+    console.log(`  BİRİKME     ${d.open - d.asked} mesaj bu turda sorulamadı`);
+  }
 }
 
 /**

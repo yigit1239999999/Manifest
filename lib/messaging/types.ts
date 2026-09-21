@@ -15,11 +15,43 @@ export interface SendResult {
   providerId: string;
 }
 
+/**
+ * What became of a message after the provider accepted it.
+ *
+ * Mirrors `MessageDeliveryStatus` in the schema, and keeps the same
+ * distinction: `unknown` is ours (nobody asked), `pending` is theirs
+ * (asked, no answer yet). Collapsing them would make a screen unable
+ * to tell a poller that is not running from a provider that is slow.
+ */
+export type DeliveryState = "pending" | "delivered" | "undelivered" | "expired";
+
+export interface DeliveryReport {
+  state: DeliveryState;
+  /** The provider's own code, for tracing. Never shown to a user. */
+  code: string | null;
+  /** When the provider says it arrived; only meaningful for `delivered`. */
+  at: Date | null;
+}
+
 export interface MessageTransport {
   readonly channel: Channel;
   readonly name: string;
   isConfigured(): boolean;
   send(request: SendRequest): Promise<SendResult>;
+  /**
+   * Delivery reports for messages this transport sent, keyed by the
+   * `providerId` it returned.
+   *
+   * Optional because not every channel can answer it, and a channel
+   * that cannot must say so by absence rather than by returning
+   * "pending" forever -- the second would look like a provider that
+   * never makes up its mind, which is a different problem with a
+   * different fix.
+   *
+   * An id the provider has no answer for is simply absent from the
+   * result. Absent is not `undelivered`.
+   */
+  reports?(providerIds: string[]): Promise<Record<string, DeliveryReport>>;
 }
 
 /**

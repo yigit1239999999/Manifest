@@ -9,6 +9,8 @@
 import { env } from "@/lib/env";
 import {
   TransportError,
+  type DeliveryReport,
+  type DeliveryState,
   type FailureScope,
   type MessageTransport,
   type SendRequest,
@@ -16,6 +18,7 @@ import {
 } from "../types";
 
 const ENDPOINT = "https://api.netgsm.com.tr/sms/rest/v2/send";
+const REPORT_ENDPOINT = "https://api.netgsm.com.tr/sms/rest/v2/report";
 const ACCEPTED = new Set(["00", "01", "02"]);
 
 /**
@@ -43,6 +46,40 @@ export const NETGSM_ERRORS: Record<string, { key: string; scope: FailureScope }>
   "80": { key: "sending_limit_exceeded", scope: "CLINIC" },
   "85": { key: "duplicate_send_blocked", scope: "MESSAGE" },
 };
+
+/**
+ * Netgsm's delivery-report statuses, and the reason `version=1` is not
+ * optional.
+ *
+ * Without it the API folds `11`, `12` and `13` into one "timeout"
+ * answer. Those three are the difference between "the number is wrong,
+ * ask the owner for a new one" and "nothing to do here", so folding
+ * them collapses the screen's four buckets into three and the vet
+ * loses the only one that has an action attached. The parameter looks
+ * like a detail and is the whole distinction; this comment exists
+ * because the first person to simplify this call will otherwise drop
+ * it and nothing will appear to break.
+ */
+const REPORT_STATES: Record<string, DeliveryState> = {
+  // Delivered to the handset.
+  "0": "delivered",
+  // In the operator's queue, no answer yet.
+  "1": "pending",
+  "2": "pending",
+  // Not delivered, and the three reasons `version=1` keeps apart.
+  "11": "undelivered",
+  "12": "undelivered",
+  "13": "undelivered",
+  // Validity period ran out before the handset was reachable.
+  "3": "expired",
+  "100": "expired",
+};
+
+/**
+ * Netgsm keeps reports for three months; older ids answer nothing, and
+ * "nothing" is reported as absence rather than as failure.
+ */
+export const REPORT_RETENTION_DAYS = 90;
 
 export const netgsmTransport: MessageTransport = {
   channel: "SMS",
@@ -87,5 +124,43 @@ export const netgsmTransport: MessageTransport = {
       );
     }
     return { providerId: json.jobid ?? "" };
+  },
+
+  async reports(providerIds: string[]): Promise<Record<string, DeliveryReport>> {
+    if (!this.isConfigured() || providerIds.length === 0) return {};
+
+    const auth = Buffer.from(`${env.NETGSM_USERCODE}:${env.NETGSM_PASSWORD}`).toString("base64");
+    const out: Record<string, DeliveryReport> = {};
+    // One call per job id: a `bulkid` identifies one send, and the
+    // report endpoint answers about one at a time. The caller decides
+    // how many to ask for in a run, which is where the budget belongs.
+    for (const bulkid of providerIds) {
+      const res = await fetch(REPORT_ENDPOINT, {
+        method: "POST",
+        headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+        // `version: 1` is load-bearing. See REPORT_STATES above: without
+        // it 11/12/13 arrive as one code and the four buckets the screen
+        // draws become three.
+        body: JSON.stringify({ bulkid, version: 1 }),
+      });
+      if (!res.ok) continue;
+      const json = (await res.json().catch(() => ({}))) as {
+        messages?: { status?: string | number; donedate?: string }[];
+      };
+      const first = json.messages?.[0];
+      if (!first) continue;
+      const code = String(first.status ?? "");
+      const state = REPORT_STATES[code];
+      // An unmapped code is left absent rather than guessed at. A wrong
+      // bucket here becomes a wrong sentence on a screen, and "we have
+      // not heard" is the truthful fallback.
+      if (!state) continue;
+      out[bulkid] = {
+        state,
+        code,
+        at: state === "delivered" && first.donedate ? new Date(first.donedate) : null,
+      };
+    }
+    return out;
   },
 };

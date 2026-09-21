@@ -1,4 +1,4 @@
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma, type MessageDeliveryStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { AppError, notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
@@ -1056,4 +1056,172 @@ export async function sendReminderNow(reminderId: string, ctx: ActionContext) {
     changes: { status: "SENT", sentAt },
   });
   return log;
+}
+
+// ---------------------------------------------------------------------------
+// Delivery reports (cron)
+// ---------------------------------------------------------------------------
+
+/**
+ * How many accepted messages one run asks the provider about.
+ *
+ * Netgsm answers one job id per call, so this is a call budget, not a
+ * query budget. Fifty every fifteen minutes is 4,800 a day, comfortably
+ * more than any clinic here sends, and it keeps one enormous backlog
+ * from turning a cron run into a ten-minute HTTP loop.
+ */
+export const DELIVERY_REPORT_BATCH = 50;
+
+/** Nothing is asked about a message younger than this; reports take time. */
+export const DELIVERY_REPORT_MIN_AGE_MS = 5 * 60_000;
+
+/** Nor older than this: Netgsm keeps reports for three months. */
+export const DELIVERY_REPORT_MAX_AGE_DAYS = 90;
+
+/** And a message already asked about waits this long before being asked again. */
+export const DELIVERY_RECHECK_INTERVAL_MS = 6 * 3_600_000;
+
+export interface DeliverySweepSummary {
+  /** Accepted messages whose delivery is still an open question. */
+  open: number;
+  asked: number;
+  answered: number;
+  delivered: number;
+  undelivered: number;
+  expired: number;
+  /** Asked, and the provider still does not know. Not a failure. */
+  pending: number;
+  /** Asked, and the provider said nothing at all about it. */
+  silent: number;
+}
+
+const DELIVERY_STATE_TO_STATUS = {
+  delivered: "DELIVERED",
+  undelivered: "UNDELIVERED",
+  expired: "EXPIRED",
+  pending: "PENDING",
+} as const;
+
+/**
+ * Asks the provider what became of the messages it accepted.
+ *
+ * `SENT` has only ever meant "the operator took it", and until now that
+ * was the last thing the app ever learned. A message that the operator
+ * accepted and then could not deliver looked exactly like one sitting
+ * in somebody's hand.
+ *
+ * Polling rather than a webhook, and not by preference: Netgsm's
+ * webhook covers İYS and voice, not SMS. A webhook would also need a
+ * public URL and provider-side setup, which means it could never be
+ * exercised in `log` mode -- and being ready before the account exists
+ * is the entire point of writing this now.
+ */
+export async function runDeliveryReportSweep(
+  now = new Date(),
+): Promise<DeliverySweepSummary> {
+  const summary: DeliverySweepSummary = {
+    open: 0,
+    asked: 0,
+    answered: 0,
+    delivered: 0,
+    undelivered: 0,
+    expired: 0,
+    pending: 0,
+    silent: 0,
+  };
+
+  // Only messages the provider accepted: a FAILED row never reached it,
+  // and a MANUAL one never went through it at all.
+  const where = {
+    status: "SENT" as const,
+    providerId: { not: null },
+    deliveryStatus: { in: ["UNKNOWN", "PENDING"] as MessageDeliveryStatus[] },
+    createdAt: {
+      lte: new Date(now.getTime() - DELIVERY_REPORT_MIN_AGE_MS),
+      gte: new Date(now.getTime() - DELIVERY_REPORT_MAX_AGE_DAYS * 86_400_000),
+    },
+    OR: [
+      { deliveryCheckedAt: null },
+      { deliveryCheckedAt: { lte: new Date(now.getTime() - DELIVERY_RECHECK_INTERVAL_MS) } },
+    ],
+  };
+
+  // The count is what makes a small `asked` readable: fifty asked out of
+  // fifty open is a finished run, fifty out of nine hundred is a backlog
+  // the schedule is not keeping up with, and the two look identical
+  // without it.
+  summary.open = await prisma.messageLog.count({ where });
+  if (summary.open === 0) return summary;
+
+  const rows = await prisma.messageLog.findMany({
+    where,
+    orderBy: { createdAt: "asc" },
+    take: DELIVERY_REPORT_BATCH,
+    select: { id: true, channel: true, providerId: true },
+  });
+
+  // Grouped by channel because each channel has its own provider, and a
+  // transport that cannot answer at all is left alone rather than being
+  // asked and reported as silent -- those are different facts.
+  const byChannel = new Map<Channel, { id: string; providerId: string }[]>();
+  for (const row of rows) {
+    if (!row.providerId) continue;
+    const list = byChannel.get(row.channel) ?? [];
+    list.push({ id: row.id, providerId: row.providerId });
+    byChannel.set(row.channel, list);
+  }
+
+  for (const [channel, batch] of byChannel) {
+    const transport = getTransport(channel);
+    if (!transport?.isConfigured() || !transport.reports) continue;
+    summary.asked += batch.length;
+
+    let reports: Record<string, { state: keyof typeof DELIVERY_STATE_TO_STATUS; code: string | null; at: Date | null }>;
+    try {
+      reports = await transport.reports(batch.map((b) => b.providerId));
+    } catch (error) {
+      // A provider outage must not look like a delivery answer. Nothing
+      // is written, `deliveryCheckedAt` stays where it was, and the next
+      // run asks the same messages again.
+      logger.error("notifications.delivery_report_failed", {
+        channel,
+        transport: transport.name,
+        asked: batch.length,
+        err: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+
+    for (const { id, providerId } of batch) {
+      const report = reports[providerId];
+      if (!report) {
+        // Asked and not answered. Stamped anyway, so the next run moves
+        // on to messages nobody has asked about yet instead of circling
+        // the same silent ones.
+        summary.silent++;
+        await prisma.messageLog.update({
+          where: { id },
+          data: { deliveryCheckedAt: now },
+        });
+        continue;
+      }
+      summary.answered++;
+      const status = DELIVERY_STATE_TO_STATUS[report.state];
+      summary[report.state === "pending" ? "pending" : report.state]++;
+      await prisma.messageLog.update({
+        where: { id },
+        data: {
+          deliveryStatus: status,
+          // Only a delivered message has a delivery time. Writing "now"
+          // for the others would make `deliveredAt` mean "when we last
+          // heard", and every count drawn from it would be wrong.
+          deliveredAt: report.state === "delivered" ? (report.at ?? now) : null,
+          deliveryCode: report.code,
+          deliveryCheckedAt: now,
+        },
+      });
+    }
+  }
+
+  return summary;
 }
