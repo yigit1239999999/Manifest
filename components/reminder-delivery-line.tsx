@@ -1,4 +1,11 @@
-import { AlertCircle, BellOff, Check, CheckCheck, Clock } from "lucide-react";
+import {
+  AlertCircle,
+  BellOff,
+  Check,
+  CheckCheck,
+  Clock,
+  CopyCheck,
+} from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { formatDateTime } from "@/lib/format";
@@ -230,7 +237,7 @@ export const WEIGHT: Record<ReminderDeliveryStateName, keyof typeof TONE> = {
   duplicateSuppressed: "quiet",
 };
 
-const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
+export const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
   scheduled: Clock,
   dueNow: Clock,
   sent: Check,
@@ -248,9 +255,20 @@ const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
   noPhone: BellOff,
   notConfigured: BellOff,
   petSilenced: BellOff,
-  // No message went for this reminder, which is what the mark says; the
-  // sentence carries the part the mark cannot, that one went anyway.
-  duplicateSuppressed: BellOff,
+  // A fifth mark, and the only state that earns one.
+  //
+  // It shared `BellOff` with the four blocked states, and pm was right
+  // that the two pull apart: `BellOff` says "nothing will reach this
+  // owner", and here something did -- from the twin. A mark names the
+  // CLASS of outcome, and this is a result rather than an obstacle, so
+  // sharing the obstacle mark put it in the wrong family at a glance
+  // while its own sentence said the opposite.
+  //
+  // `CopyCheck` and not `Copy`: `Copy` already means "copy this
+  // message to the clipboard" two screens away, and one picture may
+  // not mean two things. The tick is the half that matters -- a
+  // duplicate, and it was handled.
+  duplicateSuppressed: CopyCheck,
 } as const;
 
 export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {

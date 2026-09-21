@@ -18,6 +18,7 @@ vi.mock("@/lib/format-context", () => ({
 }));
 
 import {
+  MARK,
   REMINDER_DELIVERY_STATES,
   WEIGHT,
   ReminderDeliveryLine,
@@ -363,6 +364,16 @@ describe("which states the list shouts about", () => {
    * ringing the owners can tell us that. We are measuring frequency
    * because it is what we can reach (value).
    */
+  // The mark names the CLASS of outcome, so two classes may not share
+  // one. A suppressed row said "already sent" while wearing the mark
+  // that means "nothing will reach this owner" -- the picture and the
+  // sentence pulling in opposite directions, which pm saw before
+  // either of us did.
+  it("does not mark a result as an obstacle", () => {
+    expect(MARK.duplicateSuppressed).not.toBe(MARK.noPhone);
+    expect(MARK.duplicateSuppressed).not.toBe(MARK.optedOut);
+  });
+
   it("keeps unknowing out of the warning tier", () => {
     expect(WEIGHT.reportExpired).not.toBe(WEIGHT.undelivered);
     expect(WEIGHT.reportExpired).toBe(WEIGHT.sent);

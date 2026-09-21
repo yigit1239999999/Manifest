@@ -575,7 +575,7 @@
       "askAdmin": "Ask your clinic administrator."
     },
     "banner": {
-      "disabled": "Automatic messages are switched off. No reminder goes out on its own; you can still send by hand.",
+      "disabled": "Reminders will not go out on their own; you can still send by hand.",
       "notConfigured": "{channel} is not connected. No message can go out from this list.",
       "clinicFailure": "Message sending has stopped: {reason}"
     }
