@@ -85,6 +85,11 @@ jobs:
       - name: Apply migrations
         run: npm run db:migrate:deploy
 
+      # The tap-target spec signs into the state clinic this builds; a
+      # fresh database has no such clinic, and the sign-in would time out.
+      - name: Seed the state clinic
+        run: node scripts/seed-states.mjs
+
       # NOTE: there is intentionally no `prisma migrate diff` drift check here.
       # The pg_trgm migration creates GIN trigram indexes via raw SQL
       # (`USING GIN (... gin_trgm_ops)`), which cannot be represented in the
