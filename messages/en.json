@@ -109,7 +109,8 @@
       "petsBySpecies": "Pets by species",
       "visitsByType": "Visits by type",
       "visitsLast12Weeks": "Visits (last 12 weeks)",
-      "revenueLast6Months": "Paid invoices (last 6 months)"
+      "revenueLast6Months": "Paid invoices (last 6 months)",
+      "overdueVaccinations": "Overdue vaccinations"
     },
     "chart": {
       "partialPeriod": "The last column covers a period still in progress.",
@@ -124,7 +125,12 @@
       "revenueCurrency": "No invoices paid in {currency} in this period.",
       "visits": "No visits yet.",
       "vaccinations": "No vaccinations due soon."
-    }
+    },
+    "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
+    "overdueVaccinationsDismiss": "Close",
+    "overdueVaccinationsDismissName": "Close the {vaccine} row for {pet}",
+    "overdueVaccinationsDismissed": "Vaccination row closed.",
+    "overdueVaccinationsUndo": "Undo"
   },
   "client": {
     "title": "Clients",
@@ -432,7 +438,7 @@
     "site": "Site",
     "notes": "Notes",
     "namePlaceholder": "Search or type: rabies, DHPPi, FVRCP…",
-    "nextDueResult": "This date will show up under \"Upcoming vaccinations\" on the dashboard.",
+    "nextDueResult": "When this date arrives the record shows on the dashboard: under \"Upcoming vaccinations\" until then, and under \"Overdue vaccinations\" once it has passed.",
     "nextDueEmpty": "Left empty, this vaccination will not appear in the upcoming list.",
     "suggestionChip": "{interval} later · {date}",
     "suggestionSource": "Most of the last {count} \"{name}\" records in this clinic were set {interval} later.",

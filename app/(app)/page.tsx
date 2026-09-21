@@ -15,6 +15,8 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { dashboardInsights } from "@/modules/dashboard/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
+import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
+import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -350,6 +352,55 @@ export default async function DashboardPage() {
             <HorizontalBars data={visitTypeBars} emptyLabel={t("empty.visits")} />
           </CardContent>
         </Card>
+
+        {/* Only when there is something overdue. A card that says
+            "nothing is overdue" every day takes a place on the
+            dashboard to speak on the days it is least needed, and
+            teaches the eye to skip the place where the bad news
+            appears. Above the upcoming card on purpose: a backlog is
+            read before a plan. */}
+        {insights.overdueVaccinationCount > 0 && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{t("sections.overdueVaccinations")}</CardTitle>
+              {/* The count, not the row count: the list shows five and
+                  "five of five" and "five of forty" are different
+                  mornings. */}
+              <p className="text-sm text-muted-foreground">
+                {t("overdueVaccinationsCount", { count: insights.overdueVaccinationCount })}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-1">
+                {insights.overdueVaccinations.map((v) => (
+                  <li
+                    key={v.id}
+                    className="flex items-center justify-between gap-2 rounded-control px-2 py-2"
+                  >
+                    <span className="text-sm font-medium">
+                      {v.pet.name} · {v.name}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(fmt, v.nextDueAt)}
+                      </span>
+                      <VaccinationDueDismissButton
+                        action={setVaccinationDueDismissedAction.bind(null, v.id)}
+                        label={t("overdueVaccinationsDismiss")}
+                        name={t("overdueVaccinationsDismissName", {
+                          pet: v.pet.name,
+                          vaccine: v.name,
+                        })}
+                        undoLabel={t("overdueVaccinationsUndo")}
+                        undoneLabel={t("overdueVaccinationsDismissed")}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="lg:col-span-2">
           <CardHeader>

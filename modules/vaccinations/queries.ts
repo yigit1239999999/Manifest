@@ -50,6 +50,57 @@ export async function upcomingVaccinations(clinicId: string, take = 10) {
   });
 }
 
+/** How far back the overdue card looks. Fixed, and the reason is below. */
+export const OVERDUE_WINDOW_MONTHS = 6;
+
+function overdueWhere(clinicId: string, now: Date) {
+  const since = new Date(now);
+  since.setMonth(since.getMonth() - OVERDUE_WINDOW_MONTHS);
+  return {
+    clinicId,
+    // Past due, and not so long past that it is history rather than
+    // work. Six months is a fixed window rather than a setting: a
+    // clinic cannot answer "how far back should this look" without
+    // already knowing what the card does, and every month added makes
+    // the number bigger without making it more actionable.
+    nextDueAt: { gte: since, lt: now },
+    // Closed rows are closed. The stamp is on the vaccination, not the
+    // animal, so this hides one line from one card and nothing else.
+    dueDismissedAt: null,
+    // The same two layers as the upcoming card. An overdue booster for
+    // a dead animal is the worst version of this card, not a milder
+    // one: it is the most urgent-looking row on the screen.
+    pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
+  } as const;
+}
+
+/**
+ * Vaccinations whose date has gone by and nobody has closed.
+ *
+ * Deliberately a different question from `upcomingVaccinations`, and
+ * not a widening of it. "Upcoming" sorts by soonest and is a plan;
+ * this sorts by longest overdue and is a backlog, and the animal that
+ * has waited longest is the one the clinic has most likely lost.
+ */
+export async function overdueVaccinations(clinicId: string, take = 5, now = new Date()) {
+  return prisma.vaccination.findMany({
+    where: overdueWhere(clinicId, now),
+    orderBy: { nextDueAt: "asc" },
+    take,
+    include: { pet: { select: { id: true, name: true, ownerId: true } } },
+  });
+}
+
+/**
+ * The count behind the card's heading, which is also what decides
+ * whether the card exists at all: at zero it is not rendered, because
+ * an empty "nothing is overdue" panel takes a place on the dashboard
+ * every day to say something on the days it is least needed.
+ */
+export async function countOverdueVaccinations(clinicId: string, now = new Date()) {
+  return prisma.vaccination.count({ where: overdueWhere(clinicId, now) });
+}
+
 // What this clinic itself has done, offered back as a suggestion.
 //
 // The next-due date is the one field the whole return loop rests on and it

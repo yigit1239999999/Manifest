@@ -11,7 +11,11 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { recentVisits } from "@/modules/visits/queries";
 import { upcomingAppointments } from "@/modules/appointments/queries";
-import { upcomingVaccinations } from "@/modules/vaccinations/queries";
+import {
+  countOverdueVaccinations,
+  overdueVaccinations,
+  upcomingVaccinations,
+} from "@/modules/vaccinations/queries";
 import { OPEN_REMINDER_STATUSES } from "@/modules/reminders/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
 
@@ -71,6 +75,18 @@ export interface DashboardInsights {
   outstandingOtherCurrencies: string[];
   upcomingAppointments: Awaited<ReturnType<typeof upcomingAppointments>>;
   upcomingVaccinations: Awaited<ReturnType<typeof upcomingVaccinations>>;
+  /**
+   * The animals whose date has gone by, longest overdue first, and how
+   * many there are in total.
+   *
+   * A separate question from the list above, not a longer version of
+   * it: "upcoming" is a plan and this is a backlog. The count is
+   * carried beside the rows because the card shows five and the
+   * heading has to say how many there really are -- five of five and
+   * five of forty are different mornings.
+   */
+  overdueVaccinations: Awaited<ReturnType<typeof overdueVaccinations>>;
+  overdueVaccinationCount: number;
   recentVisits: Awaited<ReturnType<typeof recentVisits>>;
   visitsByType: { type: string; count: number }[];
   petsBySpecies: { species: string; count: number }[];
@@ -197,6 +213,8 @@ export async function dashboardInsights(
     monthRows,
     upcomingApptsList,
     upcomingVaccsList,
+    overdueVaccsList,
+    overdueVaccsCount,
     recentVisitsList,
     visitTypeGroups,
     petSpeciesGroups,
@@ -206,6 +224,8 @@ export async function dashboardInsights(
     monthsPromise,
     upcomingAppointments(clinicId, 5),
     upcomingVaccinations(clinicId, 5),
+    overdueVaccinations(clinicId, 5),
+    countOverdueVaccinations(clinicId),
     recentVisits(clinicId, 5),
     prisma.visit.groupBy({
       by: ["type"],
@@ -287,6 +307,8 @@ export async function dashboardInsights(
     outstandingOtherCurrencies: c.outstanding_other_currencies ?? [],
     upcomingAppointments: upcomingApptsList,
     upcomingVaccinations: upcomingVaccsList,
+    overdueVaccinations: overdueVaccsList,
+    overdueVaccinationCount: overdueVaccsCount,
     recentVisits: recentVisitsList,
     visitsByType: visitTypeGroups.map((g) => ({
       type: g.type,

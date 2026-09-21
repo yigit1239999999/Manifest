@@ -421,6 +421,22 @@ model Vaccination {
   lotNumber        String?
   administeredAt   DateTime  @default(now())
   nextDueAt        DateTime?
+  /// Set when somebody closes this overdue row on the dashboard.
+  ///
+  /// It closes the ROW, not the animal: `Pet.archivedAt` is untouched,
+  /// and every other screen still shows this vaccination. "I have dealt
+  /// with this one" is a smaller statement than "this animal is gone".
+  ///
+  /// REQUIRED OF WHOEVER ADDS AN UPDATE PATH: moving `nextDueAt` must
+  /// clear this. Changing the date means "I am tracking this animal
+  /// again" and the stamp means "I am not", and a record holding both
+  /// falls between the two cards -- out of the overdue one because the
+  /// date moved, invisible in the upcoming one because of the stamp.
+  /// There is no update path today (create and delete only), so a new
+  /// date arrives as a new row with no stamp, and the rule holds by
+  /// construction rather than by code. That stops being true the day
+  /// an edit form lands.
+  dueDismissedAt   DateTime?
   site             String?
   notes            String?
   createdAt        DateTime  @default(now())

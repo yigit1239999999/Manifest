@@ -308,6 +308,16 @@ export const STATES = [
     covers:
       "a vaccination falling due for an animal that has died: whether the dashboard hands out work whose far end the sweep will refuse, and which a vet phoning the owner would carry out anyway",
   },
+  // The overdue card shows what has gone past its date and nobody has
+  // closed, so it needs both halves to be measurable: a row it shows,
+  // and a row it must not. The closed one is the harder of the two --
+  // it is invisible by design, and the only way to tell "closed
+  // correctly" from "the card is broken" is to know it is there.
+  {
+    id: "vaccination.due.dismissed",
+    covers:
+      "an overdue vaccination somebody has closed on the dashboard: the row leaves the overdue card and stays on the animal's page, and the animal itself is untouched",
+  },
   {
     id: "vaccination.nextDue.none",
     covers:
@@ -830,6 +840,17 @@ export async function buildStateClinic(db) {
     [clinic.id, dead.id, vet.id, ago(340), ahead(14), halId("vaccination", "deceased")],
   );
   made("vaccination.pet.deceased");
+
+  // Overdue and closed. Dated inside the card's six-month window, so
+  // it would be on the card but for the stamp -- outside the window it
+  // would prove nothing, because the window alone would hide it.
+  await db.query(
+    `INSERT INTO vaccinations (id, "clinicId", "petId", "administeredById", name,
+                               "administeredAt", "nextDueAt", "dueDismissedAt", "updatedAt")
+     VALUES ($7, $1, $2, $3, 'Lepto aşısı', $4, $5, $6, now())`,
+    [clinic.id, active.id, vet.id, ago(400), ago(30), ago(2), halId("vaccination", "dismissed")],
+  );
+  made("vaccination.due.dismissed");
 
   // The invoice number already names the state ("HAL-PAID-USD"), so the
   // address comes from it rather than from a second list that could

@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { vaccination: { findMany: vi.fn() } },
+  prisma: { vaccination: { findMany: vi.fn(), count: vi.fn() } },
 }));
 
 import { prisma } from "@/lib/prisma";
 import { intervalOf } from "@/lib/vaccination-interval";
-import { upcomingVaccinations, vaccinationIntervalSuggestions } from "./queries";
+import {
+  countOverdueVaccinations,
+  overdueVaccinations,
+  upcomingVaccinations,
+  vaccinationIntervalSuggestions,
+} from "./queries";
 
 // Backlog 20. The suggestion behind the next-due field is the one place the
 // app comes closest to making a medical claim, so the rules about when it
@@ -56,6 +61,68 @@ describe("upcomingVaccinations", () => {
       owner: { archivedAt: null },
     });
     expect(where.clinicId).toBe("clinic-1");
+  });
+});
+
+// A backlog, not a longer plan. "Upcoming" sorts by soonest and says
+// what is coming; this sorts by longest overdue, and the animal that
+// has waited longest is the one most likely already lost.
+describe("overdueVaccinations", () => {
+  const now = new Date("2026-09-21T12:00:00.000Z");
+  const whereOf = () =>
+    vi.mocked(prisma.vaccination.findMany).mock.calls[0][0]?.where as Record<string, unknown>;
+
+  beforeEach(() => {
+    vi.mocked(prisma.vaccination.findMany).mockResolvedValue([] as never);
+  });
+
+  it("looks back six months and no further, ending at now", async () => {
+    await overdueVaccinations("clinic-1", 5, now);
+
+    expect(whereOf().nextDueAt).toEqual({
+      gte: new Date("2026-03-21T12:00:00.000Z"),
+      lt: now,
+    });
+  });
+
+  it("leaves out rows somebody has closed, and dead or archived animals", async () => {
+    await overdueVaccinations("clinic-1", 5, now);
+
+    expect(whereOf().dueDismissedAt).toBeNull();
+    // The same two layers as the upcoming card: an overdue booster for
+    // a dead animal is the worst version of this card, not a milder
+    // one -- it sorts to the top.
+    expect(whereOf().pet).toEqual({
+      deceased: false,
+      archivedAt: null,
+      owner: { archivedAt: null },
+    });
+  });
+
+  it("puts the longest overdue first", async () => {
+    await overdueVaccinations("clinic-1", 5, now);
+
+    expect(vi.mocked(prisma.vaccination.findMany).mock.calls[0][0]?.orderBy).toEqual({
+      nextDueAt: "asc",
+    });
+  });
+});
+
+describe("countOverdueVaccinations", () => {
+  it("counts exactly what the list shows, so the heading cannot disagree", async () => {
+    // The card shows five rows and says how many there are. If the two
+    // came from different conditions, "5 of 40" could be drawn over a
+    // list that is not part of the 40.
+    const now = new Date("2026-09-21T12:00:00.000Z");
+    vi.mocked(prisma.vaccination.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.vaccination.count).mockResolvedValue(0 as never);
+
+    await overdueVaccinations("clinic-1", 5, now);
+    await countOverdueVaccinations("clinic-1", now);
+
+    expect(vi.mocked(prisma.vaccination.count).mock.calls[0][0]?.where).toEqual(
+      vi.mocked(prisma.vaccination.findMany).mock.calls[0][0]?.where,
+    );
   });
 });
 

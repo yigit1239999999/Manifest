@@ -109,7 +109,8 @@
       "petsBySpecies": "Türlere göre hayvanlar",
       "visitsByType": "Türlere göre vizitler",
       "visitsLast12Weeks": "Vizitler (son 12 hafta)",
-      "revenueLast6Months": "Ödenen faturalar (son 6 ay)"
+      "revenueLast6Months": "Ödenen faturalar (son 6 ay)",
+      "overdueVaccinations": "Geciken aşılar"
     },
     "chart": {
       "partialPeriod": "Son sütun devam eden dönemi gösterir.",
@@ -124,7 +125,12 @@
       "revenueCurrency": "Bu dönemde {currency} cinsinden ödenmiş fatura yok.",
       "visits": "Henüz vizit yok.",
       "vaccinations": "Yaklaşan aşı yok."
-    }
+    },
+    "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
+    "overdueVaccinationsDismiss": "Kapat",
+    "overdueVaccinationsDismissName": "{pet} · {vaccine} aşı satırını kapat",
+    "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
+    "overdueVaccinationsUndo": "Geri al"
   },
   "client": {
     "title": "Müşteriler",
@@ -432,7 +438,7 @@
     "site": "Uygulama bölgesi",
     "notes": "Notlar",
     "namePlaceholder": "Ara veya yazın: kuduz, karma, FVRCP…",
-    "nextDueResult": "Bu tarih panelde \"Yaklaşan aşılar\" arasında görünecek.",
+    "nextDueResult": "Bu tarih geldiğinde kayıt panelde görünür: tarihe kadar \"Yaklaşan aşılar\", tarih geçtiğinde \"Geciken aşılar\" arasında.",
     "nextDueEmpty": "Boş bırakılırsa bu aşı yaklaşanlar listesinde görünmez.",
     "suggestionChip": "{interval} sonra · {date}",
     "suggestionSource": "Bu klinikte son {count} \"{name}\" kaydının çoğu {interval} sonraya yazılmış.",
