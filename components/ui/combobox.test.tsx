@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { Combobox } from "@/components/ui/combobox";
 
 // Focusing the field opens the list, so by the time a keyboard user
@@ -85,5 +85,138 @@ describe("moving through a combobox by keyboard", () => {
 
     fireEvent.keyDown(input, { key: "ArrowUp" });
     expect(activeLabel()).toBe("Kuduz (Rabies)");
+  });
+});
+
+// Searching moves the filter to the server, which is what stops the
+// 500-row cap from quietly losing the end of the alphabet from every
+// picker. Three things had to come with it, and all three are here
+// because each one was a defect somewhere else first.
+
+describe("searching a combobox against the server", () => {
+  const MATCHES = [
+    { value: "c1", label: "Ayşe Yılmaz" },
+    { value: "c2", label: "Ayşe Demir" },
+  ];
+
+  function searchable(props: Record<string, unknown> = {}) {
+    const onSearch = vi.fn(async () => MATCHES);
+    const view = render(
+      <Combobox
+        name="clientId"
+        options={[]}
+        onSearch={onSearch}
+        searchHintLabel="En az iki harf yazın."
+        noResultsLabel="Sonuç yok."
+        hasMoreLabel="Yazmaya devam edin."
+        {...props}
+      />,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    return { ...view, input, onSearch };
+  }
+
+  async function type(input: Element, text: string) {
+    fireEvent.change(input, { target: { value: text } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+  }
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("asks for more letters rather than reporting no results", () => {
+    // The server returns an empty array either way. Telling a vet
+    // "no results" after one letter says their clinic has no such
+    // client, when nobody has looked yet.
+    const { input } = searchable();
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "A" } });
+
+    expect(screen.getByText("En az iki harf yazın.")).toBeInTheDocument();
+    expect(screen.queryByText("Sonuç yok.")).toBeNull();
+  });
+
+  it("does not call the server below the threshold", async () => {
+    const { input, onSearch } = searchable();
+    fireEvent.focus(input);
+    await type(input, "A");
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  it("says there is nothing only after actually looking", async () => {
+    const onSearch = vi.fn(async () => []);
+    const { input } = searchable({ onSearch });
+    fireEvent.focus(input);
+    await type(input, "Ayş");
+
+    expect(onSearch).toHaveBeenCalledWith("Ayş");
+    expect(screen.getByText("Sonuç yok.")).toBeInTheDocument();
+    expect(screen.queryByText("En az iki harf yazın.")).toBeNull();
+  });
+
+  it("asks once for a burst of typing", async () => {
+    const { input, onSearch } = searchable();
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Ay" } });
+    fireEvent.change(input, { target: { value: "Ayş" } });
+    fireEvent.change(input, { target: { value: "Ayşe" } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(onSearch).toHaveBeenCalledTimes(1);
+    expect(onSearch).toHaveBeenCalledWith("Ayşe");
+  });
+
+  it("tells the user what to do, not how many were cut", async () => {
+    const { input } = searchable({ hasMore: true });
+    fireEvent.focus(input);
+    await type(input, "Ayşe");
+
+    const note = screen.getByText("Yazmaya devam edin.");
+    expect(note).toBeInTheDocument();
+    // Not an option: it cannot be chosen and the arrow keys must not
+    // stop on it.
+    expect(note.getAttribute("role")).toBe("presentation");
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+  });
+
+  it("says nothing about more when there is nothing to show yet", async () => {
+    const onSearch = vi.fn(async () => []);
+    const { input } = searchable({ onSearch, hasMore: true });
+    fireEvent.focus(input);
+    await type(input, "Ayş");
+
+    expect(screen.queryByText("Yazmaya devam edin.")).toBeNull();
+  });
+
+  it("resets the highlight AND the moved flag when results change", async () => {
+    // value found this one by reading: resetting `active` alone leaves
+    // `moved` true, so the first Down on a fresh list skips its first
+    // option — the defect 0dcfaed fixed, reachable again through
+    // search. And it is worse here, because option zero is a different
+    // client than it was a keystroke ago.
+    const { input } = searchable();
+    fireEvent.focus(input);
+    await type(input, "Ayşe");
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(screen.getByRole("option", { selected: true })).toHaveTextContent(
+      "Ayşe Demir",
+    );
+
+    await type(input, "Ayşe Y");
+    expect(screen.getByRole("option", { selected: true })).toHaveTextContent(
+      "Ayşe Yılmaz",
+    );
+
+    // And the first Down after the new list settles rather than skips.
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(screen.getByRole("option", { selected: true })).toHaveTextContent(
+      "Ayşe Yılmaz",
+    );
   });
 });

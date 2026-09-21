@@ -38,6 +38,8 @@
     "none": "None",
     "back": "Back",
     "noResults": "No results.",
+    "searchMinChars": "Type at least two letters to search.",
+    "searchMore": "Not all records are shown. If you cannot see the one you want, keep typing before you create a new one.",
     "searchOrType": "Search or type…",
     "addNew": "Add \"{value}\"",
     "optional": "optional",

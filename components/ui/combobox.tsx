@@ -30,6 +30,31 @@ interface Props {
   /** Renders the label for the "add new" row from the typed query. */
   addLabel?: (value: string) => string;
   noResultsLabel?: string;
+  /**
+   * Asks the server instead of filtering `options` locally.
+   *
+   * The list a picker is given used to be everything, capped at 500 —
+   * so a clinic past that lost the end of the alphabet from every
+   * picker with nothing said (`lib/pagination.ts`). Searching moves the
+   * filter to where the records are, and the cap stops being a wall.
+   *
+   * `options` stays for the lists that really are complete: species,
+   * breeds. When `onSearch` is given it takes over and `options` is not
+   * consulted.
+   */
+  onSearch?: (term: string) => Promise<ComboOption[]>;
+  /**
+   * The server had more than it returned.
+   *
+   * Shown as an instruction, never as a count. What matters is not that
+   * there are 500 of something; it is that the record someone is about
+   * to re-create may be one of the ones not shown.
+   */
+  hasMore?: boolean;
+  /** Below this many characters the server is not asked. */
+  minSearchChars?: number;
+  searchHintLabel?: string;
+  hasMoreLabel?: string;
   onValueChange?: (value: string) => void;
   className?: string;
 }
@@ -58,6 +83,11 @@ export function Combobox({
   allowCustom = false,
   addLabel,
   noResultsLabel,
+  onSearch,
+  hasMore = false,
+  minSearchChars = 2,
+  searchHintLabel,
+  hasMoreLabel,
   onValueChange,
   className,
 }: Props) {
@@ -83,12 +113,55 @@ export function Combobox({
   // it took Down then Up. The first press now settles the highlight
   // where opening put it; the second one moves.
   const [moved, setMoved] = React.useState(false);
+  const [remote, setRemote] = React.useState<ComboOption[]>([]);
   const listId = React.useId();
 
   const query = display.trim();
-  const filtered = typed
-    ? options.filter((o) => matches(o.label, query))
-    : options;
+  const searching = Boolean(onSearch);
+  // With a server search there is nothing to show until enough has been
+  // typed — including before anything has been.
+  const readyToSearch = typed && query.length >= minSearchChars;
+  const belowThreshold = searching && !readyToSearch;
+
+  // Ask the server, once the typing stops.
+  //
+  // Nothing is cleared here on the way down: `remote` is simply not read
+  // below the threshold, so a stale list cannot show and the effect does
+  // not have to write state synchronously to prevent it.
+  //
+  // What it does reset on the way back is two flags, and the second is
+  // easy to miss. `active` returning to 0 is obvious; `moved` returning
+  // to false is what stops the first Down on a fresh list from skipping
+  // its first option — the same defect as before, reachable only through
+  // search. And the stakes are higher here than they were: the list
+  // changes under the highlight, so option zero is a different animal
+  // than it was a keystroke ago.
+  React.useEffect(() => {
+    if (!onSearch || !readyToSearch) return;
+    let live = true;
+    const timer = setTimeout(() => {
+      onSearch(query)
+        .then((found) => {
+          if (!live) return;
+          setRemote(found);
+          setActive(0);
+          setMoved(false);
+        })
+        .catch(() => undefined);
+    }, 200);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [onSearch, query, readyToSearch]);
+
+  const filtered = searching
+    ? readyToSearch
+      ? remote
+      : []
+    : typed
+      ? options.filter((o) => matches(o.label, query))
+      : options;
   const exact = options.find(
     (o) => fold(o.label)[0] === fold(query)[0],
   );
@@ -220,10 +293,22 @@ export function Combobox({
           role="listbox"
           className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-control border border-border bg-card p-1 shadow-lg"
         >
-          {rows.length === 0 && (
+          {/* Three states, not two, and the first is not an empty one.
+              "Type two more letters" is an instruction; dressing it as
+              "no results" tells the user their clinic has no such
+              record when nobody has looked yet (TEAM.md #19). The
+              server returns an empty array in both cases, so the two
+              are told apart here, by what the user has typed. */}
+          {belowThreshold ? (
             <li className="px-2.5 py-2 text-xs text-muted-foreground">
-              {noResultsLabel ?? "-"}
+              {searchHintLabel ?? noResultsLabel ?? "-"}
             </li>
+          ) : (
+            rows.length === 0 && (
+              <li className="px-2.5 py-2 text-xs text-muted-foreground">
+                {noResultsLabel ?? "-"}
+              </li>
+            )
           )}
           {rows.map((row, i) =>
             row.kind === "add" ? (
@@ -266,6 +351,23 @@ export function Combobox({
                 {row.option!.label}
               </li>
             ),
+          )}
+          {/* Last, after the options, because it is about what comes
+              after them. An instruction rather than a count: "500 of
+              1,200" tells a vet a number, and the thing they are about
+              to do is open a second record for a client who is already
+              in here. The records that fall off are not random either
+              — the list is ordered, so it is always the same end of the
+              alphabet missing, which reads exactly like "not on file". */}
+          {hasMore && rows.length > 0 && (
+            <li
+              className="border-t border-border px-2.5 py-2 text-xs text-muted-foreground"
+              // Not an option: it cannot be chosen and arrow keys must
+              // not stop on it.
+              role="presentation"
+            >
+              {hasMoreLabel}
+            </li>
           )}
         </ul>
       )}

@@ -38,6 +38,8 @@
     "none": "Seçilmedi",
     "back": "Geri",
     "noResults": "Sonuç yok.",
+    "searchMinChars": "Aramak için en az iki harf yazın.",
+    "searchMore": "Tüm kayıtlar gösterilmiyor. Aradığınızı görmüyorsanız, yeni kayıt açmadan önce yazmaya devam edin.",
     "searchOrType": "Ara veya yaz…",
     "addNew": "Ekle: \"{value}\"",
     "optional": "isteğe bağlı",
