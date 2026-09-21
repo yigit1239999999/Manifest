@@ -159,7 +159,7 @@
   },
   "client": {
     "optionalDetails": "Optional details",
-    "optionalDetailsHint": "Email, second phone, preferences, address and notes. You can fill these in later.",
+    "optionalDetailsHint": "You can fill these in later ({count} fields)",
     "title": "Clients",
     "subtitle": "Pet owners in your clinic.",
     "new": "New client",
@@ -186,12 +186,17 @@
     "consent": {
       "label": "Notification consent",
       "unanswered": "Not asked yet",
-      "legend": "Client's notification consent",
+      "legend": "May we send reminder messages?",
       "granted": "Gave consent",
       "declined": "Declined",
       "unansweredHint": "Not asked yet. No automatic messages are sent to this client until an answer is recorded.",
       "grantedHint": "Appointment confirmations, reminders and vaccination notices are sent to this client.",
-      "declinedHint": "No automatic messages are sent to this client."
+      "declinedHint": "No automatic messages are sent to this client.",
+      "answer": {
+        "granted": "Yes, consented",
+        "declined": "No, declined",
+        "unanswered": "Not asked"
+      }
     },
     "notes": "Notes",
     "archiveConfirm": "Archive this client?",
@@ -214,7 +219,9 @@
       "timeline": "Timeline",
       "invoices": "Invoices"
     },
-    "one": "Client"
+    "one": "Client",
+    "lastNameHint": "Leave it blank if you do not know it.",
+    "phoneHint": "A client without a phone number cannot be sent reminders."
   },
   "pet": {
     "title": "Pets",
@@ -891,7 +898,7 @@
       "petNotInClinic": "This pet isn't in your clinic.",
       "clientRequired": "Client not found.",
       "petRequired": "Pet not found.",
-      "vetRequired": "The person selected cannot be recorded as this clinic\u0027s vet.",
+      "vetRequired": "The person selected cannot be recorded as this clinic's vet.",
       "petSilenced": "This animal has died or been archived, so no reminder can be created for it.",
       "clientArchived": "This client is archived, so no reminder can be created. You can restore the client first.",
       "speciesUnknown": "Unknown species.",

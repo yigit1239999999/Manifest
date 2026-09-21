@@ -158,8 +158,8 @@
     "overdueVaccinationsUndo": "Geri al"
   },
   "client": {
-    "optionalDetails": "İsteğe bağlı bilgiler",
-    "optionalDetailsHint": "E-posta, ikinci telefon, tercihler, adres ve notlar. Daha sonra da doldurabilirsiniz.",
+    "optionalDetails": "İsteğe bağlı detaylar",
+    "optionalDetailsHint": "Daha sonra da doldurabilirsiniz ({count} alan)",
     "title": "Müşteriler",
     "subtitle": "Kliniğinizdeki hayvan sahipleri.",
     "new": "Yeni müşteri",
@@ -186,12 +186,17 @@
     "consent": {
       "label": "Bildirim izni",
       "unanswered": "Henüz sorulmadı",
-      "legend": "Müşterinin bildirim izni",
+      "legend": "Hatırlatma mesajı gönderebilir miyiz?",
       "granted": "İzin verdi",
       "declined": "İzin vermedi",
       "unansweredHint": "Henüz sorulmadı. Cevap kaydedilene kadar bu müşteriye otomatik mesaj gönderilmez.",
       "grantedHint": "Randevu onayı, hatırlatma ve aşı bildirimleri bu müşteriye gönderilir.",
-      "declinedHint": "Bu müşteriye otomatik mesaj gönderilmez."
+      "declinedHint": "Bu müşteriye otomatik mesaj gönderilmez.",
+      "answer": {
+        "granted": "Evet, izin verdi",
+        "declined": "Hayır, istemiyor",
+        "unanswered": "Sorulmadı"
+      }
     },
     "notes": "Notlar",
     "archiveConfirm": "Bu müşteri arşivlensin mi?",
@@ -214,7 +219,9 @@
       "timeline": "Zaman çizelgesi",
       "invoices": "Faturalar"
     },
-    "one": "Müşteri"
+    "one": "Müşteri",
+    "lastNameHint": "Bilmiyorsanız boş bırakın.",
+    "phoneHint": "Telefonsuz müşteriye hatırlatma gönderilemez."
   },
   "pet": {
     "title": "Hayvanlar",

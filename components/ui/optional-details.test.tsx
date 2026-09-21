@@ -104,6 +104,41 @@ describe("what may not be folded away", () => {
     expect(fold!.querySelectorAll("[required]")).toHaveLength(0);
   });
 
+  // The hint promises a number, so the number is checked against the
+  // thing it counts. ux asked for it to be derived rather than typed --
+  // "today it is nine, tomorrow it is eight, and a hand-written 9 will
+  // lie one day" -- and a derived number is only honest while its source
+  // still matches the form. This is that check: the list the hint counts
+  // against the controls the fold actually contains.
+  it("counts the fields it is hiding, and counts the right ones", () => {
+    const { container } = wrap(<ClientForm />);
+
+    const fold = container.querySelector("details")!;
+    const rendered = [...fold.querySelectorAll("input, select, textarea")]
+      .map((el) => el.getAttribute("name"))
+      .filter((n): n is string => Boolean(n));
+
+    expect(new Set(rendered)).toEqual(
+      new Set([
+        "email",
+        "secondaryPhone",
+        "preferredContact",
+        "preferredLanguage",
+        "address",
+        "city",
+        "postalCode",
+        "country",
+        "notes",
+      ]),
+    );
+
+    // And the sentence says that number out loud, in the reader's own
+    // language rather than as a bare digit in the markup.
+    expect(
+      screen.getByText(tr.client.optionalDetailsHint.replace("{count}", "9")),
+    ).toBeInTheDocument();
+  });
+
   // The constraint that does not follow from "required", and the one
   // that would have been lost first. Notification consent is optional,
   // so nothing above catches it -- but its unanswered value is acted

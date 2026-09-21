@@ -42,15 +42,21 @@ function renderForm(props: { client?: Client } = {}, locale: "tr" | "en" = "tr")
 
 const consent = tr.client.consent;
 
+// The words on the radios are not the words on a record's page. Here they
+// are the question a receptionist reads out and the answers they hear
+// back; there the same three states are being reported to somebody with
+// nobody to ask. Both sets live under `consent`, and this is the form's.
+const answer = tr.client.consent.answer;
+
 describe("the client's notification consent", () => {
   it("starts unanswered on a new client, and says so", () => {
     renderForm();
 
     expect(
-      screen.getByRole("radio", { name: consent.granted }),
+      screen.getByRole("radio", { name: answer.granted }),
     ).not.toBeChecked();
     expect(
-      screen.getByRole("radio", { name: consent.declined }),
+      screen.getByRole("radio", { name: answer.declined }),
     ).not.toBeChecked();
     expect(screen.getByText(consent.unansweredHint)).toBeInTheDocument();
 
@@ -69,7 +75,7 @@ describe("the client's notification consent", () => {
     // So the third radio does not add a stored state. It stops the one
     // we already had from looking like a mistake.
     expect(
-      screen.getByRole("radio", { name: consent.unanswered }),
+      screen.getByRole("radio", { name: answer.unanswered }),
     ).toBeChecked();
     expect(screen.getAllByRole("radio")).toHaveLength(3);
   });
@@ -77,18 +83,18 @@ describe("the client's notification consent", () => {
   it("tells the vet what a yes buys, not only what a no costs", () => {
     renderForm();
 
-    fireEvent.click(screen.getByRole("radio", { name: consent.granted }));
+    fireEvent.click(screen.getByRole("radio", { name: answer.granted }));
     expect(screen.getByText(consent.grantedHint)).toBeInTheDocument();
     expect(screen.queryByText(consent.unansweredHint)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("radio", { name: consent.declined }));
+    fireEvent.click(screen.getByRole("radio", { name: answer.declined }));
     expect(screen.getByText(consent.declinedHint)).toBeInTheDocument();
   });
 
   it("distinguishes a recorded no from an unanswered one", () => {
     renderForm({ client: client(false) });
 
-    expect(screen.getByRole("radio", { name: consent.declined })).toBeChecked();
+    expect(screen.getByRole("radio", { name: answer.declined })).toBeChecked();
     // The sentence is the declined one, not the unanswered one. Both end
     // in no messages being sent; only one of them is still a question.
     expect(screen.getByText(consent.declinedHint)).toBeInTheDocument();
@@ -98,7 +104,7 @@ describe("the client's notification consent", () => {
   it("reopens a recorded yes as a yes", () => {
     renderForm({ client: client(true) });
 
-    expect(screen.getByRole("radio", { name: consent.granted })).toBeChecked();
+    expect(screen.getByRole("radio", { name: answer.granted })).toBeChecked();
     expect(screen.getByText(consent.grantedHint)).toBeInTheDocument();
   });
 
@@ -143,11 +149,12 @@ describe("the consequence is announced, not only printed", () => {
 
     const note = screen.getByText(consent.unansweredHint);
     expect(note.id).toBeTruthy();
-    for (const answer of [consent.granted, consent.declined]) {
+    // All three, including the one that is selected on arrival: the
+    // sentence is about what happens next, and "nothing is sent until
+    // an answer is recorded" is the most useful of the three to hear.
+    for (const name of [answer.granted, answer.declined, answer.unanswered]) {
       expect(
-        screen.getByRole("radio", { name: answer }).getAttribute(
-          "aria-describedby",
-        ),
+        screen.getByRole("radio", { name }).getAttribute("aria-describedby"),
       ).toBe(note.id);
     }
   });
@@ -155,11 +162,11 @@ describe("the consequence is announced, not only printed", () => {
   it("follows the answer, so what is read is what is true", () => {
     renderForm();
 
-    fireEvent.click(screen.getByRole("radio", { name: consent.granted }));
+    fireEvent.click(screen.getByRole("radio", { name: answer.granted }));
     const note = screen.getByText(consent.grantedHint);
     expect(
       screen
-        .getByRole("radio", { name: consent.granted })
+        .getByRole("radio", { name: answer.granted })
         .getAttribute("aria-describedby"),
     ).toBe(note.id);
   });

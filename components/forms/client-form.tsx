@@ -50,12 +50,40 @@ interface Props {
 // answer, because it is indistinguishable from a real one.
 const CONSENT_ANSWERS = ["true", "false", ""] as const;
 
+// What is behind the fold, named rather than counted by hand.
+//
+// The hint tells the reader how many fields they are not seeing, and ux
+// asked for the number to be derived: "today it is nine, tomorrow it is
+// eight, and a hand-written 9 will lie one day". This list is the
+// derivation, and `optional-details.test` compares it against the
+// controls actually rendered inside the fold -- so it cannot drift from
+// the form without a red suite.
+const FOLDED_FIELDS = [
+  "email",
+  "secondaryPhone",
+  "preferredContact",
+  "preferredLanguage",
+  "address",
+  "city",
+  "postalCode",
+  "country",
+  "notes",
+] as const;
+
 type ConsentAnswer = (typeof CONSENT_ANSWERS)[number];
 
+// Separate keys from the ones the client's own page uses to DISPLAY the
+// same three states, and the split is on purpose. Here the words are the
+// question a receptionist reads out to the owner standing in front of
+// them -- "may we send reminder messages?" / "yes, consented" -- and ux
+// asked for exactly that: the sentence the vet says, not the name of our
+// column. On a record's page there is nobody to ask and the same state is
+// a fact being reported. One vocabulary answering both would be wrong in
+// one of the two places.
 const CONSENT_LABELS: Record<ConsentAnswer, string> = {
-  true: "consent.granted",
-  false: "consent.declined",
-  "": "consent.unanswered",
+  true: "consent.answer.granted",
+  false: "consent.answer.declined",
+  "": "consent.answer.unanswered",
 };
 
 const CONSENT_HINTS: Record<ConsentAnswer, string> = {
@@ -132,9 +160,14 @@ export function ClientForm({ client, next }: Props) {
               required
             />
           </Field>
+          {/* The surname is the field the counter breaks on: an owner
+              can be a regular without anyone knowing it. "I would put a
+              full stop there and the record would be rubbish" is why
+              the hint says what to do instead. */}
           <Field
             label={t("lastName")}
             error={state.fieldErrors?.lastName}
+            hint={t("lastNameHint")}
             required
           >
             <Input
@@ -149,7 +182,11 @@ export function ClientForm({ client, next }: Props) {
             the counter it is not contact detail -- it is the key. The
             vet's own account: "if I do not take her number I will never
             find that animal again." */}
-        <Field label={t("phone")} error={state.fieldErrors?.phone}>
+        <Field
+          label={t("phone")}
+          error={state.fieldErrors?.phone}
+          hint={t("phoneHint")}
+        >
           <Input
             name="phone"
             type="tel"
@@ -265,7 +302,7 @@ export function ClientForm({ client, next }: Props) {
           and can be true of them tomorrow. */}
       <OptionalDetails
         title={t("optionalDetails")}
-        hint={t("optionalDetailsHint")}
+        hint={t("optionalDetailsHint", { count: FOLDED_FIELDS.length })}
         defaultOpen={hasOptionalData}
       >
         <FormSection
