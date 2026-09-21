@@ -4676,3 +4676,58 @@ Yanında iki olgu daha, ikisi de şartnameyi değiştirdi:
 
 > **Bir sağlayıcının varsayılanı, bize en çok bilgi veren ayar
 > değildir.**
+
+### Bir oranın kararı belirlemesi için, PAYDASI ekranın bastığı şey olmalı
+
+Lead `neverAsked` cümlesini banner'a taşıttı, gerekçesi pm'in
+sayısıydı: **63 müşterinin 61'i `null`**, yani *"her satırda
+çıkacak"*. dev doğru paydayı ölçtü:
+
+```
+bütün müşteriler                null 198 · true 11 · false 2
+AÇIK HATIRLATMANIN MÜŞTERİSİ    true   6 · null  3      ← ekranın bastığı
+```
+
+**Ekranın bastığı nüfus müşteri değil, hatırlatma.** 9 satırın 3'ü —
+cümle **ayırt ediyor**, satırda kalıyor. Karar geri alındı.
+
+> **Sayıyı doğruladım, paydasını doğrulamadım.**
+
+Ve value bunu birkaç tur önce başka bir kalemde yazmıştı: *"o rakam
+paketin kapsadığı nüfusu değil, **komşusunu** ölçüyor."* Aynı hata,
+başka kalem, aynı gün.
+
+**dev'in bulduğu sebep iki tarafı da haklı çıkarıyor:** müşteri
+tablosu ezici çoğunlukla `null`, çünkü kolon nullable yapıldığında
+**geçmiş kayıtlar öyle kaldı** (value'nun gördüğü). Ama **hatırlatma
+yazılan müşteriler onaylı olmaya meyilli**, çünkü birine hatırlatma
+yazan kişi zaten onunla konuşmuş oluyor (Deniz'in gördüğü). **Aynı
+anda doğru iki cümle, farklı payda.**
+
+### Yüzde, kararın ne kadar sağlam olduğunu gizler
+
+dev kararı verirken şerh koydu:
+
+> **3/9 ile 30/90 aynı oranı verir, biri hakkında konuşulabilir
+> öteki hakkında konuşulamaz.** Yüzde vermedim, sayıyı **çift
+> olarak** verdim. **Oran sıçrarsa karar değişir.**
+
+*"%33"* yazsaydı karar sağlam görünecekti. **Çift sayı yazınca ne
+kadar sağlam olduğu da görünüyor** — ve bir sonraki kişi, yeniden
+bakılması gerektiğini sayıya bakarak anlıyor.
+
+**Karar bir nüfusun içinde verilir; nüfusun büyüklüğü kararın
+kendisi kadar kaydedilir.**
+
+### Çağrı yeri olmadan prop inmez — VERİ tarafı
+
+dev-ui `listReminders`'ın `messages` select'ine `body` istedi, kesim
+altı, *"acelesi yok"*. dev **reddetti:**
+
+> Bugün eklersem satır başına **1-4 mesaj gövdesi** taşınır ve
+> **hiçbir şey okumaz.** Katlanan alanı yazdığın turda, **aynı
+> commit'te** gelsin.
+
+Bu, dev-ui'nin bu ekipte savunduğu kuralın (*çağrı yeri olmadan prop
+indirme*) veri tarafı — ve bu sefer **ona uygulandı.** Kullanılmayan
+bir alan yalnız ölü kod değil, **her istekte taşınan yük.**
