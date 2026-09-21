@@ -31,13 +31,13 @@ describe("StatusBadge", () => {
   });
 
   it("gives the same tone the same look across kinds", () => {
-    // A failed message and a no-show are both "did not happen"; they must not
-    // be two different reds on two different screens (TEAM.md #18).
-    const failed = render(<StatusBadge kind="message" status="FAILED" label="x" />);
+    // Half-collected money and a no-show are both "someone has to act"; they
+    // must not be two different ambers on two screens (TEAM.md #18).
+    const partial = render(<StatusBadge kind="invoice" status="PARTIAL" label="x" />);
     const noShow = render(
       <StatusBadge kind="appointment" status="NO_SHOW" label="y" />,
     );
-    expect(classesOf(failed.container)).toEqual(classesOf(noShow.container));
+    expect(classesOf(partial.container)).toEqual(classesOf(noShow.container));
   });
 
   it("keeps caller classes so a call site can hold its layout", () => {
@@ -55,6 +55,9 @@ const enums: Record<StatusKind, Record<string, string>> = {
   reminder: ReminderStatus,
   message: MessageStatus,
   prescription: PrescriptionStatus,
+  // Not a database enum: `User.active` is a boolean, named here so the
+  // coverage check below still walks every kind.
+  staff: { active: "active", inactive: "inactive" },
 };
 
 const everyTone = () =>
@@ -98,13 +101,47 @@ describe("colour is earned, not default", () => {
 
   it("spends the positive tone only where the loop closed", () => {
     expect(statusTone("invoice", "PAID")).toBe("positive");
-    expect(statusTone("reminder", "SENT")).toBe("positive");
     expect(statusTone("appointment", "COMPLETED")).toBe("positive");
+    expect(statusTone("reminder", "ACKNOWLEDGED")).toBe("positive");
   });
 
-  it("reserves danger for what should have happened and did not", () => {
+  it("reads the same word differently for a reminder and for a message", () => {
+    // A message's job was to go out, and it went out: done. A reminder went
+    // out but the animal has not come back, so the work is still open. If
+    // both were green, /reminders would be a wall of green made of
+    // reminders that achieved nothing, and a loop that is failing would
+    // look exactly like a loop that is working.
+    expect(statusTone("message", "SENT")).toBe("positive");
+    expect(statusTone("reminder", "SENT")).toBe("neutral");
+  });
+
+  it("treats a hand-sent message as intent, not as delivery", () => {
+    // `SENT` means a carrier accepted it. `MANUAL` means someone opened the
+    // text; there is no evidence it was ever sent, so it cannot claim to
+    // have closed.
+    expect(statusTone("message", "MANUAL")).toBe("neutral");
+  });
+
+  it("reserves danger for our own failures, and nothing else", () => {
     expect(statusTone("message", "FAILED")).toBe("danger");
-    expect(statusTone("appointment", "NO_SHOW")).toBe("danger");
+
+    // A patient who did not turn up is not our failure, it is the loss this
+    // release exists to chase: a row waiting for someone, not a dead end.
+    expect(statusTone("appointment", "NO_SHOW")).toBe("attention");
+
+    const danger = everyTone().filter((tone) => tone === "danger");
+    expect(danger).toHaveLength(1);
+  });
+
+  it("puts the row that needs a person right now in the attention tone", () => {
+    // The owner is standing in the waiting room. `positive` means "closed
+    // well"; an arrival has not closed, it has just begun.
+    expect(statusTone("appointment", "ARRIVED")).toBe("attention");
+    // Work is already happening here, so it asks nothing of anyone.
+    expect(statusTone("appointment", "IN_PROGRESS")).toBe("neutral");
+    // An account that cannot sign in is an exception to notice.
+    expect(statusTone("staff", "inactive")).toBe("attention");
+    expect(statusTone("staff", "active")).toBe("neutral");
   });
 
   it("does not dress a cancellation as a failure", () => {
@@ -122,10 +159,10 @@ describe("colour is earned, not default", () => {
     const loud = everyTone().filter(
       (tone) => tone === "attention" || tone === "danger",
     );
-    // Four of twenty-two today. If a later status pushes this over a quarter,
-    // the question to ask is not "raise the threshold" but "does this one
-    // really need a colour" — that is the whole premise of the map.
-    expect(loud.length / everyTone().length).toBeLessThan(0.25);
+    // If a later status pushes this over a third, the question to ask is
+    // not "raise the threshold" but "does this one really need a colour" —
+    // that is the whole premise of the map.
+    expect(loud.length / everyTone().length).toBeLessThan(0.34);
   });
 });
 

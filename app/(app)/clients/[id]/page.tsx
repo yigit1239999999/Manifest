@@ -139,7 +139,7 @@ export default async function ClientPage({
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
                   {tNav("visits")}
                 </span>
-                <Badge variant="secondary" className="w-fit">
+                <Badge className="w-fit">
                   {client._count.visits}
                 </Badge>
               </div>

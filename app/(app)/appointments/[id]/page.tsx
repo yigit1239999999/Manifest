@@ -68,13 +68,19 @@ export default async function AppointmentPage({
       <PageHeader
         title={`${appointment.pet.name} · ${appointment.client.firstName} ${appointment.client.lastName}`}
         description={formatDateTime(fmt, appointment.startsAt)}
+        badge={
+          <>
+            {/* Type is a label, not a state, so it stays uncoloured beside
+                the one pill that does carry a colour. */}
+            <Badge>{tType(appointment.type as never)}</Badge>
+            <StatusBadge
+              kind="appointment"
+              status={appointment.status}
+              label={tStatus(appointment.status as never)}
+            />
+          </>
+        }
       >
-        <Badge variant="secondary">{tType(appointment.type as never)}</Badge>
-        <StatusBadge
-          kind="appointment"
-          status={appointment.status}
-          label={tStatus(appointment.status as never)}
-        />
         <Link
           href={`/appointments/${appointment.id}/edit`}
           className={buttonVariants({ variant: "secondary" })}
@@ -116,8 +122,8 @@ export default async function AppointmentPage({
           <CardTitle>{t("notifications.title")}</CardTitle>
           {preview && (
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">{tChannel(preview.channel)}</Badge>
-              <Badge variant="secondary">
+              <Badge>{tChannel(preview.channel)}</Badge>
+              <Badge>
                 {t("notifications.language")}: {tLang(preview.confirmation.language)}
               </Badge>
             </div>

@@ -29,6 +29,7 @@ import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { listStaff } from "@/modules/staff/queries";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Callout } from "@/components/ui/callout";
 import {
   Card,
@@ -202,7 +203,7 @@ export default async function PetPage({
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>{t("tabs.vaccinations")}</CardTitle>
-              <Badge variant="secondary">{vaccinations.length}</Badge>
+              <Badge>{vaccinations.length}</Badge>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {vaccinations.length === 0 ? (
@@ -242,7 +243,7 @@ export default async function PetPage({
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>{t("tabs.prescriptions")}</CardTitle>
-              <Badge variant="secondary">{prescriptions.length}</Badge>
+              <Badge>{prescriptions.length}</Badge>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {prescriptions.length === 0 ? (
@@ -261,9 +262,11 @@ export default async function PetPage({
                           {p.durationDays ? ` · ${tRx("durationShort", { count: p.durationDays })}` : ""}
                         </p>
                       </div>
-                      <Badge variant="secondary">
-                        {tStatus(p.status as never)}
-                      </Badge>
+                      <StatusBadge
+                        kind="prescription"
+                        status={p.status}
+                        label={tStatus(p.status as never)}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -283,7 +286,7 @@ export default async function PetPage({
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>{tTreatment("title")}</CardTitle>
-              <Badge variant="secondary">{treatments.length}</Badge>
+              <Badge>{treatments.length}</Badge>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {treatments.length === 0 ? (
@@ -310,7 +313,7 @@ export default async function PetPage({
                           </p>
                         )}
                       </div>
-                      {tr.code && <Badge variant="secondary">{tr.code}</Badge>}
+                      {tr.code && <Badge>{tr.code}</Badge>}
                     </li>
                   ))}
                 </ul>
@@ -334,7 +337,7 @@ export default async function PetPage({
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>{tDiag("title")}</CardTitle>
-              <Badge variant="secondary">{diagnostics.length}</Badge>
+              <Badge>{diagnostics.length}</Badge>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {diagnostics.length === 0 ? (
@@ -353,7 +356,12 @@ export default async function PetPage({
                             {formatDateTime(fmt, d.performedAt)}
                           </p>
                         </div>
-                        <Badge variant={d.result ? "secondary" : "outline"}>
+                        {/* Both uncoloured: one is a label (which test) and
+                            the other is an ordinary wait for the lab, and
+                            neither asks the clinic to do anything. The words
+                            already tell them apart; a colour here would be
+                            spent on nothing (see status-badge.tsx). */}
+                        <Badge>
                           {d.result ? tDiagType(d.type as never) : tDiag("resultPending")}
                         </Badge>
                       </div>

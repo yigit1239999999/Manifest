@@ -46,12 +46,14 @@ export default async function InvoicePage({
       <PageHeader
         title={`#${invoice.number}`}
         description={`${invoice.client.firstName} ${invoice.client.lastName}`}
+        badge={
+          <StatusBadge
+            kind="invoice"
+            status={invoice.status}
+            label={tStatus(invoice.status as never)}
+          />
+        }
       >
-        <StatusBadge
-          kind="invoice"
-          status={invoice.status}
-          label={tStatus(invoice.status as never)}
-        />
         {invoice.status !== "VOID" && (
           <DeleteButton
             action={voidInvoiceAction.bind(null, invoice.id)}

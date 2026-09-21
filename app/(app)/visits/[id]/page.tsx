@@ -71,8 +71,8 @@ export default async function VisitPage({
       <PageHeader
         title={visit.chiefComplaint ?? tType(visit.type as never)}
         description={`${formatDateTime(fmt, visit.visitedAt)} · ${visit.pet.name} · ${visit.client.firstName} ${visit.client.lastName}`}
+        badge={<Badge>{tType(visit.type as never)}</Badge>}
       >
-        <Badge variant="secondary">{tType(visit.type as never)}</Badge>
         <Link
           href={`/visits/${visit.id}/edit`}
           className={buttonVariants({ variant: "secondary" })}

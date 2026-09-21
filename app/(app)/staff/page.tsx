@@ -8,7 +8,7 @@ import { listStaff } from "@/modules/staff/queries";
 import { setStaffActiveAction } from "@/modules/staff/actions";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { StaffStatusButton } from "@/components/staff-status-button";
 import { DataTable } from "@/components/ui/data-table";
@@ -78,9 +78,11 @@ export default async function StaffPage() {
               key: "status",
               header: t("status"),
               cell: (member) => (
-                <Badge variant={member.active ? "primary" : "outline"}>
-                  {member.active ? t("active") : t("inactive")}
-                </Badge>
+                <StatusBadge
+                  kind="staff"
+                  status={member.active ? "active" : "inactive"}
+                  label={member.active ? t("active") : t("inactive")}
+                />
               ),
             },
             {

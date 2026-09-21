@@ -100,7 +100,7 @@ export async function Timeline({
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col gap-1 pb-3">
                     <div className="flex flex-wrap items-baseline gap-2">
-                      <Badge variant="secondary" className="capitalize">
+                      <Badge className="capitalize">
                         {t(labelKey)}
                       </Badge>
                       <p className="text-sm font-semibold text-foreground">

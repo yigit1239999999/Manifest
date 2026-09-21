@@ -105,7 +105,7 @@ export default async function VisitsPage({
                 key: "type",
                 header: t("type"),
                 cell: (v) => (
-                  <Badge variant="secondary">{tVisitType(v.type as never)}</Badge>
+                  <Badge>{tVisitType(v.type as never)}</Badge>
                 ),
               },
               {

@@ -47,13 +47,23 @@ const appointment = {
   SCHEDULED: "neutral",
   // Deliberately neutral, not positive: a confirmed appointment is the normal
   // state of the list, not an achievement. If it were green, an ordinary day
-  // would be a wall of green and ARRIVED would stop standing out.
+  // would be a wall of green and the rows that need someone would stop
+  // standing out.
   CONFIRMED: "neutral",
-  ARRIVED: "positive",
+  // The single most demanding row in the app: the owner is standing in the
+  // waiting room. `positive` means "closed well", and an arrival has not
+  // closed, it has just begun.
+  ARRIVED: "attention",
+  // Work is already happening here, so it asks nothing of anyone. Spending
+  // the attention tone on a state nobody has to act on dilutes it.
   IN_PROGRESS: "neutral",
   COMPLETED: "positive",
   CANCELLED: "quiet",
-  NO_SHOW: "danger",
+  // Not `danger`. `danger` is reserved for "something on our side failed",
+  // and a patient who did not turn up is not our failure — it is the loss
+  // this whole release exists to chase. Red reads as "over, failed"; amber
+  // reads as "this row is waiting for you", which is the true one.
+  NO_SHOW: "attention",
 } satisfies Record<AppointmentStatus, StatusTone>;
 
 const invoice = {
@@ -68,7 +78,13 @@ const invoice = {
 
 const reminder = {
   PENDING: "neutral",
-  SENT: "positive",
+  // Neutral, even though `message.SENT` below is positive. Same word, two
+  // different events: a message's job was to go out and it went out, so it
+  // is done; a reminder went out but *the animal has not come back*, so the
+  // work is still open and only quiet for now. Painting both green turns
+  // /reminders into a wall of green made of reminders that achieved
+  // nothing — the loop failing would look exactly like the loop working.
+  SENT: "neutral",
   ACKNOWLEDGED: "positive",
   DISMISSED: "quiet",
 } satisfies Record<ReminderStatus, StatusTone>;
@@ -76,6 +92,12 @@ const reminder = {
 const message = {
   SENT: "positive",
   FAILED: "danger",
+  // `SENT` is a record of delivery: a carrier accepted the message. `MANUAL`
+  // is a record of intent: someone opened or copied the text, and we have no
+  // evidence at all that it was ever sent. Positive means "closed well", and
+  // MANUAL cannot claim to have closed. This is also why R1's done-threshold
+  // counts `status = SENT` rather than any row in `message_logs` — staff
+  // sending by hand would otherwise pass a bar the cron never cleared.
   MANUAL: "neutral",
 } satisfies Record<MessageStatus, StatusTone>;
 
@@ -85,12 +107,23 @@ const prescription = {
   CANCELLED: "quiet",
 } satisfies Record<PrescriptionStatus, StatusTone>;
 
+// Not an enum in the database: `User.active` is a boolean. It is mapped to
+// two names here anyway, because "a coloured pill always means status" is
+// only true if the boolean one goes through the same door as the rest.
+const staff = {
+  active: "neutral",
+  // An account that cannot sign in is an exception the administrator has to
+  // notice, not a failure. Amber, not red.
+  inactive: "attention",
+} satisfies Record<"active" | "inactive", StatusTone>;
+
 const tones = {
   appointment,
   invoice,
   reminder,
   message,
   prescription,
+  staff,
 } as const;
 
 export type StatusKind = keyof typeof tones;
@@ -127,9 +160,14 @@ export type StatusBadgeProps<K extends StatusKind> = {
  *     meaning for anyone who cannot see the tone.
  *   - no `tone` override: a call site that can choose its own colour is how
  *     "PAID" ends up grey on one screen and green on another (TEAM.md #18).
- *   - not used for *type* badges (visit type, message channel, audit action):
- *     those are labels, not states. Giving them colour spends the same signal
- *     on something that never needs attention.
+ *   - not used for *type* badges (visit type, message channel, audit action,
+ *     section counters): those are labels, not states. They all used to be
+ *     `Badge variant="secondary"`, which measures ΔE 2.8 against the
+ *     positive tone's fill — the same pill to the eye. So on the
+ *     appointments list "Vaccination" (a type) and "Arrived" (a state) were
+ *     indistinguishable, and the state badge carried no information at all.
+ *     `secondary` is gone and those call sites are plain `Badge`; the rule
+ *     left standing is that a coloured pill always means status.
  */
 export function StatusBadge<K extends StatusKind>({
   kind,

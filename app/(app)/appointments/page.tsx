@@ -201,7 +201,7 @@ export default async function AppointmentsPage({
                 header: t("type"),
                 hideBelow: "sm",
                 cell: (a) => (
-                  <Badge variant="secondary">{tType(a.type as never)}</Badge>
+                  <Badge>{tType(a.type as never)}</Badge>
                 ),
               },
               {

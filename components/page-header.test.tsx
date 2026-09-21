@@ -17,6 +17,43 @@ describe("PageHeader", () => {
     expect(container.querySelector("p")).toBeNull();
   });
 
+  describe("badge slot", () => {
+    it("puts a status badge beside the heading, not among the actions", () => {
+      // The detail pages were passing it in `children`, which is the action
+      // row: a pill between "Edit" and "Archive" reads as a third button.
+      render(
+        <PageHeader title="#1024" badge={<span>Ödendi</span>}>
+          <button>Düzenle</button>
+        </PageHeader>,
+      );
+      const heading = screen.getByRole("heading", { level: 1 });
+      const badge = screen.getByText("Ödendi");
+      const action = screen.getByRole("button", { name: "Düzenle" });
+
+      expect(heading.parentElement).toContainElement(badge);
+      expect(heading.parentElement).not.toContainElement(action);
+    });
+
+    it("renders nothing extra when there is no badge", () => {
+      render(<PageHeader title="Faturalar" />);
+      expect(
+        screen.getByRole("heading", { level: 1 }).parentElement?.children,
+      ).toHaveLength(1);
+    });
+
+    it("lets the badge row wrap with a long title", () => {
+      // TEAM.md #32: the longest translation has to fit next to the pill.
+      render(
+        <PageHeader
+          title="Pamuk · Ayşe Nur Kahramanoğulları"
+          badge={<span>Kısmen ödendi</span>}
+        />,
+      );
+      const row = screen.getByRole("heading", { level: 1 }).parentElement!;
+      expect(row.className).toContain("flex-wrap");
+    });
+  });
+
   describe("actions", () => {
     // The real case: /pets/[id] renders four of them, each a button with
     // `whitespace-nowrap`, on a 390px screen.

@@ -53,7 +53,7 @@ export default async function AuditPage() {
               key: "action",
               header: t("action"),
               cell: (e) => (
-                <Badge variant="secondary">{tAction(e.action as never)}</Badge>
+                <Badge>{tAction(e.action as never)}</Badge>
               ),
             },
             {

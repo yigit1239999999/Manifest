@@ -62,7 +62,7 @@ export default async function ClientsPage({
                     <Link href={`/clients/${c.id}`} className="hover:underline">
                       {c.firstName} {c.lastName}
                     </Link>
-                    <Badge variant="secondary" className="ms-2">
+                    <Badge className="ms-2">
                       {t("petsCount", { count: c._count.pets })}
                     </Badge>
                   </>

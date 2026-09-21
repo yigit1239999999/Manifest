@@ -69,7 +69,7 @@ export default async function RemindersPage() {
             >
               <div className="flex flex-col">
                 <div className="flex items-baseline gap-2">
-                  <Badge variant="secondary">
+                  <Badge>
                     {tType(r.type as never)}
                   </Badge>
                   <p className="text-sm font-semibold">{r.title}</p>
