@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatMoney } from "@/lib/format";
 
 export default async function VisitsPage({
   searchParams,
@@ -163,6 +163,32 @@ export default async function VisitsPage({
                 header: t("vet"),
                 cellClassName: "text-muted-foreground",
                 cell: (v) => v.vet?.name ?? "-",
+              },
+              {
+                key: "amount",
+                header: t("amount"),
+                // `numeric` carries the right alignment and
+                // `tabular-nums` together, which is the whole reason
+                // it exists: a money column is read down its length,
+                // and proportional figures put the decimal point in a
+                // different place on every row.
+                numeric: true,
+                cell: (v) =>
+                  // Empty when there is no total, and this is the one
+                  // decision in the column. `0` is an amount and means
+                  // "nothing was charged"; `null` means "not entered".
+                  // Printing either as the other is the cheapest way
+                  // to manufacture wrong data, and a dash is no better
+                  // — a dash reads as a value, which is why the charts
+                  // refused one.
+                  //
+                  // No stand-in for a screen reader either. Reading
+                  // "no amount entered" down a hundred empty cells is
+                  // noise; "which visits have no total" is a filter
+                  // question, not a cell's job.
+                  v.totalCents === null || v.currency === null ? null : (
+                    formatMoney(fmt, v.totalCents, v.currency)
+                  ),
               },
             ]}
           />

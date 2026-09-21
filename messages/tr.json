@@ -266,6 +266,7 @@
     "heartRateBpm": "Kalp atış (bpm)",
     "respiratoryRateBpm": "Solunum (bpm)",
     "followupAt": "Kontrol tarihi",
+    "amount": "Tutar",
     "totalCost": "Toplam tutar",
     "archiveConfirm": "Bu vizit arşivlensin mi?",
     "createInvoice": "Bu vizit için fatura oluştur",

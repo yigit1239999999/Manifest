@@ -266,6 +266,7 @@
     "heartRateBpm": "Heart rate (bpm)",
     "respiratoryRateBpm": "Respiration (bpm)",
     "followupAt": "Follow-up date",
+    "amount": "Amount",
     "totalCost": "Total cost",
     "archiveConfirm": "Archive this visit?",
     "createInvoice": "Create an invoice for this visit",
