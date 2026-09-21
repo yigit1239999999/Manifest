@@ -35,7 +35,13 @@ import { EXAMPLE_NAMES, PreviewPanel } from "@/components/preview-panel";
  * the counter has to answer; `pet-picker-owner.test` holds the picker
  * naming an owner.
  *
- * Not held anywhere, and a violation of one ships silently: "no negative
+ * Not held anywhere, and a violation of one ships silently: the focus
+ * mark appearing at full contrast rather than fading in, which is a CSS
+ * transition and so cannot be measured in jsdom at all -- a source scan
+ * was considered and rejected, because the two utilities involved sit on
+ * unrelated elements in the same file often enough that it would cry
+ * wolf, and a guard that cries wolf is worse than the gap (see
+ * `app/globals.css`, `transition-colors-no-focus-delay`); "no negative
  * sentence in the first-run state" -- which shipped violated, and is the
  * reason this list exists rather than a hypothetical -- and "the same
  * geometry, read differently", which lives in a measurement pm takes. The

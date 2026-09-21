@@ -161,6 +161,39 @@
   }
 }
 
+/* The colour transition every interactive surface uses, minus the one
+   property that must never be animated.
+
+   Tailwind v4's own `transition-colors` expands to `color,
+   background-color, border-color, outline-color, text-decoration-color,
+   fill, stroke` — read out of `node_modules/tailwindcss`, not assumed.
+   The fourth entry is the problem. The focus mark in this product is an
+   outline, so `transition-colors` animates it from `currentColor` to
+   `--ring` over 150ms: the ring fades in rather than appearing, and on
+   a fast keyboard user moving through a form it is still arriving when
+   they have already left.
+
+   That cost the team a cycle once as a measurement trap -- read the
+   contrast straight after `.focus()` and every variant reports
+   `currentColor`, which looks like a broken ring and is really a clock
+   -- and it was written up as a warning in `components/ui/button.tsx`.
+   The warning did not stop it happening again. So the pattern is fixed
+   here instead, in one place, and the ten files that carry a focus mark
+   use this name.
+
+   Everything else still animates: hover backgrounds and borders behave
+   exactly as before. Only the focus outline is exempt, because it is
+   the one colour whose whole job is to be correct at t=0. */
+@utility transition-colors-no-focus-delay {
+  transition-property: color, background-color, border-color,
+    text-decoration-color, fill, stroke;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

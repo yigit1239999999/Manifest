@@ -66,7 +66,7 @@ export function ThemeToggle({
               // which is the entire job. Against the active segment's
               // `bg-accent` the ring measures 4.58 in light and 5.69 in
               // dark, so the gap was not carrying the contrast.
-              "rounded-control p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-0",
+              "rounded-control p-1.5 transition-colors-no-focus-delay focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-0",
               active
                 ? "bg-accent text-accent-foreground"
                 : "text-muted-foreground hover:text-foreground",

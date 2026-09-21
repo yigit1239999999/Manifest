@@ -60,7 +60,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
               // See `ThemeToggle`: a segment inside a bordered group takes
               // the mark at offset 0, because an outset one would cross
               // its neighbour.
-              "rounded-control px-2 py-1 font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-0",
+              "rounded-control px-2 py-1 font-semibold transition-colors-no-focus-delay focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-0",
               selected
                 ? "bg-accent text-accent-foreground"
                 : "text-muted-foreground hover:text-foreground",

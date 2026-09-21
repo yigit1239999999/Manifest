@@ -78,7 +78,7 @@ function FilterPill({
     <Link
       href={href}
       className={cn(
-        "rounded-pill border px-3 py-1 text-xs font-medium transition-colors",
+        "rounded-pill border px-3 py-1 text-xs font-medium transition-colors-no-focus-delay",
         // The ring is stated, not inherited, and the selected chip is
         // why. A browser's default focus ring takes its colour from the
         // element's own text, and this chip's text is
