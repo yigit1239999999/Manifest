@@ -172,7 +172,7 @@ export function ClientForm({ client, next }: Props) {
           >
             <Input
               name="lastName"
-              defaultValue={client?.lastName}
+              defaultValue={client?.lastName ?? ""}
               autoComplete="family-name"
               required
             />

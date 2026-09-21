@@ -134,6 +134,12 @@ describe("the panel a clinic sees before it has records", () => {
 
     expect(frame.className).toContain("border-dashed");
     expect(frame.className).toContain("shadow-none");
+    // Different material rather than a fainter card: a real card here is
+    // bg-card plus a solid border plus a shadow. The fill is the weaker
+    // half of the signal (1.11:1 against the page in the light theme) and
+    // the dashed line the stronger (1.21), so losing either leaves the
+    // other doing a job it measured too low to do alone.
+    expect(frame.className).toContain("bg-muted");
     // In the dark theme card and page are already close (#161c18 on
     // #0f1411); opacity dissolves what little separation there is.
     expect(frame.className).not.toMatch(/\bopacity-/);
