@@ -6138,3 +6138,35 @@ kullan"*, *"tek fonksiyondan türesin"*. Bu kısıtlar tekrarı
 
 Dolayısıyla bir brief'te *"ikinci bir X yazma"* cümlesi bir üslup
 tercihi değil, **bir arama emri.**
+
+### Üründe "iç görev" diye bir nesne yok — her hatırlatma bir müşteri mesajıdır
+
+Veteriner, tahlil sonucu düğmesinin *"normal, sahibine bildirilsin"*
+demesini istedi — kendi işini bitiren bir düğme. Cazipti, ve
+benimseme argümanı bugün iki kez kazanmıştı.
+
+value engeli **kapsam disiplininde değil, yapıda** buldu:
+
+> *"Sahibine bildirilsin"* demek, birinin o işi **görmesi** demek.
+> Ürün içinde tek aday `Reminder` — yapılacak bir iş, tarihi var,
+> listede duruyor, kapatılabiliyor. **Tam oturuyor gibi.**
+
+**Oturmuyor.** Süpürgenin aday sorgusu (`modules/notifications/service.ts:864`)
+`status: "PENDING"` ile açılıyor ve **tür süzgeci yok** — doğruladım.
+Yani pencerede, onaylı bir müşteriye ait her bekleyen hatırlatma
+**müşteriye mesaj olarak gidiyor.** Veteriner *"sahibine bildirilsin"*
+diye bastığında sahibe *"kontrol zamanı yaklaşıyor"* diye bir **SMS**
+giderdi. Bir tahlil sonucu için.
+
+> **Üründe *"iç görev"* diye bir nesne yok. Her hatırlatma bir müşteri
+> mesajı tetikleyicisidir.**
+
+Ve *"mesaj göndermeyen özel bir hatırlatma"* uydurmak, bugün
+temizlediğimiz şeyin ta kendisi olurdu: **dışarıdan aynı görünen,
+içeride sessizce başka davranan bir kayıt.**
+
+**Kural:** bir düğmenin *"şunu şu kişiye geçir"* demesi, arkasında
+o işi **taşıyan bir nesne** olmasını gerektirir. Yoksa yapılacak
+tek dürüst şey **kalemi ayırmak** — kapsam disiplini için değil,
+**gidecek yeri olmadığı** için. Ve o kalemin adı *"bir düğmenin
+metni"* değil, **"ürüne iç görev kavramı girmesi".**
