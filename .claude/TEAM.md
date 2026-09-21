@@ -2144,6 +2144,24 @@ talimat gelmeyince düşer.) Üretim derlemesinin kimliği
    Kardeş kural, koda bakan taraftan: *"bu ekran komşusunun bildiği bir
    şeyi bilmiyor mu?"* (satır ~2132). İkisi aynı kusurun iki ucu.
 
+10. **Ölçtüğün şey oraya gelmiş miydi?** `pm` kendi ölçümünü çürüterek
+   buldu: bir hayvan sayfasının *"öncesi"* okumasını **boş bir `main`**
+   üzerinde almış — `uyarı: null`, `role="alert"`: 0. Rakamlar
+   *"sessiz"*in rakamlarıydı. **Ama sayfa henüz çizilmemişti.**
+
+   > **"Sessiz" ile "henüz yok" aynı okumayı verir.**
+
+   Ve tehlikesi şu: beklenen cevabı **yanlış sebeple** üretiyor, yani
+   doğrulama refleksini hiç tetiklemiyor. `pm` bir `h1` beklemesi koyup
+   yeniden okudu, sonra *"sessiz olduğunu söyleyebilirim"* dedi.
+
+   **Bu kod tabanı aynı biçimi başka bir yerde zaten biliyor:**
+   `scripts/loop-metrics.mjs`'teki `ratio` yardımcısının yorumu —
+   *"`0/0` ve `0 out of 40` bir listede aynı görünür ve **zıt şeyler**
+   anlatır; biri 'kimse dönmedi', öteki 'kimsenin dönme vakti gelmedi'."*
+   Orada payda, burada sayfa: **yokluğu ölçerken, ölçülen şeyin var
+   olduğunu önce kanıtla.**
+
 **Ve bir ayrım daha, `pm`'den, ve gerileme riskini o taşıyor:**
 
 - **Bir şeyin YOKLUĞUNU ölçmekle VARLIĞINI ölçmek farklı iş görür.**
