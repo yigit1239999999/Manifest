@@ -98,6 +98,171 @@ performans bütçesini 3001'e karşı ölçsün; **dev sunucusunda ölçüm yok*
 `ActionForm`, `col-span-full`, kaydırma hedefi ref, `invoice-form:59`
 katlaması) + sonrası.
 
+## 390px taşmaları — bir teşhis dersi (dev-ui, 21 Eylül)
+
+**Kural: bir kaydırma kabı, ÜSTÜNDEKİ ZİNCİR kadar iyidir.**
+`/invoices/[id]`'nin 76px'i sarmalayıcıdan gelmiyordu — **kartın kendisi**
+taşıyordu. Bir ızgara öğesi de, bir flex öğesi gibi, **kendi içeriğinden dar
+olmayı reddediyor**: tabloyu vuran kuralın **bir kat yukarısı.** Tablo, 76px
+fazla geniş bir kartın içinde rahatça kaydırılıyordu.
+dev-ui dört detay sayfasında birden uyguladı (pm bir sayfa ölçmüştü) çünkü
+ızgara satırı dördünde **harfi harfine aynı** — ve bunu commit mesajına
+yazdı.
+
+**`/staff` DÜZELMEDİ ve bu artık kanıt:** `min-w-0` sarmalayıcıya konunca
+hiçbir şey değişmedi, çünkü o sarmalayıcı **sütun yönlü** bir flex kabının
+öğesi — orada otomatik asgari boyut **yüksekliğe** uygulanıyor, `min-width`
+zaten sıfırdı. **Yani ilk düzeltme orada hiç sorun olmayan bir şeyi
+düzeltmiş.**
+**dev-ui ikinci kez tahminle denemedi** — pm'den `/invoices/[id]` için
+verdiğinin **birebir aynısı bir element zinciri** istedi. Bu turun "okumak
+hipotez, koşturmak kanıt" dersinin doğru uygulaması.
+
+## v0.7.0 — "Hatırlatma satırı bir iş birimidir." (value)
+
+**Sıralama ilk kez bir kusurdan değil, VETERİNERİN GÜNÜNDEN değişti.**
+ux'in yolculuk teşhisi **21'i geri düşürdü** — sürümün en büyük işi.
+
+**Neden:** `5 PENDING, kapanmış 0` sayısının sebebi **21'in eksikliği
+değil**, PENDING'den çıkış yolunun **ekranda hiç olmaması**
+(`acknowledgeReminderAction` / `dismissReminderAction`, ikisi de yazılı,
+**sıfır çağrı yeri**). value'nun kendi cümlesi: ***"Aylardır o sayıya bakıp
+yanlış işi tarif ediyormuşuz."***
+
+**İçerik — hiçbiri yeni şema ya da servis gerektirmiyor, hepsinin arka ucu
+bugün ağaçta:** hatırlatmayı **kapatma** · `tel:` · hayvana/müşteriye
+**bağlantı** · **"Randevu oluştur"** · panelin aşı kartının
+**tıklanabilirliği**.
+**Maliyeti 21'in küçük bir kesri ve onun ÖN ŞARTI.**
+
+**Sonraki sıra:** **E** — kayıt sayfalarının birbirine bağlanması ·
+**D** — fatura ↔ vizit (para sürümünün girdisi; `LINES_LINKED_TO_VISIT 0/6`
+disiplin değil **arayüz** eksikliğiymiş).
+
+## ux'in TEŞHİSİ (21 Eylül) — tek cümle ve dördünü birden açıklıyor
+
+> **PetTrack kayıt tutmayı iyi yapıyor, kaydı İŞE ÇEVİRMEYİ yapmıyor.**
+> Dört yolculuğun dördü de aynı sınıfta kırılıyor: **uçlar var, aralarındaki
+> bağ yok.**
+
+### value'nun sorusuna cevap: EVET, zincir 21'den ÖNCE kırılıyor — iki bağımsız yerde
+
+1. **`modules/reminders/actions.ts:19,28`** — `acknowledge`/`dismiss`
+   aksiyonlarının **SIFIR çağrı yeri** var. Yani hatırlatma **PENDING'den
+   hiç çıkamıyor.** **Ölçümdeki "kapanmış 0"ın sebebi 21 değil, düğmenin
+   yokluğu.** (21 sürümün en büyük işi ve bu bulgu onun sırasını
+   değiştiriyor.)
+2. **`app/(app)/reminders/page.tsx:72-92`** — satırda **ne bağlantı ne
+   telefon** var; hatırlatmadan randevuya **5 ekran.**
+
+### Döngünün girişi de kapalı
+
+**Panelin "Yaklaşan aşılar" kartı tıklanmıyor** (`app/(app)/page.tsx:290-303`
+`<li>`, yanındaki **iki kart `<Link>`**). Yani döngü hem girişten hem
+çıkıştan kapalı.
+
+### Fatura vizitten kopuk — ve bu bir disiplin sorunu değilmiş
+
+`/invoices/new?clientId=` **destekli ama sıfır çağrı yeri**; vizitte yazılan
+iş ve para **faturaya elle yeniden yazılıyor.** Ölçüm satırı
+`LINES_LINKED_TO_VISIT 0/6` bugüne kadar disiplin eksikliği sanılıyordu —
+**arayüz eksikliğiymiş.**
+
+**Kayıt sayfaları birbirine bağlanmıyor:** `appointments/[id]:79` ve
+`visits/[id]:106` hayvan/sahip adını **düz metin** yazıyor.
+
+### Sağlam bulunanlar (yazılıyor ki tekrar aranmasın)
+
+Yolculuk 1'in ilk yedi adımı (`?ownerId`/`?petId` devri **temiz**) ·
+`/appointments`'ın gün gezinmesi + satırdaki alerji uyarısı ve `tel:`
+bağlantısı · ⌘K komut paleti — **ama palet `command-palette.tsx:111`
+yüzünden 640px altında hiç yok.**
+
+### ux'in kapsam notu (30c) — ciddiye alınmalı
+
+**Tarayıcı bu turda da ux'e geçmedi.** Playwright'ı pm ile çakışmamak için
+kullanmadı. Sonuç: **hiçbir saniye ölçülmedi**, tema/dil/genişlik
+doğrulanmadı, klavye sırası denenmedi. **Ekran/tıklama/tekrar-giriş
+sayıları rota grafiğinden ve JSX'ten türetildi** — yani teşhis sağlam ama
+**ölçüm ayağı eksik.**
+
+**ux'in sıralama önerisi:** A+B+C **tek iş** olarak **21'den önce**; hiçbiri
+yeni şema istemiyor, arka uçları zaten yazılı.
+
+## ux'in journey mapping turu — value'nun çerçevesi
+
+**İstenen teşhis, kusur listesi DEĞİL:** *veteriner nerede vazgeçiyor ve
+**vazgeçince ne yapıyor**.* value'nun çerçevesi: **rakibimiz başka bir
+yazılım değil, bugünkü alışkanlık.**
+**Neden bu kadar değerli:** üç sürümdür kuyruğu **kusurlardan** kuruyoruz;
+bu, **veterinerin gününden kurulan ilk girdi** olacak.
+
+**value'nun ux'e önceden sorduğu soru — sıralamayı değiştirebilir:**
+**zincir 21'den ÖNCE kırılıyor mu?** Bugünkü ölçüm zincirin *gönderdiğini*
+ama *kapanmadığını* söylüyor (`SENT 4` · `REMINDER_STATE: 5 PENDING,
+kapanmış 0` · `VACCINATION_RETURN: 0/0`) ve kapanmamasının sebebi bilinen
+bir eksik (21). **Ama veteriner hatırlatmayı görmeden ya da ne yapacağını
+anlamadan vazgeçiyorsa 21 sıradaki iş değildir.** 21 sürümün en büyük işi;
+"döngü kapanmıyor" diye açmadan önce döngünün **oraya kadar geldiğini**
+görmek gerekiyor.
+
+**Ölçüm noktası — 20'nin İLK veri noktası ve ISKALADI:**
+`INPUT_FILL_RATE_SINCE` kesim sonrası **1 aşı, tekrar tarihi dolu 0.**
+**n=1, hiçbir şey kanıtlamıyor** — ama ux yürürken **öneri çipinin görünüp
+görünmediğine** bakacak. *Kesim tarihli ölçüye geçmenin sebebi tam da bu
+satırın okunabilir olmasıydı; ilk okuma geldi ve soru sordurdu.*
+**Yan haber:** `DELIVERY` artık **SENT 4** — döngü gerçekten gönderiyor ve
+bu **üç sürümdür sıfırdı.**
+
+**ux'in teşhisi paketi BEKLETMİYOR**; v0.7.0'ı şekillendirecek.
+
+## pm'in kabul turu — §1 KABUL, deploy blokeri KAPANDI
+
+**§1 (para birimi) geçti ve kanıtı somut:** USD→TRY kaydedildi; **eski dört
+fatura kendi para biriminde kaldı** ($111,11 · $250,00 · $10.000,00 ·
+$1.234,56), ayardan sonraki yeni fatura **₺222,22** olarak kesildi.
+`cd407e9`'un ana iddiası tuttu.
+**Denetim kaydı çelişkisi ÇÖZÜLDÜ (value buldu, ana oturum doğruladı):**
+düzeltme öncesi kod `{changed && invoiceCount > 0 ? <ConfirmDialog…> :
+<SubmitButton>}` diyordu — **onay dialogu yalnızca faturası olan klinikte**
+render ediliyordu. Faturasız klinik düz `SubmitButton` yolundan gidiyor ve
+**sorunsuz kaydediyordu**; 07:54Z'deki başarılı kayıt o yoldan geldi.
+**Doğru cümle: "faturası olan bir klinik para birimini değiştiremiyordu."**
+pm'in kliniğinde 4-5 fatura vardı, o yüzden duvara çarptı — **ve kabulünü
+de tam o zeminde verdi**, yani düzeltmenin doğru zeminde çalıştığı
+gösterildi.
+
+**Rol turu (45) KABUL, iki yönlü:** `VET_TECH` on yazma rotasının onunda da
+`ForbiddenState` alıyor, **"form açılıyor ama gönderim reddediliyor" hâli
+kalmadı**; klinik kayıt formları (aşı, not) **açık ve gerçekten kaydediyor**.
+`RECEPTIONIST` ile 17 rotada **yanlış kilit yok** — yani aşırı kilitleme de
+olmamış.
+
+**Performans (üretim, 3001, oturum açık):** en yavaş üçü
+`/pets/[id]` **473 ms** · `/appointments` **451** · `/invoices/[id]` **450**.
+**pm'in önerisi 1000 değil 800 ms**, uyarısıyla: **elimizde hacimli klinik
+yok**, en büyük klinik 31 hayvanlık test kliniği.
+
+**390px turu BİTTİ, 1024px temiz.** 20 yüzey taşmasız. **Kalan iki taşma:**
+`/staff` **362px** ve `/invoices/[id]` **76px** — ikincisinde sarmalayıcıda
+`min-w-0` **zaten var**, kartın kendisi taşıyor, yani `a5e48c6` o ayağı
+kapatmamış.
+
+**Yeni bulgular (üçü de TEAM.md ihlali):** (1) 390px'te `/clients`
+tablosunun "Aç →" sütunu **tamamen gizli** ve kaydırılabilir olduğuna dair
+**hiçbir işaret yok**; (2) "Arşivle" **kırmızı çerçeve + çöp kutusu
+ikonuyla** geri alınamaz gibi sunuluyor (**madde 25**); (3) **mükerrer
+randevu engelleniyor ama kullanıcıya söylenmiyor** — yazdığı "Sebep"
+sessizce atılıyor (**yeni korumanın yan etkisi**).
+
+**TEAM.md 32'nin kanıtı bayat çıktı:** `/pets/[id]` başlığındaki dört eylem
+390px'te **iki satıra sarıyor ve hepsi ekranda** — `flex-wrap` gerçekten
+çözmüş.
+
+**pm'in bakmadıkları (30c):** EN'de 390px · yatay telefon · `/staff/new` ve
+reçete alt sayfaları dar ekranda · **koyu temada tam 390px turu** ·
+`shadow-sm` önce/sonra.
+
 ## v0.5.0 — "Kaydettiğini görüyorsun, iki kez kaydetmiyorsun." (value)
 
 **İÇERİK:**

@@ -5,6 +5,45 @@ kurallarıdır.
 Her ajan kendi tanımına ek olarak bunu uygular. Kurallar çalışırken kazanıldı;
 her biri gerçek bir hatanın veya doğru kararın karşılığıdır.
 
+## Önceliklendirme — kullanıcının koyduğu sıra (21 Eylül 2026)
+
+Kullanıcının kendi cümlesi: *"Olabildiğince UX odaklı bir uygulamaya
+odaklanmalı herkes. Performans ve ölçeklendirme diğer önceliklendirmemiz."*
+
+**1. UX — herkesin birinci önceliği, rolü ne olursa olsun.** Bu, "ux ajanı
+ilgilensin" demek değil: `dev` bir servis yazarken de, `value` bir paket
+keserken de birinci ölçüt **veterinerin ekranda ne yaşadığıdır.** Ayrıntı
+aşağıdaki "UX bu ekibin kırmızı çizgisidir" ve "UX önce gelir" bölümlerinde.
+
+**2. Performans ve ölçeklenebilirlik — ikinci öncelik, ve artık
+ölçülebilir.**
+
+> **BÜTÇE: 800 ms. Ama asıl karar sayı değil, ADI (value, 21 Eylül):**
+> **800 ms bir GERİLEME KORUMASIDIR, ÖLÇEK TESTİ DEĞİL.**
+> 31 hayvanlık bir klinikte ölçüldü. Söylediği şey *"çerçeve ve sorgu yolu
+> bu kadar sürüyor"*; söylemediği şey *"bu uygulama büyük klinikte ayakta
+> kalır."* **Bu cümle bütçenin yanından ayrılmaz** — yoksa altı ay sonra
+> biri 800'ü *"ölçeklenebilirlik kanıtlandı"* diye okur.
+> Ölçülen en yavaş üç rota (üretim, oturum açık): `/pets/[id]` **473 ms** ·
+> `/appointments` **451** · `/invoices/[id]` **450**.
+> **Sentetik hacim kurulmadı** (tabanı kirletir ve asıl soruyu da tam
+> cevaplamaz); **"hacimli klinikte ölçek ölçümü" AYRI BİR İŞ** olarak
+> açılacak. **Bugün ölçek hakkında hiçbir kanıtımız yok.** Üretim derlemesi `http://localhost:3001`'de ayakta; bugüne
+kadar "dev sunucusunda ölçüm yok" diye ertelenen her şey artık yapılabilir.
+Bugünkü durum: rota süreleri **0,007–0,15 sn**, ama bu **129 klinik / 100
+hayvanlık** bir veritabanından — gerçek veride büyür. Bekleyen iş: **en çok
+veriye sahip klinikte ölçüm** ve rota başına bütçenin 6000 ms tavanından
+gerçek bir sayıya (öneri **1000 ms**) indirilmesi.
+**Ölçeklenebilirlik ayrı bir şey ve henüz hiç bakılmadı:** sorgu sayısı,
+N+1, indeks kapsamı, sayfalama sınırları, klinik sayısı arttığında ne
+olduğu. **Kimse bunu iş olarak açmadı** — ikinci öncelik olduğuna göre
+açılmalı.
+
+**Sıra bir yasak değil, bir hakemlik kuralı:** ikisi çatıştığında UX kazanır
+ve gerekçesi yazılır. Performans bir UX konusudur zaten — bekleyen bir ekran
+kötü bir ekrandır — ama *"hızlandıralım"* diye bir akışın anlaşılırlığından
+vazgeçilmez.
+
 ## Nasıl bir ekibiz
 
 **Hedefimiz mütevazı değil: PetTrack dünyadaki en iyi veteriner klinik
@@ -350,8 +389,16 @@ desteklemeye karar vermek zorunda değiliz; kuralı bugün koymak bedava,
 sonra koymak yüzlerce satır demek. Var olan kodu toplu çevirmek ayrı bir iş.
 
 **32. Bir bileşen en uzun çeviriyle test edilmeden bitmiş sayılmaz.** Metin
-uzunluğu farkı bu kod tabanında teorik değil, kanıtlı: `PageHeader` zaten
-390px'te eylemlerini ekran dışına atıyor.
+uzunluğu farkı bu kod tabanında teorik değil, kanıtlı:
+~~`PageHeader` zaten 390px'te eylemlerini ekran dışına atıyor.~~
+**BU KANIT CÜMLESİ ÖLÇÜMLE ÇÜRÜTÜLDÜ (pm, 21 Eylül; ux şüpheyi doğru yerden
+kurmuştu).** `/pets/[id]` başlığındaki **dört eylem de 390px'te ekranda** —
+sağ kenarlar 196/345/191/303, `flex-wrap` gerçekten çözmüş; ekran görüntüsü
+`.playwright-mcp/pm-pet-390.png`. **Kararın kendisi duruyor** (madde
+geçerli), çürüyen yalnızca gerekçesiydi ve 30b gereği üstü çizilerek
+bırakıldı. **Maddenin bugünkü kanıtı başka:** aynı turda `/staff` **362px**
+ve `/invoices/[id]` **76px** yana kayıyordu ve ikisi de yalnızca 390px'te
+görünüyordu.
 
 **32b. Hangi dilin uzun olduğu yüzey başına değişir ve ölçülür,
 varsayılmaz.** Herkesin içgüdüsü İngilizcedir ve bu kod tabanında içgüdü
@@ -460,7 +507,24 @@ bakılmadı · metin yazılacaktı diye onu kimin göreceğine bakılmadı.**
 Üçü de 30c'nin ailesidir: bir yerde bir şeyin bulunması, oraya bakma
 ihtiyacını ortadan kaldırıyormuş gibi okunur.
 
-**32e. Bir kuralı teste bağlarken testi bozmak yetmez: kuralı ihlal eden
+**32e. "Bozunca düşüyor" kontrolü testi YAZARKEN değil, test YEŞİLE
+DÖNDÜKTEN SONRA yapılır — yeşil bir testin neyi kanıtladığı ancak onu
+kırmızı yapabildiğinde bilinir.** (dev'in cümlesi; maddenin operasyonel
+hâli ve başında durması gereken kısım.)
+**Ve kurulumun kendisi de ölçülür (value):** *"ihlali taklit ediyorum"*
+diyen kurulumun gerçekten ihlali taklit ettiği **sınanır.** Bu turda
+bulunan şey kurulumun doğru ama **ortamın ihlali geçersiz kıldığı**
+durumdu (32o); kurulum ölçülmeseydi test **sonsuza kadar yeşil kalır ve
+kör olduğu bilinmezdi.**
+**Ölçüm tek gözlem değil, TEKRARLANMIŞ sonuç:** dev ile dev-ui
+**birbirlerinden habersiz** aynı deneyi yaptı ve aynı sonucu buldu.
+
+**Ve bir değer sırası, aynı olaydan (value):** dev `staff-status-button`'ı
+**okudu** ve doğru okudu; dev-ui **koşturdu.** Aynı sonuç çıktı — ama bu
+oturumda **okuyup geçilen bir şey dört tur açık kaldı** (`/audit`).
+**Okumak hipotez üretir, koşturmak kanıt; ikisi aynı değerde değildir.**
+
+**Bir kuralı teste bağlarken testi bozmak yetmez: kuralı ihlal eden
 GERÇEK bir vakanın yakalandığı gösterilir.** Testi bozmak, testin **bir şey**
 sorduğunu kanıtlar; ihlal eden gerçek vaka, **doğru şeyi** sorduğunu.
 **Kanıtı bu turda oluştu ve iki yöntemin farkını bundan net gösteren bir
@@ -507,6 +571,57 @@ müşteri ekleyemeyen bir rol yok** (`pets.write` ve `clients.write` üç rolde
 de birlikte; ux ölçtü, value ve ana oturum doğruladı). Bu bir tasarım kararı
 mı, kimsenin fark etmediği bir boşluk mu? **Bugünkü cevap: "kararlı
 görünüyor."** Soru kapanmadan kaybolmasın diye buradadır.
+
+**32p. Bir SÜRE ÖLÇÜMÜ, ölçtüğü şeyin gerçekten istenen sayfa olduğu
+gösterilmeden kaydedilmez.** **Durum kodu ve oturum durumu ölçümün
+parçasıdır;** 200 olmayan ya da oturumsuz bir yanıt **ölçüm değildir.**
+(21 Eylül 2026, ux buldu, value kural yaptı.)
+
+**Bu 35'in BİREBİR KARDEŞİ ve ikinci kez oluyor:** orada performans testi
+**hata sayfasını** ölçüp *"182 ms"* demişti; burada ana oturum
+**yönlendirmeyi** ölçüp *"0,007 sn"* dedi — `curl` oturumsuz istek atıyordu,
+uygulama `/sign-in`'e yönlendiriyordu. **Kuralı yazdıktan sonra aynı tuzağa
+düşüldü.**
+**Düzeltilmiş taban, iki bağımsız oturumlu ölçüm birbirini doğruluyor:**
+pm en yavaş üç rota **473/451/450 ms** · ux medyan **~340 ms**, aralık
+**135–564** (8 rota × 3). **Kayıttaki 0,007–0,15 tek başına aykırıydı.**
+
+**Ve bütçe bu yüzden DONDURULDU (value):** ux panelde **2405 ms TTFB**
+ölçtü (189/791/2405 — **çok oynak**). *"800 ms bugün paneli
+geçirmeyebilir; geçemeyeceğimiz bir sayıya bağlamak ya testi kırmızı
+bırakır ya ilk kırmızıda gevşetilir — ikisi de kuralı öldürür."*
+**Bağlama şartı:** panel dahil, oturum içinde, **kararlı (tekrarlanabilir)**
+bir ölçüm; 2405'in derleme mi gerçek mi olduğu ayrılmadan sayı konmaz.
+
+**32o. Test ortamı, kusurun yaşadığı ortam değilse test yeşil kalır — ve
+bunu ölçmeden "teste bağladık" denmez.**
+
+> **BU MADDE 32e'Yİ SINIRLIYOR, ve sınırı ölçümle bulundu.** 32e diyor ki
+> *"kuralı ihlal eden gerçek bir vakanın yakalandığı gösterilir."* dev-ui
+> tam bunu yaptı ve **sonuç tersine çıktı:** kusuru geri koyup ölçtü —
+> **davranışsal test (dialogu bir formun içine koyup tıklayan, yani ihlali
+> birebir taklit eden kurulum) GEÇTİ**; **yapısal test ("kendi formunu
+> render etmiyor") DÜŞTÜ.** Sebebi jsdom'un DOM'u `appendChild` ile
+> kurması: iç içe form testte **hayatta kalıyor**, düzleştiren şey gerçek
+> ayrıştırıcı.
+> **Yani "ihlali taklit eden kurulumla sına" kuralı bu vakada prensipte
+> çalışmıyor** — 32e'nin altında yatan varsayım, test ortamının kusuru
+> **barındırabilmesi.** Barındıramıyorsa 32e uygulanamaz ve **yapısal
+> iddia tek dürüst yoldur.** dev-ui ikisini de bıraktı ve **gerçeği testin
+> yorumuna yazdı**; dev de bağımsız olarak aynı sonuca vardı.
+> **Sınırın kendisi 32e'yi çürütmüyor, kapsamını söylüyor** — ve bunu
+> ölçmeden bilemezdik. (21 Eylül 2026, dev ölçtü ve
+dürüstçe yazdı.) *"Dialog bir form içindeyken çalışıyor mu"* testi,
+**hata tamamen yerindeyken de yeşil kalıyordu**: jsdom ağacı HTML
+ayrıştırıcısından geçirmediği için **iç içe formu düzleştirmiyor**, yani
+kusurun var olma koşulu test ortamında **yok.** dev eski kodu geri koyup
+bunu doğruladı — 32e'nin uygulaması.
+**Çözüm davranışı değil YAPIYI iddia etmekti:** *"dialog kendi formunu
+üretmiyor"*, ve o iddia eski kodda düşüyor. **Tarayıcıdaki konsol
+uyarısının gittiğini yalnızca pm doğrulayabilir** ve dev bunu açıkça yazdı.
+**Ders:** bir kusur ancak yaşadığı ortamda yakalanabilir; yakalanamıyorsa
+**ya ortam değişir ya iddia yapısal kurulur** — üçüncü yol olan "test var,
+demek ki korunuyoruz" 32f'nin ta kendisidir.
 
 **32n. "Sıfır kullanıcı etkisi" bir işin ALEYHİNE delildir, lehine değil —
 ama bir sayımı teste çevirmek ayrı bir iştir.** (21 Eylül 2026, value
@@ -656,8 +771,29 @@ durduran kod inmeden ekrana giremez. Metin ile davranış aynı sürümde gider.
 
 ## Süreç ve yetki
 
-- **pm** hataları bulur, önceliklendirir, kabul testini yapar. Tarayıcı
-  (Playwright) yalnızca pm'dedir.
+- **pm** hataları bulur, önceliklendirir, kabul testini yapar.
+- **Tarayıcı artık pm'de VE ux'te** (21 Eylül 2026, kullanıcı kararı; eskiden
+  yalnızca pm'deydi). **Port ayrımı:** pm **3000**'de (geliştirme), ux
+  **3001**'de (**üretim derlemesi**). İkisi aynı işi yapmaz: **pm kabul
+  eder** (geçti/kaldı), **ux anlar** (neden böyle, ne eksik). ux kabul
+  kuyruğunu devralmaz.
+  **İKİ TARAYICI İÇİN TEK KURAL:** **bulgular `value`'ya gelir, ajanlar
+  birbirine dağıtmaz.** Gerekliliği aynı gün kanıtlandı: pm'in "cila
+  listesi" dev-ui'ye, ux'e ve dev'e gitti, **sıralayana hiç uğramadı** ve
+  value hiçbirini sıraya koymadı — dağıtılan bulgu, sıralanmamış bulgudur.
+  **VE SAYI/KAPSAM, GÖZLENDİĞİ YERDEN DEĞİL KAYNAĞINDAN OKUNUR.**
+  Aynı hafta **üç kişi** aynı hatayı yaptı: value bir klinikteki gözlemi
+  bütün kliniklere genelledi (dalın koşulunu okumadan); ana oturum bir
+  sayımı dört kez yanlış yaptı; ux *"101 hayvan / 129 müşteri"* dedi, gerçek
+  **veritabanı geneliydi**, veterinerin gördüğü seçki **31/33**.
+  **ux'in düzeltmesi bulgunun şiddetini düşürdü ama kendisini ayakta
+  bıraktı — ve NEDENİNİ değiştirdi:** sorun **uzunluk değil, ayırt
+  edilemezlik** (seçenekler çıplak isim, sahibi yazmıyor, iki "Pamuk"
+  ayrılamıyor). Desen zaten evde: ⌘K paleti hayvanın yanında sahibini
+  gösteriyor (`command-palette.tsx:203`), **formlar ondan ayrışmış.**
+  **Sebebi ölçülmüş bir kısıttı:** ux üç sürüm boyunca hiçbir ekranı
+  görmeden karar verdi ve **içgüdüsü iki kez ölçümle çürüdü** (uzun dil o
+  yüzeyde İngilizce çıktı; dar genişlik 390px değil 1024px çıktı).
 - **value** Product Owner'dır: ne yapacağımıza, hangi sırayla yapacağımıza,
   neyin "bitti" sayıldığına ve sürümün içeriğine karar verir.
 - **ux** tasarım otoritesidir: nasıl görüneceğine, akışın nasıl kurulacağına
@@ -747,6 +883,26 @@ paket ikiye bölünür. Pratik karşılığı:
 - **Bir iş pakete girmiyorsa bu bir erteleme değil, paketleme kararıdır.**
   Kesme çizgisi baskı gelmeden çizilir (madde 17) ve dışarıda kalanlar bir
   sonraki paketin ilk işi olarak **adıyla** yazılır.
+- **Bir kapı işi yalnızca "kapandı mı" diye sınanırsa YARIM test edilmiştir
+  — FAZLA kapanmadığı da ölçülür.** (21 Eylül 2026; **pm bunu kimse
+  istemeden yaptı** ve value kapı işlerinin standardı ilan etti.)
+  45'in kabulünde pm yalnızca `VET_TECH`'in on yazma rotasında
+  `ForbiddenState` aldığını değil, **`RECEPTIONIST` ile 17 rotada YANLIŞ
+  `ForbiddenState` olmadığını** da ölçtü. İki yön birlikte ölçülmezse
+  "güvenliği sağladık" diye fazla kilitlenmiş bir uygulama teslim
+  edilebilir ve kimse fark etmez.
+- **Kalite kapısı maddeleri paketin cümlesine TABİ DEĞİLDİR; ilke
+  ihlalleri tabidir.** (21 Eylül 2026, value — aynı turda iki küçük işe
+  **farklı** cevap verdiği için gerekçeyi ortaya koymak zorunda kaldı.)
+  **Erişilebilirlik** TEAM.md 26'ya göre `tsc`/`eslint`/`npm test` ile
+  **aynı listededir**, yani her pakette geçilmek zorundadır — **cümleye
+  uymasa da girer**, devreden borç gibi. Yazılı bir **tasarım ilkesi**
+  ihlali gerçek bir kusurdur **ama kapı değildir**; sıraya girer.
+  **İlk uygulaması:** `tel:` maddesi **hayır** (ham telefon numarası
+  *yalan söylemiyor*, yalnızca daha az işe yarıyor) · "rozet ekran
+  okuyucuda bitişik okunuyor" **evet** (erişilebilirlik kapısı).
+  **Bu ayrım olmadan "küçük ve gerçek" her madde pakete sızar** — iki
+  sürümdür uğraşılan kapsam kaçağının kapısı tam olarak budur.
 - **Bir paket, bir önceki paketin açık borcunu taşımaz.** Taşırsa paket değil
   birikmedir. (v0.1.0 açık bir P0 taşıdı; v0.2.0'ın ilk şartı onu kapatmaktı.)
   **BU KURAL SINANDI VE TUTTU (v0.3.0, 21 Eylül 2026).** v0.2.0'ın açık
@@ -844,6 +1000,72 @@ origin <hash>:main` aynı hash ile.
 **Yayımlanmış bir etiket yeniden yazılmaz.** Eksik çıkmışsa etiket öyle
 kalır ve eksik metninde durur; düzeltme bir **sonraki pakette** yapılır.
 Etiketi yeniden yazmak, onu hiç yazmamaktan kötüdür.
+
+**YEŞİL BİR TEST TAKIMI, EKRANIN ÇALIŞTIĞININ KANITI DEĞİLDİR.**
+(21 Eylül 2026 — bu oturumun en pahalı dersi ve bedeli bir sürümün
+yalan söyleyerek çıkması oldu.)
+
+~~Klinik para birimi **hiç kaydedilemiyordu**~~ — **DÜZELTME (value, aynı
+gün): iddia fazla genişti.** Doğrusu: ***faturası olan bir klinik para
+birimini değiştiremiyordu.***
+**Kanıt daldan okundu** (`git show dae18eb^:components/forms/clinic-settings-form.tsx:70`):
+`{changed && invoiceCount > 0 ? <ConfirmDialog…> : <SubmitButton>}` — onay
+dialogu **yalnızca kliniğin faturası varken** render ediliyordu; faturası
+olmayan klinik düz bir `SubmitButton` görüyor, iç içe form oluşmuyor,
+**sorunsuz kaydediyordu.** Denetim kaydındaki düzeltme öncesi başarılı
+`currency USD→TRY` satırı böyle açıklandı.
+**Pratik ağırlığı neredeyse aynı** — faturası olmayan klinik, henüz hiç iş
+yapmamış klinik demek; **faturalama yapan her klinik engelliydi** — *ama
+ağırlığın aynı olması cümlenin doğru olmasını sağlamaz.* **"v0.2.0 yalan
+söyleyerek çıktı" de böyle kalibre edilir:** faturası olan her klinik için
+doğru, boş klinik için değil.
+**value payını yazdı:** *"pm **bir** klinikte gözlem yaptı, ben **bütün**
+kliniklere genelledim — dalın koşulunu okumadan. Kurallarını yazdığım
+hatayı yaptım."*
+
+Kusur şunların **hepsinden geçti:** `tsc` 0 · `eslint` 0 · **~490 test yeşil.** Onu bulan
+şey **bir insanın tarayıcıda Kaydet'e basmasıydı.** Ve sonradan ölçüldü ki
+o kusur **testle yakalanamazdı bile** — jsdom iç içe formu düzleştirmiyor,
+yani ortam kusuru yeniden üretemiyor (32o).
+
+**Yalnızca gerçek tarayıcıda görülebilen bir kusur sınıfı var ve test
+takımı onu YAPISAL OLARAK göremiyor.** Bu yüzden **kabul adımı bir
+formalite değil, o sınıf için tek ölçüm aracıdır.**
+
+> **Somut kural: bir işin "bitti" eşiğinde EKRAN ayağı varsa, kapılar temiz
+> diye o eşik karşılanmış sayılmaz.**
+
+> **VE AYNI OLAYDAN ÜÇÜNCÜ KURAL (value, bu turun asıl kazancı):
+> Bir kusurun KAPSAMI, gözlendiği örnekten değil KODUN DALINDAN okunur.**
+> *"Çalışmıyor" demeden önce **hangi koşulda** çalışmadığına bakılır.*
+> Burada koşul `invoiceCount > 0`'dı ve okunmadığı için tek gözlem bütün
+> kliniklere genellendi. **Ailesi tanıdık:** bu oturumda aynı sayı dört kez
+> elle sayıldı ve dördü de yanlış çıktı (30g) — **tek gözlemden kapsam
+> çıkarmak** aynı hatanın başka yüzü.
+
+**Kuralın operasyonel hâli, dev kendi payını yazarak koydu:** *"`cd407e9`'u
+yazan bendim ve kendi işimin ekranda çalıştığını doğrulamadım — birim
+testlerim yeşildi, ekran ölüydü."* **KURAL (value kişisel alışkanlık olarak
+bırakmadı): ekran ayağı olan bir iş inerken, ONU YAZAN KİŞİ pm'e TEK
+CÜMLELİK bir doğrulama isteği gönderir** — *"şunu kaydet ve yenile"*.
+Kabulü beklemek değil, **kabulün neye bakacağını söylemek.**
+**On saniyelik iş; bu oturumda İKİ SÜRÜMLÜK bir yalanı önleyecekti.**
+Kişiye bağlı kalırsa **unutulduğu gün geri gelir.**
+
+> **Ve yanlış ders çıkarılmasın:** doğru ders *"daha iyi test
+> yazsaydım"* **değildir** — bu kusur **testle yakalanamıyordu bile**
+> (32o: jsdom iç içe formu düzleştirmiyor). Doğru ders: **ekran ayağı olan
+> hiçbir iş kapılarla bitmiş sayılmaz.**
+
+**Kazanıldığı olay ve payın sahibi kendi yazdı (value):** *"v0.2.0'ı tam
+olarak öyle geçirdim — 'kod tarafında blokeri yok' dedim, ekran ölüydü, ve
+etiket tutmayan bir vaatle çıktı."* Etiket *"bir klinik kendi para birimini
+seçebiliyor"* diyordu; **seçemiyordu.**
+
+**Ve bir yan ders, pm'in yöntemi hakkında:** kusurun kökünü bulunur kılan
+şey pm'in **`/invoices` ile `/staff`'ı karşılaştırması** oldu — aynı
+`DataTable`'ın orada taşmadığını söylemeseydi kusur `/staff`'a özgü sanılıp
+tek sayfa yamanacaktı. **Karşılaştırmalı bulgu, tekil bulgudan değerlidir.**
 
 **Ölçü — geçiş ne zaman geç kalmıştır?** İlk konan ölçü *"bir partide kırktan
 fazla commit"*tı (ana oturum koydu). **Değiştirildi**, çünkü value'nun
