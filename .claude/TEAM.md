@@ -5070,3 +5070,100 @@ gösterdi:**
 Ve çözüm sıralamayı değiştirmek değildi: **arka uç yarısı paralel
 başlatıldı**, çünkü tek bir dosyası bile çakışmıyor. *Sıra, ancak
 paylaşılan dosya varsa sıradır.*
+
+### Bir seçici bulmak, o seçicinin EŞLEŞEBİLECEĞİNİ göstermez
+
+pm *"vurgu kuralı pakette yok"* dedi ve **kesin kanıt** verdi: elle
+`data-spotlight` niteliğini ekledi, **boya değişmedi.** Lead bunu
+derlenmiş CSS'i `grep`'leyip çürütmeye kalktı ve bir eşleşme buldu:
+
+```css
+.data-\[spotlight\]\:bg-accent[data-spotlight]{ … }
+```
+
+**Kural vardı ve asla ateşlenemezdi.** Seçici elemanın hem
+`data-[spotlight]:bg-accent` **sınıfını** hem `data-spotlight`
+**niteliğini** taşımasını istiyor, ve o sınıfı **hiçbir eleman
+taşımıyordu** — `grep -rn 'data-\[spotlight\]' components app`
+yalnız bir yorum satırı buluyor.
+
+> **Dizgeyi bulmak, kuralın eşleşebileceğini göstermiyor.**
+
+Ve hatanın asıl ağır yanı **kanıt hiyerarşisini ters çevirmesi:**
+pm bir **deneme** yapmıştı (niteliği koy, boyaya bak), lead bir
+**arama** ile onu çürütmeye kalktı.
+
+> **Deneme kanıttır, arama değil.** Bir aramanın çürütebileceği tek
+> şey başka bir aramadır.
+
+ux aynı turda pm'in *yöntemini* de düzeltti — `@layer` blokları tek
+seviye gezildiğinde kural sayımına girmiyor, yani *"735 kuralda yok"*
+tek başına kanıt değildi — **ama sonucu aynen kabul etti**, çünkü
+kanıt sayım değil denemeydi.
+
+### Süre, başkasının işinin ne kadar süreceği hakkında bir tahmindir
+
+Vurgunun asıl kırığını dev-ui buldu ve teşhisi kuralın kendisi oldu:
+
+> Mekanizma, sunucudan dönecek listeyi **üç saniye** animasyon
+> karesi boyunca bekliyordu. **Üç saniye, başkasının gidiş-dönüşü
+> hakkında bir tahmindir — zaman aşımı kılığında.** Sıcak bir
+> veritabanına karşı bol, soğuk birine karşı hiç.
+
+Ve başarısızlık biçimi en kötüsü: **özellik sadece yok**, ve yok
+olduğunu söyleyen hiçbir şey yok.
+
+**Çare bir süre değil, bir olay:** `MutationObserver` satır geldiği
+an cevap veriyor, **ne kadar sürerse sürsün.** Kalan on beş saniyelik
+tavan yalnız gözlemcinin kimsenin ilgisini aşmaması için.
+
+**Ve dev-ui kendi düzeltmesinde aynı hatayı bir kez daha yaptığını
+gördü** — commit başlığı: *"son tarih kusurdu, ve on beş saniye aynı
+kusurun tekrarıydı."*
+
+### Bir animasyon, ölçtüğü süreyi doğru yerden saymalı
+
+ux tek bir ince ayar istedi:
+
+> Yeni satır 3043px aşağıdaydı; **yumuşak kaydırma o mesafeyi yarım
+> saniyenin üstünde alır**, yani iki saniyelik vurgunun bir kısmı
+> veteriner oraya **varmadan** tükenir — ve en kötü hâlde satır tam
+> görünür olduğunda renk **sönmeye başlar.**
+
+Süreyi uzatmadı: **iki saniye doğru yerden sayılsın** yeter
+(`scrollend` ya da sabit gecikme).
+
+**Bir gösterme süresi, gösterilen şeye bakılabildiği andan itibaren
+sayılır.**
+
+### "Okunan ile olan arasındaki fark" — bu turda üç kılık
+
+ux bu turun üç ayrı bulgusunu tek aileye bağladı:
+
+| ne okunuyor | ne oluyor |
+|---|---|
+| metnin taşıdığı **vaat** (*"mesajı kopyalayıp iletebilirsiniz"*) | o ekranda kopyalama düğmesi yok |
+| `PENDING` rozetinin **iki anlamı** | *"yarın gidecek"* ve *"asla gitmeyecek"* |
+| işaretlemedeki **sınıf** (`w-fit`, `bg-accent`) | biri eziliyor, öteki eşleşemiyor |
+
+> **Üçünde de okuyan kişi doğru okuyor ve yanlış sonuca varıyor** —
+> çünkü yazılı olan şey, olan şeyi garanti etmiyor.
+
+Ve üçünü de yakalayacak tek kanal **çalıştırmak**: sınıf listesine
+bakan bir kontrol ikisini, metni okuyan bir kontrol üçüncüsünü
+kaçırır. pm'in önerisi bu yüzden doğru: **`getComputedStyle`.**
+
+### Ölçüm isteği, belirsizliği bölecek biçimde yazılır
+
+dev-ui pm'den *"bir daha bak"* istemedi. Vurgunun **iki saniye**
+yaşadığını söyledi (yani beş saniye sonra gelen bir kontrol,
+mekanizma çalışsa da çalışmasa da **dokunulmamış bir satır** görür),
+ve kalan belirsizliği **tek ölçümde** bölen bir teşhis istedi:
+
+> - `sr-only` bölgede **metin var** ama satırda **nitelik yok** →
+>   satırı buldum, **boyama kuralı uygulanmıyor**
+> - bölge de **boş** → satırı **hiç bulamadım**
+
+**İyi bir ölçüm isteği, cevabın hangi hipotezi eleyeceğini önceden
+söyler.** Aksi hâlde ölçüm "çalışmıyor" der ve kimse nerede
+olduğunu bilmez.
