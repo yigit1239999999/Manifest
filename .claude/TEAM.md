@@ -2768,7 +2768,7 @@ doğru görünüyor; yalnızca **hesaplanmış değer** onun hiçbir şey
 fark, bu oturumun `aria-describedby` ve `outline-ring` vakalarıyla aynı
 aileden — **üçünde de sınıf/öznitelik yazılıydı ve üçünde de etkisizdi.**
 
-### Paylaşımlı worktree'de `git add -A` YOK — kaybolan kod değil, GEREKÇE
+### Commit'ten hemen ÖNCE `git diff --cached --name-only` — kaybolan kod değil, GEREKÇE
 
 Bugün **iki kez** ısırdı, ikisinde de aynı mekanizmayla:
 
@@ -2784,12 +2784,32 @@ commit'le (`c921092`) kurtardı ve **geçmişi yeniden yazmadı** — dört ajan
 tek ağaca commit'lerken paylaşımlı tarihi düzeltmek, tamir ettiğinden
 fazlasına mal olurdu.
 
-> **Dört ajan aynı ağaçtayken `-A`'nın anlamı *"benim değişikliklerim"*
-> değil, *"şu an ağaçta ne varsa"*** — ve o ikisi **asla** aynı şey değil.
+> **⚠ BU KURALI ÖNCE YANLIŞ MEKANİZMAYLA YAZDIM. dev-ui düzeltti:**
+> `5db1e5f`'te **ne `-a` ne `-A` kullanılmış.** Komut
+> `git add <tek yol> && git commit` idi — ve **yolsuz bir `git commit`
+> BÜTÜN İNDEKSİ commit'ler**, o sırada indekste dev'in on bir dosyası
+> duruyordu.
+>
+> **Yani `git commit -- <yollar>` burada GÜVENLİ olurdu** — o biçim
+> indeksi atlar, ve atlanan şey tam da kirlenmiş olandı. İki ayrı
+> mekanizma, iki ayrı vaka:
+> - **`git commit -- <yollar>`** indeksi **atlar** → sahnelediğin hunk
+>   yerine çalışma ağacı gider (dev'in sabahki vakası).
+> - **Yolsuz `git commit`** indeksin **tamamını** alır → başkasının
+>   sahnelediği dosyalar seninkine karışır (`5db1e5f`).
+>
+> **Biri ötekinin çaresi değil; ikisi de kör.**
 
-**Kural zaten vardı ve hatırlamaya dayanıyordu; iki kez hatırlanmadı.**
-Yeri şu: **`git add -A` hiç kullanılmaz.** Dosya adıyla, `git add -p`, ya
-da `git apply --cached`.
+**Gerçek kural daha donuk ve dev-ui'nin kendi uygulamasından geliyor:**
+
+> **Commit'ten hemen önce `git diff --cached --name-only` koş ve içinde
+> sana ait olmayan bir şey varsa DUR.**
+
+dev-ui bunu bu oturumda **dört commit'te** yaptı ve çıktıyı raporlarına
+yapıştırdı; `5db1e5f`'te `add` ile `commit`'i zincirleyip kontrolü
+atladı. **Kusur eksik bir kural değil, kuralın uygulanmamış tek
+örneğiydi** — ve bu ayrım önemli, çünkü *"yeni kural yaz"* refleksi bu
+vakada yanlış kuralı yazdırdı (bana).
 
 **Ve bedelin türü kayda değer:** bu oturumda kaç kez *"karar doğru,
 gerekçe çürük"* dediğimizi düşünürsek, **gerekçenin commit'ten düşmesi
