@@ -70,7 +70,12 @@ export default async function RemindersPage({
       getTranslations("common"),
       listReminders({ clinicId: session.user.clinicId, statuses }),
       listClients({ clinicId: session.user.clinicId }),
-      listPets({ clinicId: session.user.clinicId }),
+      // Without `excludeDeceased` the picker offers an animal the
+      // server will refuse: `createReminder` rejects a dead one, so the
+      // vet chooses it, fills the form in, submits, and is answered on
+      // the animal field with nothing they can do about it. The screen
+      // must not offer what the server will not take.
+      listPets({ clinicId: session.user.clinicId, excludeDeceased: true }),
     ]);
 
   return (

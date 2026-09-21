@@ -9,6 +9,20 @@ export interface ListPetsArgs {
   ownerId?: string | null;
   species?: string | null;
   includeArchived?: boolean;
+  /**
+   * Leaves out animals that have died.
+   *
+   * Off by default, and that is not laziness: a visit is routinely
+   * written up for an animal that died during it, and its appointments
+   * stay on the record. The one place it must be on is a picker whose
+   * server will refuse the choice -- a reminder about a dead animal is
+   * rejected by `modules/reminders/service.ts`, so offering one walks a
+   * vet into a dead end and answers on the field they cannot fix.
+   *
+   * Per caller rather than global for exactly that reason: "this animal
+   * is gone" is true for one purpose and false for the next.
+   */
+  excludeDeceased?: boolean;
   take?: number;
 }
 
@@ -18,6 +32,7 @@ function buildPetWhere(args: {
   ownerId?: string | null;
   species?: string | null;
   includeArchived?: boolean;
+  excludeDeceased?: boolean;
 }): Prisma.PetWhereInput {
   const term = args.search?.trim();
   return {
@@ -29,6 +44,7 @@ function buildPetWhere(args: {
           // Cascade soft-delete: archived clients drop their pets too.
           owner: { archivedAt: null },
         }),
+    ...(args.excludeDeceased ? { deceased: false } : {}),
     ...(args.ownerId ? { ownerId: args.ownerId } : {}),
     ...(args.species ? { species: args.species as never } : {}),
     // Two folded columns, one of them the owner's. See the same change

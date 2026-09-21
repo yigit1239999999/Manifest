@@ -125,3 +125,30 @@ describe("searching for an animal, or for whose animal it is", () => {
     expect(whereOf()).not.toHaveProperty("ownerId");
   });
 });
+
+// The screen must not offer what the server will refuse.
+//
+// `createReminder` rejects an animal that has died
+// (`error.validation.petSilenced`), and the reminder form's picker was
+// listing them: choose one, fill the form, submit, and the answer comes
+// back on the animal field with nothing the vet can do about it. Not a
+// data defect -- the sweep filters dead animals too -- a person walked
+// into a dead end.
+describe("animals a picker may offer", () => {
+  it("leaves out the dead ones when the caller says so", async () => {
+    await listPets({ clinicId: "clinic-1", excludeDeceased: true });
+
+    expect(whereOf().deceased).toBe(false);
+  });
+
+  it("keeps them by default, because most callers need them", async () => {
+    // A visit is routinely written up for an animal that died during
+    // it, and its appointments stay on the record. A global filter
+    // would have made those unreachable to fix the reminder form --
+    // "this animal is gone" is true for one purpose and false for the
+    // next.
+    await listPets({ clinicId: "clinic-1" });
+
+    expect(whereOf()).not.toHaveProperty("deceased");
+  });
+});
