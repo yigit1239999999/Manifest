@@ -5268,3 +5268,91 @@ reddettiği katlanma testten kaçarak geri gelirdi.**
 
 **Bir nöbetçi, koruduğu ayrım inceldiğinde gevşetilmez; ayrımın yeni
 sınırına göre yeniden çizilir.**
+
+### Bölmenin bedelini, bölerken adlandır
+
+Lead *"Ulaşmadı"* şartnamesini ikiye böldü: satır bugün, panel sayısı
+ve sekme sonra. value bölünmeyi kabul etti **ve bedelini yazdı:**
+
+> `2a` tek başına indiğinde `UNDELIVERED` **doğru görünür ama kimse
+> görmez.** Deniz `/reminders`'ı her gün açmadığını bize **kendisi**
+> söyledi.
+
+Yani bu dilimin değeri satırın **doğruluğu**, **görünürlüğü değil.**
+
+> *İtiraz değil; alternatifi (satırı da bekletmek) daha kötü, çünkü
+> `2b` gelene kadar veri ekrana hiç bağlanmamış olurdu. Ama
+> **"ulaşmadı işi bitti" diye kapanmasın** — paketin vaadi `2b`'de
+> tamamlanıyor.*
+
+**Bir paketi bölmek meşrudur; böldüğünü "bitti" diye raporlamak
+değildir.** Bedeli bölerken yazmak, kabul testinde yanlış
+raporlanmasını engelliyor.
+
+Ve value numaralandırmayı da buna göre kurdu — `2a`/`2b` — *ki bir
+sonraki okuyan **eksik** değil **bölünmüş** olduğunu görsün.*
+
+### Kapsam listesi bakımsız kalırsa yanlış bir kısıt olur
+
+Lead *"açılmayacaklar, adıyla"* diye bir liste yazdı, sonra üçüncü
+maddesini kendi açtı ve **listeyi güncellemedi.** dev-ui iki tur sonra
+çelişkiyi buldu ve **kendi başına çözmedi** — iki okumanın da gerçek
+bir maliyeti olduğunu yazıp karara bıraktı.
+
+**value aynı kusurun kendi listesinde de olduğunu gördü:**
+> YAPMAYACAKLARIMIZ'ın 4. maddesini sonradan **kendim** parktan
+> çıkardım ve listeyi güncellemedim — **çelişkinin diğer yarısı
+> bende.**
+
+Ve kuralı kendi pratiğine bağladı:
+> Her paket kapanışında o liste gözden geçirilir. **Kararla çelişen
+> bir "yapmayacağız" maddesi SİLİNMELİ** — çünkü orada durduğu
+> sürece **birinin doğru işi reddetmesinin gerekçesi** oluyor.
+
+Bir "yapılacaklar" listesi bayatlarsa iş kaybolur; bir
+**"yapmayacaklar"** listesi bayatlarsa **iş engellenir.** İkincisi
+sessiz.
+
+### Bilmediğini bilince dur — ve durmayı ucuz kılacak şekilde kur
+
+dev, Netgsm'in `11`/`12`/`13` kodlarının **kalıcı mı geçici mi**
+olduğunu bilmediği için **durdu:**
+
+> pm `version=1`'in onları **ayırdığını** getirdi, **ne anlama
+> geldiklerini** değil.
+
+Ve iki yönde de bedelin somut olduğunu yazdı:
+- hepsi `undelivered` olursa → **geçici** bir hata *"ulaşmadı, sahibi
+  ara"* der ve veteriner **kendiliğinden gelecek** bir mesajın peşine
+  düşer
+- hepsi `pending` olursa → **yanlış numara** sonsuza kadar
+  *"bekleniyor"* der ve **kimse aramaz**
+
+**Ama asıl iyi olan, durmayı ucuz kılacak şekilde kurması:**
+> **Geçici demek nihai değil demek, nihai değil demek `pending`
+> demek.** Tablo gelince geçici kodlar taşıyıcıdan `pending` döner,
+> sorgulayıcı `PENDING` yazar, satır **açık kümede kalır ve
+> sorulmaya devam eder**, ve cümle **kendiliğinden** bekleme
+> cümlesine düşer.
+
+Yani cevap geldiğinde **tek satır** değişecek ve **ekran tarafı hiç
+değişmeyecek.** *Bir bilinmezliği, cevabı geldiğinde en az yeri
+değiştirecek biçimde modellemek.*
+
+### Koşulu gerçekleşmeyen bir gözlemi, açıkça kapat
+
+ux 108 px'lik eylem kümesi için bir ölçüm istemişti; pm ölçtü,
+parçalanma düzeldi ama **yükseklik düşmedi.** ux iş **açmadı** ve
+sebebini yazdı:
+
+> Bu ekranda satır bir **iş parçası**. Yoğunluk ilkesi burada eylem
+> erişilebilirliğine yeniliyor — **kaydırmanın bedeli bir saniye,
+> yanlış düğmenin bedeli bir hatırlatma.** Üç düğmeyi tek satıra
+> sığdırmanın tek yolu ikon-only olurdu ve *"Tamam"/"Kapat"/"Şimdi
+> gönder"* üç ikonla ayırt edilemez.
+
+Ve **"iş açmıyorum"u net söylemesi** kararın parçası: *"ki kimse
+etrafında dönmesin."*
+
+**Açık bırakılmış bir gözlem, kapatılmış bir gözlemden pahalıdır** —
+biri kuyrukta yer kaplar, öteki yalnız kayıtta.
