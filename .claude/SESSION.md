@@ -246,6 +246,55 @@ yazılmadı, düzeltme burada.
 okuyan bir e2e testi **hatayı teste gömerdi.** Yazılacak test geçişin
 **yerleşmesini beklemeli.**
 
+## ⚠ ÖLÇÜM TABANLARININ TAMAMI YENİDEN OKUNMALI — payda test verisiymiş
+
+dev e2e kliniklerini süzdü ve sayı beklenenden **otuz beş kat** büyük
+çıktı: pm dört klinik saymıştı, **142 klinik / 111 müşteri** varmış.
+*"Gerçek popülasyon"* kovası **neredeyse tamamen test altyapısıydı** —
+e2e paketi `/sign-up`'tan geçtiği için her koşu bir klinik bırakıyor.
+
+```
+VOLUME  önce: 134 klinik · 102 hayvan
+VOLUME  şimdi:  4 klinik ·  39 hayvan
+```
+
+**Üründe hiçbir şey değişmedi — yalnızca hangi satırların sayıldığı.**
+Yani **bu betikten bugüne kadar alınmış her sayı yeniden okunmalı.**
+
+### Geçersiz: `INPUT_FILL_RATE` "2/11, %18, dondurulmuş"
+
+**Doğrusu (`98f4d67` sonrası, 21 Eylül): `2/5`.** Taban **kötümser
+yönde** yanlıştı — aşı tarihi işini gerekçelendirirken sorunu
+**olduğundan büyük** göstermişiz.
+
+**Ama value'nun asıl düzeltmesi sayı değil, BİÇİM:**
+
+> **5, bir oran ifade edecek kadar büyük değil.** *"%18"* bir ölçüm gibi
+> okunuyordu; *"5 aşıdan 2'sinde sonraki tarih var"* ne olduğunu dürüstçe
+> söylüyor. **Payda beşken yüzde, kesinlik uydurmaktır.**
+
+Bu, *"koruma görüntüsü veren, korumayan"* ailesinin **ölçüm tarafı**:
+**%18, bir bilgi görüntüsü veren bir bilgisizlikti.**
+
+### Ve daha büyüğü: ölçecek bir DÖNGÜ henüz yok
+
+```
+VACCINATION_RETURN     0/0
+FOLLOWUP_RETURN        0/0
+LINES_LINKED_TO_VISIT  7 satır / 0 bağlı
+```
+
+Dört gerçek klinik, 39 hayvan, 7 vizit. **Bu bir kusur değil, ürünün
+yaşı** — ama kaydı önemli: *"döngü ölçümü"* diye yazdığımız maddelerin
+bir kısmı aslında **"henüz ölçülemez"**.
+
+### Mekanizmanın dersi: yanlış ekseni koruyorduk
+
+`INPUT_FILL_RATE_SINCE`'in kesim tarihi mekanizması **yerinde duruyor**
+ama **zaman eksenini korurken popülasyon ekseni açıktaydı.** pm'in
+ayrımı burada da geçerli — *ilki tedbirsizlik gerektirir, ikincisi tanım
+gerektirir* — ve **biz tedbir alıp tanımı atladık.**
+
 ## DURAN BOŞLUKLAR — "temiz" değil, ve üçü AYNI ŞEY DEĞİL
 
 value'nun ayrımı: **etiket, ne yapılacağını belirler.** Tek listede
