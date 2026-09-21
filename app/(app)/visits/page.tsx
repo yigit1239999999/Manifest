@@ -9,6 +9,7 @@ import { countPets } from "@/modules/pets/queries";
 import { VISIT_TYPES } from "@/modules/appointments/schema";
 import { MissingLink } from "@/components/missing-link";
 import { PageHeader } from "@/components/page-header";
+import { ownerLabel, petLabel } from "@/lib/pet-label";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
@@ -176,7 +177,13 @@ export default async function VisitsPage({
                 header: tPet("one"),
                 cellClassName: "text-muted-foreground",
                 cell: (v) =>
-                  `${v.pet.name} · ${v.client.firstName} ${v.client.lastName}`,
+                  // The same question a picker asks, on a different
+                  // surface: rows side by side, and the reader has to
+                  // tell which Zeytin this one is. Through the shared
+                  // helper rather than spelled out, so the day the
+                  // format changes the list cannot disagree with the
+                  // pickers about what an animal is called.
+                  petLabel({ name: v.pet.name, ownerName: ownerLabel(v.client) }),
               },
               {
                 key: "vet",

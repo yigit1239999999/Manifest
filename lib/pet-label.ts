@@ -16,6 +16,17 @@
  * back. The one case the owner does not settle is two clients with the
  * same name; if a clinic reports that, the date earns its place then.
  *
+ * Where it does NOT belong, and the boundary is worth stating because
+ * three places build this string by hand on purpose. This function is
+ * for telling one animal from another: a picker row, a list column --
+ * anywhere rows sit side by side and the reader must pick. A record's
+ * own page is the other case. There is one animal there, nothing to
+ * tell apart, and the owner's name is context rather than a
+ * definition; `visits/[id]` even puts the date first, which is not a
+ * disagreement with this format but a different job. Routing those
+ * through here would make "the right format" a single answer to two
+ * questions.
+ *
  * One line, one separator, animal first: the vet scans for the animal's
  * name, and the owner is the tiebreaker, not the heading.
  *

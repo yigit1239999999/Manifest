@@ -18,12 +18,29 @@
 // chain can lead" -- a pattern admits `/settings`, tomorrow's route, and
 // every clever encoding of a host.
 
-/** The only destinations a chain may resume at. */
+/**
+ * The only destinations a chain may resume at.
+ *
+ * Two kinds, and the difference is where the vet was when they hit the
+ * dead end. From a `/new` form they had already begun the work, so they
+ * come back to the form. From a list they had begun nothing -- they
+ * were reading -- and sending them to `/appointments/new` after they
+ * add an animal would be assuming they meant to book one. They come
+ * back to the list they were looking at.
+ *
+ * A list has no slot for a new record's id (`RECORD_PARAM`), so
+ * `withCreated` leaves it alone and the vet simply lands back where
+ * they were, with the thing that was missing now present.
+ */
 const ALLOWED_PATHS = new Set([
   "/visits/new",
   "/appointments/new",
   "/invoices/new",
   "/pets/new",
+  "/visits",
+  "/appointments",
+  "/invoices",
+  "/pets",
 ]);
 
 /**
