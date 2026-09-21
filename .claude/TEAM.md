@@ -6075,3 +6075,36 @@ hipotezin kaçırdığı vakayı, biri de kontrol grubunu** verir. pm bugün
 Ve kusurun **kendi çözümü zaten depodaydı** — çiftlemeyen form doğru
 deseni uyguluyordu. Bu, bugün üçüncü kez: çare icat edilmedi,
 **yanındaki dosyada duruyordu.**
+
+### "Varsayımını yaz" demeden önce, ölçülebilir mi diye sor
+
+Anahtarın *"hiç kurulmadı"* hâlini açarken dev'e şunu yazdım:
+
+> *Bugünkü veriyle geriye dönük çalışsın. Var olan klinikler `false`
+> taşıyor ve hangisinin "hiç kurulmadığını" bilmiyoruz. **Varsayımını
+> açıkça seç ve yaz.**
+
+dev varsaymadı, **ölçtü**:
+
+```
+notifications bloğu HİÇ YOK   180 klinik
+bloğu var, enabled=true         3 klinik
+açıkça false                    0 klinik   ← sıfır
+```
+
+*"Bilerek kapatmış"* bir klinik **hiç yoktu**, ve *"hiç kurulmadı"*
+bilgisi **anahtarın yokluğu olarak zaten kayıtlıydı** —
+`parseNotificationSettings` onu `false`'a çevirip **atıyordu.**
+Ailenin en saf hâli: **veri var, kod onu okurken yok ediyor.**
+
+Sonuç: şema yok, göç yok, geriye dönük tahmin yok. Ve önerdiğim
+varsayım **doğru çıktı** — ama artık varsayım değil, **kayıt.**
+
+**Kural, ve bu sefer brief yazan tarafa:** birine *"varsayımını
+açıkça yaz"* demeden önce sor — **bu şey ölçülebilir mi?** Ölçülebilen
+bir şeyi varsaymaya davet etmek, iyi niyetli bir talimatın üreteceği
+en pahalı şey: **doğru çıksa bile** geriye bir tahmin bırakır, ve o
+tahmin kayıt gibi okunur.
+
+*"Varsayımını yaz"* kuralı duruyor — ama **ölçüm tükendikten
+sonra** başlıyor.
