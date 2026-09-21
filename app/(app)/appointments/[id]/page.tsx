@@ -12,7 +12,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
 import { EmptyState } from "@/components/ui/empty-state";
-import { DetailList } from "@/components/ui/detail-list";
+import { DescriptionList } from "@/components/ui/description-list";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Card,
@@ -104,8 +104,8 @@ export default async function AppointmentPage({
           <CardTitle>{tCommon("details")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 text-sm">
-          <DetailList
-            columns={2}
+          <DescriptionList
+            className="grid gap-2 sm:grid-cols-2"
             items={[
               {
                 label: t("startsAt"),

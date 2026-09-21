@@ -6,6 +6,7 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
+import { vaccinationIntervalSuggestions } from "@/modules/vaccinations/queries";
 import {
   archiveVisitAction,
   restoreVisitAction,
@@ -22,7 +23,7 @@ import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Callout } from "@/components/ui/callout";
-import { DetailList } from "@/components/ui/detail-list";
+import { DescriptionList } from "@/components/ui/description-list";
 import {
   Card,
   CardContent,
@@ -74,6 +75,13 @@ export default async function VisitPage({
 
   // See the clients page: a button that only produces a refusal is hidden.
   const canArchive = can(session.user.role, "visits.write");
+
+  // Needs the animal's species, so it follows the load rather than joining
+  // it. See `/pets/[id]`, which renders the same form.
+  const vaccineIntervals = await vaccinationIntervalSuggestions(
+    clinicId,
+    visit.pet.species,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -140,11 +148,28 @@ export default async function VisitPage({
           <CardHeader>
             <CardTitle>{t("soap")}</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <SoapBlock label={t("subjective")} value={visit.subjective} />
-            <SoapBlock label={t("objective")} value={visit.objective} />
-            <SoapBlock label={t("assessment")} value={visit.assessment} />
-            <SoapBlock label={t("plan")} value={visit.plan} />
+          <CardContent>
+            <DescriptionList
+              className="grid gap-4 sm:grid-cols-2"
+              items={[
+                {
+                  label: t("subjective"),
+                  value: visit.subjective,
+                  multiline: true,
+                },
+                {
+                  label: t("objective"),
+                  value: visit.objective,
+                  multiline: true,
+                },
+                {
+                  label: t("assessment"),
+                  value: visit.assessment,
+                  multiline: true,
+                },
+                { label: t("plan"), value: visit.plan, multiline: true },
+              ]}
+            />
           </CardContent>
         </Card>
 
@@ -153,14 +178,15 @@ export default async function VisitPage({
             <CardTitle>{t("vitals")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <DetailList
-              layout="inline"
+            <DescriptionList
+              layout="row"
               items={[
                 {
                   label: t("weightKg"),
                   // The unit belongs to the reading, so it is only written
                   // when there is one; the list supplies the "-".
                   value: visit.weightKg != null ? `${visit.weightKg} kg` : null,
+                  numeric: true,
                 },
                 {
                   label: t("temperatureC"),
@@ -168,11 +194,13 @@ export default async function VisitPage({
                     visit.temperatureC != null
                       ? `${visit.temperatureC} °C`
                       : null,
+                  numeric: true,
                 },
-                { label: t("heartRateBpm"), value: visit.heartRateBpm },
+                { label: t("heartRateBpm"), value: visit.heartRateBpm, numeric: true },
                 {
                   label: t("respiratoryRateBpm"),
                   value: visit.respiratoryRateBpm,
+                  numeric: true,
                 },
                 {
                   label: t("followupAt"),
@@ -186,6 +214,7 @@ export default async function VisitPage({
                     visit.totalCents != null
                       ? formatMoney(fmt, visit.totalCents, currency)
                       : null,
+                  numeric: true,
                 },
                 { label: t("vet"), value: visit.vet?.name },
               ]}
@@ -222,7 +251,11 @@ export default async function VisitPage({
               {tVacc("new")}
             </summary>
             <div className="mt-3">
-              <VaccinationForm petId={visit.petId} visitId={visit.id} />
+              <VaccinationForm
+                petId={visit.petId}
+                visitId={visit.id}
+                suggestions={vaccineIntervals}
+              />
             </div>
           </details>
         </CardContent>
@@ -318,17 +351,6 @@ export default async function VisitPage({
           </details>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function SoapBlock({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <p className="whitespace-pre-wrap text-sm">{value || "-"}</p>
     </div>
   );
 }

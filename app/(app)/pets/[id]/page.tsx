@@ -13,7 +13,10 @@ import { can } from "@/lib/permissions";
 import { getPetById } from "@/modules/pets/queries";
 import { petTimeline } from "@/modules/timeline/queries";
 import { archivePetAction, restorePetAction } from "@/modules/pets/actions";
-import { listVaccinationsForPet } from "@/modules/vaccinations/queries";
+import {
+  listVaccinationsForPet,
+  vaccinationIntervalSuggestions,
+} from "@/modules/vaccinations/queries";
 import { listPrescriptionsForPet } from "@/modules/prescriptions/queries";
 import { listTreatmentsForPet } from "@/modules/treatments/queries";
 import { listDiagnosticsForPet } from "@/modules/diagnostics/queries";
@@ -31,7 +34,7 @@ import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { listStaff } from "@/modules/staff/queries";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { DetailList } from "@/components/ui/detail-list";
+import { DescriptionList } from "@/components/ui/description-list";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Callout } from "@/components/ui/callout";
 import {
@@ -99,6 +102,14 @@ export default async function PetPage({
   ]);
 
   if (!pet) notFound();
+
+  // Needs the species, so it cannot join the batch above. One indexed read
+  // of this clinic's own vaccination history; the form shows nothing at all
+  // when it comes back empty (backlog 20).
+  const vaccineIntervals = await vaccinationIntervalSuggestions(
+    clinicId,
+    pet.species,
+  );
 
   // See the clients page: a button that only produces a refusal is hidden.
   const canArchive = can(session.user.role, "pets.archive");
@@ -204,7 +215,7 @@ export default async function PetPage({
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
-            <DetailList
+            <DescriptionList
               items={[
                 {
                   label: t("owner"),
@@ -281,7 +292,7 @@ export default async function PetPage({
                   {tVacc("new")}
                 </summary>
                 <div className="mt-3">
-                  <VaccinationForm petId={pet.id} />
+                  <VaccinationForm petId={pet.id} suggestions={vaccineIntervals} />
                 </div>
               </details>
             </CardContent>

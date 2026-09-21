@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { Client, Pet } from "@/generated/prisma/client";
+import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
@@ -45,8 +46,12 @@ export function ReminderForm({
       reset();
       toast.success(tCommon("saved"));
     }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon, reset]);
+    // No `toast.error` here: a submission error belongs inline, where the
+    // user is looking and where it stays until they fix it. A toast on a
+    // long form scrolls past someone who is at the bottom of it, and the
+    // `Callout` below is already `role="alert"` — two channels announce
+    // the same sentence twice.
+  }, [state.success, tCommon, reset]);
 
   return (
     <ActionForm
@@ -54,9 +59,9 @@ export function ReminderForm({
       className="grid gap-4 sm:grid-cols-2"
     >
       {state.error && (
-        <p className="sm:col-span-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <Callout variant="danger" className="sm:col-span-2">
           {state.error}
-        </p>
+        </Callout>
       )}
       <Field label={tClient("one")} error={state.fieldErrors?.clientId} required>
         <Select name="clientId" defaultValue={defaultClientId ?? ""} required>

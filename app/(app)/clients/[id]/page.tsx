@@ -20,7 +20,7 @@ import { Timeline } from "@/components/timeline";
 import { NoteForm } from "@/components/forms/note-form";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { DetailList } from "@/components/ui/detail-list";
+import { DescriptionList } from "@/components/ui/description-list";
 import { Callout } from "@/components/ui/callout";
 import {
   Card,
@@ -108,7 +108,7 @@ export default async function ClientPage({
             <CardTitle>{t("details")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
-            <DetailList
+            <DescriptionList
               items={[
                 { label: t("email"), value: client.email },
                 { label: t("phone"), value: client.phone },
@@ -162,8 +162,8 @@ export default async function ClientPage({
               {/* The visit count used to be a fourth copy of the pair,
                   written inline because its value is a badge rather than
                   text — and it had drifted to `gap-1`. A value is a node. */}
-              <DetailList
-                columns={3}
+              <DescriptionList
+                className="grid gap-2 sm:grid-cols-3"
                 items={[
                   {
                     label: tCommon("createdAt"),
