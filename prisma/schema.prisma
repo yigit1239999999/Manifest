@@ -145,6 +145,15 @@ model Client {
   /// expression and its trigram index. Searches compare it against a
   /// term folded by `lib/search.ts`; the two must agree, and
   /// `scripts/fold-parity.mjs` is what checks that they do.
+  ///
+  /// Two defects were closed by this one column, and the second is the
+  /// reason the join is not an implementation detail. Searching a full
+  /// name never worked at all: first and last name are separate
+  /// columns, and no OR over them can span the space between the words.
+  /// Measured before the change, "Yiğit Sonbahar" returned 0 rows, and
+  /// so did "Yigit Sonbahar" -- it was never an accent problem. Anyone
+  /// simplifying this to "unaccent is enough" takes the full-name search
+  /// away again, and nothing on screen will connect the two.
   searchKey          String?
   archivedAt         DateTime?
   createdAt          DateTime       @default(now())

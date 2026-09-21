@@ -111,6 +111,23 @@ describe("searching for a name typed without Turkish letters", () => {
     }
   });
 
+  it("searches a full name as one term, across two columns", async () => {
+    // A second defect, closed by the same column and worth its own
+    // line: first and last name are separate columns, so no OR over
+    // them can span the space between the words. Measured before the
+    // change, "Yiğit Sonbahar" returned nothing -- and so did "Yigit
+    // Sonbahar", which is how we know it was never about accents.
+    // Typing somebody's full name is the most ordinary thing anyone
+    // does in a search box, and it had never once worked.
+    //
+    // This assertion is what an "unaccent is enough, simplify it"
+    // change would have to break first.
+    await listClients({ clinicId: "clinic-1", search: "Yiğit Sonbahar" });
+
+    const where = callOf()?.where as Record<string, unknown>;
+    expect(where.searchKey).toEqual({ contains: "yigit sonbahar" });
+  });
+
   it("does not filter at all when nothing was typed", async () => {
     // `contains: ""` matches every row, which is the right answer here
     // and the wrong one everywhere it might be mistaken for a search.
