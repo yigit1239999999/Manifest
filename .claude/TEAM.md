@@ -358,6 +358,31 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    iki yerde değildi — ve ikisi **tek bir açılır listenin içinde** karşı
    karşıya geldi (`24bac17`).
 
+7. **Uyarı değil nöbetçi. Yorum sebebi anlatır, nöbetçi kuralı tutar.**
+   Bir kural yalnız yorumda yaşıyorsa, onu okumayan biri geldiğinde
+   **yoktur.**
+   *Vaka (aynı gün, iki ayrı elden):* `components/ui/button.tsx`
+   `transition-colors`'ın Tailwind v4'te `outline-color`'ı kapsadığını
+   ve bunun *"ekibe bir tur kaybettirdiğini"* **zaten yazıyordu** — ve
+   aynı tuzak aynı gün `pm`'e bir tur daha kaybettirdi. Aynı gün `ux`
+   önizlemenin örnek isimlerini elle seçti, iki kez gerçek veriyle
+   çakıştı, ve ikincisinde kendisi söyledi: *"sorun benim isim seçimim
+   değil, **isim seçmenin kendisi** — her seferinde elle kontrol
+   edilecekse er geç kaçar."* İkisi de aynı dersin hâli: **uyarı yazmak
+   işe yaramadı.** Çözüm kalıbı düzeltmek ya da nöbetçi yazmak; uyarıyı
+   güçlendirmek değil.
+
+8. **Görsel ağırlık bir vaattir.**
+   Bir şeye gerçek bir kartın ağırlığını verirseniz, okuyan kişi orada
+   **yapacak bir iş** olduğunu anlar — metni ne derse desin.
+   *Vaka:* `pm` teknisyenin ilk çalıştırma kartını ölçtü; kart hekimin
+   kartıyla **aynı görsel ağırlıktaydı** ama içinde düğme yoktu.
+   İzlenimi: *"ilk bakışta 'burada bir şey yapmam bekleniyor' hissi
+   veriyor, okuyunca çözülüyor — **yarım saniyelik yanlış vaat**."*
+   `ux`'in kararı: ağırlık hafifler, ama **kesikli çerçeveyle değil** —
+   kesikli bu kod tabanında *"burada henüz bir şey yok"* demek, oysa
+   orada bir şey **var**, yalnız o kişinin işi değil.
+
 **Ve bir ölçüm kuralı, aynı gün beş kez lazım oldu:**
 
 > **İki sabiti çarpmak ölçüm değildir.** Ölçülmemiş bir sayı, ölçülmüş gibi
