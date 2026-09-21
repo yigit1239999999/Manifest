@@ -155,3 +155,64 @@ describe("reaching a record the handed list does not contain", () => {
     expect(picker(/müşteri/i)).toHaveValue("Ayşe Demir");
   });
 });
+
+// The animal picker was the one left without a search, and the reason
+// was sound at the time: the server could only answer clinic-wide, and a
+// clinic-wide answer behind a list already narrowed to one client offers
+// animals the server will then refuse. So it was withheld exactly where
+// it was needed most — the owner of a hundred animals, on the page where
+// you already know whose they are.
+//
+// `searchPetsAction` takes the owner now. What these two assert is the
+// join: that the client actually reaches the query, and that it goes on
+// reaching it after the client changes. A callback closed over an empty
+// client keeps searching the whole clinic, which is the same wrong
+// answer arriving one step later and would look right in any test that
+// only chose a client once.
+describe("searching for an animal once the client is known", () => {
+  // The picker waits 200ms before it asks, so the test waits longer.
+  // Real timers rather than fake ones: this file renders without them
+  // and the debounce is the only thing being waited on.
+  async function type(field: RegExp, text: string) {
+    const input = picker(field);
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: text } });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 260));
+    });
+  }
+
+  it("asks the server only for that client's animals", async () => {
+    searchPets.mockClear();
+    renderForm({ petsCapped: true });
+
+    await choose(/müşteri/i, "Ayşe Demir");
+    await type(/hayvan/i, "kar");
+
+    expect(searchPets).toHaveBeenCalledWith("kar", "c-1");
+  });
+
+  it("follows the client when it changes", async () => {
+    searchPets.mockClear();
+    renderForm({ petsCapped: true });
+
+    await choose(/müşteri/i, "Ayşe Demir");
+    await type(/hayvan/i, "te");
+    await choose(/müşteri/i, "Mehmet Kaya");
+    await type(/hayvan/i, "te");
+
+    expect(searchPets).toHaveBeenLastCalledWith("te", "c-2");
+  });
+
+  it("asks the whole clinic while no client is chosen", async () => {
+    searchPets.mockClear();
+    renderForm({ petsCapped: true });
+
+    await type(/hayvan/i, "kar");
+
+    // `undefined`, not `""`. The animal is the question here and the
+    // owner is the answer, so narrowing to nothing would be narrowing
+    // to no clinic at all.
+    expect(searchPets).toHaveBeenCalledWith("kar", undefined);
+  });
+});

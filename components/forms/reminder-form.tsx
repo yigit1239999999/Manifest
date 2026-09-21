@@ -83,16 +83,35 @@ export function ReminderForm({
   // check below runs during render and a ref read there is a value React
   // has not agreed to re-run for.
   const [petOwner, setPetOwner] = useState<ComboOption | null>(null);
-  const searchPets = useCallback(async (term: string) => {
-    const found = await searchPetsAction(term);
-    for (const p of found) {
-      searchedOwners.current.set(p.value, {
-        value: p.ownerId,
-        label: p.ownerLabel,
-      });
-    }
-    return found.map(({ value, label }) => ({ value, label }));
-  }, []);
+  // Narrowed by the chosen client, when there is one.
+  //
+  // This picker was the one left without a search, and the reason was
+  // real: a clinic-wide search behind a list that has already been cut
+  // down to one client's animals would answer with animals that are not
+  // theirs, and choosing one gets refused by the server after it is
+  // typed. `searchPetsAction` takes the owner now and narrows inside
+  // the query, so the two halves agree and the clinic's 51st animal is
+  // reachable from its owner's page.
+  //
+  // `clientId` is in the dependency list because it has to be: a
+  // callback closed over an empty client keeps searching the whole
+  // clinic after one is chosen, which is the same wrong answer arriving
+  // one step later. With no client chosen, `undefined` falls through to
+  // the clinic-wide search, which is right — that is the case where the
+  // animal is the question and the owner is the answer.
+  const searchPets = useCallback(
+    async (term: string) => {
+      const found = await searchPetsAction(term, clientId || undefined);
+      for (const p of found) {
+        searchedOwners.current.set(p.value, {
+          value: p.ownerId,
+          label: p.ownerLabel,
+        });
+      }
+      return found.map(({ value, label }) => ({ value, label }));
+    },
+    [clientId],
+  );
 
   // With a client chosen, only their animals — the reminder is refused
   // otherwise (`createReminder` checks `ownerId`), so offering the rest is
@@ -211,8 +230,23 @@ export function ReminderForm({
             }}
             placeholder={tCommon("searchOrType")}
             noResultsLabel={tCommon("noResults")}
-            onSearch={petsCapped && !clientId ? searchPets : undefined}
-            hasMore={Boolean(petsCapped) && !clientId}
+            // No longer `&& !clientId`. The search used to be taken
+            // away the moment a client was chosen, because it could
+            // only answer clinic-wide; now it narrows, so the case it
+            // was withheld from is the case it is most needed in —
+            // the owner of a hundred animals, on the page where you
+            // already know whose they are.
+            //
+            // `hasMore` still tracks the clinic-wide cap, which
+            // over-claims in one case: a clinic of sixty whose chosen
+            // client has two animals, both inside the first fifty, is
+            // told there may be more when there are not. Left that
+            // way on purpose. The note is an instruction rather than a
+            // count, and the two errors are not the same size — being
+            // told to type when you need not costs a second, and not
+            // being told costs a duplicate record.
+            onSearch={petsCapped ? searchPets : undefined}
+            hasMore={Boolean(petsCapped)}
             searchHintLabel={tCommon("searchMinChars")}
             hasMoreLabel={tCommon("searchMore")}
           />
