@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import type { Client } from "@/generated/prisma/client";
 import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
@@ -33,10 +31,6 @@ export function ClientForm({ client }: Props) {
     : createClientAction;
   const form = useActionForm(action, {});
   const { state } = form;
-
-  useEffect(() => {
-    if (state.error) toast.error(state.error);
-  }, [state.error]);
 
   return (
     <ActionForm form={form} className="flex flex-col gap-8">

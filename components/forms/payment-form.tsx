@@ -40,8 +40,7 @@ export function PaymentForm({
       reset();
       toast.success(tCommon("saved"));
     }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon, reset]);
+  }, [state.success, tCommon, reset]);
 
   const outstanding = Math.max(0, remainingCents);
 

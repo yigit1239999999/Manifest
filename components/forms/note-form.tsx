@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
+import { Callout } from "@/components/ui/callout";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
@@ -28,11 +29,14 @@ export function NoteForm({ petId, clientId }: Props) {
       reset();
       toast.success(tCommon("saved"));
     }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon, reset]);
+  }, [state.success, tCommon, reset]);
 
   return (
     <ActionForm form={form} className="flex flex-col gap-3">
+      {state.error && (
+        <Callout variant="danger">{state.error}</Callout>
+      )}
+
       {petId && <input type="hidden" name="petId" value={petId} />}
       {clientId && <input type="hidden" name="clientId" value={clientId} />}
 

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
 import type { Client, Pet } from "@/generated/prisma/client";
 import { Callout } from "@/components/ui/callout";
@@ -92,10 +91,6 @@ export function PetForm({
     }
     return merged.map((b) => ({ value: b, label: b }));
   }, [speciesKey, clinicBreeds]);
-
-  useEffect(() => {
-    if (state.error) toast.error(state.error);
-  }, [state.error]);
 
   // When editing, a pet that already has optional data shows it expanded.
   const hasOptionalData = Boolean(

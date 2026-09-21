@@ -100,7 +100,7 @@ export default async function AppointmentPage({
             {tCommon("edit")}
           </Link>
         )}
-        {appointment.status !== "CANCELLED" && (
+        {canWrite && appointment.status !== "CANCELLED" && (
           <DeleteButton
             action={cancelAppointmentAction.bind(null, appointment.id)}
             label={t("cancel")}

@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -18,10 +16,6 @@ export function StaffForm() {
   const tCommon = useTranslations("common");
   const form = useActionForm(createStaffAction, {});
   const { state } = form;
-
-  useEffect(() => {
-    if (state.error) toast.error(state.error);
-  }, [state.error]);
 
   return (
     <ActionForm form={form} className="flex flex-col gap-4">

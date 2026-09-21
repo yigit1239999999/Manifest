@@ -160,6 +160,35 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
     reportHomelessErrors(homeless);
   }, [fieldErrors, reportHomelessErrors]);
 
+  // A rejected submit puts its message in a box at the top of the form. On a
+  // long form (a visit, a pet, an invoice) the submit button is far below
+  // that box, so without this the page does not move and the user sees
+  // nothing happen at all. `block: "nearest"` scrolls the minimum needed: a
+  // box already on screen stays exactly where it is.
+  //
+  // Focus is deliberately NOT moved into the box. It is `role="alert"`, so
+  // focusing it makes a screen reader read the message a second time (see
+  // the note in `callout.tsx`). The price is recorded: a keyboard user's
+  // focus stays on the submit button. If that turns out to be the worse
+  // trade, moving focus and `live={false}` go together — never one alone.
+  //
+  // Reduced motion removes the animation, not the scroll: the movement
+  // carries information here, it is not decoration.
+  const error = state.error;
+  const announced = React.useRef<string | undefined>(undefined);
+  React.useEffect(() => {
+    if (error === undefined) {
+      announced.current = undefined;
+      return;
+    }
+    if (announced.current === error) return;
+    announced.current = error;
+    const box = ref.current?.querySelector('[role="alert"]');
+    if (!(box instanceof HTMLElement)) return;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    box.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
+  }, [error]);
+
   // Skip the initial render: only an explicit reset() clears the form.
   const firstRender = React.useRef(true);
   React.useEffect(() => {
