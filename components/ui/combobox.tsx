@@ -498,6 +498,22 @@ export function Combobox({
         // client is not on file, and opens a second record for them.
         // Not a phone problem: this is the desktop.
         <div className="absolute left-0 right-0 top-full z-30 mt-1 flex flex-col rounded-control border border-border bg-card shadow-lg">
+          {/* Rows are `py-1.5`, not `py-2`: 32px instead of 36.
+              A user called the comboboxes too big and, asked which part,
+              said the dropdown -- so the field keeps `h-10` and stays
+              identical to `Input` and `Select`, and only the list gets
+              shorter. 32px is still a third above the 24px this repo
+              holds itself to (`e2e/touch-targets.spec.ts`), and the two
+              rows that are not clickable -- the hint above and the note
+              below -- follow for evenness rather than for reach.
+
+              It does NOT remove the scrollbar, and the arithmetic is
+              here so nobody re-derives it hopefully: `max-h-64` is
+              256px, `p-1` spends 8 of them, so 248 remain and eight
+              32px rows need 256. It was 40px over and is now 8. Closing
+              that last gap means moving the cap or the inset, which
+              changes how the list looks rather than how big it is, and
+              that is a separate decision. */}
           <ul
             id={listId}
             role="listbox"
@@ -516,7 +532,7 @@ export function Combobox({
             {rows.length === 0 && (
               <li
                 className={cn(
-                  "px-2.5 py-2 text-xs",
+                  "px-2.5 py-1.5 text-xs",
                   status === "failed"
                     ? "text-destructive"
                     : "text-muted-foreground",
@@ -542,7 +558,7 @@ export function Combobox({
                   }}
                   onMouseEnter={() => setActive(i)}
                   className={cn(
-                    "flex cursor-pointer items-center gap-2 rounded-control px-2.5 py-2 text-sm font-medium text-primary",
+                    "flex cursor-pointer items-center gap-2 rounded-control px-2.5 py-1.5 text-sm font-medium text-primary",
                     active === i && "bg-accent text-accent-foreground",
                   )}
                 >
@@ -561,7 +577,7 @@ export function Combobox({
                   }}
                   onMouseEnter={() => setActive(i)}
                   className={cn(
-                    "cursor-pointer rounded-control px-2.5 py-2 text-sm",
+                    "cursor-pointer rounded-control px-2.5 py-1.5 text-sm",
                     active === i
                       ? "bg-accent text-accent-foreground"
                       : "text-foreground",
@@ -593,7 +609,7 @@ export function Combobox({
           {showNote && (
             <div
               id={noteId}
-              className="flex flex-col gap-0.5 border-t border-border px-2.5 py-2 text-xs text-muted-foreground"
+              className="flex flex-col gap-0.5 border-t border-border px-2.5 py-1.5 text-xs text-muted-foreground"
             >
               {/* The fact first, the instruction second. What is
                   missing is the news; what to do about it only
