@@ -119,7 +119,7 @@ Tek kural, dokuz çağrı yeri (30'a takılmıyor). **`border-radius`
 yazılmayacak** — radyonun dairesel çizgisini köşelendirir; ux bu kararın
 yorumda belirtilmesini istedi.
 
-### Ve bir sayıyı iki kez yanlış taşıdım — `notificationsOptIn` = 10
+### 10 vs 11 — İKİSİ DE DOĞRUYDU, ve sebep ne hata ne zamandı: KAPSAM
 
 `_whatsapp_opt_in_backup`'ı silerken **11** okudum ve bu sayıyı **dev'e ve
 value'ya ayrı ayrı yazdım.** ux 10 ölçtü, yeniden saydım: **10.**
@@ -129,10 +129,43 @@ value'ya ayrı ayrı yazdım.** ux 10 ölçtü, yeniden saydım: **10.**
 true'lar 10 ayrı klinikte, klinik başına 1
 ```
 
-**Kök neden benim tarafımda ve bu oturumda üçüncü kez:** bir değeri
-okuyup **mesajda tekrarladım.** value'nun teşhisi tam buydu —
-*değeri tekrarlayan her mesaj, bayatlayabilecek ikinci bir kopya
-üretir.* pm'in `ce13705` hatası da benim mesajımdan gelmişti.
+**⚠ BU BÖLÜMÜN AÇIKLAMASI İKİ KEZ YANLIŞ ÇIKTI. pm çözdü, ben
+doğruladım:**
+
+```
+HÂL KLİNİĞİ dahil:  null 138 · true 11
+HÂL KLİNİĞİ hariç:  null 138 · true 10
+HÂL KLİNİĞİ:        1 müşteri     ← fark tam olarak bu
+```
+
+**Ne ben yanlış okumuştum, ne sayı bayatlamıştı.** Ben *"11 okudum,
+doğrusu 10"* diye kendimi düzelttim (yanlış). value *"ikisi de doğruydu,
+aradan bir müşteri açıldı — taban kaydı"* dedi (yine yanlış; **kimse
+müşteri açmadı**). Gerçek sebep **kapsam**: hâl kliniğinin kendi
+müşterisi, 27 hâlden biri *"izin verdi"*.
+
+**pm'in çıkardığı ders, sayıdan değerli ve kural oldu:**
+
+> *"Bayatlama"* diye kaydedilseydi ekip **oynayan sayıyı normal** saymaya
+> başlardı. **İlki tedbirsizlik gerektirir, ikincisi TANIM gerektirir.**
+
+Bu oturumda dört kez *"taban altımızdan kaydı"* dendi; **en az biri
+değilmiş.** Çaresi: her sayının yanına **popülasyon** yazılması — ve
+value bunu bir adım sertleştirdi: **popülasyon düzyazıda değil SORGUDA
+taşınsın** (`group by` klinik, ya da açık `join`), böylece sayı
+**yazarının popülasyonu seçmeden üretilemez.** *Düzyazı unutulabilir,
+sorgu unutulamaz.*
+
+**Ve bu, hâl kliniğinin kendi uyarısının ters yüzü:** value *"`public.`
+ile nitelemezsen sıfır döner"* demişti; asıl tehlike sıfır almak değil,
+**farklı bir sayı alıp neden farklı olduğunu bilmemek** — dışlama
+görünmez olduğu için iki kişi aynı sorguyu farklı yazıp sessizce **iki
+farklı gerçek** üretiyor.
+
+**Geriye kalan ve hâlâ doğru olan pay:** bir değeri okuyup **mesajda
+tekrarladım**, ve bu ayrı bir hata — *değeri tekrarlayan her mesaj
+bayatlayabilecek ikinci bir kopya üretir* (pm'in `ce13705` hatası da
+benim mesajımdan gelmişti). Ama **bu vakanın sebebi o değildi.**
 
 > **Kesim tabanı mesajdan değil, kesim anında veritabanından okunur** —
 > value'nun şartı bunu zaten söylüyor (*"migration kesim anında taze
