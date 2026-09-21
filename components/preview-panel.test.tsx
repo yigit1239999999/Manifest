@@ -14,6 +14,29 @@ import { PreviewPanel } from "@/components/preview-panel";
 /**
  * The preview is a picture of a dashboard, and every one of these is a
  * condition ux attached to it rather than a preference.
+ *
+ * Half of the first-run conditions can be held by a test and half cannot,
+ * and the next person needs to know which half they are standing on. The
+ * split is written here because this is the larger of the two files that
+ * hold any of them.
+ *
+ * Held here, so nobody can undo one quietly: the bar colour against the
+ * dark card, no animation, `aria-hidden` plus no keyboard reach, no digit
+ * anywhere, the seven tiles having two identical bars each, the shape
+ * agreeing with the loading state, the money and volume cards staying
+ * out, and the tile order matching the real panel. `first-step-card.test`
+ * holds the card drawing one link at a time and the branch that falls
+ * back for a reader who cannot write a visit; `pet-picker-owner.test`
+ * holds the picker naming an owner.
+ *
+ * Not held anywhere, and a violation of one ships silently: "no negative
+ * sentence in the first-run state" -- which shipped violated, and is the
+ * reason this list exists rather than a hypothetical -- and "the same
+ * geometry, read differently", which lives in a measurement pm takes. The
+ * sentences these tests read come out of `tr.json`, so a test can catch a
+ * missing sentence and never a bad one; the quality of the words is ux's
+ * job and cannot be moved here without writing a test that lies about
+ * what it checks.
  */
 describe("the panel a clinic sees before it has records", () => {
   it("draws its bars in a colour that survives the dark theme", async () => {
