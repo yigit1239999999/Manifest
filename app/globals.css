@@ -246,10 +246,13 @@
 /* The row a vet has just created, marked for a couple of seconds.
  *
  * Written by hand rather than as a `data-[spotlight]:bg-accent` utility
- * on the element, and not because the utility was wrong: it is a
- * transient STATE mark, the same family as the focus outline, and the
- * focus rule lives here for the same reason. One line in the same file
- * as the token it reads, verifiable in a browser without knowing which
+ * on the element, and NOT because the utility was broken -- pm later
+ * established that it was generated and working all along, and that
+ * the only real fault was JavaScript never setting the attribute. This
+ * is a hardening, not a repair, and it is worth having because it is
+ * a transient STATE mark, the same family as the focus outline, whose
+ * rule lives here for the same reason: one line beside the token it
+ * reads, verifiable in a browser without having to know which
  * utilities a build happened to generate.
  *
  * Background only. The row's text colours carry its own meaning --

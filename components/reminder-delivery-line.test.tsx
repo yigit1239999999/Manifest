@@ -19,6 +19,7 @@ vi.mock("@/lib/format-context", () => ({
 
 import {
   REMINDER_DELIVERY_STATES,
+  WEIGHT,
   ReminderDeliveryLine,
   type ReminderDeliveryLineProps,
   type ReminderDeliveryStateName,
@@ -279,5 +280,34 @@ describe("longest translation, measured", () => {
     expect(Math.max(...rendered("en", en))).toBeGreaterThan(
       Math.max(...rendered("tr", tr)),
     );
+  });
+});
+
+/**
+ * Which tier a state sits in is a product decision, not a style choice,
+ * so it is asserted rather than left to a lookup table nothing reads.
+ *
+ * Both of these were argued before they were settled, and both were
+ * settled against an earlier position of mine — which is exactly why
+ * they need holding down. A comment recording a decision survives until
+ * somebody disagrees with it in six months; a test makes them say so.
+ */
+describe("which states the list shouts about", () => {
+  // A message that went and did not arrive is the same job as a client
+  // with no number: pick up the phone. So it reads at the same weight,
+  // whatever its history.
+  it("puts a message that did not arrive with the ones nobody can reach", () => {
+    expect(WEIGHT.undelivered).toBe(WEIGHT.noPhone);
+    expect(WEIGHT.undelivered).not.toBe(WEIGHT.delivered);
+  });
+
+  // Not knowing is neither success nor fault, and the warning tier is
+  // how this list says "somebody could not be reached" — a claim this
+  // state cannot support, for the same reason its sentence may not
+  // borrow the word. I had it in the warning tier; value overruled it
+  // with that argument on the table.
+  it("keeps unknowing out of the warning tier", () => {
+    expect(WEIGHT.reportExpired).not.toBe(WEIGHT.undelivered);
+    expect(WEIGHT.reportExpired).toBe(WEIGHT.sent);
   });
 });

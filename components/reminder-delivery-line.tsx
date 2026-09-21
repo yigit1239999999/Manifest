@@ -178,7 +178,7 @@ const TONE = {
   quiet: "text-muted-foreground",
 } as const;
 
-const WEIGHT: Record<ReminderDeliveryStateName, keyof typeof TONE> = {
+export const WEIGHT: Record<ReminderDeliveryStateName, keyof typeof TONE> = {
   scheduled: "quiet",
   dueNow: "quiet",
   sent: "quiet",
@@ -188,10 +188,14 @@ const WEIGHT: Record<ReminderDeliveryStateName, keyof typeof TONE> = {
   awaitingReport: "quiet",
   // Sent and not arrived: the vet picks up the phone, same as `noPhone`.
   undelivered: "attention",
-  // Not a failure and not nothing. Nobody can say whether it arrived, so
-  // the judgement is the vet's -- and a judgement they have to make is
-  // the definition of something worth looking at.
-  reportExpired: "attention",
+  // Neutral, and this overrules an argument of mine. I had it in the
+  // warning tier because the vet has a judgement to make; value's
+  // ruling, with that reasoning on the table, is that unknowing is
+  // neither success nor fault and must not be dressed as either. The
+  // warning tier is how this list says "somebody could not be
+  // reached", and this state cannot support that claim -- the same
+  // reason its sentence may not borrow the word.
+  reportExpired: "quiet",
   failedRetrying: "alert",
   failedExhausted: "alert",
   failedClinic: "alert",
