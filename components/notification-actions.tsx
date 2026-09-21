@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { MessageCircle, Send } from "lucide-react";
+import { Copy, MessageCircle, Send } from "lucide-react";
 import type { FormState } from "@/lib/action";
 import type { AppointmentMessageKind } from "@/lib/whatsapp/messages";
 import type { Channel } from "@/lib/messaging/types";
@@ -57,6 +57,30 @@ export function NotificationActions({
     });
   }
 
+  // The escape hatch that works on every channel and every device, and that
+  // promises nothing it cannot keep. An `sms:` link was considered and
+  // rejected: its body parameter is inconsistent across platforms and does
+  // nothing at all in most desktop browsers, which is where clinic staff
+  // spend the day, and a button that does nothing reads as a broken app.
+  //
+  // It logs the send for the same reason the WhatsApp link does: with SMS as
+  // the default channel, not logging here would leave a clinic's manual
+  // sends entirely unrecorded and every measurement drawn from
+  // `message_logs` silently at zero.
+  function copy(m: Message) {
+    startTransition(async () => {
+      try {
+        await navigator.clipboard.writeText(m.body);
+      } catch {
+        toast.error(t("copyFailed"));
+        return;
+      }
+      toast.success(t("copied"));
+      await logManualAction(appointmentId, m.kind);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {messages.map((m) => (
@@ -71,7 +95,7 @@ export function NotificationActions({
               )}
             </span>
             <div className="flex items-center gap-2">
-              {m.whatsappLink && (
+              {channel === "WHATSAPP" && m.whatsappLink && (
                 <a
                   href={m.whatsappLink}
                   target="_blank"
@@ -83,6 +107,18 @@ export function NotificationActions({
                   {t("openInWhatsApp")}
                 </a>
               )}
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => copy(m)}
+                // The row holds more than one message, so "Copy" alone would
+                // not say which one this is.
+                aria-label={t("copyMessage", { kind: tKind(m.kind) })}
+                className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+              >
+                <Copy />
+                {t("copy")}
+              </button>
               {configured && (
                 <button
                   type="button"

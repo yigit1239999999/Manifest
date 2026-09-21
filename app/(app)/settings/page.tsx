@@ -12,7 +12,6 @@ import {
   setEnabledSpeciesAction,
 } from "@/modules/species/actions";
 import { PageHeader } from "@/components/page-header";
-import { Callout } from "@/components/ui/callout";
 import {
   Card,
   CardContent,
@@ -87,7 +86,10 @@ export default async function SettingsPage() {
           <CardDescription>{t("notifications.hint")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
-          {configured ? (
+          {/* Only the affirmative case lives here. The "not connected"
+              notice belongs inside the form, under the channel group, where
+              it follows the selection rather than the saved value (ux). */}
+          {configured && (
             // The connected case keeps its own accent box rather than
             // becoming a `Callout`: it confirms a working setup, and the
             // component has no affirmative variant (ux withdrew `--success`
@@ -99,12 +101,6 @@ export default async function SettingsPage() {
                 transport: transport ?? "",
               })}
             </p>
-          ) : (
-            <Callout variant="info">
-              {t("notifications.providerMissing", {
-                channel: t(`notifications.channel_${channel}`),
-              })}
-            </Callout>
           )}
           <NotificationSettingsForm
             action={setNotificationSettingsAction}

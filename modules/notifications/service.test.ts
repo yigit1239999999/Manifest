@@ -177,6 +177,18 @@ describe("sendAppointmentMessage", () => {
     ).rejects.toMatchObject({ messageKey: "error.notifications.petSilenced" });
   });
 
+  // Recording a manual send on the wrong channel makes every count drawn
+  // from message_logs wrong, and it was hard-coded to WhatsApp.
+  it("logs a manual send on the clinic's own channel, as MANUAL", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(appointment() as never);
+
+    await logManualMessage("a-1", "APPOINTMENT_CONFIRMATION", ctx);
+
+    expect(prisma.messageLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ channel: "SMS", status: "MANUAL" }),
+    });
+  });
+
   it("is admin/staff only", async () => {
     await expect(
       sendAppointmentMessage("a-1", "APPOINTMENT_CONFIRMATION", { ...ctx, userRole: "VET_TECH" }),

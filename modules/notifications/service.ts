@@ -317,7 +317,15 @@ export async function sendAppointmentMessage(
   return deliver(clinic, appointmentTarget(appointment, kind, clinic), ctx.userId);
 }
 
-/** Staff opened the message in WhatsApp themselves; keep the trail. */
+/**
+ * Staff sent the message themselves — copied it, or opened it in WhatsApp —
+ * and this keeps the trail. Written on the clinic's own channel: hard-coding
+ * WhatsApp recorded an SMS clinic's manual sends as WhatsApp ones, body and
+ * all, and every count drawn from `message_logs` inherited that.
+ *
+ * The row is `MANUAL`, never `SENT`: "the loop works" is measured by what
+ * the app delivered, not by what a person carried out of it by hand.
+ */
 export async function logManualMessage(
   appointmentId: string,
   kind: AppointmentMessageKind,
@@ -335,14 +343,15 @@ export async function logManualMessage(
     throw new AppError("VALIDATION_FAILED", "error.notifications.appointmentClosed");
   if (isPetSilenced(appointment.pet))
     throw new AppError("VALIDATION_FAILED", "error.notifications.petSilenced");
-  const composed = composeFor(appointment, kind, clinic, "WHATSAPP");
+  const channel = clinic.notifications.channel;
+  const composed = composeFor(appointment, kind, clinic, channel);
   if (!composed.recipient) throw new AppError("VALIDATION_FAILED", "error.notifications.noPhone");
   return prisma.messageLog.create({
     data: {
       clinicId: clinic.id,
       appointmentId: appointment.id,
       clientId: appointment.client.id,
-      channel: "WHATSAPP",
+      channel,
       kind,
       recipient: composed.recipient,
       language: composed.language,
