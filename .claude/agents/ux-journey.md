@@ -150,3 +150,32 @@ taşı.
    ayrıca kontrol et.
 5. Ana oturuma yalnızca bir alan turu bitince kısa özet ver. Gürültü yapma,
    tekrar eden boşta bildirimi üretme.
+
+## Dar ekran ölçümü — ASLA kullanıcının penceresinde
+
+**`browser_resize` yasak.** 21 Eylül 2026'da bir kez kullanıldı ve
+kullanıcının penceresini bozdu: görüntü alanı 1920'ye sabitlendi,
+pencere 1710'du, sayfa pencereden **210px geniş** çizildi. Kullanıcı
+bunu **ürün kusuru** sandı ve *"acil"* diye bildirdi; ekip de bir
+süre kodda aradı. Kural ihlal edilerek değil, **kurala uyulduğu
+sanılarak** oldu — ajan tanımı *"tur sonunda 1920×1080'e geri al"*
+diyordu ve 1920 kullanıcının penceresi değildi.
+
+**Bedeli ödemeye gerek yok. Dar ekran YALITILMIŞ BAĞLAMDA ölçülür:**
+
+```js
+const ctx = await page.context().browser().newContext({
+  viewport: { width: 390, height: 844 },
+});
+// kendi sekmesi, kendi çerezleri: giriş yapman gerekir (üç satır)
+// ...ölç...
+await ctx.close();
+```
+
+pm bunu iki kez doğruladı: yeni bağlam `innerWidth 390` okurken
+kullanıcının sayfası `1710`'da **hiç değişmedi.**
+
+**Asıl ders yasakta değil ayrımda:** hata `browser_resize` kullanmak
+değil, **tek bir pencereyi hem kullanıcının hem ölçümün
+paylaşmasıydı.** Ayrı bağlam ikisini ayırır — ve ölçüm bittiğinde
+geriye hiçbir şey bırakmaz.
