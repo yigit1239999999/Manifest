@@ -1,13 +1,53 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  currencySymbol,
+  dayKey,
   firstName,
   formatDate,
+  formatDuration,
+  formatMoney,
+  formatTime,
+  relativeTime,
   initials,
   petAge,
   sexLabel,
   speciesLabel,
   toDateInput,
+  toDateTimeInput,
+  wallTimeToInstant,
 } from "@/lib/format";
+
+describe("currencySymbol", () => {
+  // The dashboard card said "no invoices paid in TRY" with "$11,595.67"
+  // on the line underneath: two ways of naming money in one card, and
+  // the rest of the panel uses symbols. Turkish does not say TRY either
+  // — a vet says TL.
+  it("gives the locale's mark, not the code", () => {
+    expect(currencySymbol("tr", "TRY")).toBe("₺");
+    expect(currencySymbol("tr", "USD")).toBe("$");
+    expect(currencySymbol("en", "USD")).toBe("$");
+    expect(currencySymbol("tr", "EUR")).toBe("€");
+  });
+
+  it("returns the code when the locale has no mark for it", () => {
+    // Not a fallback and not a defect: `en-US` has no sign for lira, so
+    // an English reader sees "TRY" everywhere else too. Inventing "₺"
+    // for them would be worse than the code.
+    expect(currencySymbol("en", "TRY")).toBe("TRY");
+  });
+
+  it("agrees with the amounts beside it", () => {
+    // The whole point of reading it out of the same formatter: a
+    // sentence and a number in one card cannot name the currency two
+    // different ways.
+    expect(formatMoney("tr", 1150, "TRY")).toContain(
+      currencySymbol("tr", "TRY"),
+    );
+    expect(formatMoney("en", 1150, "USD")).toContain(
+      currencySymbol("en", "USD"),
+    );
+  });
+});
 
 describe("speciesLabel", () => {
   it("maps known species to friendly labels", () => {
@@ -55,12 +95,16 @@ describe("firstName", () => {
 
 describe("formatDate", () => {
   it("returns a dash for missing dates", () => {
-    expect(formatDate(null)).toBe("—");
-    expect(formatDate(undefined)).toBe("—");
+    expect(formatDate("en", null)).toBe("-");
+    expect(formatDate("tr", undefined)).toBe("-");
   });
 
   it("formats a date in a readable form", () => {
-    expect(formatDate(new Date(2026, 4, 22))).toBe("May 22, 2026");
+    expect(formatDate("en", new Date(2026, 4, 22))).toBe("May 22, 2026");
+  });
+
+  it("formats Turkish dates in Turkish", () => {
+    expect(formatDate("tr", new Date(2026, 4, 22))).toBe("22 May 2026");
   });
 });
 
@@ -86,23 +130,118 @@ describe("petAge", () => {
   }
 
   it("returns null when there is no birth date", () => {
-    expect(petAge(null)).toBeNull();
-    expect(petAge(undefined)).toBeNull();
+    expect(petAge("en", null)).toBeNull();
+    expect(petAge("tr", undefined)).toBeNull();
   });
 
   it("returns null for a birth date in the future", () => {
     freezeNow();
-    expect(petAge(new Date("2027-01-01T00:00:00.000Z"))).toBeNull();
+    expect(petAge("en", new Date("2027-01-01T00:00:00.000Z"))).toBeNull();
   });
 
   it("reports young pets in months", () => {
     freezeNow();
-    expect(petAge(new Date("2026-05-10T00:00:00.000Z"))).toBe("Under 1 month");
-    expect(petAge(new Date("2026-02-22T00:00:00.000Z"))).toBe("3 mo old");
+    expect(petAge("en", new Date("2026-05-10T00:00:00.000Z"))).toBe("Under 1 month");
+    expect(petAge("en", new Date("2026-02-22T00:00:00.000Z"))).toBe("3 mo");
+    expect(petAge("tr", new Date("2026-02-22T00:00:00.000Z"))).toBe("3 aylık");
   });
 
   it("reports older pets in years", () => {
     freezeNow();
-    expect(petAge(new Date("2023-05-22T00:00:00.000Z"))).toBe("3 yr old");
+    expect(petAge("en", new Date("2023-05-22T00:00:00.000Z"))).toBe("3 yr");
+    expect(petAge("tr", new Date("2023-05-22T00:00:00.000Z"))).toBe("3 yaşında");
+  });
+});
+
+describe("relativeTime", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function at(iso: string) {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-20T09:00:00.000Z"));
+    return new Date(iso);
+  }
+
+  it("names the unit it actually divided down to", () => {
+    expect(relativeTime("en", at("2026-09-22T09:00:00.000Z"))).toBe("in 2 days");
+    expect(relativeTime("en", at("2026-09-20T13:00:00.000Z"))).toBe("in 4 hours");
+    expect(relativeTime("en", at("2026-09-20T09:30:00.000Z"))).toBe("in 30 minutes");
+  });
+
+  it("handles the past the same way", () => {
+    expect(relativeTime("en", at("2026-09-18T09:00:00.000Z"))).toBe("2 days ago");
+  });
+});
+
+describe("time zones", () => {
+  // 00:30 UTC is already the 21st in Istanbul.
+  const lateNight = new Date("2026-09-20T22:30:00.000Z");
+
+  it("formats against the clinic zone, not the runtime's", () => {
+    expect(formatTime({ locale: "en", timeZone: "Europe/Istanbul" }, lateNight)).toBe(
+      "1:30 AM",
+    );
+    expect(formatTime({ locale: "en", timeZone: "UTC" }, lateNight)).toBe("10:30 PM");
+  });
+
+  it("puts an instant on the right calendar day", () => {
+    expect(dayKey(lateNight, "Europe/Istanbul")).toBe("2026-09-21");
+    expect(dayKey(lateNight, "UTC")).toBe("2026-09-20");
+  });
+});
+
+describe("formatDuration", () => {
+  it("uses the locale's unit", () => {
+    expect(formatDuration("en", 30)).toBe("30 min");
+    expect(formatDuration("tr", 30)).toBe("30 dk");
+    expect(formatDuration("tr", null)).toBe("-");
+  });
+});
+
+describe("wallTimeToInstant", () => {
+  it("reads a wall-clock time in the given zone", () => {
+    // 11:30 in Istanbul (UTC+3) is 08:30 UTC.
+    expect(
+      wallTimeToInstant("2026-09-23T11:30", "Europe/Istanbul")?.toISOString(),
+    ).toBe("2026-09-23T08:30:00.000Z");
+    expect(wallTimeToInstant("2026-09-23T11:30", "UTC")?.toISOString()).toBe(
+      "2026-09-23T11:30:00.000Z",
+    );
+  });
+
+  it("follows daylight saving in zones that observe it", () => {
+    // Berlin is UTC+2 in July and UTC+1 in January.
+    expect(
+      wallTimeToInstant("2026-07-01T12:00", "Europe/Berlin")?.toISOString(),
+    ).toBe("2026-07-01T10:00:00.000Z");
+    expect(
+      wallTimeToInstant("2026-01-01T12:00", "Europe/Berlin")?.toISOString(),
+    ).toBe("2026-01-01T11:00:00.000Z");
+  });
+
+  it("round-trips with toDateTimeInput", () => {
+    const zone = "Europe/Istanbul";
+    const instant = wallTimeToInstant("2026-09-23T11:30", zone)!;
+    expect(toDateTimeInput(instant, zone)).toBe("2026-09-23T11:30");
+  });
+
+  it("returns null for anything that is not a wall-clock time", () => {
+    expect(wallTimeToInstant("", "UTC")).toBeNull();
+    expect(wallTimeToInstant("tomorrow", "UTC")).toBeNull();
+  });
+});
+
+describe("formatMoney", () => {
+  it("shows the decimals the currency actually has", () => {
+    expect(formatMoney("tr", 123_456, "TRY")).toBe("₺1.234,56");
+    expect(formatMoney("en", 123_456, "USD")).toBe("$1,234.56");
+    // Yen has no minor unit; a forced "¥1.234,00" is not money anyone writes.
+    expect(formatMoney("en", 123_400, "JPY")).toBe("¥1,234");
+  });
+
+  it("treats a missing amount as zero rather than printing nothing", () => {
+    expect(formatMoney("en", null, "USD")).toBe("$0.00");
   });
 });

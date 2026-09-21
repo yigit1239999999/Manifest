@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/card";
 import {
   CalendarClock,
   ClipboardList,
@@ -8,11 +10,15 @@ import {
   Stethoscope,
   Users,
 } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { dashboardInsights } from "@/modules/dashboard/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
+import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
+import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
@@ -20,21 +26,35 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ColumnBars, HorizontalBars } from "@/components/charts";
-import { firstName, formatDateTime, formatMoney } from "@/lib/format";
+import {
+  currencySymbol,
+  firstName,
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  intlLocale,
+} from "@/lib/format";
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const [t, tSpecies, tVisitType, insights, currency, locale] = await Promise.all([
+  const [t, tSpecies, tVisitType, insights, currency, fmt] = await Promise.all([
     getTranslations("dashboard"),
     getTranslations("enum.species"),
     getTranslations("enum.visitType"),
     dashboardInsights(session.user.clinicId),
     getClinicCurrency(session.user.clinicId),
-    getLocale(),
+    getFormatContext(),
   ]);
 
-  const weekFmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" });
-  const monthFmt = new Intl.DateTimeFormat(locale, { month: "short" });
+  const weekFmt = new Intl.DateTimeFormat(intlLocale(fmt.locale), {
+    day: "numeric",
+    month: "short",
+    timeZone: fmt.timeZone,
+  });
+  const monthFmt = new Intl.DateTimeFormat(intlLocale(fmt.locale), {
+    month: "short",
+    timeZone: fmt.timeZone,
+  });
 
   const metrics = [
     {
@@ -77,12 +97,25 @@ export default async function DashboardPage() {
       icon: Receipt,
       value: insights.counts.outstandingInvoices,
       href: "/invoices",
-      hint: formatMoney(insights.outstandingInvoiceCents, currency),
+      // The count is currency-agnostic and stays whole. The amount beside
+      // it is only what is owed in the clinic's own currency — adding
+      // dollars to lira and printing one symbol was the defect — so when
+      // there is debt in others, the hint says they exist. Not how much:
+      // the size lives under the revenue chart, and this card has room for
+      // the fact. Naming a screen to go and read it would be worse, since
+      // `/invoices` has no total to read (TEAM.md #33).
+      hint:
+        formatMoney(fmt, insights.outstandingInvoiceCents, currency) +
+        (insights.outstandingOtherCurrencies.length > 0
+          ? ` · ${t("chart.otherCurrencyCount", {
+              count: insights.outstandingOtherCurrencies.length,
+            })}`
+          : ""),
     },
     {
-      key: "pendingReminders" as const,
+      key: "openReminders" as const,
       icon: ClipboardList,
-      value: insights.counts.pendingReminders,
+      value: insights.counts.openReminders,
       href: "/reminders",
       hint: undefined,
     },
@@ -93,10 +126,15 @@ export default async function DashboardPage() {
     value: w.count,
   }));
 
+  // Read once: the empty sentence and the footnote have to agree about
+  // whether there is money elsewhere, and two reads of the same thing is
+  // how they stop agreeing.
+  const revenueOtherCurrencies = insights.revenueOtherCurrencies;
+
   const revenueLast6MonthsData = insights.revenueLast6Months.map((m) => ({
     label: monthFmt.format(m.monthStart),
     value: m.cents,
-    display: formatMoney(m.cents, currency),
+    display: formatMoney(fmt, m.cents, currency),
   }));
 
   const speciesBars = insights.petsBySpecies.map((g) => ({
@@ -121,7 +159,7 @@ export default async function DashboardPage() {
           <Link
             key={key}
             href={href}
-            className="rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/30"
+            className={cn(surface, "p-4 transition-colors hover:border-primary/30")}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -129,21 +167,48 @@ export default async function DashboardPage() {
               </span>
               <Icon className="size-4 text-muted-foreground" />
             </div>
-            <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
+            {/* `tabular-nums` here and not on each card: six cards sit in
+                one grid and their figures are read across as much as down.
+                Proportional digits give "1" a narrower column than "8", so
+                the six numbers start at six slightly different places. */}
+            <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">
+              {value}
+            </p>
             {hint && (
-              <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+              <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+                {hint}
+              </p>
             )}
           </Link>
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* `[&>*]:min-w-0`, the same fix as the four detail pages in
+          `462af2e` and found the same way — by measuring, not by
+          reading. A grid item's `min-width` is `auto`, so it refuses
+          to be narrower than its own min-content, and the card grew
+          to 450px inside a 294px column: pm measured 140px of
+          sideways page scroll at 390px.
+
+          Only when the chart has bars to draw. On an empty clinic
+          the card says "no visits yet" and everything fits, so a
+          sweep signing up a fresh clinic reports this route clean —
+          which is exactly what pm's did, on the same build, minutes
+          apart from the run that found it. */}
+      <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader>
             <CardTitle>{t("sections.visitsLast12Weeks")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <ColumnBars data={visitsLast12WeeksData} />
+            <ColumnBars
+              data={visitsLast12WeeksData}
+              emptyLabel={t("empty.visits")}
+              partialLast={{
+                note: t("chart.partialPeriod"),
+                inProgress: t("chart.inProgress"),
+              }}
+            />
           </CardContent>
         </Card>
 
@@ -154,7 +219,53 @@ export default async function DashboardPage() {
           <CardContent>
             <ColumnBars
               data={revenueLast6MonthsData}
-              formatValue={(v) => formatMoney(v, currency)}
+              // Two different pieces of news, and they were one: "nothing
+              // was paid" and "nothing was paid in lira". The second is
+              // what a clinic with four paid dollar invoices was being
+              // told, and it sends a vet after money that is already
+              // collected. Lists learned this distinction two releases
+              // ago (`empty` against `emptyFiltered`); the chart had one
+              // empty sentence and a filter nobody had told it about
+              // (TEAM.md #19).
+              emptyLabel={
+                revenueOtherCurrencies.length > 0
+                  ? t("empty.revenueCurrency", {
+                      // The symbol, not the ISO code. ux measured the card
+                      // saying "no invoices paid in TRY" directly above
+                      // "$11,595.67" — two ways of naming money in one
+                      // card, and the rest of the panel uses symbols.
+                      // Turkish does not call it TRY either; a vet says
+                      // TL. Read from the same formatter the amounts use,
+                      // so the next currency arrives in one place.
+                      currency: currencySymbol(fmt, currency),
+                    })
+                  : t("empty.revenue")
+              }
+              formatValue={(v) => formatMoney(fmt, v, currency)}
+              partialLast={{
+                note: t("chart.partialPeriod"),
+                inProgress: t("chart.inProgress"),
+              }}
+              // What the chart cannot show, said in the chart's own card
+              // and in its accessible name. The bars are only the clinic's
+              // own currency, because adding dollars to lira and printing
+              // one symbol is a number that exists nowhere; the rest is
+              // reported at its real size, per currency, because "4
+              // invoices elsewhere" does not say whether the chart is
+              // missing pocket change or the entire total. In the case
+              // that found this, it was the entire total.
+              footnote={
+                revenueOtherCurrencies.length > 0
+                  ? revenueOtherCurrencies
+                      .map((m) =>
+                        t("chart.otherCurrency", {
+                          amount: formatMoney(fmt, m.cents, m.currency),
+                          count: m.invoices,
+                        }),
+                      )
+                      .join(" · ")
+                  : undefined
+              }
             />
           </CardContent>
         </Card>
@@ -165,23 +276,21 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {insights.upcomingAppointments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {t("empty.appointments")}
-              </p>
+              <EmptyState size="inline" title={t("empty.appointments")} />
             ) : (
               <ul className="flex flex-col gap-1">
                 {insights.upcomingAppointments.map((a) => (
                   <li key={a.id}>
                     <Link
                       href={`/appointments/${a.id}`}
-                      className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-muted"
+                      className="flex items-center justify-between gap-3 rounded-control px-2 py-2 hover:bg-muted"
                     >
                       <span className="flex flex-col">
                         <span className="text-sm font-medium">
                           {a.pet.name} · {a.client.firstName} {a.client.lastName}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDateTime(a.startsAt)}
+                          {formatDateTime(fmt, a.startsAt)}
                         </span>
                       </span>
                     </Link>
@@ -198,21 +307,21 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {insights.recentVisits.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("empty.visits")}</p>
+              <EmptyState size="inline" title={t("empty.visits")} />
             ) : (
               <ul className="flex flex-col gap-1">
                 {insights.recentVisits.map((v) => (
                   <li key={v.id}>
                     <Link
                       href={`/visits/${v.id}`}
-                      className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-muted"
+                      className="flex items-center justify-between gap-3 rounded-control px-2 py-2 hover:bg-muted"
                     >
                       <span className="flex flex-col">
                         <span className="text-sm font-medium">
                           {v.pet.name} · {v.client.firstName} {v.client.lastName}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDateTime(v.visitedAt)} · {tVisitType(v.type)}
+                          {formatDateTime(fmt, v.visitedAt)} · {tVisitType(v.type)}
                         </span>
                       </span>
                     </Link>
@@ -228,7 +337,10 @@ export default async function DashboardPage() {
             <CardTitle>{t("sections.petsBySpecies")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <HorizontalBars data={speciesBars} emptyLabel={t("empty.visits")} />
+            {/* Counts animals, not visits: `modules/dashboard/queries.ts`
+                groups by pet. It said "no visits yet" to a clinic with a
+                hundred animals and no visits on the books. */}
+            <HorizontalBars data={speciesBars} emptyLabel={t("empty.pets")} />
           </CardContent>
         </Card>
 
@@ -241,27 +353,81 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Only when there is something overdue. A card that says
+            "nothing is overdue" every day takes a place on the
+            dashboard to speak on the days it is least needed, and
+            teaches the eye to skip the place where the bad news
+            appears. Above the upcoming card on purpose: a backlog is
+            read before a plan. */}
+        {insights.overdueVaccinationCount > 0 && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{t("sections.overdueVaccinations")}</CardTitle>
+              {/* The count, not the row count: the list shows five and
+                  "five of five" and "five of forty" are different
+                  mornings. */}
+              <p className="text-sm text-muted-foreground">
+                {t("overdueVaccinationsCount", { count: insights.overdueVaccinationCount })}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-1">
+                {insights.overdueVaccinations.map((v) => (
+                  <li
+                    key={v.id}
+                    className="flex items-center justify-between gap-2 rounded-control px-2 py-2"
+                  >
+                    <span className="text-sm font-medium">
+                      {v.pet.name} · {v.name}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(fmt, v.nextDueAt)}
+                      </span>
+                      <VaccinationDueDismissButton
+                        action={setVaccinationDueDismissedAction.bind(null, v.id)}
+                        label={t("overdueVaccinationsDismiss")}
+                        name={t("overdueVaccinationsDismissName", {
+                          pet: v.pet.name,
+                          vaccine: v.name,
+                        })}
+                        undoLabel={t("overdueVaccinationsUndo")}
+                        undoneLabel={t("overdueVaccinationsDismissed")}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>{t("sections.upcomingVaccinations")}</CardTitle>
           </CardHeader>
           <CardContent>
             {insights.upcomingVaccinations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {t("empty.vaccinations")}
-              </p>
+              <EmptyState size="inline" title={t("empty.vaccinations")} />
             ) : (
               <ul className="flex flex-col gap-1">
                 {insights.upcomingVaccinations.map((v) => (
                   <li
                     key={v.id}
-                    className="flex items-center justify-between rounded-xl px-2 py-2"
+                    className="flex items-center justify-between rounded-control px-2 py-2"
                   >
+                    {/* Not `v.pet?.name ?? "?"`. `Vaccination.petId` is
+                        non-null in the schema and the query includes the
+                        relation, so the guard defended a case that cannot
+                        happen — and printed a made-up "?" for it, which is
+                        the thing TEAM.md #21 is about. ux read the `?.` as
+                        evidence the field was nullable; defensive code had
+                        become the documentation. */}
                     <span className="text-sm font-medium">
-                      {v.pet?.name ?? "?"} — {v.name}
+                      {v.pet.name} · {v.name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {v.nextDueAt ? formatDateTime(v.nextDueAt) : "—"}
+                      {formatDate(fmt, v.nextDueAt)}
                     </span>
                   </li>
                 ))}

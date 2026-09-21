@@ -20,6 +20,30 @@
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-fg);
+  --color-warning: var(--warning);
+
+  /* Corner radius by the role of the thing, not by an arbitrary scale.
+     Five raw values were in use for four roles (`rounded-control` 47,
+     `rounded-surface` 29, `rounded-control` 10, `rounded-pill` 9, `rounded-control` 8),
+     each picked by looking at whatever was nearby — so the system already
+     existed, it just was not written down. These are that system read back
+     from its own majority, which is why almost nothing moves.
+
+     surface  a thing standing on the page: card, table, dialog, toast,
+              empty state, the panel of a command palette
+     tile     a coloured square carrying an icon or an initial
+     control  anything inside a surface: button, input, callout, list row,
+              combobox option, code block. Named for the common case; the
+              rule is containment, not interactivity
+     pill     badge, filter tab, avatar, progress bar
+
+     A fifth value (6px, for things nested one level deeper) was measured
+     and dropped: what separates a combobox option from the input above it
+     is that the option has no border, not two pixels of curvature. */
+  --radius-control: 0.5rem;
+  --radius-tile: 0.75rem;
+  --radius-surface: 1rem;
+  --radius-pill: 9999px;
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 
@@ -34,7 +58,12 @@
   --card: #ffffff;
   --card-fg: #1f1d1a;
   --muted: #ece8e0;
-  --muted-fg: #756f64;
+  /* Darkened from #756f64, which cleared AA on the page (4.53) but not on a
+     muted fill (4.08) — and a muted fill is exactly where this colour lands:
+     the neutral status badge, the table headers, every `hover:bg-muted`
+     control. Measured against the surface the text actually sits on, not a
+     flat white one (see app/theme-tokens.test.ts). */
+  --muted-fg: #6b6559;
   --border: #e4dfd4;
   --input: #e0dacd;
   --primary: #0f7a6e;
@@ -43,8 +72,27 @@
   --accent: #e6f3f0;
   --accent-fg: #0b5d54;
   --ring: #0f7a6e;
-  --destructive: #c24a3f;
+  /* Darkened from #9e3328, and the reason is red-vs-amber rather than
+     red on its own. Failure and blocked sit next to each other all over
+     this app, and in light theme the two were the same lightness --
+     L* 37.5 against --warning's 37.6 -- so hue was the only thing
+     separating them. With the hue channel gone there was nothing left:
+     pm measured deuteranopic dE at 6.8 in light against 21.1 in dark,
+     and 6.8 is "the same colour". Dark theme already worked because it
+     has 12.7 points of lightness between the two.
+
+     This buys 12.8 points, the mirror of the dark theme's gap, and it
+     costs no contrast at all: 7.10 -> 11.24 on white, with --warning
+     untouched at 7.07. Opening the amber instead would have pushed it
+     under its own 7.07, which is fixing colour blindness by breaking
+     contrast. If the brick reads too heavy in place, #7d281e is half
+     the mirror (L* 29.3, 9.57) and still better than what was here.
+
+     Dark theme is deliberately untouched and its values live in TWO
+     blocks below; a future change to them has to edit both. */
+  --destructive: #6b2219;
   --destructive-fg: #ffffff;
+  --warning: #7f4d0e;
 }
 
 [data-theme="dark"] {
@@ -62,8 +110,33 @@
   --accent: #173730;
   --accent-fg: #b6e3d6;
   --ring: #34c0a8;
-  --destructive: #e6675a;
+  --destructive: #ec7a6c;
   --destructive-fg: #1f0a08;
+  --warning: #eab45f;
+}
+
+/* "system" resolves to the OS preference in pure CSS — no JS, no flash,
+   and no hydration mismatch (the same dark palette as [data-theme="dark"]). */
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    --bg: #0f1411;
+    --fg: #f1efe9;
+    --card: #161c18;
+    --card-fg: #f1efe9;
+    --muted: #1f2521;
+    --muted-fg: #a8a39a;
+    --border: #283029;
+    --input: #1c2320;
+    --primary: #34c0a8;
+    --primary-fg: #04140f;
+    --primary-hover: #5cd6c0;
+    --accent: #173730;
+    --accent-fg: #b6e3d6;
+    --ring: #34c0a8;
+    --destructive: #ec7a6c;
+    --destructive-fg: #1f0a08;
+    --warning: #eab45f;
+  }
 }
 
 @layer base {
@@ -74,6 +147,80 @@
     font-family: var(--font-sans);
     background-color: var(--color-background);
     color: var(--color-foreground);
+  }
+  /* Text links had no focus style of their own, so keyboard users saw the
+     browser's own outline on them and our ring on every button — two focus
+     systems on one screen, and the browser's one is a fixed blue that does
+     not follow the theme (measured at 3.1:1 on the dark background, which
+     passes 3:1 by almost nothing).
+
+     One rule rather than a class on each link: there are sixteen
+     `hover:underline` call sites today and the seventeenth would be the
+     one that forgot.
+
+     `summary` and anything with an explicit `tabindex` are here for the
+     same reason and one worse number: ux measured the browser's default
+     on a `<summary>` at 2.89 against the dark card — below the 3:1 floor
+     for a non-text mark, where the links' old 3.11 at least scraped
+     over it. And a `<summary>` in this app is the door to a clinical
+     form: vaccination, prescription, treatment, diagnostic. A vet
+     working by keyboard could not see which one they were about to
+     open.
+
+     `outline` and not a `ring` box-shadow. Buttons now use the same,
+     because `ring-offset-background` paints the page colour into the
+     gap and is wrong wherever the thing is not on the page — which on
+     a card is most of them. An outline's gap is transparent, so there
+     is one mechanism and no second colour to keep in step. */
+  a:focus-visible,
+  summary:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-control);
+  }
+
+  /* Ticks and radios reach the same mark by the same road, and they are
+     here rather than in a component because there is no component: nine
+     call sites write the input by hand and not one of them carries a
+     focus class. ux measured what they fall through to — Chromium's own
+     1px `rgb(0, 95, 204)` at 2.89 against the dark card, under the 3:1
+     floor for a non-text mark. One of the nine is the consent tick in
+     `client-form.tsx`, which is the control the clinic records a legal
+     answer with.
+
+     A rule rather than a tenth copy of a class string: it fixes the
+     nine at once and makes the tenth impossible to forget. A
+     `components/ui/checkbox.tsx` is still owed — `mt-0.5 size-4 rounded
+     border-border` is written out nine times — but that is tidiness and
+     this is a floor.
+
+     No `border-radius`, and its absence is a decision rather than an
+     oversight (TEAM.md 30b). The rule above gives links a radius
+     because an outline round a run of text has no shape of its own. A
+     radio does: it is a circle, and `--radius-control` would draw a
+     rounded square around it. Left unset, the outline follows whatever
+     the control already is — the tick's `rounded`, the radio's
+     circle. */
+  input[type="checkbox"]:focus-visible,
+  input[type="radio"]:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  /* Browser autofill paints a pale yellow/blue box that clashes with the
+     theme (very visible in dark mode). Keep the field's own colors. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-foreground);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-card) inset;
+    caret-color: var(--color-foreground);
+    transition: background-color 9999s ease-out;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-primary);
   }
   /* Smooth color transitions when switching themes — but skip on first paint
      so the system-preference detection script doesn't flash. */
@@ -94,4 +241,24 @@
 @keyframes in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* The row a vet has just created, marked for a couple of seconds.
+ *
+ * Written by hand rather than as a `data-[spotlight]:bg-accent` utility
+ * on the element, and NOT because the utility was broken -- pm later
+ * established that it was generated and working all along, and that
+ * the only real fault was JavaScript never setting the attribute. This
+ * is a hardening, not a repair, and it is worth having because it is
+ * a transient STATE mark, the same family as the focus outline, whose
+ * rule lives here for the same reason: one line beside the token it
+ * reads, verifiable in a browser without having to know which
+ * utilities a build happened to generate.
+ *
+ * Background only. The row's text colours carry its own meaning --
+ * muted, warning, destructive -- and repainting all of them for two
+ * seconds would make the row say something different while it is being
+ * pointed at. The fade is `transition-colors`, on the row itself. */
+[data-spotlight] {
+  background-color: var(--accent);
 }

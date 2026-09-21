@@ -8,6 +8,7 @@ vi.mock("@/lib/prisma", () => {
       update: vi.fn(),
     },
     client: { findFirst: vi.fn() },
+    clinic: { findUnique: vi.fn() },
     payment: {
       create: vi.fn(),
       aggregate: vi.fn(),
@@ -39,13 +40,13 @@ const baseInvoice = {
   number: "INV-001",
   status: "DRAFT" as const,
   dueAt: null,
-  taxCents: null,
+  tax: null,
   notes: null,
   lines: [
     {
       description: "Consultation",
       quantity: 1,
-      unitPriceCents: 5000,
+      unitPrice: 5000,
       petId: null,
       visitId: null,
     },
@@ -78,14 +79,15 @@ describe("createInvoice", () => {
   it("computes subtotal/total and persists clinicId", async () => {
     vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "client-1" } as never);
     vi.mocked(prisma.invoice.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({ currency: "TRY" } as never);
     vi.mocked(prisma.invoice.create).mockResolvedValue({ id: "inv-1", clientId: "client-1" } as never);
 
     const input = {
       ...baseInvoice,
-      taxCents: 500,
+      tax: 500,
       lines: [
-        { description: "A", quantity: 2, unitPriceCents: 1000, petId: null, visitId: null },
-        { description: "B", quantity: 1, unitPriceCents: 3000, petId: null, visitId: null },
+        { description: "A", quantity: 2, unitPrice: 1000, petId: null, visitId: null },
+        { description: "B", quantity: 1, unitPrice: 3000, petId: null, visitId: null },
       ],
     };
 
@@ -98,6 +100,9 @@ describe("createInvoice", () => {
         subtotalCents: 5000,
         taxCents: 500,
         totalCents: 5500,
+        // Stamped from the clinic at issue time, so changing the setting
+        // later cannot restate this invoice.
+        currency: "TRY",
       }),
       include: { lines: true },
     });
@@ -119,7 +124,7 @@ describe("recordPayment", () => {
 
     const input = {
       invoiceId: "inv-1",
-      amountCents: 5000,
+      amount: 5000,
       method: "CARD" as const,
       reference: null,
       notes: null,
@@ -135,7 +140,7 @@ describe("recordPayment", () => {
     vi.mocked(prisma.invoice.findFirst).mockResolvedValue(null);
     await expect(
       recordPayment(
-        { invoiceId: "inv-x", amountCents: 100, method: "CASH", reference: null, notes: null },
+        { invoiceId: "inv-x", amount: 100, method: "CASH", reference: null, notes: null },
         ctx,
       ),
     ).rejects.toBeInstanceOf(AppError);
@@ -158,7 +163,7 @@ describe("recordPayment", () => {
     await recordPayment(
       {
         invoiceId: "inv-1",
-        amountCents: 4000,
+        amount: 4000,
         method: "CARD",
         reference: null,
         notes: null,
@@ -204,7 +209,7 @@ describe("recordPayment", () => {
     await recordPayment(
       {
         invoiceId: "inv-1",
-        amountCents: 3000,
+        amount: 3000,
         method: "CASH",
         reference: null,
         notes: null,

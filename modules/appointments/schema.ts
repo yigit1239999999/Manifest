@@ -4,6 +4,7 @@ import {
   optionalText,
   requiredDateTime,
   requiredEnum,
+  requiredId,
 } from "@/lib/forms";
 
 export const VISIT_TYPES = [
@@ -30,7 +31,7 @@ export const APPOINTMENT_STATUSES = [
 ] as const;
 
 export const appointmentSchema = z.object({
-  petId: z.string().min(1, "Hasta seç."),
+  petId: requiredId("error.entity.pet"),
   vetId: optionalText(40),
   startsAt: requiredDateTime,
   durationMinutes: optionalInt({ min: 5, max: 480 }),

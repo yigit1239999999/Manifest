@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { SpeciesIcon } from "@/components/species-icon";
 import { petAge } from "@/lib/format";
 
@@ -10,20 +13,26 @@ export async function PetCard({
     id: string;
     name: string;
     species: string;
+    customSpecies?: { name: string } | null;
     breed: string | null;
     birthDate: Date | null;
   };
 }) {
+  const fmt = await getFormatContext();
   const t = await getTranslations("enum.species");
-  const age = petAge(pet.birthDate);
-  const meta = [t(pet.species as never), pet.breed, age].filter(Boolean);
+  const age = petAge(fmt, pet.birthDate);
+  const meta = [
+    pet.customSpecies?.name ?? t(pet.species as never),
+    pet.breed,
+    age,
+  ].filter(Boolean);
 
   return (
     <Link
       href={`/pets/${pet.id}`}
-      className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 shadow-sm transition-colors hover:border-primary/30"
+      className={cn(surface, "group flex items-center gap-3 p-3.5 shadow-sm transition-colors hover:border-primary/30")}
     >
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-tile bg-accent text-accent-foreground">
         <SpeciesIcon species={pet.species} className="size-5" />
       </span>
       <div className="flex min-w-0 flex-col">

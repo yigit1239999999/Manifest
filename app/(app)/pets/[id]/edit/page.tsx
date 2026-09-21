@@ -1,11 +1,20 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
-import { getPetById } from "@/modules/pets/queries";
+import { can } from "@/lib/permissions";
+import { getEnabledSpecies } from "@/modules/species/queries";
+import {
+  getPetById,
+  listClinicBreedOptions,
+  listCustomSpecies,
+} from "@/modules/pets/queries";
 import { listClients } from "@/modules/clients/queries";
 import { PageHeader } from "@/components/page-header";
+import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { PetForm } from "@/components/forms/pet-form";
+import { hiddenBuiltInSpecies } from "@/modules/pets/species-names";
 
 export default async function EditPetPage({
   params,
@@ -14,28 +23,62 @@ export default async function EditPetPage({
 }) {
   const { id } = await params;
   const session = await requireSession();
-  const [pet, owners, t, tCommon] = await Promise.all([
+  if (!can(session.user.role, "pets.write")) return <ForbiddenState />;
+  const [
+    pet,
+    owners,
+    t,
+    tCommon,
+    tSpecies,
+    customSpecies,
+    clinicBreeds,
+    enabledSpecies,
+  ] = await Promise.all([
     getPetById(session.user.clinicId, id),
     listClients({ clinicId: session.user.clinicId }),
     getTranslations("pet"),
     getTranslations("common"),
+    getTranslations("enum.species"),
+    listCustomSpecies(session.user.clinicId),
+    listClinicBreedOptions(session.user.clinicId),
+    getEnabledSpecies(session.user.clinicId),
   ]);
   if (!pet) notFound();
+
+  // The built-ins this clinic switched off. Assembled here, on the
+  // server, so the picker can recognise one by either of its names
+  // without the browser carrying both message catalogues. None of this
+  // changes the setting: it governs what is offered, and an animal on
+  // the table is still whatever it is.
+  const hiddenBuiltIns = hiddenBuiltInSpecies(
+    enabledSpecies,
+    (key) => tSpecies(key),
+    (species) => t("hiddenSpeciesNote", { species }),
+  );
+  const canManageSpecies = can(session.user.role, "settings.manage");
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <BackLink href={`/pets/${pet.id}`} label={tCommon("back")} />
       <PageHeader title={t("edit")} description={pet.name} />
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <Card className="p-6">
         <PetForm
           pet={pet}
-          owners={owners.map((o) => ({
+          owners={owners.items.map((o) => ({
             id: o.id,
             firstName: o.firstName,
             lastName: o.lastName,
           }))}
+          ownersCapped={owners.hasMore}
+          defaultOwnerLabel={`${pet.owner.firstName} ${pet.owner.lastName}`}
+          customSpecies={customSpecies}
+          clinicBreeds={clinicBreeds}
+          enabledSpecies={enabledSpecies}
+          hiddenBuiltIns={hiddenBuiltIns}
+          hiddenQualifier={t("hiddenSpeciesQualifier")}
+          manageHref={canManageSpecies ? "/settings" : undefined}
         />
-      </div>
+      </Card>
     </div>
   );
 }

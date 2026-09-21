@@ -1,0 +1,320 @@
+import { AlertCircle, BellOff, Check, CheckCheck, Clock } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
+import { formatDateTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+/**
+ * What the app is going to do, or has already done, about one reminder.
+ *
+ * The row already carried a status badge, and the badge answers a different
+ * question: `PENDING` is the state of the *work*, not of the message. It
+ * reads the same for a reminder that goes out tomorrow morning and for one
+ * that will never go out at all because the clinic's notification switch is
+ * off — and that second case was every clinic, since the switch defaults to
+ * off (`modules/notifications/settings.ts`). So the loop was running, or
+ * silently not running, and no screen said which. This sentence is that
+ * missing half; the badge is left alone.
+ *
+ * Seven states and not one hedged sentence, because "will not be sent" has
+ * four different causes and each is fixed in a different place: the client
+ * record, the clinic settings, the provider credentials, or nothing at all.
+ * A single "not sent" would send the vet looking in the wrong one.
+ *
+ * The mark says the class of outcome and the text says the reason — the
+ * blocked states share `BellOff` on purpose, the way `Callout` keeps one
+ * meaning to one icon.
+ *
+ * WEIGHT IS INVERTED ON PURPOSE, and it is the design, not a detail. This
+ * list is not a collection of receipts, it is the list of owners who were
+ * not reached: what failed and what is blocked comes forward in the warning
+ * colour, and "it went" sits back in the quiet one. The vet who asked for
+ * this put it better than we did — "it will say 'sent' next to the old
+ * number and I will relax. Worse than today, because today I at least have
+ * a doubt, and the word 'sent' takes the doubt away too." So the record is
+ * kept, because otherwise it lives on one receptionist's personal phone and
+ * dies with her handset, but it is kept without congratulating anyone.
+ *
+ * NAMING RULE, and the delivery report has now made it load-bearing rather
+ * than hypothetical. `SENT` means the provider accepted the message and
+ * nothing more: "Gönderildi" / "Sent". `DELIVERED` means a report says it
+ * reached a handset: "Ulaştı" / "Delivered". The second word was promised
+ * months ago as a SEPARATE word for exactly this day, and it may appear in
+ * exactly one state.
+ *
+ * The rule now cuts both ways. "Ulaşmadı" belongs only to `undelivered`,
+ * where a report actually said so; `reportExpired` may not borrow it,
+ * because claiming a failure we cannot demonstrate is the same sin as
+ * claiming a success we cannot demonstrate. "İletildi" is banned outright
+ * in both directions -- it reads as either one.
+ *
+ * The breach will not be in a sentence anybody writes deliberately. It
+ * will be in somebody six months from now changing a string because it
+ * reads better, which is why the test enforces it per key.
+ *
+ * The clinic's own master switch is deliberately NOT a state here. When it
+ * is off nothing on the list can be sent, which is one fact about the
+ * clinic rather than one fact about each owner, so it is said once in a
+ * banner above the list (`NotificationBlockedBanner`) and the rows stay
+ * silent about it. Putting it back would print the same sentence a hundred
+ * times and point a hundred rows at the same single setting.
+ *
+ * A list and not a bare union, so the states can be walked over at runtime:
+ * an eighth one added here without a sentence beside it renders an empty
+ * line, which is the one failure this component can have and the one a type
+ * cannot catch. `reminder-delivery-line.test.tsx` walks this.
+ */
+export const REMINDER_DELIVERY_STATES = [
+  /** Due to go out, at a time still ahead. */
+  "scheduled",
+  /**
+   * Due to go out, and the moment has already passed: it goes on the next
+   * sweep rather than at a time we can name.
+   */
+  "dueNow",
+  /**
+   * The provider accepted it, on a channel that will never report back.
+   * Everything we are ever going to know about this message.
+   */
+  "sent",
+  /** A report says it reached a handset. The ONLY state that says "arrived". */
+  "delivered",
+  /** Accepted, and the report has not come back yet. A wait, not a failure. */
+  "awaitingReport",
+  /**
+   * Accepted, and it did not arrive. Same work as `noPhone` -- reach for
+   * the phone -- which is why it sits in that family rather than with the
+   * provider rejections.
+   */
+  "undelivered",
+  /**
+   * The validity period ran out with no answer. NOT a failure: we do not
+   * know that it failed, only that we stopped hearing. Folding this into
+   * `undelivered` would claim a failure we cannot demonstrate, which is
+   * the naming rule below running in the other direction.
+   */
+  "reportExpired",
+  /** Rejected, and the sweep will try again. */
+  "failedRetrying",
+  /** Rejected, and no automatic attempt is left. Only a person can move it. */
+  "failedExhausted",
+  /**
+   * Rejected for something about the clinic, not about this owner. The row
+   * says only that it did not go; the reason is in the banner, once.
+   */
+  "failedClinic",
+  /** The client was asked and said no. */
+  "optedOut",
+  /** Nobody ever asked the client. A different job from `optedOut`. */
+  "neverAsked",
+  /** No phone number on the client record. */
+  "noPhone",
+  /** The channel is chosen but its provider credentials are missing. */
+  "notConfigured",
+  /** The reminder names an animal that has died or been archived. */
+  "petSilenced",
+] as const;
+
+export type ReminderDeliveryStateName =
+  (typeof REMINDER_DELIVERY_STATES)[number];
+
+/**
+ * A discriminated union and not seven optional fields: a `sent` state
+ * without a timestamp, or a `notConfigured` without a channel, would render
+ * a sentence with a hole in it, and only the shape of the props can stop
+ * that at the call site.
+ *
+ * The channel arrives as an already-translated label rather than as a
+ * `Channel`, for the reason TEAM.md #20e names: it is a leaf value either
+ * way, so nothing about the enum has to travel.
+ */
+export type ReminderDeliveryLineProps =
+  | { state: "scheduled"; sendAt: Date; channel: string }
+  | { state: "dueNow"; channel: string }
+  | { state: "delivered"; at: Date; channel: string }
+  | { state: "awaitingReport"; at: Date; channel: string }
+  | { state: "undelivered"; at: Date; channel: string }
+  | { state: "reportExpired"; at: Date; channel: string }
+  | {
+      state: "sent";
+      at: Date;
+      channel: string;
+      /**
+       * The channel is wired to the `log` transport, so the message was
+       * written to a file and handed to nobody.
+       *
+       * "Sent" already means only "the provider accepted it", which is one
+       * step short of "it arrived". In log mode we are a step below that
+       * again: no provider ever saw it. The word would be claiming a
+       * guarantee we hold no part of, and the distinction disappears on
+       * its own the day a real provider is connected.
+       */
+      testMode?: boolean;
+    }
+  | { state: "failedRetrying"; at: Date; attempts: number }
+  | { state: "failedExhausted"; attempts: number }
+  | { state: "failedClinic"; at: Date }
+  | { state: "optedOut" }
+  | { state: "neverAsked" }
+  | { state: "noPhone" }
+  | { state: "notConfigured"; channel: string }
+  | { state: "petSilenced" };
+
+/**
+ * Three weights, and the middle one is the point of the screen.
+ *
+ * `alert` is a message the provider rejected. `attention` is everything
+ * that will not go out and can be acted on. `quiet` is the record: due to
+ * go, or already gone.
+ *
+ * Measured against `bg-card`, which is what the row actually sits on, in
+ * both themes: `--muted-fg` 5.78 light / 6.90 dark, `--warning` 7.07 /
+ * 9.22, `--destructive` 7.10 / 6.24. All three clear AA at this size with
+ * room to spare, so the tier carries meaning rather than legibility.
+ */
+const TONE = {
+  alert: "text-destructive font-medium",
+  attention: "text-warning font-medium",
+  quiet: "text-muted-foreground",
+} as const;
+
+export const WEIGHT: Record<ReminderDeliveryStateName, keyof typeof TONE> = {
+  scheduled: "quiet",
+  dueNow: "quiet",
+  sent: "quiet",
+  delivered: "quiet",
+  // A wait is not news. The row says what is known and asks for nothing,
+  // because there is nothing to do but let the report arrive.
+  awaitingReport: "quiet",
+  // Sent and not arrived: the vet picks up the phone, same as `noPhone`.
+  undelivered: "attention",
+  // Neutral, and this overrules an argument of mine. I had it in the
+  // warning tier because the vet has a judgement to make; value's
+  // ruling, with that reasoning on the table, is that unknowing is
+  // neither success nor fault and must not be dressed as either. The
+  // warning tier is how this list says "somebody could not be
+  // reached", and this state cannot support that claim -- the same
+  // reason its sentence may not borrow the word.
+  reportExpired: "quiet",
+  failedRetrying: "alert",
+  failedExhausted: "alert",
+  failedClinic: "alert",
+  optedOut: "attention",
+  neverAsked: "attention",
+  noPhone: "attention",
+  notConfigured: "attention",
+  // An open reminder for an animal that is gone is not an emergency, but it
+  // is stale work that will never finish on its own, and the only way it
+  // leaves the list is somebody closing it.
+  petSilenced: "attention",
+};
+
+const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
+  scheduled: Clock,
+  dueNow: Clock,
+  sent: Check,
+  // Two ticks for arrival against one for acceptance, which is the one
+  // piece of messaging iconography every owner of a phone already reads.
+  delivered: CheckCheck,
+  awaitingReport: Clock,
+  undelivered: AlertCircle,
+  reportExpired: AlertCircle,
+  failedRetrying: AlertCircle,
+  failedExhausted: AlertCircle,
+  failedClinic: AlertCircle,
+  optedOut: BellOff,
+  neverAsked: BellOff,
+  noPhone: BellOff,
+  notConfigured: BellOff,
+  petSilenced: BellOff,
+} as const;
+
+export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
+  const [t, fmt] = await Promise.all([
+    getTranslations("reminder.delivery"),
+    getFormatContext(),
+  ]);
+  const Mark = MARK[props.state];
+
+  // Inline colour and not a `Callout`, at every weight: a list can hold a
+  // hundred of these, and a hundred boxes is an alarm rather than a list.
+  return (
+    <p
+      className={cn(
+        "mt-1 flex items-start gap-1.5 text-xs",
+        TONE[WEIGHT[props.state]],
+      )}
+    >
+      <Mark aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+      {/* Marked so the spotlight can read this row's own words back out
+          after a save instead of composing a second version of them. */}
+      <span data-delivery-sentence className="min-w-0">
+        {sentence()}
+      </span>
+    </p>
+  );
+
+  function sentence() {
+    switch (props.state) {
+      // No time is named, because none can be truthfully named. The
+      // moment this was meant to go out is behind us -- a reminder due
+      // tomorrow with a three-day lead time is already past its notice
+      // date the minute it is written -- and the next attempt happens
+      // whenever the sweep next runs, which this screen does not know and
+      // must not guess. Before this it printed the computed notice time
+      // and so promised a send in the past.
+      case "dueNow":
+        return t("dueNow", { channel: props.channel });
+      case "scheduled":
+        return t("scheduled", {
+          at: formatDateTime(fmt, props.sendAt),
+          channel: props.channel,
+        });
+      case "sent":
+        return t(props.testMode ? "sentTestMode" : "sent", {
+          at: formatDateTime(fmt, props.at),
+          channel: props.channel,
+        });
+      case "delivered":
+      case "awaitingReport":
+      case "undelivered":
+      case "reportExpired":
+        return t(props.state, {
+          at: formatDateTime(fmt, props.at),
+          channel: props.channel,
+        });
+      // The provider's own words never reach the row. `MessageLog.error`
+      // holds raw transport text -- Netgsm answers things like "30 -
+      // Hatalı kullanıcı adı" -- and a vet reading a row should not have
+      // to decode an operator's error catalogue to find out what to do.
+      // The raw text is kept and shown folded away; the row carries a
+      // sentence that says what happened and what is left to try.
+      case "failedRetrying":
+        return t("failedRetrying", {
+          at: formatDateTime(fmt, props.at),
+          attempts: props.attempts,
+        });
+      case "failedExhausted":
+        // Not "abandoned" or "given up on", which the vet who reviewed
+        // this rejected by asking the right question: "who gave up, me or
+        // the system?" It names what stopped -- automatic sending -- and
+        // what is left, which is a person pressing the button beside it.
+        //
+        // No timestamp, and that is a trade rather than an omission. The
+        // line has room for two of the three, and once the attempts are
+        // spent "it has stopped" is worth more than the minute the last
+        // one failed: a row that only counted tries looked identical to
+        // one still waiting, with a different number on it.
+        return t("failedExhausted", { attempts: props.attempts });
+      case "failedClinic":
+        return t("failedClinic", { at: formatDateTime(fmt, props.at) });
+      case "optedOut":
+      case "neverAsked":
+      case "noPhone":
+      case "petSilenced":
+        return t(props.state);
+      case "notConfigured":
+        return t("notConfigured", { channel: props.channel });
+    }
+  }
+}

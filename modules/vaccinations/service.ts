@@ -42,6 +42,47 @@ export async function createVaccination(
   return vaccination;
 }
 
+/**
+ * Closes an overdue vaccination row, or puts it back.
+ *
+ * One function in both directions, like `markReminderStatus`, and for
+ * the same reason: closing is a one-click action in a list, the click
+ * next to the intended one closes the wrong row, and without a way
+ * back the clinic silently loses a piece of work it never decided to
+ * drop. Archiving taught this expensively once already.
+ *
+ * What it closes is the row. `Pet.archivedAt` is not touched and the
+ * vaccination stays on the animal's page: "I have dealt with this one"
+ * is a much smaller statement than "this animal is gone", and a card
+ * that made the larger one on a click would be a trap.
+ */
+export async function setVaccinationDueDismissed(
+  id: string,
+  dismissed: boolean,
+  ctx: ActionContext,
+) {
+  requirePermission(ctx.userRole, "vaccinations.write");
+  const existing = await prisma.vaccination.findFirst({
+    where: { id, clinicId: ctx.clinicId },
+    select: { id: true, petId: true },
+  });
+  if (!existing) throw notFound("vaccination", id);
+
+  await prisma.vaccination.update({
+    where: { id },
+    data: { dueDismissedAt: dismissed ? new Date() : null },
+  });
+  await writeAudit({
+    clinicId: ctx.clinicId,
+    actorId: ctx.userId,
+    action: "UPDATE",
+    entityType: "Vaccination",
+    entityId: id,
+    changes: { dueDismissed: dismissed },
+  });
+  return existing;
+}
+
 export async function deleteVaccination(id: string, ctx: ActionContext) {
   requirePermission(ctx.userRole, "vaccinations.write");
   const existing = await prisma.vaccination.findFirst({

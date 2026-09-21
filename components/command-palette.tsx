@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { surface } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
+import { Title as DialogTitle } from "@radix-ui/react-dialog";
 import {
   CalendarClock,
   PawPrint,
@@ -44,13 +46,31 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults>(EMPTY);
   const [pending, setPending] = useState(false);
+  // Whatever had focus when the palette opened, so Escape can give it
+  // back. `ConfirmDialog` gets this free from the native `<dialog>`; this
+  // one is a Radix dialog and has to do it by hand, and until now it did
+  // not — cancelling out of the palette dropped the user on `<body>` and
+  // the next Tab started again from "Skip to content".
+  //
+  // The element rather than the trigger button, because ⌘K opens this
+  // from wherever the user already was.
+  const opener = useRef<HTMLElement | null>(null);
+
+  function openFrom(element: EventTarget | null) {
+    opener.current =
+      element instanceof HTMLElement ? element : (document.activeElement as HTMLElement | null);
+    setOpen(true);
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((o) => !o);
+        setOpen((wasOpen) => {
+          if (!wasOpen) opener.current = document.activeElement as HTMLElement | null;
+          return !wasOpen;
+        });
       }
     }
     window.addEventListener("keydown", onKey);
@@ -79,10 +99,19 @@ export function CommandPalette() {
     if (!next) {
       setQuery("");
       setResults(EMPTY);
+      // Only if it is still on the page: a result that navigated away
+      // took its opener with it, and `go` clears this first anyway.
+      const element = opener.current;
+      opener.current = null;
+      if (element?.isConnected) element.focus();
     }
   }
 
   function go(href: string) {
+    // Not restored on the way out: the page is about to change, and
+    // putting focus back on a control that is leaving is worse than
+    // letting the new page start clean.
+    opener.current = null;
     handleOpenChange(false);
     router.push(href);
   }
@@ -105,8 +134,19 @@ export function CommandPalette() {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="hidden h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:bg-muted sm:inline-flex"
+        onClick={(e) => openFrom(e.currentTarget)}
+        // The same three utilities `buttonVariants` carries, and not
+        // `buttonVariants` itself: this control is a search field
+        // wearing a button's clothes — 36px tall, 12px text, a ⌘K badge
+        // — and none of the four variants is that shape. What has to
+        // match is the focus mark, not the size.
+        //
+        // Without them it fell through to Chromium's own ring,
+        // rgb(0, 95, 204), which is the one blue in the product and
+        // reads as a control from a different application. A focus mark
+        // that moves between two colours as you tab along a row is
+        // worse than either colour on its own.
+        className="hidden h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2 sm:inline-flex"
         aria-label={tCommon("search")}
       >
         <Search className="size-3.5" />
@@ -123,13 +163,16 @@ export function CommandPalette() {
         shouldFilter={false}
         className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
       >
+        {/* cmdk renders a Radix Dialog under the hood, which requires a
+            DialogTitle for screen readers. Keep it visually hidden. */}
+        <DialogTitle className="sr-only">{tCommon("search")}</DialogTitle>
         <button
           type="button"
           aria-label="Close"
           onClick={() => handleOpenChange(false)}
           className="fixed inset-0 bg-foreground/30 backdrop-blur-sm animate-in fade-in"
         />
-        <div className="relative w-full max-w-xl rounded-2xl border border-border bg-card shadow-2xl animate-in fade-in mx-4">
+        <div className={cn(surface, "relative mx-4 w-full max-w-xl shadow-lg animate-in fade-in")}>
           <div className="flex items-center gap-2 border-b border-border px-3">
             <Search className="size-4 text-muted-foreground" />
             <Command.Input
@@ -223,7 +266,7 @@ function PaletteItem({
       value={value}
       onSelect={onSelect}
       className={cn(
-        "flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 transition-colors",
+        "flex cursor-pointer items-center gap-2.5 rounded-control px-2 py-2 transition-colors",
         "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground",
       )}
     >

@@ -49,7 +49,42 @@ describe("createReminder", () => {
     ).rejects.toBeInstanceOf(AppError);
     expect(prisma.pet.findFirst).toHaveBeenCalledWith({
       where: { id: "pet-x", clinicId: "clinic-1", ownerId: "client-1" },
-      select: { id: true },
+      select: { id: true, deceased: true, archivedAt: true },
+    });
+    expect(prisma.reminder.create).not.toHaveBeenCalled();
+  });
+
+  // Backlog 7, second half. Sending already stopped for a dead or archived
+  // animal; creating did not, so the list filled with rows that could never
+  // fire. A loop that cannot be trusted is worse than no loop (TEAM.md #12),
+  // and the refusal has to be visible on the field rather than a silent
+  // no-op (TEAM.md #33), which is what `validationFailed` gives it.
+  it.each([
+    ["deceased", { id: "pet-1", deceased: true, archivedAt: null }],
+    ["archived", { id: "pet-1", deceased: false, archivedAt: new Date() }],
+  ])("refuses a reminder for an animal that is %s", async (_case, pet) => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      id: "client-1",
+      archivedAt: null,
+    } as never);
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue(pet as never);
+
+    await expect(
+      createReminder({ ...validInput, petId: "pet-1" }, ctx),
+    ).rejects.toMatchObject({
+      details: { fieldErrors: { petId: ["error.validation.petSilenced"] } },
+    });
+    expect(prisma.reminder.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a reminder for an archived client", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      id: "client-1",
+      archivedAt: new Date(),
+    } as never);
+
+    await expect(createReminder(validInput, ctx)).rejects.toMatchObject({
+      details: { fieldErrors: { clientId: ["error.validation.clientArchived"] } },
     });
     expect(prisma.reminder.create).not.toHaveBeenCalled();
   });
@@ -105,5 +140,34 @@ describe("markReminderStatus", () => {
       where: { id: "rem-1" },
       data: { status: "ACKNOWLEDGED", sentAt: undefined },
     });
+  });
+
+  // Closing a reminder is one click on a list of rows, so the click next to
+  // the intended one closes the wrong record. Reopening is the way back, and
+  // it is the same call: the status column already has the state to return
+  // to. Archiving taught this the expensive way — the service could restore
+  // all along and nothing on screen could, which read as irreversible
+  // (backlog 39).
+  it("reopens a closed reminder without re-stamping when it was sent", async () => {
+    vi.mocked(prisma.reminder.findFirst).mockResolvedValue({ id: "rem-1" } as never);
+    vi.mocked(prisma.reminder.update).mockResolvedValue({} as never);
+
+    await markReminderStatus("rem-1", "PENDING", ctx);
+
+    expect(prisma.reminder.update).toHaveBeenCalledWith({
+      where: { id: "rem-1" },
+      // `sentAt` is left alone: it records that a message went out, which
+      // reopening does not undo. Clearing it would make the reminder look
+      // as though it had never been sent, and the sweep decides whether to
+      // send by looking at the message log either way.
+      data: { status: "PENDING", sentAt: undefined },
+    });
+  });
+
+  it("is refused for a role without reminders.write", async () => {
+    await expect(
+      markReminderStatus("rem-1", "PENDING", { ...ctx, userRole: "NOBODY" }),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.reminder.update).not.toHaveBeenCalled();
   });
 });

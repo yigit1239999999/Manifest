@@ -26,8 +26,8 @@ model Clinic {
   city       String?
   postalCode String?
   country    String?
-  timezone   String   @default("UTC")
-  currency   String   @default("USD")
+  timezone   String   @default("Europe/Istanbul")
+  currency   String   @default("TRY")
   settings   Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -35,6 +35,7 @@ model Clinic {
   users         User[]
   clients       Client[]
   pets          Pet[]
+  customSpecies CustomSpecies[]
   visits        Visit[]
   appointments  Appointment[]
   vaccinations  Vaccination[]
@@ -46,6 +47,7 @@ model Clinic {
   invoices      Invoice[]
   documents     Document[]
   auditLogs     AuditLog[]
+  messages      MessageLog[]
 
   @@map("clinics")
 }
@@ -103,24 +105,59 @@ enum ContactMethod {
 }
 
 model Client {
-  id               String         @id @default(cuid())
-  clinicId         String
-  clinic           Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  firstName        String
-  lastName         String
-  email            String?
-  phone            String?
-  secondaryPhone   String?
-  address          String?
-  city             String?
-  postalCode       String?
-  country          String?
-  preferredContact ContactMethod?
-  marketingOptIn   Boolean        @default(false)
-  notes            String?
-  archivedAt       DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id                 String         @id @default(cuid())
+  clinicId           String
+  clinic             Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  firstName          String
+  lastName           String
+  email              String?
+  phone              String?
+  secondaryPhone     String?
+  address            String?
+  city               String?
+  postalCode         String?
+  country            String?
+  preferredContact   ContactMethod?
+  /// BCP 47 language for outbound messages ("tr" | "en"). Null falls back
+  /// to the clinic's default.
+  preferredLanguage  String?
+  /// Per-client switch for automatic SMS/WhatsApp messages (appointments,
+  /// reminders). Timing is a clinic setting; this is the client's consent.
+  ///
+  /// Three states, and nothing may quietly turn one into another:
+  ///   null  - nobody has asked yet
+  ///   true  - the client agreed
+  ///   false - the client refused
+  ///
+  /// It used to be `Boolean @default(false)`, so a client born unasked was
+  /// recorded as having refused, on the day the record was created. The
+  /// two are not the same thing and only one of them is a fact: "not
+  /// asked" is work still to do, "refused" is an answer to respect. Both
+  /// sides of the column have to keep them apart - see the form field in
+  /// `modules/clients/schema.ts`, where an absent control must write
+  /// nothing rather than `false`.
+  notificationsOptIn Boolean?
+  marketingOptIn     Boolean        @default(false)
+  notes              String?
+  /// Accent-folded first name, last name, email and phone, joined by
+  /// spaces. A STORED generated column: Postgres writes it, nothing here
+  /// ever may, and `20260921190000_search_key_accent_folded` holds the
+  /// expression and its trigram index. Searches compare it against a
+  /// term folded by `lib/search.ts`; the two must agree, and
+  /// `scripts/fold-parity.mjs` is what checks that they do.
+  ///
+  /// Two defects were closed by this one column, and the second is the
+  /// reason the join is not an implementation detail. Searching a full
+  /// name never worked at all: first and last name are separate
+  /// columns, and no OR over them can span the space between the words.
+  /// Measured before the change, "Yiğit Sonbahar" returned 0 rows, and
+  /// so did "Yigit Sonbahar" -- it was never an accent problem. Anyone
+  /// simplifying this to "unaccent is enough" takes the full-name search
+  /// away again, and nothing on screen will connect the two.
+  searchKey          String?
+  archivedAt         DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   pets         Pet[]
   appointments Appointment[]
@@ -132,12 +169,14 @@ model Client {
   notes_rel    Note[]
   documents    Document[]
   reminders    Reminder[]
+  messages     MessageLog[]
 
   @@index([clinicId])
   @@index([clinicId, lastName, firstName])
   @@index([clinicId, email])
   @@index([clinicId, phone])
   @@index([clinicId, archivedAt])
+  @@index([clinicId, createdAt(sort: Desc)])
   @@map("clients")
 }
 
@@ -151,8 +190,14 @@ enum Species {
   BIRD
   RABBIT
   RODENT
+  FERRET
   REPTILE
+  AMPHIBIAN
   FISH
+  HORSE
+  CATTLE
+  SHEEP
+  GOAT
   EXOTIC
   OTHER
 }
@@ -164,16 +209,20 @@ enum Sex {
 }
 
 model Pet {
-  id                String    @id @default(cuid())
+  id                String         @id @default(cuid())
   clinicId          String
-  clinic            Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic            Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   ownerId           String
-  owner             Client    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner             Client         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   name              String
   species           Species
+  /// Clinic-defined species ("her kliniğin kendi dünyası"). When set, the
+  /// enum column holds OTHER and this row's name is the display species.
+  customSpeciesId   String?
+  customSpecies     CustomSpecies? @relation(fields: [customSpeciesId], references: [id], onDelete: SetNull)
   breed             String?
-  sex               Sex       @default(UNKNOWN)
-  neutered          Boolean   @default(false)
+  sex               Sex            @default(UNKNOWN)
+  neutered          Boolean        @default(false)
   birthDate         DateTime?
   color             String?
   weightKg          Float?
@@ -182,12 +231,17 @@ model Pet {
   insurancePolicy   String?
   photoUrl          String?
   alerts            String?
-  deceased          Boolean   @default(false)
+  deceased          Boolean        @default(false)
   deceasedAt        DateTime?
   archivedAt        DateTime?
   notes             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  /// Accent-folded name, breed and microchip id. See `Client.searchKey`
+  /// -- same generated column, same migration. The owner's name is not
+  /// in here: a generated column cannot read another table, so a search
+  /// for an owner goes through `owner.searchKey`.
+  searchKey         String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   visits        Visit[]
   appointments  Appointment[]
@@ -203,11 +257,35 @@ model Pet {
   invoiceLines  InvoiceLine[]
 
   @@index([clinicId])
+  @@index([customSpeciesId])
   @@index([clinicId, ownerId])
   @@index([clinicId, name])
   @@index([clinicId, microchipId])
   @@index([clinicId, archivedAt])
   @@map("pets")
+}
+
+/// Clinic-defined species beyond the built-in enum (e.g. "Kirpi", "At").
+/// Created on the fly from the pet form's species combobox.
+model CustomSpecies {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name      String
+  /// Accent-folded `name`, generated by Postgres. Two clinics may both
+  /// have a "Köpek"; one clinic may not have both "Köpek" and "Kopek",
+  /// and the unique index below is what makes that true even when two
+  /// requests add it in the same second. See
+  /// `20260921200000_custom_species_folded_unique`.
+  nameKey   String?
+  createdAt DateTime @default(now())
+
+  pets Pet[]
+
+  @@unique([clinicId, name])
+  @@unique([clinicId, nameKey])
+  @@index([clinicId])
+  @@map("custom_species")
 }
 
 // ===========================================================================
@@ -254,6 +332,7 @@ model Appointment {
   reason          String?
   notes           String?
   visit           Visit?
+  messages        MessageLog[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -261,6 +340,12 @@ model Appointment {
   @@index([clinicId, vetId, startsAt])
   @@index([clinicId, petId])
   @@index([clinicId, status, startsAt])
+  // One more index exists that is not written here: a UNIQUE index on
+  // (clinicId, petId, startsAt) WHERE status <> 'CANCELLED', added in
+  // `20260921140000_one_appointment_per_animal_per_instant`. Prisma cannot
+  // express a partial unique index, so it lives in the migration alone —
+  // noted here because a model that looks like it permits duplicates is
+  // how someone comes to rely on that.
   @@map("appointments")
 }
 
@@ -295,6 +380,10 @@ model Visit {
   respiratoryRateBpm Int?
   followupAt         DateTime?
   totalCents         Int?
+  /// Set whenever `totalCents` is. See the visit service: a total without
+  /// the currency it was recorded in is a number the clinic's next
+  /// settings change silently restates.
+  currency           String?
   archivedAt         DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -332,6 +421,22 @@ model Vaccination {
   lotNumber        String?
   administeredAt   DateTime  @default(now())
   nextDueAt        DateTime?
+  /// Set when somebody closes this overdue row on the dashboard.
+  ///
+  /// It closes the ROW, not the animal: `Pet.archivedAt` is untouched,
+  /// and every other screen still shows this vaccination. "I have dealt
+  /// with this one" is a smaller statement than "this animal is gone".
+  ///
+  /// REQUIRED OF WHOEVER ADDS AN UPDATE PATH: moving `nextDueAt` must
+  /// clear this. Changing the date means "I am tracking this animal
+  /// again" and the stamp means "I am not", and a record holding both
+  /// falls between the two cards -- out of the overdue one because the
+  /// date moved, invisible in the upcoming one because of the stamp.
+  /// There is no update path today (create and delete only), so a new
+  /// date arrives as a new row with no stamp, and the rule holds by
+  /// construction rather than by code. That stops being true the day
+  /// an edit form lands.
+  dueDismissedAt   DateTime?
   site             String?
   notes            String?
   createdAt        DateTime  @default(now())
@@ -339,6 +444,12 @@ model Vaccination {
 
   @@index([clinicId, petId, administeredAt])
   @@index([clinicId, nextDueAt])
+  // A third index is not written here: (clinicId, administeredAt DESC)
+  // WHERE "nextDueAt" IS NOT NULL, added in
+  // `20260921150000_vaccination_suggestion_index` for the next-due
+  // suggestion, which reads this table newest-first on two of the busiest
+  // screens. Prisma cannot express a partial index, so it lives in the
+  // migration; noted here so nobody adds a fourth one for the same query.
   @@map("vaccinations")
 }
 
@@ -518,6 +629,8 @@ model Reminder {
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
 
+  messages MessageLog[]
+
   @@index([clinicId, dueAt])
   @@index([clinicId, status])
   @@map("reminders")
@@ -542,6 +655,12 @@ model Invoice {
   clientId      String
   client        Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   number        String
+  /**
+   * The currency this invoice was issued in, copied from the clinic at the
+   * time. Reading a finished invoice through the clinic's *current* setting
+   * would silently restate last year's totals the day someone changes it.
+   */
+  currency      String
   status        InvoiceStatus @default(DRAFT)
   issuedAt      DateTime      @default(now())
   dueAt         DateTime?
@@ -577,6 +696,12 @@ model InvoiceLine {
   createdAt      DateTime @default(now())
 
   @@index([invoiceId])
+  /// Both foreign keys, both unindexed until now, and the second one is
+  /// about to be read on every visit page: "does this visit already have
+  /// an invoice". Postgres does not index a foreign key for you, so that
+  /// question was a sequential scan over every line in the database.
+  @@index([visitId])
+  @@index([petId])
   @@map("invoice_lines")
 }
 
@@ -635,6 +760,94 @@ model Document {
 // ===========================================================================
 // Audit log — who changed what, when
 // ===========================================================================
+
+// ===========================================================================
+// Outbound messaging (WhatsApp appointment notifications)
+// ===========================================================================
+
+enum MessageChannel {
+  SMS
+  WHATSAPP
+}
+
+enum MessageKind {
+  APPOINTMENT_CONFIRMATION
+  APPOINTMENT_REMINDER
+  REMINDER_DUE
+}
+
+enum MessageStatus {
+  SENT
+  FAILED
+  MANUAL
+}
+
+/// What became of a message the provider accepted.
+///
+/// Separate from `MessageStatus` on purpose, and the two must never be
+/// collapsed: `SENT` means the operator took it, and that is all it has
+/// ever meant. Whether it reached a handset is a second fact that
+/// arrives later, from a different call, and often not at all.
+///
+/// `UNKNOWN` and `PENDING` are both "not delivered yet" and they are
+/// not the same thing. UNKNOWN is us: nobody has asked the provider.
+/// PENDING is the provider: asked, and it does not know yet. A single
+/// null for both would repeat the defect this whole day was spent
+/// removing -- a zero that cannot say whether it is an answer or an
+/// absence.
+enum MessageDeliveryStatus {
+  UNKNOWN
+  PENDING
+  DELIVERED
+  UNDELIVERED
+  EXPIRED
+}
+
+/// Every outbound message, whether the provider sent it or staff opened it
+/// in WhatsApp by hand. Doubles as the dedupe source for reminders.
+model MessageLog {
+  id            String         @id @default(cuid())
+  clinicId      String
+  clinic        Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  appointment   Appointment?   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  clientId      String?
+  client        Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  reminderId    String?
+  reminder      Reminder?      @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  channel       MessageChannel @default(SMS)
+  kind          MessageKind
+  recipient     String
+  language      String
+  body          String
+  status        MessageStatus
+  providerId    String?
+  error         String?
+  createdAt     DateTime       @default(now())
+
+  /// Delivery, which is a different question from sending. Required and
+  /// defaulted rather than nullable: "nobody has asked yet" is an
+  /// answer and it has a name (`UNKNOWN`), where a null would have to
+  /// stand for that and for "asked, still pending" at once.
+  deliveryStatus    MessageDeliveryStatus @default(UNKNOWN)
+  /// Only ever set when `deliveryStatus` is DELIVERED.
+  deliveredAt       DateTime?
+  /// The provider's own code, kept for tracing. Never shown on screen:
+  /// it is their vocabulary, not a sentence about this clinic's work.
+  deliveryCode      String?
+  /// When the report was last asked for, so the poller can leave alone
+  /// what it has just checked, and so a stalled poller is visible.
+  deliveryCheckedAt DateTime?
+
+  @@index([clinicId, createdAt])
+  @@index([appointmentId, kind])
+  @@index([reminderId, kind])
+  /// The poller's own query: accepted messages whose delivery is still
+  /// open, oldest first. Without this it is a scan of every message the
+  /// clinic has ever sent, every fifteen minutes.
+  @@index([deliveryStatus, createdAt])
+  @@map("message_logs")
+}
 
 enum AuditAction {
   CREATE

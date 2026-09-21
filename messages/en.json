@@ -4,6 +4,8 @@
     "tagline": "Veterinary CRM & Pet Management"
   },
   "nav": {
+    "skipToContent": "Skip to content",
+    "primary": "Main navigation",
     "dashboard": "Dashboard",
     "clients": "Clients",
     "pets": "Pets",
@@ -12,30 +14,53 @@
     "prescriptions": "Prescriptions",
     "reminders": "Reminders",
     "invoices": "Invoices",
+    "staff": "Team",
+    "settings": "Settings",
     "audit": "Audit log",
     "signOut": "Sign out"
   },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
+    "nevermind": "Cancel",
     "edit": "Edit",
     "delete": "Delete",
     "archive": "Archive",
-    "restore": "Restore",
+    "restore": "Restore from archive",
     "new": "New",
     "add": "Add",
     "addAnother": "Add another",
     "remove": "Remove",
     "search": "Search…",
+    "select": "Select",
+    "none": "None",
     "back": "Back",
     "noResults": "No results.",
+    "searching": "Searching…",
+    "searchFailed": "The search could not run just now. Check your connection and try again.",
+    "searchMinChars": "Type at least two letters to search.",
+    "searchMore": "Not all records are shown. If you cannot see the one you want, keep typing before you create a new one.",
+    "searchOrType": "Search or type…",
+    "addNew": "Add \"{value}\"",
     "optional": "optional",
     "required": "required",
+    "errorSummary": "{count, plural, one {One field needs your attention} other {# fields need your attention}}",
+    "errorSummaryGoTo": "Go to {field}",
+    "requiredFields": "Required: {fields}",
     "yes": "Yes",
     "no": "No",
     "all": "All",
-    "open": "Open",
+    "archiveFilter": "Archive filter",
+    "activeOnly": "Active",
+    "withArchived": "With archived",
+    "archivedOn": "Archived on {date}",
+    "archiveUndoHint": "You can restore it from the archive.",
+    "emptyFiltered": "Nothing matches this filter.",
+    "emptyFilteredHint": "Clear the filter to see every record.",
+    "clearFilter": "Clear filter",
     "details": "Details",
+    "actionFor": "{action}: {subject}",
+    "emailPlaceholder": "example@email.com",
     "language": "Language",
     "createdAt": "Created",
     "updatedAt": "Updated",
@@ -43,7 +68,11 @@
     "created": "Created",
     "archived": "Archived",
     "deleted": "Deleted",
-    "theme": "Theme"
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "Auto",
+    "amountExample": "For example: {example}"
   },
   "auth": {
     "signIn": "Sign in",
@@ -57,7 +86,8 @@
     "signInButton": "Sign in",
     "signUpButton": "Create account",
     "needAccount": "Don't have an account? Sign up",
-    "haveAccount": "Already have an account? Sign in"
+    "haveAccount": "Already have an account? Sign in",
+    "passwordHint": "At least 8 characters."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -65,27 +95,42 @@
     "subtitle": "Here's what's happening today.",
     "metrics": {
       "clients": "Clients",
-      "pets": "Patients",
+      "pets": "Pets",
       "visits": "Visits",
       "upcomingAppointments": "Upcoming",
       "activePrescriptions": "Active Rx",
       "outstandingInvoices": "Outstanding",
-      "pendingReminders": "Reminders"
+      "openReminders": "Reminders"
     },
     "sections": {
       "upcomingAppointments": "Upcoming appointments",
       "recentVisits": "Recent visits",
       "upcomingVaccinations": "Upcoming vaccinations",
-      "petsBySpecies": "Patients by species",
+      "petsBySpecies": "Pets by species",
       "visitsByType": "Visits by type",
-      "visitsLast12Weeks": "Visits — last 12 weeks",
-      "revenueLast6Months": "Paid invoices — last 6 months"
+      "visitsLast12Weeks": "Visits (last 12 weeks)",
+      "revenueLast6Months": "Paid invoices (last 6 months)",
+      "overdueVaccinations": "Overdue vaccinations"
+    },
+    "chart": {
+      "partialPeriod": "The last column covers a period still in progress.",
+      "inProgress": "in progress",
+      "otherCurrency": "Also {amount} · {count, plural, one {1 invoice} other {# invoices}} · not in the chart",
+      "otherCurrencyCount": "+{count, plural, one {1 currency} other {# currencies}}"
     },
     "empty": {
       "appointments": "No upcoming appointments.",
+      "pets": "No animals yet.",
+      "revenue": "No paid invoices in this period.",
+      "revenueCurrency": "No invoices paid in {currency} in this period.",
       "visits": "No visits yet.",
       "vaccinations": "No vaccinations due soon."
-    }
+    },
+    "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
+    "overdueVaccinationsDismiss": "Close",
+    "overdueVaccinationsDismissName": "Close the {vaccine} row for {pet}",
+    "overdueVaccinationsDismissed": "Vaccination row closed.",
+    "overdueVaccinationsUndo": "Undo"
   },
   "client": {
     "title": "Clients",
@@ -96,7 +141,9 @@
     "edit": "Edit client",
     "search": "Search clients…",
     "empty": "No clients yet.",
+    "emptyHint": "Add your first client to start registering pets, visits and appointments.",
     "emptySearch": "No clients match this search.",
+    "emptySearchHint": "Try a different name, phone number or email address.",
     "firstName": "First name",
     "lastName": "Last name",
     "email": "Email",
@@ -107,9 +154,19 @@
     "postalCode": "Postal code",
     "country": "Country",
     "preferredContact": "Preferred contact",
-    "marketingOptIn": "Allow marketing communications",
+    "preferredLanguage": "Preferred language",
+    "preferredLanguageHint": "Messages sent to this client are written in this language.",
+    "consent": {
+      "label": "Notification consent",
+      "unanswered": "Not asked yet",
+      "legend": "Client's notification consent",
+      "granted": "Gave consent",
+      "declined": "Declined",
+      "unansweredHint": "Not asked yet. No automatic messages are sent to this client until an answer is recorded.",
+      "grantedHint": "Appointment confirmations, reminders and vaccination notices are sent to this client.",
+      "declinedHint": "No automatic messages are sent to this client."
+    },
     "notes": "Notes",
-    "archivedTitle": "Archived",
     "archiveConfirm": "Archive this client?",
     "petsCount": "{count, plural, =0 {No pets} one {1 pet} other {# pets}}",
     "viewProfile": "View profile",
@@ -118,21 +175,23 @@
       "identity": "Identity",
       "identityHint": "How this client is named in your records.",
       "contact": "Contact",
-      "contactHint": "How you reach them — kept private.",
+      "contactHint": "How to reach them. Kept private.",
       "address": "Address",
       "addressHint": "Useful for home visits and correspondence.",
-      "preferences": "Preferences & notes",
-      "preferencesHint": "How they like to be contacted and any context worth remembering."
+      "notes": "Notes",
+      "notesHint": "Context worth remembering about this client."
     },
     "tabs": {
       "overview": "Overview",
       "pets": "Pets",
       "timeline": "Timeline",
       "invoices": "Invoices"
-    }
+    },
+    "one": "Client"
   },
   "pet": {
-    "title": "Patients",
+    "title": "Pets",
+    "one": "Pet",
     "subtitle": "All pets registered to your clinic.",
     "new": "New pet",
     "create": "Create pet",
@@ -140,7 +199,10 @@
     "edit": "Edit pet",
     "search": "Search pets…",
     "empty": "No pets yet.",
+    "emptyHint": "Register a pet to one of your clients to start its medical record.",
     "emptySearch": "No pets match this search.",
+    "emptySearchHint": "Try a different pet name, breed or owner.",
+    "noOwnersHint": "Every pet belongs to a client. Create the client first, then add the pet.",
     "name": "Name",
     "species": "Species",
     "breed": "Breed",
@@ -157,7 +219,7 @@
     "notes": "Notes",
     "sections": {
       "identity": "Identity",
-      "identityHint": "Basic patient details.",
+      "identityHint": "Basic pet details.",
       "physical": "Physical",
       "physicalHint": "Visible attributes and vitals at intake.",
       "medical": "Medical",
@@ -169,6 +231,15 @@
     "deceasedAt": "Date of passing",
     "markDeceased": "Mark as deceased",
     "archiveConfirm": "Archive this pet?",
+    "archivedByOwner": "Its owner is archived, so this animal does not appear in the lists either.",
+    "manageSpecies": "Manage species",
+    "newSpecies": "New species",
+    "newSpeciesHint": "Not in the list? Add your own. It is saved for your clinic so you never type it again.",
+    "newSpeciesPlaceholder": "Species name (e.g. Hedgehog)",
+    "hiddenSpeciesQualifier": "turned off for this clinic",
+    "hiddenSpeciesNote": "{species} is a built-in species. It is turned off for this clinic, but it was used for this animal.",
+    "optionalDetails": "Optional details",
+    "optionalDetailsHint": "Birth date, weight, microchip, insurance and notes. You can fill these in later.",
     "tabs": {
       "overview": "Overview",
       "timeline": "Timeline",
@@ -180,7 +251,7 @@
   },
   "visit": {
     "title": "Visits",
-    "subtitle": "Every encounter recorded for your patients.",
+    "subtitle": "Every encounter recorded for your pets.",
     "new": "New visit",
     "create": "Create visit",
     "update": "Save visit",
@@ -201,7 +272,12 @@
     "heartRateBpm": "Heart rate (bpm)",
     "respiratoryRateBpm": "Respiration (bpm)",
     "followupAt": "Follow-up date",
-    "totalCost": "Total cost"
+    "amount": "Amount",
+    "totalCost": "Total cost",
+    "archiveConfirm": "Archive this visit?",
+    "createInvoice": "Create an invoice for this visit",
+    "invoicedAs": "Invoiced as {number}",
+    "archivedBySubject": "Its animal or its client is archived, so this visit does not appear in the lists."
   },
   "appointment": {
     "title": "Appointments",
@@ -215,9 +291,139 @@
     "durationMinutes": "Duration (minutes)",
     "status": "Status",
     "type": "Type",
+    "vet": "Veterinarian",
     "reason": "Reason",
     "notes": "Notes",
-    "cancel": "Cancel appointment"
+    "cancel": "Cancel appointment",
+    "duplicate": {
+      "notice": "This animal already has an appointment at this time; you have been brought to the existing record.",
+      "noticeDropped": "This animal already has an appointment at this time; you have been brought to the existing record. What you typed this time was not saved, and the appointment's own details were kept."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "language": "Message language",
+      "noPhone": "The client has no phone number on file, so no message can be prepared.",
+      "notConfigured": "{channel} is not connected yet, so nothing is sent automatically. You can copy the message and send it by hand.",
+      "openInWhatsApp": "Open in WhatsApp",
+      "copy": "Copy message",
+      "copyMessage": "Copy the {kind} message",
+      "copied": "Message copied.",
+      "copyFailed": "The message could not be copied. You can select it in the preview and copy it yourself.",
+      "sendNow": "Send {channel}",
+      "preview": "View message",
+      "segments": "{count, plural, one {1 SMS} other {# SMS}}",
+      "history": "Delivery history",
+      "historyEmpty": "No messages sent for this appointment yet.",
+      "messageSent": "{channel} sent.",
+      "optedOut": "Notification messages are disabled for this client. Nothing is sent automatically; if needed you can copy the message and send it by hand.",
+      "cancelledNotice": "This appointment is cancelled, so the confirmation and reminder messages are no longer offered. Tell the client yourself if they have not been informed.",
+      "completedNotice": "This appointment is complete, so confirmation and reminder messages are no longer offered.",
+      "pastNotice": "The appointment time has passed, so confirmation and reminder messages are no longer offered. This appointment's outcome has not been recorded yet.",
+      "recordOutcome": "Record the outcome",
+      "petSilencedNotice": "This animal has died or been archived, so no message is sent about it."
+    },
+    "today": "Today",
+    "previousDay": "Previous day",
+    "nextDay": "Next day",
+    "resultMissing": "no result recorded",
+    "stillOpen": "{open} of {total} appointments are still open.",
+    "allDates": "All dates",
+    "dayPlan": "Day plan",
+    "petClient": "Pet · Client",
+    "phone": "Phone",
+    "emptyDay": "No appointments on {date}.",
+    "emptyDayHint": "Use the arrows to look at another day, or book an appointment.",
+    "emptyHint": "Appointments you book appear here, the nearest first.",
+    "cancelConfirm": "Cancel this appointment?",
+    "cancelUndoHint": "The appointment stays on the list with its status set to cancelled. You can schedule it again from the edit screen."
+  },
+  "staff": {
+    "title": "Team",
+    "subtitle": "Veterinarians and staff working at your clinic.",
+    "new": "New staff member",
+    "create": "Add staff member",
+    "empty": "No staff members yet.",
+    "name": "Full name",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role",
+    "password": "Temporary password",
+    "passwordHint": "At least 8 characters. The staff member can change it later.",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "deactivate": "Deactivate",
+    "activate": "Activate",
+    "you": "You",
+    "deactivateConfirm": "Deactivate this staff member?",
+    "emptyHint": "Add the vets, technicians and receptionists who work at this clinic."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Tune how your clinic works.",
+    "clinic": {
+      "title": "Clinic",
+      "hint": "Your clinic's basics and its currency.",
+      "currency": "Currency",
+      "currencyHint": "Every invoice carries the currency it was issued in. This setting only affects the ones issued from now on.",
+      "currency_TRY": "₺ Turkish lira (TRY)",
+      "currency_USD": "$ US dollar (USD)",
+      "currency_EUR": "€ Euro (EUR)",
+      "currency_GBP": "£ Pound sterling (GBP)",
+      "currencyConfirmTitle": "Change the currency to {currency}?",
+      "currencyConfirmBody": "Invoices issued from now on will be in this currency. {count, plural, one {Your 1 recorded invoice} other {Your # recorded invoices}} stay in their own currency and keep reading that way. Example: {example}",
+      "saved": "Clinic settings saved.",
+      "save": "Save"
+    },
+    "species": {
+      "title": "Visible species",
+      "hint": "Which species should the pet form list? Fewer, relevant species mean faster intake. Existing pets of hidden species are unaffected.",
+      "save": "Save",
+      "saved": "Species saved.",
+      "custom": "Clinic-specific species",
+      "customHint": "Added from the pet form via \"New species\". A species in use can't be deleted.",
+      "customEmpty": "No custom species yet. Add one from the pet form via \"New species\".",
+      "usage": "{count, plural, =0 {unused} one {1 pet} other {# pets}}",
+      "delete": "Delete",
+      "deleteConfirm": "Delete the species \"{name}\"?",
+      "inUse": "In use and cannot be deleted."
+    },
+    "notifications": {
+      "title": "Notification messages",
+      "hint": "Appointment and reminder messages are written in the client's preferred language, in the clinic's timezone.",
+      "channel": "Delivery channel",
+      "channel_SMS": "SMS",
+      "channel_SMS_hint": "Works on every phone, no approvals or templates. Recommended.",
+      "channel_WHATSAPP": "WhatsApp Business",
+      "channel_WHATSAPP_hint": "Requires a Meta WhatsApp Cloud API connection and approved message templates.",
+      "channelConnected": "Connected",
+      "channelNotConnected": "Not connected",
+      "segments": "{count, plural, one {1 SMS segment} other {# SMS segments}}",
+      "enabled": "Automatic notification messages enabled",
+      "confirmOnBooking": "Send a confirmation when an appointment is created",
+      "reminder": "Reminder timing",
+      "reminderOff": "Do not send reminders",
+      "reminderHoursBefore": "A set number of hours before the appointment",
+      "hoursBefore": "Hours before",
+      "reminderMorningOf": "On the day of the appointment, at a set hour",
+      "morningHour": "Hour (0-23)",
+      "remindersTitle": "Pet reminders",
+      "remindersHint": "Messages for vaccination due, check-up, follow-up, birthday and custom reminders. Sent at the same hour as the appointment-day reminder above.",
+      "remindersEnabled": "Send reminder messages",
+      "remindersDaysBefore": "Days before (0 = same day)",
+      "timezone": "Clinic timezone",
+      "timezoneHint": "Dates and times in messages use this timezone.",
+      "providerConnected": "{channel} is connected ({transport}).",
+      "providerConnectedSending": "Scheduled messages go out over this connection.",
+      "providerMissing": "{channel} is not connected yet, so nothing is sent automatically. Until then, messages are copied from the appointment page and sent by hand. The connection cannot be set up from inside the app; your clinic administrator has to configure the provider.",
+      "preview": "Message preview",
+      "previewConfirmation": "Confirmation",
+      "previewReminder": "Reminder",
+      "saved": "Notification settings saved.",
+      "save": "Save",
+      "enabledHint": "Turns the scheduled messages — booking confirmations and reminders — on and off for the whole clinic. Sending a message by hand from an appointment page keeps working either way.",
+      "disabledNotice": "Automatic messages are off; nothing is sent on its own. You can set the timings now and switch this on later. Sending by hand from the appointment page works either way."
+    }
   },
   "vaccination": {
     "title": "Vaccinations",
@@ -230,11 +436,21 @@
     "administeredAt": "Administered at",
     "nextDueAt": "Next due",
     "site": "Site",
-    "notes": "Notes"
+    "notes": "Notes",
+    "namePlaceholder": "Search or type: rabies, DHPPi, FVRCP…",
+    "nextDueResult": "When this date arrives the record shows on the dashboard: under \"Upcoming vaccinations\" until then, and under \"Overdue vaccinations\" once it has passed.",
+    "nextDueEmpty": "Left empty, this vaccination will not appear in the upcoming list.",
+    "suggestionChip": "{interval} later · {date}",
+    "suggestionSource": "Most of the last {count} \"{name}\" records in this clinic were set {interval} later.",
+    "interval": {
+      "week": "{count, plural, one {1 week} other {# weeks}}",
+      "month": "{count, plural, one {1 month} other {# months}}",
+      "year": "{count, plural, one {1 year} other {# years}}"
+    }
   },
   "prescription": {
     "title": "Prescriptions",
-    "subtitle": "Medications prescribed to your patients.",
+    "subtitle": "Medications prescribed to your pets.",
     "new": "New prescription",
     "create": "Save prescription",
     "empty": "No prescriptions.",
@@ -250,29 +466,39 @@
     "instructions": "Instructions",
     "notes": "Notes",
     "complete": "Mark completed",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "durationShort": "{count} days",
+    "emptyHint": "Prescriptions written from a pet's page appear here, the newest first."
   },
   "treatment": {
-    "title": "Treatments",
-    "new": "Add treatment",
+    "title": "Treatments and procedures",
+    "new": "Add treatment / procedure",
     "create": "Save treatment",
-    "empty": "No treatments recorded.",
-    "name": "Treatment",
-    "code": "Code",
+    "empty": "No treatments or procedures recorded yet.",
+    "name": "Treatment / procedure",
+    "namePlaceholder": "Search or type: spay, dental scaling, IV fluids…",
+    "code": "Procedure code",
+    "codeHint": "Internal or tariff code (optional).",
     "performedAt": "Performed at",
+    "performedBy": "Performed by",
     "durationMinutes": "Duration (min)",
-    "notes": "Notes"
+    "notes": "Procedure notes",
+    "notesPlaceholder": "Anaesthesia protocol, materials used, complications, owner briefing…"
   },
   "diagnostic": {
     "title": "Diagnostics",
-    "new": "Add diagnostic",
-    "create": "Save diagnostic",
-    "empty": "No diagnostics recorded.",
-    "type": "Type",
-    "name": "Test name",
+    "new": "Add test",
+    "create": "Save test",
+    "empty": "No diagnostic tests recorded yet.",
+    "type": "Test type",
+    "name": "Test",
+    "namePlaceholder": "Search or type: CBC, chemistry panel, thoracic X-ray…",
     "performedAt": "Performed at",
-    "result": "Result",
+    "result": "Results and findings",
+    "resultPlaceholder": "Measured values, reference ranges, imaging findings…",
+    "resultPending": "Result pending",
     "interpretation": "Interpretation",
+    "interpretationPlaceholder": "Clinical interpretation, differential diagnosis, recommended follow-up…",
     "notes": "Notes"
   },
   "note": {
@@ -298,7 +524,53 @@
     "body": "Notes",
     "dueAt": "Due at",
     "acknowledge": "Mark done",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "reopen": "Reopen",
+    "emptyHint": "Reminders you create (vaccination due, check-up, follow-up) are listed here until you close them.",
+    "statusFilter": "Status",
+    "filterOpen": "Open",
+    "filterClosed": "Closed",
+    "filterAll": "All",
+    "emptyClosed": "No closed reminders.",
+    "emptyClosedHint": "Reminders you have completed, or closed because they were no longer needed, collect here.",
+    "sendNow": "Send now",
+    "customTitleHint": "This title is sent to the client word for word.",
+    "log": {
+      "summary": "{count, plural, one {Message sent} other {# messages sent}}",
+      "recipient": "Number",
+      "providerCode": "Provider code"
+    },
+    "unreachable": {
+      "neverAsked": "Nobody has asked this client for notification consent.",
+      "optedOut": "This client has not given notification consent.",
+      "noPhone": "This client has no phone number on record.",
+      "savedAnyway": "The reminder is saved; no message goes out."
+    },
+    "delivery": {
+      "scheduled": "Will be sent: {at} · {channel}",
+      "dueNow": "Waiting to go out ({channel}). You can also send it now.",
+      "sent": "Sent: {at} · {channel}",
+      "delivered": "Delivered: {at} · {channel}",
+      "awaitingReport": "Sent: {at} · {channel}. Awaiting the report.",
+      "undelivered": "Not received: {at} · {channel}. The number is unreachable.",
+      "reportExpired": "No delivery report came back: {at} · {channel}",
+      "sentTestMode": "Recorded in test mode: {at} · {channel}. No message left the app.",
+      "failedRetrying": "Could not be sent: {at} · {attempts, plural, one {1 try} other {# tries}}. Will retry.",
+      "failedExhausted": "{attempts, plural, other {# tries}} failed and automatic sending stopped. Send it by hand.",
+      "failedClinic": "Could not be sent. Last attempt {at}. The reason is shown above.",
+      "optedOut": "Will not be sent: the client has not given notification consent.",
+      "neverAsked": "Will not be sent: notification consent has never been asked for.",
+      "noPhone": "Will not be sent: the client has no phone number on record.",
+      "notConfigured": "Will not be sent: {channel} is not connected yet.",
+      "petSilenced": "Will not be sent: the animal has died or been archived.",
+      "openSettings": "Notification settings",
+      "askAdmin": "Ask your clinic administrator."
+    },
+    "banner": {
+      "disabled": "Automatic messages are switched off. No reminder on this list will be sent.",
+      "notConfigured": "{channel} is not connected. No message can go out from this list.",
+      "clinicFailure": "Message sending has stopped: {reason}"
+    }
   },
   "invoice": {
     "title": "Invoices",
@@ -321,12 +593,16 @@
     "quantity": "Qty",
     "unitPrice": "Unit price",
     "lineTotal": "Total",
+    "fromVisit": "From the visit on {date}",
     "notes": "Notes",
     "outstanding": "Outstanding",
     "recordPayment": "Record payment",
     "void": "Void invoice",
     "payment": {
+      "title": "Payments",
       "amount": "Amount",
+      "remaining": "Outstanding: {amount}",
+      "payFull": "Pay in full",
       "method": "Method",
       "reference": "Reference",
       "notes": "Notes",
@@ -345,7 +621,9 @@
       "diagnostic": "Diagnostic",
       "note": "Note",
       "invoice": "Invoice"
-    }
+    },
+    "nextDue": "next",
+    "emptyHint": "Records added for this pet — visits, vaccinations, treatments and notes — appear here."
   },
   "audit": {
     "title": "Audit log",
@@ -354,7 +632,8 @@
     "actor": "Actor",
     "action": "Action",
     "entity": "Entity",
-    "when": "When"
+    "when": "When",
+    "emptyHint": "Everything staff change — records created, edited or archived — is listed here."
   },
   "enum": {
     "species": {
@@ -363,8 +642,14 @@
       "BIRD": "Bird",
       "RABBIT": "Rabbit",
       "RODENT": "Rodent",
+      "FERRET": "Ferret",
       "REPTILE": "Reptile",
+      "AMPHIBIAN": "Amphibian",
       "FISH": "Fish",
+      "HORSE": "Horse",
+      "CATTLE": "Cattle",
+      "SHEEP": "Sheep",
+      "GOAT": "Goat",
       "EXOTIC": "Exotic",
       "OTHER": "Other"
     },
@@ -459,6 +744,33 @@
       "PHONE": "Phone",
       "SMS": "SMS"
     },
+    "language": {
+      "tr": "Turkish",
+      "en": "English"
+    },
+    "messageKind": {
+      "APPOINTMENT_CONFIRMATION": "Appointment confirmation",
+      "APPOINTMENT_REMINDER": "Appointment reminder",
+      "REMINDER_DUE": "Reminder"
+    },
+    "messageChannel": {
+      "SMS": "SMS",
+      "WHATSAPP": "WhatsApp"
+    },
+    "messageFailure": {
+      "invalid_credentials_or_ip": "The provider rejected the account credentials.",
+      "sender_title_not_registered": "The sender title is not approved with the provider.",
+      "iys_controlled_sending_not_allowed": "İYS consent control is blocking sending.",
+      "iys_brand_missing": "The İYS brand entry is missing.",
+      "invalid_parameters": "The provider rejected the request.",
+      "sending_limit_exceeded": "The provider's sending limit has been reached.",
+      "sms_not_configured": "SMS is not connected."
+    },
+    "messageStatus": {
+      "SENT": "Sent",
+      "FAILED": "Failed",
+      "MANUAL": "Sent manually"
+    },
     "auditAction": {
       "CREATE": "Created",
       "UPDATE": "Updated",
@@ -472,14 +784,29 @@
   },
   "error": {
     "generic": "Something went wrong. Please try again.",
+    "dev": "Dev error: {message}",
     "notFound": "{entity} not found.",
     "validationFailed": "Please check the form and try again.",
     "forbidden": "You don't have permission for this.",
+    "pageNotFound": {
+      "title": "Page not found",
+      "description": "There is no such address in the app. It may be mistyped, or the page may have been removed."
+    },
+    "forbiddenPage": {
+      "title": "You do not have access to this page",
+      "description": "This section is not open to your role. Ask your clinic administrator if you need access."
+    },
+    "recordNotFound": {
+      "title": "Record not found",
+      "description": "This record may have been deleted, or it may belong to another clinic.",
+      "descriptionWithList": "This record may have been deleted, or it may belong to another clinic. Go back to the list and search again.",
+      "backToList": "Back to {list}"
+    },
     "tryAgain": "Try again",
     "goHome": "Go home",
     "entity": {
       "client": "Client",
-      "pet": "Patient",
+      "pet": "Pet",
       "visit": "Visit",
       "appointment": "Appointment",
       "vaccination": "Vaccination",
@@ -488,22 +815,66 @@
       "diagnostic": "Diagnostic",
       "note": "Note",
       "reminder": "Reminder",
-      "invoice": "Invoice"
+      "invoice": "Invoice",
+      "clinic": "Clinic",
+      "species": "Species",
+      "user": "Staff member"
     },
     "conflict": {
       "invoiceDuplicate": "Invoice number is already in use.",
-      "emailInUse": "This email is already in use."
+      "emailInUse": "This email is already in use.",
+      "lastAdmin": "This clinic's last administrator cannot be deactivated. Add another administrator first."
     },
     "auth": {
       "signupFailed": "Sign-up failed. Please try again.",
       "invalidCredentials": "Email or password is incorrect."
     },
+    "notifications": {
+      "noPhone": "The client has no phone number on file.",
+      "notConfigured": "The message channel is not configured.",
+      "optedOut": "Notification messages are disabled for this client.",
+      "sendFailed": "The message could not be sent. Please try again later.",
+      "appointmentClosed": "This appointment is closed, so no message can be sent for it.",
+      "appointmentPast": "The appointment time has passed, so this message is no longer true.",
+      "petSilenced": "No message is sent for this animal.",
+      "remindersDisabled": "Reminder messages are switched off in the clinic settings.",
+      "alreadySent": "A message for this reminder has already been sent."
+    },
     "validation": {
       "ownerNotInClinic": "This owner isn't in your clinic.",
-      "petNotInClinic": "This patient isn't in your clinic.",
+      "petNotInClinic": "This pet isn't in your clinic.",
       "clientRequired": "Client not found.",
-      "petRequired": "Patient not found.",
-      "noteTarget": "Pick a patient or a client to attach the note to."
+      "petRequired": "Pet not found.",
+      "vetRequired": "The person selected cannot be recorded as this clinic\u0027s vet.",
+      "petSilenced": "This animal has died or been archived, so no reminder can be created for it.",
+      "clientArchived": "This client is archived, so no reminder can be created. You can restore the client first.",
+      "speciesUnknown": "Unknown species.",
+      "speciesInUse": "This species is in use and can't be deleted.",
+      "speciesNoneEnabled": "Select at least one species.",
+      "timezoneUnknown": "Unknown timezone.",
+      "noteTarget": "Pick a pet or a client to attach the note to."
+    },
+    "form": {
+      "required": "{field} is required.",
+      "requiredGeneric": "This field is required.",
+      "minLength": "{field} must be at least {min} characters.",
+      "minLengthGeneric": "Must be at least {min} characters.",
+      "maxLength": "{field} can be at most {max} characters.",
+      "maxLengthGeneric": "Can be at most {max} characters.",
+      "select": "Select {field}.",
+      "invalidChoice": "Invalid selection.",
+      "email": "Enter a valid email address.",
+      "phone": "Enter a valid phone number.",
+      "emailTooLong": "The email address is too long.",
+      "passwordMin": "The password must be at least {min} characters.",
+      "date": "Enter a valid date.",
+      "dateTimeRequired": "Date and time are required.",
+      "number": "Enter a valid number.",
+      "numberRange": "Enter a number between {min} and {max}.",
+      "integer": "Enter a whole number.",
+      "integerRange": "Enter a whole number between {min} and {max}.",
+      "amount": "Enter a valid amount.",
+      "linesRequired": "Add at least one line."
     }
   }
 }

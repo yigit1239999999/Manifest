@@ -1,19 +1,31 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Edit3, Plus } from "lucide-react";
+import { Edit3, Plus, ReceiptText } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
-import { archiveVisitAction } from "@/modules/visits/actions";
+import { getInvoiceForVisit } from "@/modules/invoices/queries";
+import { vaccinationIntervalSuggestions } from "@/modules/vaccinations/queries";
+import {
+  archiveVisitAction,
+  restoreVisitAction,
+} from "@/modules/visits/actions";
 import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
+import { RestoreButton } from "@/components/restore-button";
 import { VaccinationForm } from "@/components/forms/vaccination-form";
 import { PrescriptionForm } from "@/components/forms/prescription-form";
 import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Callout } from "@/components/ui/callout";
+import { DescriptionList } from "@/components/ui/description-list";
 import {
   Card,
   CardContent,
@@ -22,6 +34,7 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import {
+  formatDate,
   formatDateTime,
   formatMoney,
 } from "@/lib/format";
@@ -31,6 +44,7 @@ export default async function VisitPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
   const clinicId = session.user.clinicId;
@@ -44,6 +58,8 @@ export default async function VisitPage({
     tRx,
     tTreatment,
     tDiag,
+    tPet,
+    tInvoiceStatus,
     currency,
   ] = await Promise.all([
     getVisitById(clinicId, id),
@@ -54,10 +70,48 @@ export default async function VisitPage({
     getTranslations("prescription"),
     getTranslations("treatment"),
     getTranslations("diagnostic"),
+    getTranslations("pet"),
+    getTranslations("enum.invoiceStatus"),
     getClinicCurrency(clinicId),
   ]);
 
   if (!visit) notFound();
+
+  // See the clients page: a button that only produces a refusal is hidden.
+  // One permission, both actions: `visits.write` is what the service
+  // checks for editing and for archiving alike.
+  const canArchive = can(session.user.role, "visits.write");
+
+  // The same rule one level down, for the forms inside the cards. Each
+  // clinical record type has its own permission and the service checks it
+  // (`modules/<type>/service.ts`), so a role without it can open the form,
+  // write a prescription into it, and lose the work on submit. Only the
+  // "Add" block goes; the records already there stay readable, because
+  // reading them is allowed and a row that disappears reads as data loss
+  // (TEAM.md #16c).
+  const canAddVaccination = can(session.user.role, "vaccinations.write");
+  // Either offer to bill this visit or point at the bill it already
+  // has, never both and never neither. Two invoices for one visit are
+  // two demands for the same money, and the clinic hears about it from
+  // the client; `/invoices/new` asks the same question again, because a
+  // link can be bookmarked or opened in a second tab after the first
+  // one billed.
+  //
+  // No `invoices.read` guard around this: every role has that
+  // permission, so the condition could never be false and would read
+  // as a rule that exists (`app/route-states.test.ts` refuses one, and
+  // it caught this one being written).
+  const billedAs = await getInvoiceForVisit(clinicId, visit.id);
+  const canAddPrescription = can(session.user.role, "prescriptions.write");
+  const canAddTreatment = can(session.user.role, "treatments.write");
+  const canAddDiagnostic = can(session.user.role, "diagnostics.write");
+
+  // Needs the animal's species, so it follows the load rather than joining
+  // it. See `/pets/[id]`, which renders the same form.
+  const vaccineIntervals = await vaccinationIntervalSuggestions(
+    clinicId,
+    visit.pet.species,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,33 +119,130 @@ export default async function VisitPage({
 
       <PageHeader
         title={visit.chiefComplaint ?? tType(visit.type as never)}
-        description={`${formatDateTime(visit.visitedAt)} · ${visit.pet.name} · ${visit.client.firstName} ${visit.client.lastName}`}
+        description={`${formatDateTime(fmt, visit.visitedAt)} · ${visit.pet.name} · ${visit.client.firstName} ${visit.client.lastName}`}
+        badge={<Badge>{tType(visit.type as never)}</Badge>}
       >
-        <Badge variant="secondary">{tType(visit.type as never)}</Badge>
-        <Link
-          href={`/visits/${visit.id}/edit`}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Edit3 />
-          {tCommon("edit")}
-        </Link>
-        <DeleteButton
-          action={archiveVisitAction.bind(null, visit.id)}
-          label={tCommon("archive")}
-          confirmText={tCommon("archive") + "?"}
-        />
+        {canArchive && (
+          <Link
+            href={`/visits/${visit.id}/edit`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Edit3 />
+            {tCommon("edit")}
+          </Link>
+        )}
+        {billedAs ? (
+          <Link
+            href={`/invoices/${billedAs.id}`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <ReceiptText />
+            {t("invoicedAs", { number: billedAs.number })}
+            {/* The status, and it is not decoration. "Invoiced as
+                INV-2026-001" reads as "this is settled", and the
+                invoice may be a draft — raised on screen, never sent,
+                never collected. The point of the money chain is "who
+                has not paid", so showing a draft as finished is the
+                silent wrong answer it exists to remove. */}
+            <StatusBadge
+              kind="invoice"
+              status={billedAs.status}
+              label={tInvoiceStatus(billedAs.status as never)}
+            />
+          </Link>
+        ) : (
+          // Not offered on an archived visit: it is out of the working
+          // record, and raising money against it is not a thing the
+          // page should suggest.
+          can(session.user.role, "invoices.write") &&
+          !visit.archivedAt && (
+            <Link
+              href={`/invoices/new?visitId=${visit.id}`}
+              className={buttonVariants({ variant: "secondary" })}
+            >
+              <ReceiptText />
+              {t("createInvoice")}
+            </Link>
+          )
+        )}
+        {canArchive && !visit.archivedAt && (
+          <DeleteButton
+            // Archived, not deleted: reversible, so it is neither red nor
+            // marked with a bin (TEAM.md #25). The notice this puts on the
+            // page carries the way back.
+            action={archiveVisitAction.bind(null, visit.id)}
+            label={tCommon("archive")}
+            tone="default"
+            mark="archive"
+            // Was `tCommon("archive") + "?"`, which asked "Archive?" with no
+            // object and read as a stub in both languages.
+            confirmText={t("archiveConfirm")}
+            description={tCommon("archiveUndoHint")}
+          />
+        )}
       </PageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {visit.archivedAt ? (
+        <Callout variant="warning">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>
+              {tCommon("archivedOn", {
+                date: formatDate(fmt, visit.archivedAt),
+              })}
+            </span>
+            {canArchive && (
+              <RestoreButton
+                action={restoreVisitAction.bind(null, visit.id)}
+                label={tCommon("restore")}
+              />
+            )}
+          </div>
+        </Callout>
+      ) : (
+        // Hidden because its animal or its client is archived, not in its
+        // own right. Restoring the visit would put nothing back while they
+        // are still archived, so the notice explains instead of offering a
+        // button that does nothing (TEAM.md #33).
+        (visit.pet.archivedAt || visit.client.archivedAt) && (
+          <Callout variant="warning">{t("archivedBySubject")}</Callout>
+        )
+      )}
+
+      {visit.pet.alerts && (
+        <Callout variant="warning" title={tPet("alerts")}>
+          {visit.pet.alerts}
+        </Callout>
+      )}
+
+      {/* See `/invoices/[id]`: a grid item will not shrink below its own
+          content, and these four pages share this line. */}
+      <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>{t("soap")}</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <SoapBlock label={t("subjective")} value={visit.subjective} />
-            <SoapBlock label={t("objective")} value={visit.objective} />
-            <SoapBlock label={t("assessment")} value={visit.assessment} />
-            <SoapBlock label={t("plan")} value={visit.plan} />
+          <CardContent>
+            <DescriptionList
+              className="grid gap-4 sm:grid-cols-2"
+              items={[
+                {
+                  label: t("subjective"),
+                  value: visit.subjective,
+                  multiline: true,
+                },
+                {
+                  label: t("objective"),
+                  value: visit.objective,
+                  multiline: true,
+                },
+                {
+                  label: t("assessment"),
+                  value: visit.assessment,
+                  multiline: true,
+                },
+                { label: t("plan"), value: visit.plan, multiline: true },
+              ]}
+            />
           </CardContent>
         </Card>
 
@@ -99,36 +250,53 @@ export default async function VisitPage({
           <CardHeader>
             <CardTitle>{t("vitals")}</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm">
-            <Row
-              label={t("weightKg")}
-              value={visit.weightKg != null ? `${visit.weightKg} kg` : "—"}
+          <CardContent>
+            <DescriptionList
+              layout="row"
+              items={[
+                {
+                  label: t("weightKg"),
+                  // The unit belongs to the reading, so it is only written
+                  // when there is one; the list supplies the "-".
+                  value: visit.weightKg != null ? `${visit.weightKg} kg` : null,
+                  numeric: true,
+                },
+                {
+                  label: t("temperatureC"),
+                  value:
+                    visit.temperatureC != null
+                      ? `${visit.temperatureC} °C`
+                      : null,
+                  numeric: true,
+                },
+                { label: t("heartRateBpm"), value: visit.heartRateBpm, numeric: true },
+                {
+                  label: t("respiratoryRateBpm"),
+                  value: visit.respiratoryRateBpm,
+                  numeric: true,
+                },
+                {
+                  label: t("followupAt"),
+                  // A follow-up is a day, not a moment — the field stopped
+                  // asking for a time, so the card stops printing 00:00.
+                  value: formatDate(fmt, visit.followupAt),
+                },
+                {
+                  label: t("totalCost"),
+                  value:
+                    visit.totalCents != null
+                      ? // The visit's own currency, not the clinic's
+                        // current setting — the same rule invoices follow.
+                        // The fallback covers rows recorded before the
+                        // column existed and backfilled to the clinic's
+                        // value of that day.
+                        formatMoney(fmt, visit.totalCents, visit.currency ?? currency)
+                      : null,
+                  numeric: true,
+                },
+                { label: t("vet"), value: visit.vet?.name },
+              ]}
             />
-            <Row
-              label={t("temperatureC")}
-              value={visit.temperatureC != null ? `${visit.temperatureC} °C` : "—"}
-            />
-            <Row
-              label={t("heartRateBpm")}
-              value={visit.heartRateBpm ?? "—"}
-            />
-            <Row
-              label={t("respiratoryRateBpm")}
-              value={visit.respiratoryRateBpm ?? "—"}
-            />
-            <Row
-              label={t("followupAt")}
-              value={visit.followupAt ? formatDateTime(visit.followupAt) : "—"}
-            />
-            <Row
-              label={t("totalCost")}
-              value={
-                visit.totalCents != null
-                  ? formatMoney(visit.totalCents, currency)
-                  : "—"
-              }
-            />
-            <Row label={t("vet")} value={visit.vet?.name ?? "—"} />
           </CardContent>
         </Card>
       </div>
@@ -139,7 +307,7 @@ export default async function VisitPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {visit.vaccinations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{tVacc("empty")}</p>
+            <EmptyState size="inline" title={tVacc("empty")} />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {visit.vaccinations.map((v) => (
@@ -148,22 +316,28 @@ export default async function VisitPage({
                   {v.nextDueAt && (
                     <span className="text-muted-foreground">
                       {" "}
-                      · → {formatDateTime(v.nextDueAt)}
+                      · → {formatDate(fmt, v.nextDueAt)}
                     </span>
                   )}
                 </li>
               ))}
             </ul>
           )}
-          <details className="rounded-lg border border-dashed border-border p-3 text-sm">
-            <summary className="cursor-pointer font-medium">
-              <Plus className="mr-1 inline size-3.5" />
-              {tVacc("new")}
-            </summary>
-            <div className="mt-3">
-              <VaccinationForm petId={visit.petId} visitId={visit.id} />
-            </div>
-          </details>
+          {canAddVaccination && (
+            <details className="rounded-control border border-dashed border-border p-3 text-sm">
+              <summary className="cursor-pointer font-medium">
+                <Plus className="me-1 inline size-3.5" />
+                {tVacc("new")}
+              </summary>
+              <div className="mt-3">
+                <VaccinationForm
+                  petId={visit.petId}
+                  visitId={visit.id}
+                  suggestions={vaccineIntervals}
+                />
+              </div>
+            </details>
+          )}
         </CardContent>
       </Card>
 
@@ -173,7 +347,7 @@ export default async function VisitPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {visit.prescriptions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{tRx("empty")}</p>
+            <EmptyState size="inline" title={tRx("empty")} />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {visit.prescriptions.map((p) => (
@@ -184,15 +358,17 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-lg border border-dashed border-border p-3 text-sm">
-            <summary className="cursor-pointer font-medium">
-              <Plus className="mr-1 inline size-3.5" />
-              {tRx("new")}
-            </summary>
-            <div className="mt-3">
-              <PrescriptionForm petId={visit.petId} visitId={visit.id} />
-            </div>
-          </details>
+          {canAddPrescription && (
+            <details className="rounded-control border border-dashed border-border p-3 text-sm">
+              <summary className="cursor-pointer font-medium">
+                <Plus className="me-1 inline size-3.5" />
+                {tRx("new")}
+              </summary>
+              <div className="mt-3">
+                <PrescriptionForm petId={visit.petId} visitId={visit.id} />
+              </div>
+            </details>
+          )}
         </CardContent>
       </Card>
 
@@ -202,9 +378,7 @@ export default async function VisitPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {visit.treatments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {tTreatment("empty")}
-            </p>
+            <EmptyState size="inline" title={tTreatment("empty")} />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {visit.treatments.map((t) => (
@@ -217,15 +391,17 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-lg border border-dashed border-border p-3 text-sm">
-            <summary className="cursor-pointer font-medium">
-              <Plus className="mr-1 inline size-3.5" />
-              {tTreatment("new")}
-            </summary>
-            <div className="mt-3">
-              <TreatmentForm petId={visit.petId} visitId={visit.id} />
-            </div>
-          </details>
+          {canAddTreatment && (
+            <details className="rounded-control border border-dashed border-border p-3 text-sm">
+              <summary className="cursor-pointer font-medium">
+                <Plus className="me-1 inline size-3.5" />
+                {tTreatment("new")}
+              </summary>
+              <div className="mt-3">
+                <TreatmentForm petId={visit.petId} visitId={visit.id} />
+              </div>
+            </details>
+          )}
         </CardContent>
       </Card>
 
@@ -235,7 +411,7 @@ export default async function VisitPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {visit.diagnostics.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{tDiag("empty")}</p>
+            <EmptyState size="inline" title={tDiag("empty")} />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {visit.diagnostics.map((d) => (
@@ -248,45 +424,19 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-lg border border-dashed border-border p-3 text-sm">
-            <summary className="cursor-pointer font-medium">
-              <Plus className="mr-1 inline size-3.5" />
-              {tDiag("new")}
-            </summary>
-            <div className="mt-3">
-              <DiagnosticForm petId={visit.petId} visitId={visit.id} />
-            </div>
-          </details>
+          {canAddDiagnostic && (
+            <details className="rounded-control border border-dashed border-border p-3 text-sm">
+              <summary className="cursor-pointer font-medium">
+                <Plus className="me-1 inline size-3.5" />
+                {tDiag("new")}
+              </summary>
+              <div className="mt-3">
+                <DiagnosticForm petId={visit.petId} visitId={visit.id} />
+              </div>
+            </details>
+          )}
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function SoapBlock({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <p className="whitespace-pre-wrap text-sm">{value || "—"}</p>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-sm text-foreground">{value}</span>
     </div>
   );
 }

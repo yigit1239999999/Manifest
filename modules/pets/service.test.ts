@@ -8,6 +8,7 @@ vi.mock("@/lib/prisma", () => {
       update: vi.fn(),
     },
     client: { findFirst: vi.fn() },
+    customSpecies: { findFirst: vi.fn(), create: vi.fn() },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(),
   };
@@ -19,7 +20,7 @@ vi.mock("@/lib/prisma", () => {
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
-import { archivePet, createPet, updatePet } from "./service";
+import { archivePet, createPet, restorePet, updatePet } from "./service";
 
 const ctx = {
   clinicId: "clinic-1",
@@ -31,7 +32,7 @@ const ctx = {
 const validInput = {
   ownerId: "owner-1",
   name: "Biscuit",
-  species: "DOG" as const,
+  species: "DOG",
   breed: null,
   sex: "UNKNOWN" as const,
   neutered: false,
@@ -77,8 +78,162 @@ describe("createPet", () => {
         ownerId: "owner-1",
         name: "Biscuit",
         species: "DOG",
+        customSpeciesId: null,
       }),
     });
+  });
+
+  it("creates a clinic-scoped custom species from free text", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.customSpecies.create).mockResolvedValue({ id: "cs-1" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: "Kirpi" }, ctx);
+
+    expect(prisma.customSpecies.create).toHaveBeenCalledWith({
+      data: { clinicId: "clinic-1", name: "Kirpi" },
+      select: { id: true },
+    });
+    expect(prisma.pet.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ species: "OTHER", customSpeciesId: "cs-1" }),
+    });
+  });
+
+  it("reuses an existing custom species (case-insensitive) instead of duplicating", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue({ id: "cs-9" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: "kirpi" }, ctx);
+
+    expect(prisma.customSpecies.create).not.toHaveBeenCalled();
+    expect(prisma.pet.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ species: "OTHER", customSpeciesId: "cs-9" }),
+    });
+  });
+
+  it.each([
+    ["Kedi", "CAT"],
+    ["kedi", "CAT"],
+    ["KEDİ", "CAT"],
+    ["Kopek", "DOG"],
+    ["Cat", "CAT"],
+    ["Tavsan", "RABBIT"],
+    ["Sığır", "CATTLE"],
+  ])("records %s as the built-in %s, with no custom species", async (typed, expected) => {
+    // The defect ux-3 reported, and the half the unique index does not
+    // reach: the server compared what was typed against the enum keys,
+    // so "Kedi" found nothing and became a clinic-defined species. The
+    // animal was then stored as OTHER, and fell out of every list that
+    // groups by CAT -- present in the clinic, absent from the report.
+    //
+    // Both languages and either spelling, because the folding is the
+    // same one the search uses and "the same name" has to mean one
+    // thing everywhere.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: typed }, ctx);
+
+    expect(prisma.customSpecies.create).not.toHaveBeenCalled();
+    expect(prisma.customSpecies.findFirst).not.toHaveBeenCalled();
+    expect(prisma.pet.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ species: expected, customSpeciesId: null }),
+    });
+  });
+
+  it("still lets a clinic name something the list does not have", async () => {
+    // The other side, and the reason this is a lookup rather than a
+    // ban: "Kirpi" is a real thing a clinic sees and is not a built-in.
+    // A check that swallowed it would close the custom species feature
+    // while looking like a bug fix.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.customSpecies.create).mockResolvedValue({ id: "cs-1" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: "Kirpi" }, ctx);
+
+    expect(prisma.customSpecies.create).toHaveBeenCalled();
+  });
+
+  it("looks for a species the way the clinic would recognise it", async () => {
+    // "Kırpı" and "Kirpi" are one species to a vet and were two rows to
+    // the product: the dedupe read used `mode: "insensitive"`, which is
+    // ILIKE, which folds case and nothing else. Unlike a search that
+    // misses, this one writes -- the second row is permanent, the
+    // picker offers both forever, and animals get filed under either.
+    //
+    // A clinic-defined name on both sides here. "Köpek" would no longer
+    // reach this code at all: it is a built-in under its Turkish name
+    // and is resolved before the custom path.
+    //
+    // Asserted on the query rather than the outcome, because the
+    // outcome here is a row that does not get created and every wrong
+    // version of this code also does not create it, for the wrong
+    // reason.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue({ id: "cs-9" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: "Kırpı" }, ctx);
+
+    expect(prisma.customSpecies.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { clinicId: ctx.clinicId, nameKey: "kirpi" },
+      }),
+    );
+  });
+
+  it("takes the other request's species when two vets add it at once", async () => {
+    // The read above cannot close the window: both requests find
+    // nothing and both insert. The unique index decides, and the loser
+    // has to end up with the winner's row rather than an error shown to
+    // a vet who did nothing wrong.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: "cs-winner" } as never);
+    vi.mocked(prisma.customSpecies.create).mockRejectedValue(
+      Object.assign(new Error("duplicate key"), { code: "P2002" }),
+    );
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: "Papağan" }, ctx);
+
+    expect(prisma.pet.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        species: "OTHER",
+        customSpeciesId: "cs-winner",
+      }),
+    });
+  });
+
+  it("does not swallow a failure that is not a lost race", async () => {
+    // The catch is narrow on purpose. Widening it would turn a real
+    // database failure into "species not found", which is a lie the
+    // next person would debug from the wrong end.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.customSpecies.create).mockRejectedValue(
+      Object.assign(new Error("connection reset"), { code: "P1001" }),
+    );
+
+    await expect(
+      createPet({ ...validInput, species: "Papağan" }, ctx),
+    ).rejects.toThrow("connection reset");
+    expect(prisma.pet.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a custom:<id> reference from another clinic", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue(null);
+
+    await expect(
+      createPet({ ...validInput, species: "custom:cs-foreign" }, ctx),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.pet.create).not.toHaveBeenCalled();
   });
 });
 
@@ -139,5 +294,33 @@ describe("archivePet", () => {
     expect(prisma.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: "ARCHIVE", entityType: "Pet" }),
     });
+  });
+});
+
+describe("restorePet", () => {
+  it("clears archivedAt and records who undid it", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "p-1",
+      ownerId: "owner-1",
+    } as never);
+    vi.mocked(prisma.pet.update).mockResolvedValue({ id: "p-1" } as never);
+
+    const result = await restorePet("p-1", ctx);
+
+    expect(result.ownerId).toBe("owner-1");
+    expect(prisma.pet.update).toHaveBeenCalledWith({
+      where: { id: "p-1" },
+      data: { archivedAt: null },
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: "RESTORE", entityType: "Pet" }),
+    });
+  });
+
+  it("refuses a pet from another clinic", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue(null);
+
+    await expect(restorePet("p-x", ctx)).rejects.toBeInstanceOf(AppError);
+    expect(prisma.pet.update).not.toHaveBeenCalled();
   });
 });

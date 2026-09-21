@@ -1,23 +1,24 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { action, type FormState } from "@/lib/action";
 import { invoiceSchema, paymentSchema } from "./schema";
 import { createInvoice, recordPayment, voidInvoice } from "./service";
 
 // Invoices use a custom parse because lines come in as repeated form fields.
-function parseInvoiceFormData(formData: FormData) {
+function parseInvoiceFormData(formData: FormData, locale: string) {
   const raw = {
     clientId: String(formData.get("clientId") ?? ""),
     number: String(formData.get("number") ?? ""),
     status: String(formData.get("status") ?? "DRAFT"),
     dueAt: String(formData.get("dueAt") ?? ""),
-    taxCents: String(formData.get("taxCents") ?? ""),
+    tax: String(formData.get("tax") ?? ""),
     notes: String(formData.get("notes") ?? ""),
     lines: extractLines(formData),
   };
-  return invoiceSchema.safeParse(raw);
+  return invoiceSchema(locale).safeParse(raw);
 }
 
 function extractLines(formData: FormData) {
@@ -28,7 +29,7 @@ function extractLines(formData: FormData) {
     lines.push({
       description: String(description),
       quantity: String(formData.get(`lines[${i}].quantity`) ?? "1"),
-      unitPriceCents: String(formData.get(`lines[${i}].unitPriceCents`) ?? "0"),
+      unitPrice: String(formData.get(`lines[${i}].unitPrice`) ?? ""),
       petId: String(formData.get(`lines[${i}].petId`) ?? ""),
       visitId: String(formData.get(`lines[${i}].visitId`) ?? ""),
     });
@@ -39,7 +40,7 @@ function extractLines(formData: FormData) {
 export const createInvoiceAction = action(
   "invoice.create",
   async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
-    const parsed = parseInvoiceFormData(formData);
+    const parsed = parseInvoiceFormData(formData, await getLocale());
     if (!parsed.success) {
       const fieldErrors: Record<string, string[]> = {};
       for (const issue of parsed.error.issues) {
@@ -60,9 +61,9 @@ export const createInvoiceAction = action(
 export const recordPaymentAction = action(
   "invoice.record_payment",
   async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
-    const parsed = paymentSchema.safeParse({
+    const parsed = paymentSchema(await getLocale()).safeParse({
       invoiceId: String(formData.get("invoiceId") ?? ""),
-      amountCents: String(formData.get("amountCents") ?? ""),
+      amount: String(formData.get("amount") ?? ""),
       method: String(formData.get("method") ?? ""),
       reference: String(formData.get("reference") ?? ""),
       notes: String(formData.get("notes") ?? ""),
@@ -77,9 +78,6 @@ export const recordPaymentAction = action(
     }
 
     await recordPayment(parsed.data, ctx);
-    revalidatePath("/invoices");
-    revalidatePath(`/invoices/${parsed.data.invoiceId}`);
-    revalidatePath("/");
     return { success: true };
   },
 );
@@ -88,9 +86,5 @@ export const voidInvoiceAction = action(
   "invoice.void",
   async (ctx, id: string): Promise<void> => {
     const { clientId } = await voidInvoice(id, ctx);
-    revalidatePath("/invoices");
-    revalidatePath(`/invoices/${id}`);
-    revalidatePath(`/clients/${clientId}`);
-    revalidatePath("/");
   },
 );

@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState, useMemo } from "react";
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import type { Appointment, Pet, User } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import {
@@ -16,22 +18,43 @@ import {
   createAppointmentAction,
   updateAppointmentAction,
 } from "@/modules/appointments/actions";
-import { toDateTimeInput } from "@/lib/format";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { searchPetsAction } from "@/modules/pets/actions";
 
 interface Props {
   appointment?: Appointment;
   pets: Pick<Pet, "id" | "name">[];
+  /** See `InvoiceForm`: true when the list was cut off at its cap. */
+  petsCapped?: boolean;
   vets: Pick<User, "id" | "name">[];
   defaultPetId?: string;
+  /**
+   * The label for the selected animal (`appointment.petId` or
+   * `defaultPetId`) when that record is not in `pets`.
+   *
+   * The list is capped (`lib/pagination.ts`), so an id that comes from
+   * the record being edited, or from a link that carried one, can sit
+   * outside it. Passed unconditionally: a label that matches an option
+   * changes nothing, and a missing one leaves a required field looking
+   * empty over a hidden input that is not.
+   */
+  defaultPetLabel?: string;
 }
 
 export function AppointmentForm({
   appointment,
   pets,
+  petsCapped,
   vets,
   defaultPetId,
+  defaultPetLabel,
 }: Props) {
+  const petOptions = useMemo(
+    () => pets.map((p) => ({ value: p.id, label: p.name })),
+    [pets],
+  );
   const t = useTranslations("appointment");
+  const tCommon = useTranslations("common");
   const tType = useTranslations("enum.visitType");
   const tStatus = useTranslations("enum.appointmentStatus");
   const tPet = useTranslations("pet");
@@ -39,7 +62,8 @@ export function AppointmentForm({
   const action = appointment
     ? updateAppointmentAction.bind(null, appointment.id)
     : createAppointmentAction;
-  const [state, formAction] = useActionState(action, {});
+  const form = useActionForm(action, {});
+  const { state } = form;
   const defaultStart = useMemo(
     () =>
       // eslint-disable-next-line react-hooks/purity -- one-shot initial value, never recomputed
@@ -48,35 +72,32 @@ export function AppointmentForm({
   );
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      {state.error && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
+    <ActionForm form={form} className="flex flex-col gap-4">
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={tPet("title")} error={state.fieldErrors?.petId} required>
-          <Select
+        <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
+          {/* See `InvoiceForm`: searchable only once the list is short
+              of the whole clinic. */}
+          <Combobox
             name="petId"
-            defaultValue={appointment?.petId ?? defaultPetId ?? ""}
             required
-          >
-            <option value="" disabled>
-              —
-            </option>
-            {pets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
+            options={petOptions}
+            defaultValue={appointment?.petId ?? defaultPetId ?? ""}
+            defaultLabel={defaultPetLabel}
+            placeholder={tCommon("searchOrType")}
+            noResultsLabel={tCommon("noResults")}
+            onSearch={petsCapped ? searchPetsAction : undefined}
+            hasMore={petsCapped}
+            searchHintLabel={tCommon("searchMinChars")}
+            searchingLabel={tCommon("searching")}
+            searchFailedLabel={tCommon("searchFailed")}
+            hasMoreLabel={tCommon("searchMore")}
+          />
         </Field>
         <Field label={t("startsAt")} error={state.fieldErrors?.startsAt} required>
-          <Input
-            type="datetime-local"
+          <DateTimeInput
             name="startsAt"
-            defaultValue={toDateTimeInput(defaultStart)}
+            defaultValue={defaultStart}
             required
           />
         </Field>
@@ -123,9 +144,9 @@ export function AppointmentForm({
         </Field>
       </div>
 
-      <Field label={tPet("title")} error={state.fieldErrors?.vetId}>
+      <Field label={t("vet")} error={state.fieldErrors?.vetId}>
         <Select name="vetId" defaultValue={appointment?.vetId ?? ""}>
-          <option value="">—</option>
+          <option value="">{tCommon("none")}</option>
           {vets.map((v) => (
             <option key={v.id} value={v.id}>
               {v.name}
@@ -146,6 +167,6 @@ export function AppointmentForm({
       </Field>
 
       <SubmitButton>{appointment ? t("update") : t("create")}</SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

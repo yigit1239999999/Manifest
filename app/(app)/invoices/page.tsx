@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { Plus, Receipt } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { listInvoicesPage } from "@/modules/invoices/queries";
 import { INVOICE_STATUSES } from "@/modules/invoices/schema";
-import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDate, formatMoney } from "@/lib/format";
 
@@ -18,33 +20,42 @@ export default async function InvoicesPage({
 }: {
   searchParams: Promise<{ page?: string; status?: string }>;
 }) {
+  const fmt = await getFormatContext();
   const session = await requireSession();
+
+  // A button the server will refuse is worse than no button: the click
+  // looks like it did nothing. The permission is the same one the service
+  // enforces, read from one place (`lib/permissions.ts`).
+  const canCreate = can(session.user.role, "invoices.write");
   const { page: pageParam, status } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
-  const [t, tCommon, tStatus, result, currency] = await Promise.all([
+  const [t, tCommon, tStatus, tClient, result] = await Promise.all([
     getTranslations("invoice"),
     getTranslations("common"),
     getTranslations("enum.invoiceStatus"),
+    getTranslations("client"),
     listInvoicesPage({
       clinicId: session.user.clinicId,
       statuses: status ? [status] : null,
       page,
     }),
-    getClinicCurrency(session.user.clinicId),
   ]);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")}>
-        <Link href="/invoices/new" className={buttonVariants()}>
-          <Plus />
-          {t("new")}
-        </Link>
+        {canCreate && (
+          <Link href="/invoices/new" className={buttonVariants()}>
+            <Plus />
+            {t("new")}
+          </Link>
+        )}
       </PageHeader>
 
       <FilterTabs
         basePath="/invoices"
         param="status"
+        label={t("status")}
         active={status}
         allLabel={tCommon("all")}
         options={INVOICE_STATUSES.map((s) => ({
@@ -54,62 +65,86 @@ export default async function InvoicesPage({
       />
 
       {result.items.length === 0 ? (
-        <EmptyState
-          icon={Receipt}
-          title={t("empty")}
-          description=""
-          action={
-            <Link href="/invoices/new" className={buttonVariants()}>
-              <Plus />
-              {t("new")}
-            </Link>
-          }
-        />
+        // See the same branch in /visits: "no unpaid invoices" and "no
+        // invoices at all" are opposite pieces of news (TEAM.md #19).
+        status ? (
+          <EmptyState
+            icon={Receipt}
+            title={tCommon("emptyFiltered")}
+            description={tCommon("emptyFilteredHint")}
+            action={
+              <Link
+                href="/invoices"
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                {tCommon("clearFilter")}
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={Receipt}
+            title={t("empty")}
+            action={
+              canCreate ? (
+                <Link href="/invoices/new" className={buttonVariants()}>
+                  <Plus />
+                  {t("new")}
+                </Link>
+              ) : undefined
+            }
+          />
+        )
       ) : (
         <>
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t("number")}</th>
-                  <th className="px-4 py-3 font-medium">Client</th>
-                  <th className="px-4 py-3 font-medium">{t("issuedAt")}</th>
-                  <th className="px-4 py-3 text-right font-medium">
-                    {t("total")}
-                  </th>
-                  <th className="px-4 py-3 font-medium">{t("status")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {result.items.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium">
-                      <Link
-                        href={`/invoices/${inv.id}`}
-                        className="hover:underline"
-                      >
-                        #{inv.number}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {inv.client.firstName} {inv.client.lastName}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {formatDate(inv.issuedAt)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium">
-                      {formatMoney(inv.totalCents, currency)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="secondary">
-                        {tStatus(inv.status as never)}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            rows={result.items}
+            rowKey={(inv) => inv.id}
+            caption={t("title")}
+            columns={[
+              {
+                key: "number",
+                header: t("number"),
+                cellClassName: "font-medium",
+                cell: (inv) => (
+                  <Link href={`/invoices/${inv.id}`} className="hover:underline">
+                    #{inv.number}
+                  </Link>
+                ),
+              },
+              {
+                key: "client",
+                // Was the hardcoded English string "Client".
+                header: tClient("one"),
+                cellClassName: "text-muted-foreground",
+                cell: (inv) => `${inv.client.firstName} ${inv.client.lastName}`,
+              },
+              {
+                key: "issuedAt",
+                header: t("issuedAt"),
+                cellClassName: "text-muted-foreground",
+                cell: (inv) => formatDate(fmt, inv.issuedAt),
+              },
+              {
+                key: "total",
+                header: t("total"),
+                numeric: true,
+                cellClassName: "font-medium",
+                cell: (inv) => formatMoney(fmt, inv.totalCents, inv.currency),
+              },
+              {
+                key: "status",
+                header: t("status"),
+                cell: (inv) => (
+                  <StatusBadge
+                    kind="invoice"
+                    status={inv.status}
+                    label={tStatus(inv.status as never)}
+                  />
+                ),
+              },
+            ]}
+          />
           <Pagination
             basePath="/invoices"
             total={result.total}

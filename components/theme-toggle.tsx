@@ -1,7 +1,7 @@
 "use client";
 
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
@@ -11,59 +11,41 @@ type Theme = (typeof THEMES)[number];
 const THEME_COOKIE = "theme";
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-function applyTheme(theme: Theme) {
-  const root = document.documentElement;
-  if (theme === "system") {
-    const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    root.setAttribute("data-theme", dark ? "dark" : "light");
-  } else {
-    root.setAttribute("data-theme", theme);
-  }
-}
-
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({
+  className,
+  initialTheme = "system",
+}: {
+  className?: string;
+  initialTheme?: Theme;
+}) {
   const t = useTranslations("common");
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof document === "undefined") return "system";
-    const stored = readCookie(THEME_COOKIE);
-    return stored && (THEMES as readonly string[]).includes(stored)
-      ? (stored as Theme)
-      : "system";
-  });
-
-  // React to OS preference changes while on "system".
-  useEffect(() => {
-    if (theme !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyTheme("system");
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, [theme]);
+  // Seeded from the server-read cookie so SSR and hydration agree.
+  const [theme, setThemeState] = useState<Theme>(initialTheme);
 
   function setTheme(next: Theme) {
     setThemeState(next);
     // eslint-disable-next-line react-hooks/immutability -- document.cookie is the persistence mechanism
     document.cookie = `${THEME_COOKIE}=${next}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
-    applyTheme(next);
+    // The `data-theme` value is written verbatim (incl. "system"); CSS
+    // resolves "system" via a prefers-color-scheme media query.
+    document.documentElement.setAttribute("data-theme", next);
   }
 
   const icons = { light: Sun, dark: Moon, system: Monitor } as const;
-  const labels = { light: "Light", dark: "Dark", system: "Auto" };
+  const labels = {
+    light: t("themeLight"),
+    dark: t("themeDark"),
+    system: t("themeSystem"),
+  };
 
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5",
+        "inline-flex items-center gap-0.5 rounded-control border border-border bg-card p-0.5",
         className,
       )}
       role="group"
-      aria-label={t("language")}
+      aria-label={t("theme")}
     >
       {THEMES.map((option) => {
         const Icon = icons[option];
@@ -76,7 +58,15 @@ export function ThemeToggle({ className }: { className?: string }) {
             aria-pressed={active}
             onClick={() => setTheme(option)}
             className={cn(
-              "rounded-md p-1.5 transition-colors",
+              // `outline-offset-0` and not the 2px the standalone
+              // buttons use: these segments sit 2px apart inside a
+              // bordered group, so an outset mark would cross the
+              // neighbour and the group's own border. Hugging the
+              // segment keeps it unambiguous about which one has focus,
+              // which is the entire job. Against the active segment's
+              // `bg-accent` the ring measures 4.58 in light and 5.69 in
+              // dark, so the gap was not carrying the contrast.
+              "rounded-control p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-0",
               active
                 ? "bg-accent text-accent-foreground"
                 : "text-muted-foreground hover:text-foreground",

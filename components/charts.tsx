@@ -2,6 +2,7 @@
 // They follow the active CSS variables so they re-skin with the theme.
 
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export interface BarDatum {
   label: string;
@@ -10,19 +11,48 @@ export interface BarDatum {
   display?: string;
 }
 
+/** How a datum reads aloud: "3 Mart: 14 vizit". */
+function describe(d: BarDatum, formatValue?: (value: number) => string) {
+  return `${d.label}: ${d.display ?? formatValue?.(d.value) ?? d.value}`;
+}
+
+/**
+ * The last bucket of a rolling window is the period we are currently in, so
+ * it is always lower than the ones beside it. Drawn plainly, the dashboard
+ * reports a fall every Monday that never happened.
+ *
+ * Marked with a stripe pattern rather than a paler fill. A paler fill cannot
+ * do both jobs at once, and the numbers say so: at `primary/40` the bar is
+ * 1.79:1 against the card in light and 2.30:1 in dark, under the 3:1 bar for
+ * a meaningful graphic — the bar marks itself by becoming hard to see. Raise
+ * it until it clears 3:1 (about 72%) and it is 1.2:1 against the full bars,
+ * so it no longer reads as different. A dashed top edge fails the same way
+ * for a third reason: it would sit on its own fill, at 1.2:1.
+ *
+ * Stripes have no such trade-off. They are card-coloured over the normal
+ * fill, so they inherit that fill's 3.57:1 (light) and 5.31:1 (dark), and
+ * pattern is a channel that survives colour blindness and greyscale.
+ */
+const PARTIAL_STRIPES =
+  "repeating-linear-gradient(45deg, transparent 0 4px, var(--color-card) 4px 6px)";
+
 export function HorizontalBars({
   data,
   emptyLabel,
   className,
 }: {
   data: BarDatum[];
-  emptyLabel?: string;
+  /**
+   * Required, with no fallback. It used to default to "-", which is not a
+   * sentence, does not say what is missing, and reads as a broken value
+   * rather than an empty one (TEAM.md #21). Making it required is also what
+   * stops the next chart from shipping without an empty state at all.
+   */
+  emptyLabel: string;
   className?: string;
 }) {
   if (data.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">{emptyLabel ?? "—"}</p>
-    );
+    return <EmptyState size="inline" title={emptyLabel} />;
   }
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
@@ -34,13 +64,13 @@ export function HorizontalBars({
             <span className="w-24 shrink-0 truncate text-xs text-muted-foreground">
               {d.label}
             </span>
-            <span className="relative flex h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <span className="relative flex h-2.5 flex-1 overflow-hidden rounded-pill bg-muted">
               <span
-                className="h-full rounded-full bg-primary"
+                className="h-full rounded-pill bg-primary"
                 style={{ width: `${pct}%` }}
               />
             </span>
-            <span className="w-10 shrink-0 text-right text-xs font-semibold text-foreground">
+            <span className="w-10 shrink-0 text-end text-xs font-semibold tabular-nums text-foreground">
               {d.display ?? d.value}
             </span>
           </li>
@@ -54,32 +84,134 @@ export function ColumnBars({
   data,
   height = 96,
   className,
+  emptyLabel,
   formatValue,
+  partialLast,
+  footnote,
 }: {
   data: BarDatum[];
   height?: number;
   className?: string;
+  /**
+   * Shown instead of the chart when there is nothing to plot.
+   *
+   * Required. It was optional and the revenue chart simply never passed it,
+   * so a clinic with no paid invoices got a card with a title and nothing
+   * at all underneath — indistinguishable from still loading or broken.
+   * A missing empty state is now a build error rather than a blank box.
+   */
+  emptyLabel: string;
   formatValue?: (value: number) => string;
+  /**
+   * Marks the final bucket as a period still running. Both texts are
+   * required together because the visual mark alone leaves a screen reader
+   * user with the same false fall the chart used to show everyone.
+   */
+  partialLast?: { note: string; inProgress: string };
+  /**
+   * A fact about what the chart is NOT showing, printed under the bars and
+   * appended to the summary.
+   *
+   * Both channels, and that is the whole reason this is a prop rather than
+   * a `<p>` the caller puts underneath. The caller can draw a line; it
+   * cannot reach the `aria-label`, which is built in here. A chart that
+   * tells a sighted vet it is incomplete and tells a screen reader user it
+   * is complete is worse than one that says nothing to either — the same
+   * requirement `partialLast` carries, for the same reason (TEAM.md #26).
+   *
+   * Undefined prints nothing at all: no empty line, no dash, no "0 of 0"
+   * (TEAM.md #21).
+   */
+  footnote?: string;
 }) {
-  if (data.length === 0) return null;
+  // Two different kinds of "nothing", and the second is the one that actually
+  // happens: the dashboard series are gap-filled to a fixed 12 weeks / 6
+  // months, so `data` is never empty — a brand new clinic arrives here as
+  // twelve buckets of zero. Treating only the first case as empty is why a
+  // new clinic saw twelve stubby bars instead of an empty state.
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  if (data.length === 0 || total === 0) {
+    // The footnote comes with, and this is the case it matters most in.
+    //
+    // It used to be dropped here, because this return happens before the
+    // footnote is rendered or added to the summary. So the line saying
+    // "there is more, elsewhere" appeared while a little was missing and
+    // vanished when *everything* was: a clinic whose paid invoices are
+    // all in another currency read "no invoices paid in this period"
+    // under four paid invoices. The wrong number this prop was added to
+    // fix became a wrong sentence, which is the same class of defect
+    // wearing different clothes (TEAM.md #2).
+    //
+    // No `role="img"` here and so no `aria-label`: the footnote is plain
+    // text in the accessibility tree already, which is what a static
+    // region should be (TEAM.md #30). Above, the bars are decorative and
+    // the label is the only channel there is.
+    return (
+      <div className={cn("flex flex-col", className)}>
+        <EmptyState size="inline" title={emptyLabel} />
+        {footnote && (
+          <p className="mt-2 text-xs text-muted-foreground">{footnote}</p>
+        )}
+      </div>
+    );
+  }
+
   const max = Math.max(...data.map((d) => d.value), 1);
+  const lastIndex = data.length - 1;
+  const series = data
+    .map((d, i) => {
+      const text = describe(d, formatValue);
+      return partialLast && i === lastIndex
+        ? `${text} (${partialLast.inProgress})`
+        : text;
+    })
+    .join(", ");
+  const summary = footnote ? `${series}. ${footnote}` : series;
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex items-end gap-1" style={{ height }}>
-        {data.map((d) => {
+      {/* One image with one description. The bars themselves are decorative
+          divs; without this the whole chart is silent to a screen reader. */}
+      <div
+        role="img"
+        aria-label={summary}
+        className="flex items-end gap-1 border-b border-border"
+        style={{ height }}
+      >
+        {data.map((d, i) => {
           const pct = (d.value / max) * 100;
-          const tooltip = `${d.label}: ${d.display ?? formatValue?.(d.value) ?? d.value}`;
+          const partial = Boolean(partialLast) && i === lastIndex;
           return (
             <div
               key={d.label}
               className="group relative flex h-full flex-1 items-end"
-              title={tooltip}
+              title={
+                partial
+                  ? `${describe(d, formatValue)} (${partialLast!.inProgress})`
+                  : describe(d, formatValue)
+              }
             >
-              <div
-                className="w-full rounded-t-md bg-primary/80 transition-colors group-hover:bg-primary"
-                style={{ height: `${Math.max(pct, 2)}%` }}
-              />
+              {/* A zero bucket draws nothing at all. The old floor of 2% drew
+                  every zero as a stub, which made "no one came in" and "one
+                  animal came in" the same height on a busy clinic's chart.
+                  Non-zero values instead get a small pixel floor, so a value
+                  that rounds to nearly nothing still reads as present. */}
+              {d.value > 0 && (
+                <div
+                  // `rounded-t-md` and not one of the four radius roles: the
+                  // top of a bar is not a surface, a tile, a control or a
+                  // pill — it is a graphic detail that keeps the column from
+                  // ending in two sharp points. The allow-list in
+                  // `app/theme-tokens.test.ts` names it so that the next
+                  // sweep does not read it as a leftover.
+                  className="w-full rounded-t-md bg-primary/80 transition-colors group-hover:bg-primary"
+                  style={{
+                    height: `${pct}%`,
+                    minHeight: 2,
+                    backgroundImage: partial ? PARTIAL_STRIPES : undefined,
+                  }}
+                />
+              )}
             </div>
           );
         })}
@@ -91,6 +223,18 @@ export function ColumnBars({
           </span>
         ))}
       </div>
+      {partialLast && (
+        // Not `aria-hidden`: the same fact is in the chart's own summary, but
+        // this line is also the only explanation a sighted user gets for the
+        // stripes.
+        <p className="text-[10px] text-muted-foreground">{partialLast.note}</p>
+      )}
+      {footnote && (
+        // `text-xs`, a step above the partial-period note: that one explains
+        // a texture, this one says part of the answer is missing from the
+        // picture.
+        <p className="mt-2 text-xs text-muted-foreground">{footnote}</p>
+      )}
     </div>
   );
 }

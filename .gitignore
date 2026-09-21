@@ -46,3 +46,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright MCP test screenshots
+.playwright-mcp/
+
+# Production build lives in its own directory so `next dev` and
+# `next start` cannot overwrite each other. See next.config.ts.
+/.next-prod/

@@ -1,6 +1,8 @@
 "use client";
 
 import { Toaster as SonnerToaster } from "sonner";
+import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/card";
 
 export function ToastProvider() {
   return (
@@ -11,7 +13,7 @@ export function ToastProvider() {
       toastOptions={{
         classNames: {
           toast:
-            "rounded-xl border border-border bg-card text-card-foreground shadow-lg",
+            cn(surface, "text-card-foreground shadow-lg"),
           title: "text-sm font-semibold",
           description: "text-xs text-muted-foreground",
         },

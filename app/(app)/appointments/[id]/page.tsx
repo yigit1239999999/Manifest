@@ -2,13 +2,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Edit3 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { getAppointmentById } from "@/modules/appointments/queries";
 import { cancelAppointmentAction } from "@/modules/appointments/actions";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
 import { Badge } from "@/components/ui/badge";
+import { Callout } from "@/components/ui/callout";
+import { EmptyState } from "@/components/ui/empty-state";
+import { DescriptionList } from "@/components/ui/description-list";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Card,
   CardContent,
@@ -16,87 +22,280 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatDuration } from "@/lib/format";
+import {
+  appointmentMessagingClosed,
+  isAppointmentClosed,
+  previewAppointmentMessages,
+} from "@/modules/notifications/service";
+import { listMessagesForAppointment } from "@/modules/notifications/queries";
+import {
+  logManualMessageAction,
+  sendAppointmentMessageAction,
+} from "@/modules/notifications/actions";
+import { NotificationActions } from "@/components/notification-actions";
 
 export default async function AppointmentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ existing?: string }>;
 }) {
+  const fmt = await getFormatContext();
   const { id } = await params;
+  // Set by `createAppointmentAction` when a second booking for the same
+  // animal at the same instant was turned into a visit to the first one.
+  // It has to survive a redirect, so it travels in the URL.
+  const { existing } = await searchParams;
   const session = await requireSession();
-  const [appointment, t, tCommon, tType, tStatus] = await Promise.all([
-    getAppointmentById(session.user.clinicId, id),
-    getTranslations("appointment"),
-    getTranslations("common"),
-    getTranslations("enum.visitType"),
-    getTranslations("enum.appointmentStatus"),
-  ]);
+  const [appointment, t, tCommon, tPet, tType, tStatus, tKind, tMsgStatus, tLang, tChannel, preview, log] =
+    await Promise.all([
+      getAppointmentById(session.user.clinicId, id),
+      getTranslations("appointment"),
+      getTranslations("common"),
+      getTranslations("pet"),
+      getTranslations("enum.visitType"),
+      getTranslations("enum.appointmentStatus"),
+      getTranslations("enum.messageKind"),
+      getTranslations("enum.messageStatus"),
+      getTranslations("enum.language"),
+      getTranslations("enum.messageChannel"),
+      previewAppointmentMessages(session.user.clinicId, id),
+      listMessagesForAppointment(session.user.clinicId, id),
+    ]);
   if (!appointment) notFound();
+
+  // The service decides what "closed" means; the screen only reflects it,
+  // so the card cannot offer a send the server would refuse.
+  const closed = preview?.closed ?? appointmentMessagingClosed(appointment);
+  // A dead or archived animal is never written about, so the card offers
+  // nothing rather than a button the server would refuse.
+  const petSilenced = preview?.petSilenced ?? false;
+  // The same permission the service demands (`modules/appointments/service.ts`
+  // :22, :58, :95), not a near neighbour: if the screen asks a different
+  // question from the one the server answers, the two drift into a hidden
+  // door that is open or a visible one that is shut.
+  const canWrite = can(session.user.role, "appointments.write");
 
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/appointments" label={tCommon("back")} />
       <PageHeader
         title={`${appointment.pet.name} · ${appointment.client.firstName} ${appointment.client.lastName}`}
-        description={formatDateTime(appointment.startsAt)}
+        description={formatDateTime(fmt, appointment.startsAt)}
+        badge={
+          <>
+            {/* Type is a label, not a state, so it stays uncoloured beside
+                the one pill that does carry a colour. */}
+            <Badge>{tType(appointment.type as never)}</Badge>
+            <StatusBadge
+              kind="appointment"
+              status={appointment.status}
+              label={tStatus(appointment.status as never)}
+            />
+          </>
+        }
       >
-        <Badge variant="secondary">{tType(appointment.type as never)}</Badge>
-        <Badge variant="secondary">
-          {tStatus(appointment.status as never)}
-        </Badge>
-        <Link
-          href={`/appointments/${appointment.id}/edit`}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Edit3 />
-          {tCommon("edit")}
-        </Link>
-        {appointment.status !== "CANCELLED" && (
+        {canWrite && (
+          <Link
+            href={`/appointments/${appointment.id}/edit`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Edit3 />
+            {tCommon("edit")}
+          </Link>
+        )}
+        {canWrite && appointment.status !== "CANCELLED" && (
           <DeleteButton
+            // Cancelling is a status change, not a deletion: the row stays
+            // and the edit screen can put it back to scheduled, because
+            // that select lists every status. So it is neither red nor
+            // marked with a bin — the case TEAM.md #25 names by name.
+            // `CalendarX` and not `Archive`: nothing is being filed away,
+            // the appointment is simply not happening.
             action={cancelAppointmentAction.bind(null, appointment.id)}
             label={t("cancel")}
-            confirmText={t("cancel") + "?"}
+            tone="default"
+            mark="cancel"
+            // Was `t("cancel") + "?"`, which asked "Cancel the
+            // appointment?" by gluing a question mark to a button label.
+            confirmText={t("cancelConfirm")}
+            description={t("cancelUndoHint")}
           />
         )}
       </PageHeader>
+
+      {/* Arriving here instead of at a new appointment needs saying. Being
+          moved without explanation reads as the app having lost what was
+          typed — and when the second submission carried details, it did
+          lose them: they are deliberately not written over the stored
+          appointment, which someone else may have made. `info`, not
+          `warning`: nothing went wrong, the booking the user wanted exists.
+          Announced, because it appears after a navigation rather than as
+          part of a page the user chose to open. */}
+      {existing && (
+        <Callout variant="info" live>
+          {existing === "dropped"
+            ? t("duplicate.noticeDropped")
+            : t("duplicate.notice")}
+        </Callout>
+      )}
+
+      {/* "Bites" and "allergic to" belong on every screen where someone is
+          about to handle the animal, not only on its own page (TEAM.md #20).
+          Reception books, the vet reads this page before the animal walks
+          in, and until now the warning was two clicks away. */}
+      {appointment.pet.alerts && (
+        <Callout variant="warning" title={tPet("alerts")}>
+          {appointment.pet.alerts}
+        </Callout>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>{tCommon("details")}</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-          <Row label={t("startsAt")} value={formatDateTime(appointment.startsAt)} />
-          <Row
-            label={t("durationMinutes")}
-            value={`${appointment.durationMinutes} min`}
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <DescriptionList
+            className="grid gap-2 sm:grid-cols-2"
+            items={[
+              {
+                label: t("startsAt"),
+                value: formatDateTime(fmt, appointment.startsAt),
+              },
+              {
+                label: t("durationMinutes"),
+                value: formatDuration(fmt, appointment.durationMinutes),
+              },
+              // The "-" for an unfilled field is the list's, not four
+              // call sites'.
+              { label: t("reason"), value: appointment.reason },
+              { label: t("vet"), value: appointment.vet?.name },
+            ]}
           />
-          <Row label={t("reason")} value={appointment.reason ?? "—"} />
-          <Row label="Vet" value={appointment.vet?.name ?? "—"} />
           {appointment.notes && (
-            <div className="sm:col-span-2 mt-2 rounded-lg bg-muted/40 p-3 text-sm">
+            <div className="mt-2 rounded-control bg-muted/40 p-3 text-sm">
               {appointment.notes}
             </div>
           )}
         </CardContent>
       </Card>
-    </div>
-  );
-}
 
-function Row({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-sm text-foreground">{value}</span>
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle>{t("notifications.title")}</CardTitle>
+          {preview && (
+            <div className="flex items-center gap-2">
+              <Badge>{tChannel(preview.channel)}</Badge>
+              <Badge>
+                {t("notifications.language")}: {tLang(preview.confirmation.language)}
+              </Badge>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {preview && !preview.optedIn && (
+            <Callout variant="warning">{t("notifications.optedOut")}</Callout>
+          )}
+          {preview && preview.optedIn && !preview.configured && (
+            <Callout variant="info">
+              {t("notifications.notConfigured", { channel: tChannel(preview.channel) })}
+            </Callout>
+          )}
+          {petSilenced ? (
+            <p className="text-sm text-muted-foreground">
+              {t("notifications.petSilencedNotice")}
+            </p>
+          ) : closed ? (
+            // A cancelled, missed or finished appointment must not offer to
+            // confirm it or to remind the client to come — there is no
+            // message here that is true any more.
+            <div className="flex flex-col items-start gap-3">
+              <p className="text-sm text-muted-foreground">
+                {appointment.status === "COMPLETED"
+                  ? t("notifications.completedNotice")
+                  : isAppointmentClosed(appointment.status)
+                    ? t("notifications.cancelledNotice")
+                    : // Still `SCHEDULED`, but the day has gone by. Saying
+                      // "cancelled" here would be a second false statement on
+                      // top of the one we just stopped.
+                      t("notifications.pastNotice")}
+              </p>
+              {/* Only this one of the three closing sentences carries an
+                  action, because only this one leaves something undone: the
+                  other two report a fact and ask for nothing. The heading
+                  already has "Edit" pointing at the same route, and that is
+                  on purpose — that one is navigation, this one is the
+                  invitation. A vet who reads "the outcome has not been
+                  recorded" should not have to look back up the page and work
+                  out that "Edit" is the name of the job. */}
+              {/* The sentence above stays for a role that cannot act on it:
+                  we do not offer someone a job they are not allowed to do,
+                  and we do not hide from them what is going on either. */}
+              {canWrite &&
+                !isAppointmentClosed(appointment.status) &&
+                appointment.status !== "COMPLETED" && (
+                  <Link
+                    href={`/appointments/${appointment.id}/edit`}
+                    className={buttonVariants({ variant: "secondary", size: "sm" })}
+                  >
+                    {t("notifications.recordOutcome")}
+                  </Link>
+                )}
+            </div>
+          ) : !preview?.confirmation.recipient ? (
+            <p className="text-sm text-muted-foreground">{t("notifications.noPhone")}</p>
+          ) : (
+            <NotificationActions
+              appointmentId={appointment.id}
+              channel={preview.channel}
+              // `=== true`, not `?? false`: consent is three-valued now
+              // and the two states that are not "yes" reach here for
+              // different reasons. Coercing null to false would make the
+              // distinction unwritable at the one place it has to be
+              // made, and would read as if it had never existed.
+              configured={preview.configured && preview.optedIn === true}
+              messages={[preview.confirmation, preview.reminder].map((m) => ({
+                kind: m.kind,
+                body: m.body,
+                whatsappLink: m.whatsappLink,
+                segments: m.segments,
+              }))}
+              sendAction={sendAppointmentMessageAction}
+              logManualAction={logManualMessageAction}
+            />
+          )}
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {t("notifications.history")}
+            </p>
+            {log.length === 0 ? (
+              <EmptyState size="inline" title={t("notifications.historyEmpty")} />
+            ) : (
+              <ul className="divide-y divide-border text-sm">
+                {log.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between gap-3 py-2">
+                    <span>
+                      {tKind(m.kind)}
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {tChannel(m.channel)} · {formatDateTime(fmt, m.createdAt)} ·{" "}
+                        {m.language.toUpperCase()}
+                      </span>
+                      {m.error && <span className="ml-2 text-xs text-destructive">{m.error}</span>}
+                    </span>
+                    <StatusBadge
+                      kind="message"
+                      status={m.status}
+                      label={tMsgStatus(m.status)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -9,7 +9,8 @@ export type TimelineEvent =
       kind: "visit";
       id: string;
       at: Date;
-      title: string;
+      /** Null when the visit has no chief complaint; see the query. */
+      title: string | null;
       summary: string | null;
       vet: { id: string; name: string } | null;
       petId: string;
@@ -19,7 +20,8 @@ export type TimelineEvent =
       kind: "appointment";
       id: string;
       at: Date;
-      title: string;
+      /** Null when the appointment has no reason; see the query. */
+      title: string | null;
       summary: string | null;
       status: string;
       petId: string;
@@ -63,7 +65,9 @@ export type TimelineEvent =
       kind: "note";
       id: string;
       at: Date;
-      title: string;
+      /** Always null: a note's words are its `summary`, its kind is
+       *  `noteKind`, and the screen names that from the catalogue. */
+      title: null;
       summary: string;
       pinned: boolean;
       author: { id: string; name: string } | null;
@@ -79,6 +83,8 @@ export type TimelineEvent =
       summary: string | null;
       status: string;
       totalCents: number;
+      /** The invoice's own currency; see Invoice.currency. */
+      currency: string;
     };
 
 interface TimelineArgs {
@@ -181,7 +187,13 @@ async function collectTimeline({
       kind: "visit",
       id: v.id,
       at: v.visitedAt,
-      title: v.chiefComplaint ?? "Vizit",
+      // No fallback. It read "Vizit" — a Turkish word written into the
+      // code, printed beside the type badge the component already renders
+      // from the catalogue, so an English screen showed "Visit · Vizit"
+      // and a Turkish one "Vizit · Vizit". An invented title is worse than
+      // none (TEAM.md #21): the row is already legible from its label, its
+      // time and its vet.
+      title: v.chiefComplaint,
       summary: v.assessment ?? v.plan ?? null,
       vet: v.vet,
       petId: v.petId,
@@ -191,7 +203,9 @@ async function collectTimeline({
       kind: "appointment",
       id: a.id,
       at: a.startsAt,
-      title: a.reason ?? "Randevu",
+      // Same again, and this one nobody had reported: "Randevu" beside
+      // the appointment badge.
+      title: a.reason,
       summary: a.notes ?? null,
       status: a.status,
       petId: a.petId,
@@ -235,7 +249,12 @@ async function collectTimeline({
       kind: "note",
       id: n.id,
       at: n.createdAt,
-      title: n.kind,
+      // The raw enum was going straight to the screen: a note read
+      // "GENERAL" as its title, including the one that says the animal is
+      // allergic to penicillin. `noteKind` below already carries the same
+      // value for the component to name from the catalogue, so the title
+      // has nothing left to say — a note's own words are its `summary`.
+      title: null,
       summary: n.body,
       pinned: n.pinned,
       author: n.author,
@@ -247,10 +266,15 @@ async function collectTimeline({
       kind: "invoice",
       id: i.id,
       at: i.issuedAt,
-      title: `Fatura #${i.number}`,
+      // And a third, in a different shape: not a fallback but a built
+      // string with a Turkish word in it, so an English screen read
+      // "Invoice · Fatura #INV-2026-57336". The number is already the
+      // invoice's name and the badge already says what it is.
+      title: i.number,
       summary: i.notes ?? null,
       status: i.status,
       totalCents: i.totalCents,
+      currency: i.currency,
     })),
   ];
 
