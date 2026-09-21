@@ -24,6 +24,7 @@ import {
 import { ColumnBars, HorizontalBars } from "@/components/charts";
 import {
   firstName,
+  formatDate,
   formatDateTime,
   formatMoney,
   intlLocale,
@@ -294,7 +295,7 @@ export default async function DashboardPage() {
                       {v.pet?.name ?? "?"} · {v.name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {v.nextDueAt ? formatDateTime(fmt, v.nextDueAt) : "-"}
+                      {formatDate(fmt, v.nextDueAt)}
                     </span>
                   </li>
                 ))}

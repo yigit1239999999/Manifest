@@ -11,6 +11,7 @@ import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
+import { DetailList } from "@/components/ui/detail-list";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Card,
@@ -101,16 +102,26 @@ export default async function AppointmentPage({
         <CardHeader>
           <CardTitle>{tCommon("details")}</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-          <Row label={t("startsAt")} value={formatDateTime(fmt, appointment.startsAt)} />
-          <Row
-            label={t("durationMinutes")}
-            value={formatDuration(fmt, appointment.durationMinutes)}
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <DetailList
+            columns={2}
+            items={[
+              {
+                label: t("startsAt"),
+                value: formatDateTime(fmt, appointment.startsAt),
+              },
+              {
+                label: t("durationMinutes"),
+                value: formatDuration(fmt, appointment.durationMinutes),
+              },
+              // The "-" for an unfilled field is the list's, not four
+              // call sites'.
+              { label: t("reason"), value: appointment.reason },
+              { label: t("vet"), value: appointment.vet?.name },
+            ]}
           />
-          <Row label={t("reason")} value={appointment.reason ?? "-"} />
-          <Row label={t("vet")} value={appointment.vet?.name ?? "-"} />
           {appointment.notes && (
-            <div className="sm:col-span-2 mt-2 rounded-lg bg-muted/40 p-3 text-sm">
+            <div className="mt-2 rounded-lg bg-muted/40 p-3 text-sm">
               {appointment.notes}
             </div>
           )}
@@ -198,23 +209,6 @@ export default async function AppointmentPage({
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-sm text-foreground">{value}</span>
     </div>
   );
 }

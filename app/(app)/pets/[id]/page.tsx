@@ -30,6 +30,7 @@ import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { listStaff } from "@/modules/staff/queries";
 import { Badge } from "@/components/ui/badge";
+import { DetailList } from "@/components/ui/detail-list";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Callout } from "@/components/ui/callout";
 import {
@@ -202,32 +203,41 @@ export default async function PetPage({
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
-            <Detail
-              label={t("owner")}
-              value={
-                <Link
-                  href={`/clients/${pet.owner.id}`}
-                  className="text-primary hover:underline"
-                >
-                  {pet.owner.firstName} {pet.owner.lastName}
-                </Link>
-              }
-            />
-            <Detail label={t("breed")} value={pet.breed || "-"} />
-            <Detail label={t("color")} value={pet.color || "-"} />
-            <Detail label={t("birthDate")} value={formatDateOnly(fmt, pet.birthDate)} />
-            <Detail
-              label={t("weightKg")}
-              value={pet.weightKg != null ? `${pet.weightKg} kg` : "-"}
-            />
-            <Detail label={t("microchipId")} value={pet.microchipId || "-"} />
-            <Detail
-              label={t("insuranceProvider")}
-              value={pet.insuranceProvider || "-"}
-            />
-            <Detail
-              label={t("neutered")}
-              value={pet.neutered ? tCommon("yes") : tCommon("no")}
+            <DetailList
+              items={[
+                {
+                  label: t("owner"),
+                  value: (
+                    <Link
+                      href={`/clients/${pet.owner.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {pet.owner.firstName} {pet.owner.lastName}
+                    </Link>
+                  ),
+                },
+                { label: t("breed"), value: pet.breed },
+                { label: t("color"), value: pet.color },
+                {
+                  label: t("birthDate"),
+                  value: formatDateOnly(fmt, pet.birthDate),
+                },
+                {
+                  label: t("weightKg"),
+                  // The unit belongs to the reading, so it is only written
+                  // when there is one; the list supplies the "-".
+                  value: pet.weightKg != null ? `${pet.weightKg} kg` : null,
+                },
+                { label: t("microchipId"), value: pet.microchipId },
+                {
+                  label: t("insuranceProvider"),
+                  value: pet.insuranceProvider,
+                },
+                {
+                  label: t("neutered"),
+                  value: pet.neutered ? tCommon("yes") : tCommon("no"),
+                },
+              ]}
             />
             {pet.notes && (
               <div className="mt-2 rounded-lg bg-muted/40 p-3 text-sm">
@@ -451,23 +461,6 @@ export default async function PetPage({
         </h2>
         <Timeline events={timeline} />
       </div>
-    </div>
-  );
-}
-
-function Detail({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-sm text-foreground">{value}</span>
     </div>
   );
 }

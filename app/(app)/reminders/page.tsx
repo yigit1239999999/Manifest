@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatDateTime } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 
 export default async function RemindersPage() {
   const fmt = await getFormatContext();
@@ -75,7 +75,7 @@ export default async function RemindersPage() {
                   <p className="text-sm font-semibold">{r.title}</p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {formatDateTime(fmt, r.dueAt)} · {r.client.firstName}{" "}
+                  {formatDate(fmt, r.dueAt)} · {r.client.firstName}{" "}
                   {r.client.lastName}
                   {r.pet ? ` · ${r.pet.name}` : ""}
                 </p>

@@ -21,6 +21,7 @@ import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
+import { DetailList } from "@/components/ui/detail-list";
 import {
   Card,
   CardContent,
@@ -150,36 +151,44 @@ export default async function VisitPage({
           <CardHeader>
             <CardTitle>{t("vitals")}</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm">
-            <Row
-              label={t("weightKg")}
-              value={visit.weightKg != null ? `${visit.weightKg} kg` : "-"}
+          <CardContent>
+            <DetailList
+              layout="inline"
+              items={[
+                {
+                  label: t("weightKg"),
+                  // The unit belongs to the reading, so it is only written
+                  // when there is one; the list supplies the "-".
+                  value: visit.weightKg != null ? `${visit.weightKg} kg` : null,
+                },
+                {
+                  label: t("temperatureC"),
+                  value:
+                    visit.temperatureC != null
+                      ? `${visit.temperatureC} °C`
+                      : null,
+                },
+                { label: t("heartRateBpm"), value: visit.heartRateBpm },
+                {
+                  label: t("respiratoryRateBpm"),
+                  value: visit.respiratoryRateBpm,
+                },
+                {
+                  label: t("followupAt"),
+                  // A follow-up is a day, not a moment — the field stopped
+                  // asking for a time, so the card stops printing 00:00.
+                  value: formatDate(fmt, visit.followupAt),
+                },
+                {
+                  label: t("totalCost"),
+                  value:
+                    visit.totalCents != null
+                      ? formatMoney(fmt, visit.totalCents, currency)
+                      : null,
+                },
+                { label: t("vet"), value: visit.vet?.name },
+              ]}
             />
-            <Row
-              label={t("temperatureC")}
-              value={visit.temperatureC != null ? `${visit.temperatureC} °C` : "-"}
-            />
-            <Row
-              label={t("heartRateBpm")}
-              value={visit.heartRateBpm ?? "-"}
-            />
-            <Row
-              label={t("respiratoryRateBpm")}
-              value={visit.respiratoryRateBpm ?? "-"}
-            />
-            <Row
-              label={t("followupAt")}
-              value={visit.followupAt ? formatDateTime(fmt, visit.followupAt) : "-"}
-            />
-            <Row
-              label={t("totalCost")}
-              value={
-                visit.totalCents != null
-                  ? formatMoney(fmt, visit.totalCents, currency)
-                  : "-"
-              }
-            />
-            <Row label={t("vet")} value={visit.vet?.name ?? "-"} />
           </CardContent>
         </Card>
       </div>
@@ -199,7 +208,7 @@ export default async function VisitPage({
                   {v.nextDueAt && (
                     <span className="text-muted-foreground">
                       {" "}
-                      · → {formatDateTime(fmt, v.nextDueAt)}
+                      · → {formatDate(fmt, v.nextDueAt)}
                     </span>
                   )}
                 </li>
@@ -321,23 +330,6 @@ function SoapBlock({ label, value }: { label: string; value: string | null }) {
         {label}
       </span>
       <p className="whitespace-pre-wrap text-sm">{value || "-"}</p>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-sm text-foreground">{value}</span>
     </div>
   );
 }

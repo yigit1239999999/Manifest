@@ -19,6 +19,7 @@ import { PetCard } from "@/components/pet-card";
 import { Timeline } from "@/components/timeline";
 import { NoteForm } from "@/components/forms/note-form";
 import { Badge } from "@/components/ui/badge";
+import { DetailList } from "@/components/ui/detail-list";
 import { Callout } from "@/components/ui/callout";
 import {
   Card,
@@ -106,13 +107,17 @@ export default async function ClientPage({
             <CardTitle>{t("details")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
-            <Detail label={t("email")} value={client.email} />
-            <Detail label={t("phone")} value={client.phone} />
-            <Detail label={t("secondaryPhone")} value={client.secondaryPhone} />
-            <Detail label={t("address")} value={client.address} />
-            <Detail label={t("city")} value={client.city} />
-            <Detail label={t("postalCode")} value={client.postalCode} />
-            <Detail label={t("country")} value={client.country} />
+            <DetailList
+              items={[
+                { label: t("email"), value: client.email },
+                { label: t("phone"), value: client.phone },
+                { label: t("secondaryPhone"), value: client.secondaryPhone },
+                { label: t("address"), value: client.address },
+                { label: t("city"), value: client.city },
+                { label: t("postalCode"), value: client.postalCode },
+                { label: t("country"), value: client.country },
+              ]}
+            />
             {client.notes && (
               <div className="mt-2 rounded-lg bg-muted/40 p-3 text-sm">
                 {client.notes}
@@ -151,23 +156,27 @@ export default async function ClientPage({
             <CardHeader>
               <CardTitle>{tCommon("details")}</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-2 text-sm sm:grid-cols-3">
-              <Detail
-                label={tCommon("createdAt")}
-                value={formatDate(fmt, client.createdAt)}
+            <CardContent>
+              {/* The visit count used to be a fourth copy of the pair,
+                  written inline because its value is a badge rather than
+                  text — and it had drifted to `gap-1`. A value is a node. */}
+              <DetailList
+                columns={3}
+                items={[
+                  {
+                    label: tCommon("createdAt"),
+                    value: formatDate(fmt, client.createdAt),
+                  },
+                  {
+                    label: tCommon("updatedAt"),
+                    value: formatDate(fmt, client.updatedAt),
+                  },
+                  {
+                    label: tNav("visits"),
+                    value: <Badge className="w-fit">{client._count.visits}</Badge>,
+                  },
+                ]}
               />
-              <Detail
-                label={tCommon("updatedAt")}
-                value={formatDate(fmt, client.updatedAt)}
-              />
-              <div className="flex flex-col gap-1">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {tNav("visits")}
-                </span>
-                <Badge className="w-fit">
-                  {client._count.visits}
-                </Badge>
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -188,17 +197,6 @@ export default async function ClientPage({
         </h2>
         <Timeline events={timeline} />
       </div>
-    </div>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-sm text-foreground">{value || "-"}</span>
     </div>
   );
 }
