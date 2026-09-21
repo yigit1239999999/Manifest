@@ -135,16 +135,16 @@
     },
     "firstStep": {
       "visit": {
-        "title": "Write up a patient you saw today.",
-        "hint": "You can add an unregistered animal and its owner along the way."
+        "title": "Write up a visit for an animal you saw today.",
+        "hint": "If it is not on file, you can add the animal and its owner along the way."
       },
       "client": {
-        "title": "Register an owner who came in today.",
+        "title": "Add an owner who came in today.",
         "hint": "Their animal, its visits and its invoices all hang off that record."
       },
       "pet": {
-        "title": "Register an animal you saw today to its owner.",
-        "hint": "Its visits, vaccinations and prescriptions all hang off that record."
+        "title": "Add an animal you saw today to its owner.",
+        "hint": "Its visits, vaccinations and prescriptions hang off that record."
       }
     },
     "unreachedRemindersCount": "{count, plural, one {1 did not arrive} other {# did not arrive}}",
