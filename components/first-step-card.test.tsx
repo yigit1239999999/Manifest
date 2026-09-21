@@ -14,7 +14,7 @@ vi.mock("@/lib/session", () => ({ requireSession: async () => session }));
 
 import { FirstStepCard } from "@/components/first-step-card";
 
-async function renderAs(role: string, need: "client" | "pet") {
+async function renderAs(role: string, need: "visit" | "client" | "pet") {
   session.user.role = role;
   const { container } = render(await FirstStepCard({ need }));
   return container;
@@ -51,5 +51,33 @@ describe("the first step card", () => {
     const container = await renderAs("VET_TECH", "client");
 
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+/**
+ * The first ask for a clinic with nothing in it is the work, not the
+ * data entry.
+ *
+ * "Ben veri girmek için oturmuyorum, iş yapıyorum." The chain makes
+ * the owner and the animal on the way to the visit, so asking for the
+ * visit no longer costs the records — and the sentence says so, which
+ * is why it could not exist before `?next=` did.
+ */
+describe("the first ask of an empty clinic", () => {
+  it("asks for a visit, and promises the chain the product now keeps", async () => {
+    const container = await renderAs("VETERINARIAN", "visit");
+
+    expect(container.textContent).toContain(tr.dashboard.firstStep.visit);
+    expect(container.querySelector("a")).toHaveAttribute("href", "/visits/new");
+  });
+
+  // One fall-back and only from here: somebody who cannot write a
+  // visit may still be able to make a client, which is a smaller but
+  // real first step.
+  it("falls back to the client ask for someone who cannot write a visit", async () => {
+    const container = await renderAs("RECEPTIONIST", "visit");
+
+    expect(container.textContent).toContain(tr.dashboard.firstStep.client);
+    expect(container.querySelector("a")).toHaveAttribute("href", "/clients/new");
   });
 });

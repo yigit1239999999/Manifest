@@ -45,6 +45,25 @@ import { buttonVariants } from "@/components/ui/button";
 // thing it becomes a setup checklist -- which is the shape the vet said
 // they would abandon in three days.
 const STEPS = {
+  // The first ask for a clinic with nothing at all, and it is not a
+  // third step but a different first one: only ever one row renders.
+  // The vet said what they sit down to do on a first evening -- "ben
+  // veri girmek için oturmuyorum, iş yapıyorum" -- and the chain now
+  // makes the other two records on the way there, so asking for the
+  // work no longer costs the data.
+  //
+  // The sentence promises exactly that ("you can add them along the
+  // way"), which is why it could not exist until `?next=` did: before
+  // it, `/visits/new` sent a vet to the animal form and left them
+  // there with no way back. Verified end to end -- `visits/new` offers
+  // the animal, that offers the owner, `withCreated` returns with the
+  // new animal already selected, and `/visits/new` is in
+  // `ALLOWED_PATHS`.
+  visit: {
+    href: "/visits/new",
+    namespace: "visit",
+    permission: "visits.write",
+  },
   client: {
     href: "/clients/new",
     namespace: "client",
@@ -58,9 +77,18 @@ const STEPS = {
 } as const;
 
 export async function FirstStepCard({ need }: { need: keyof typeof STEPS }) {
-  const step = STEPS[need];
-
   const session = await requireSession();
+
+  // One fall-back, and only from the visit ask: somebody who cannot
+  // write a visit may still be able to make a client, which is a
+  // smaller but real first step. Everything else is absent rather than
+  // disabled -- telling a technician to do what the server will refuse
+  // is worse than the empty dashboard they can already read.
+  const resolved =
+    need === "visit" && !can(session.user.role, STEPS.visit.permission)
+      ? "client"
+      : need;
+  const step = STEPS[resolved];
   if (!can(session.user.role, step.permission)) {
     return null;
   }
@@ -77,7 +105,7 @@ export async function FirstStepCard({ need }: { need: keyof typeof STEPS }) {
     <Card className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
       {/* `min-w-0` so the longer of the two catalogues wraps inside the
           card instead of pushing the button off a 390px screen. */}
-      <p className="min-w-0 text-sm text-foreground">{t(need)}</p>
+      <p className="min-w-0 text-sm text-foreground">{t(resolved)}</p>
       <Link href={href} className={cn(buttonVariants(), "shrink-0")}>
         {label}
       </Link>

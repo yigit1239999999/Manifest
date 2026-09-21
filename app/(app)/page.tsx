@@ -249,8 +249,14 @@ export default async function DashboardPage() {
 
         {/* The one fully present thing on the screen: full contrast,
             its own shadow. The focus is built by holding everything
-            else back rather than by making this bigger. */}
-        {firstStep && <FirstStepCard need={firstStep} />}
+            else back rather than by making this bigger.
+
+            `visit`, not `client`, and the difference is the whole
+            first-run idea: a clinic with nothing at all is asked for
+            the thing it came to do, and the owner and animal it needs
+            get made on the way there. The card falls back to the
+            client ask by itself for anyone who cannot write a visit. */}
+        <FirstStepCard need="visit" />
 
         {/* Outside the two-column grid below on purpose -- that grid is
             where a 140px overflow was measured at 390px -- and set off

@@ -134,6 +134,7 @@
       "vaccinations": "No vaccinations due soon."
     },
     "firstStep": {
+      "visit": "Write up a patient you saw today. You can add an unregistered animal and its owner along the way.",
       "client": "There are no clients in your clinic yet. Pets, visits, appointments and invoices are all recorded against one, so start by adding your first client.",
       "pet": "No animals are registered yet. Visits, appointments, vaccinations and prescriptions are all recorded against one, so add the first animal to one of your clients."
     },
