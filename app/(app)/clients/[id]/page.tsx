@@ -134,6 +134,28 @@ export default async function ClientPage({
                 { label: t("city"), value: client.city },
                 { label: t("postalCode"), value: client.postalCode },
                 { label: t("country"), value: client.country },
+                {
+                  // Here rather than in a card of its own, because
+                  // consent is a condition of contact: the answer to
+                  // "may we message them" belongs beside the numbers
+                  // we would message. ux's call.
+                  label: t("consent.label"),
+                  // Named, never a tick or a dash. A dash would put
+                  // "not asked" back where it was before v0.9.0 — an
+                  // absence indistinguishable from a no — and the
+                  // whole of that release was separating those two.
+                  // `DescriptionList` prints nothing for a null
+                  // value, which is right for a missing phone number
+                  // and wrong here, so the third state is a string
+                  // like the other two.
+                  value: t(
+                    client.notificationsOptIn === true
+                      ? "consent.granted"
+                      : client.notificationsOptIn === false
+                        ? "consent.declined"
+                        : "consent.unanswered",
+                  ),
+                },
               ]}
             />
             {client.notes && (

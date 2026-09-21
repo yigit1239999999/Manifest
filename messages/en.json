@@ -151,6 +151,8 @@
     "preferredLanguage": "Preferred language",
     "preferredLanguageHint": "Messages sent to this client are written in this language.",
     "consent": {
+      "label": "Notification consent",
+      "unanswered": "Not asked yet",
       "legend": "Client's notification consent",
       "granted": "Gave consent",
       "declined": "Declined",
@@ -543,6 +545,7 @@
     "quantity": "Qty",
     "unitPrice": "Unit price",
     "lineTotal": "Total",
+    "fromVisit": "From the visit on {date}",
     "notes": "Notes",
     "outstanding": "Outstanding",
     "recordPayment": "Record payment",

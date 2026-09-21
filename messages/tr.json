@@ -151,6 +151,8 @@
     "preferredLanguage": "Tercih edilen dil",
     "preferredLanguageHint": "Bu müşteriye gönderilen mesajlar bu dilde yazılır.",
     "consent": {
+      "label": "Bildirim izni",
+      "unanswered": "Henüz sorulmadı",
       "legend": "Müşterinin bildirim izni",
       "granted": "İzin verdi",
       "declined": "İzin vermedi",
@@ -543,6 +545,7 @@
     "quantity": "Adet",
     "unitPrice": "Birim fiyat",
     "lineTotal": "Toplam",
+    "fromVisit": "Vizit: {date}",
     "notes": "Notlar",
     "outstanding": "Ödenmemiş",
     "recordPayment": "Ödeme kaydet",
