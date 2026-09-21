@@ -63,7 +63,381 @@ ekip birlikte düşünür. Ölçüt `.claude/TEAM.md`'de yazılı: kullanıcın�
 
 ---
 
-## v0.3.0 — "v0.2.0'ın borçları kapanıyor." (value, 21 Eylül 2026)
+## DURUM — tartışmasız hâl (21 Eylül 2026)
+
+**`v0.3.0` KESİLDİ, ETİKETLENDİ VE PUSH EDİLDİ.** Etiket **`454f02c`**'de,
+main de oraya getirildi.
+
+> **DÜZELTME — etiket metninde iki yanlış var, kayda geçiyor:**
+> Ana oturum etiketi **`HEAD`'e vurdu, belirli bir commit'e değil**, ve
+> ajanlar o sırada commit atmaya devam ediyordu. Sonuç: `454f02c`
+> (`INPUT_FILL_RATE_SINCE`) etikete **girdi**, ama etiket metni onu
+> *"YOK, ikinci sürümdür"* diye eksik listesinde sayıyor. Aynı şekilde
+> main bir süre etiketin **bir commit gerisinde** kaldı; düzeltildi.
+> **Etiket yeniden yazılmıyor** (kural), yanlışı burada duruyor.
+> **Ders TEAM.md'ye yazıldı: ajanlar canlıyken etiket `HEAD`'e vurulmaz,
+> kapıların koşulduğu commit'e vurulur.**
+Bundan sonraki her commit **v0.4.0'a aittir.** "Kesmeden önce şunu ekle"
+diyen mesajlar v0.3.0 için **geç kalmıştır**; içerikleri v0.4.0'a taşınır.
+Mesajlar geç geliyor ve sırası karışıyor — **çelişkide bu dosya geçerli.**
+
+**v0.3.0 sonrası inenler (= v0.4.0'ın bugünkü içeriği):**
+`2ed1094` kapsam notu · `454f02c` **`INPUT_FILL_RATE_SINCE`** ·
+`e709bf1` **42a'nın ekran yarısı**.
+
+---
+
+## v0.4.0 — "Ekran, yapmadığı şeyi vaat etmiyor." (value)
+
+**Ad üç kez değişti, geçerli olan bu.** ~~"Ölçebildiğimiz ve
+kapatabildiğimiz"~~ · ~~"Söz verdiğimizi gösteriyoruz"~~ · ~~"Hata,
+kullanıcının baktığı yerde görünür"~~ (paket tek işken doğruydu, 45
+eklenince değişti) · ~~"Ekran doğruyu söyler"~~.
+
+**ux "tek cümle" kuralını ölçülebilir hâle getiren bir test önerdi ve
+TEAM.md'ye değer:** *paketten bir işi çıkarınca cümle eksik kalıyor mu?*
+Burada kalıyor — *"E2 olmadan düğmeler dürüst ama form yalan söylüyor;
+45 olmadan form dürüst ama düğme veremeyeceğini teklif ediyor."*
+
+**ETİKETE GİRECEK DÜZELTME SATIRI (value'nun isteği, unutulmayacak):**
+> `INPUT_FILL_RATE_SINCE` v0.3.0'ın **içindeydi**; o etiketin eksik listesi
+> yanlış.
+
+Gerekçe: **yanlış bir kayıt, düzeltmesi başka bir yerde duruyorsa hâlâ
+yanlış kayıttır.** 14 gün sonra ölçümü okuyan kişi etikete bakıp "bu ölçü
+daha yoktu" diye yanlış sonuç çıkarır.
+
+### Şekil kararı: hata kutusu `ActionForm`'a GÖMÜLMEDİ (dev-ui kazandı)
+
+value-2 kök neden gerekçesiyle gömülmesini istemişti (13 kopya yerine tek
+kaynak). **dev-ui karşı çıktı ve gerekçesi üstündü:** üç form (`sign-in`,
+`sign-up`, `species-settings`) `ActionForm` **kullanmıyor** — gömülseydi
+kuralın **kapsamadığı üç form** kalırdı. value-2 pozisyonunu değiştirdi:
+**"kopya sayısını azaltmak, kapsamı daraltmaya değmez."**
+"Garanti kaydırma hedefi" şartı başka yoldan karşılandı: sabitlenen şey
+kutunun **yeri** değil, **`[role="alert"]` sözleşmesi.**
+
+### `ForbiddenState`'in metni DOKUZ ROTA İNMEDEN ÖNCE düzelmeli (ux)
+
+`messages/tr.json:704` bugün diyor ki: **"Bu bölüm yalnızca yöneticiler
+içindir."** Yazıldığı iki yer (`/staff`, `/settings`) için doğruydu.
+**Bugün bile yalan söylüyor ve kanıtı elimizde:** `/audit` kapıyı
+`audit.read` ile kuruyor ve o izin **`VETERINARIAN`'da da var** (ana oturum
+doğruladı) — yani dört çağrı yerinden birinde cümle şu an yanlış.
+Dokuz yeni çağrı yeri eklenince `/visits/new`'den çevrilen bir `VET_TECH`
+*"demek ki yönetici olmam lazım"* diye okuyacak, oysa **yanındaki veteriner
+iki saniyede yapabilir.**
+
+**Çözüm tek genel metin, prop yok:** *"Bu bölüm rolünüze açık değil.
+Erişmeniz gerekiyorsa klinik yöneticinizle görüşünüz."* Başlık zaten olguyu
+söylüyor; açıklama **nedeni ve kime gidileceğini** söylüyor ve on rotanın
+onunda da doğru.
+**`description` prop'u açılmıyor** (ux + value): kaybedilen özgüllük zaten
+ikinci cümlede duruyor, ve tek cümle için iki varyantlı bir yüzey açmak
+**dokuz çağrı yerinde kullanılmayan bir prop** bırakır (madde 30).
+
+**ZAMANLAMA ŞARTI, bağlayıcı:** metin **kapılardan önce ya da aynı
+commit'te** iner. Sonra inerse arada dokuz ekran yanlış cümle gösterir — ve
+bu, *"ekran, yapmadığı şeyi vaat etmiyor"* diyen bir sürümde **ekranın
+olmayan bir kısıtı vaat etmesi** olur.
+
+### 45 genişledi: sayfa kapıları da taranacak (ux, üçüncü vaka)
+
+**İki ajan bağımsız olarak aynı kusura vardı ve ana oturum doğruladı.**
+dev: *"`pets/new/page.tsx` tarama testini **yanlış nedenle** geçiyor —
+geçiren `can()`, başka bir şeyi koruyan `settings.manage`."*
+ux: *"asıl kusur bir satır yukarıda: sayfa hiç `pets.write` kapısı
+taşımıyor."* **Doğrulandı:** `app/(app)/pets/new/page.tsx`'teki tek `can()`
+çağrısı `:64`'te ve `settings.manage` için.
+
+**Bugünkü davranış:** `VET_TECH` o sayfaya **giriyor** ve klinikte müşteri
+olsun ya da olmasın **hiçbir zaman bitiremiyor** — müşteri varsa `PetForm`
+açılıyor, dolduruyor, gönderiyor, **servis reddediyor.** Paketin cümlesinin
+tam ihlali.
+
+**ux bir metin yazmayı REDDETTİ ve gerekçesi TEAM.md 30'un uygulaması:**
+value-2 boş hâl için bir cümle istemişti ("hayvan ekleyebilir ama müşteri
+ekleyemez" kullanıcısına). ux ölçtü: `lib/permissions.ts`'te **`pets.write`
+ve `clients.write` birlikte hareket ediyor** — ADMIN, VETERINARIAN ve
+RECEPTIONIST'te ikisi de var (`:44/:47`, `:69/:72`, `:103/:105`),
+`VET_TECH`'te ikisi de yok. **O rol bu uygulamada mevcut değil**, yani
+cümlenin **sıfır çağrı yeri** olurdu. *"Kullanılmayan bir çeviri anahtarı
+da kullanılmayan bir prop kadar borçtur."* Boş hâlin metni **semptom**;
+düzeltilecek şey sayfanın `ForbiddenState` kapısı (`session` `:24`'te,
+`can` `:5`'te zaten var).
+
+**Yan etki, atlanmasın:** sayfa `pets.write` ile kapandıktan sonra dev'in
+indirdiği düğme kapısı **ölü koda dönüşür** — oraya ulaşan herkesin
+`clients.write`'ı da vardır. **Kaldırılmalı**, yoksa okuyana **var olmayan
+bir vakayı varmış gibi** anlatır.
+
+**SAYIM — value-2 sekiz dedi, ana oturum saydı: DOKUZ.** (`next` @ `e2bfc47`)
+On yazma rotasının **dokuzunda** sayfa izin kapısı yok:
+- **Yedisinde `can(`/`requirePermission` hiç yok:** `appointments/new` ·
+  `appointments/[id]/edit` · `clients/new` · `clients/[id]/edit` ·
+  `invoices/new` · `visits/new` · `visits/[id]/edit`.
+- **İkisinde `can()` var ama YANLIŞ izni koruyor** —
+  `pets/new:64` ve `pets/[id]/edit:51`, ikisi de
+  `can(session.user.role, "settings.manage")`, yani ayarlar bağlantısını
+  gösterip göstermemeye karar veriyor; sayfanın kendisiyle ilgisi yok.
+  **İkisi de dev'in tarama testini bu yüzden geçiyor** — `pets/new` için
+  dev'in bildirdiği "yanlış nedenle geçiyor" vakası **tek değil, çift.**
+- **Doğru kapılı tek rota: `staff/new:12`** —
+  `can(session.user.role, "users.manage")` + `ForbiddenState`. Desen bu.
+**45'te düğmeleri kapattık, kapıların kendisi açık kaldı.**
+
+**45'in kapsamı genişledi (ux):**
+1. Yalnızca düğmeler değil, **sayfa kapıları** da taransın — **tüm `new/`
+   ve `edit/` rotaları.**
+2. Kural teste bağlansın: **yazma yapan her rota bir izin kapısı taşır.**
+   *"Dördüncü ekranı elle bulmak istemiyorum."*
+
+**Üçüncü vaka olması kayda değer:** `/audit` (43) → `appointments/[id]`
+(45'in doğuş yeri) → `/pets/new`. **Üçünde de tek ekran düzeltildi, sınıf
+kapatılmadı, sınıf yan ekranda yeniden çıktı.**
+
+**Kapsam notu (ux, 30c):** yalnızca bu izin çifti ölçüldü. Başka bir
+sayfada "X yapabilir ama Y yapamaz" boşluğu **gerçek olabilir** ve orada
+gerçekten bir metin gerekir; 45'in taraması çıkarırsa o zaman yazılır.
+*"Bugün yazarsam hangi rol için yazdığımı bilmeden yazmış olurum."*
+
+### Fatura iptali: `invoices.void` ADMIN'de KALIYOR (value kararı)
+
+dev, 45 düğmeyi gizlemeden **önce** sordu — 30c'nin doğru uygulaması:
+*gizlenince görünmez olacak bir ürün sorusu, kapanmadan önce sorulur.*
+**Artık varsayılan değil, karar.** Gerekçe koddan: `VETERINARIAN` ve
+`RECEPTIONIST` **ikisi de** `invoices.read` + `invoices.write` taşıyor,
+**ikisi de `void` taşımıyor** — desen tutarlı: **fatura kesmek evet, iptal
+etmek hayır.** Tek veterinerli klinikte bedeli sıfır (o veteriner zaten
+ADMIN), çok veterinerli klinikte istenen ayrım.
+
+### Önleyici kayıt: 39 bu konuda EMSAL DEĞİLDİR
+
+`voidInvoice`'ın **geri dönüşü yok** (`modules/invoices/service.ts:163`;
+`unvoidInvoice` diye bir şey yok) ve bu **39'un arşiv kusuruyla aynı şekle
+sahip ama aynı sınıf değil.**
+**İptal geri alınamaz ve bu kasıtlıdır:** iptal edilmiş fatura bir
+**muhasebe kaydıdır**, düzeltme yolu **yenisini kesmektir**. Arşivdeki
+kusur, *yumuşak bir kelimeyle sunulan geri alınamaz bir eylemdi*; burada
+eylem gerçekten geri alınamaz ve öyle olmalı.
+**Yazılma sebebi (30b'nin önleyici hâli):** yazılmazsa biri altı ay sonra
+**39'u emsal gösterip "iptali de geri alalım" der.** Aynı not koda da
+yorum olarak giriyor.
+
+### Bir sonraki sürümde ölçülecek kural (32c, value dev'in adayını kabul etti)
+
+> **"Kesme sırası her işin kendi metnine yazılır; bir kez kural olarak
+> konması yetmez."**
+
+İddia ölçülebilir ve bu turda **iki gözlemi var:** 20'de yazıldı ve
+**tuttu**, 42a'da yazılmadı ve **tutmadı**.
+
+**İki hat, tek cümle:**
+- *Yapamayacağın eylem sana teklif edilmez* — **45**
+- *Yaptığın hata baktığın yerde görünür* — **E2 + kaydırma**
+
+~~Önceki adı: "Hata, kullanıcının baktığı yerde görünür"~~ — tek hatlıydı,
+aşağıdaki gözlem tam da onu anlatıyor.
+
+### Kesim şartı (ikisi de gerekli, sırası önemsiz)
+1. ~~**dev:** `app/route-states.test.ts`'e **45'in tarama testi.**~~
+   **İNDİ `e2bfc47`** — kural: `/edit` ya da `/new`'e giden `href` taşıyan
+   her `page.tsx` bir yerde `can(` çağırmak zorunda. **11/11 geçiyor**,
+   geriye dönük iş yok. dev testi `prescriptions/page.tsx`'e korumasız bir
+   bağlantı ekleyerek **bozup düşürdü**, rotayı adıyla bildirdiğini gördü,
+   geri aldı. Kapılar: **461 test / 49 dosya.**
+   **Tarif dışı iki ekleme, ikisi de doğru:**
+   (a) **Regex bir gün eşleşmeyi bırakırsa liste boşalır ve asıl test
+   SESSİZCE YEŞİL kalırdı** — ikinci bir test (`withWriteRoute.length > 5`)
+   bunu yakalıyor. Testin kendi sessiz yanlışına karşı test.
+   (b) **Testin neyi KONTROL ETMEDİĞİ yorumda yazılı** (TEAM.md 30c):
+   sayfanın o bağlantı hakkında sorup sormadığı ve **doğru** izne bakıp
+   bakmadığı.
+   **Somut açık vaka, value'ya karar için bildirildi:**
+   `app/(app)/pets/new/page.tsx` boş hâlinde `/clients/new`'e bağlanıyor ve
+   testi **yanlış nedenle** geçiyor — geçiren `can()`, başka bir şeyi
+   koruyan **`settings.manage`.** Düzeltilmedi, kapsam dışıydı.
+
+1b. (eski madde metni, kayıt için) `app/route-states.test.ts`'e 45'in tarama testi. Kural bugün
+   **11 sayfanın 11'inde** tutuyor, yani test **yeşil inecek** — sınıfı
+   geri gelmekten koruyan şey bu (TEAM.md 6).
+2. **dev-ui:** E2 süpürmesi **VE** `action-form.tsx` kaydırma ayağı —
+   **tek görev, ayrılmaz.**
+   **Neden ayrılmıyor (value, TEAM.md 17b):** toast'ı silip hatayı formun
+   başına koyarsak ve **alta kaymış kullanıcıya kutu gösterilmezse,
+   kullanıcı bugünkünden AZ bilgi görür.** Görünür parça (toast'ın gitmesi)
+   inip işi yapan parça (hatanın göze girmesi) kesilirse süpürme
+   **gerileme** üretir.
+
+### Hata bölgesi `ActionForm`'a giriyor (ux kararı, value'nun itirazı ölçümle karşılandı)
+
+value "13 dosyaya kopya mı, tek kaynak mı" diye sordu ve tek kaynağı
+savundu; ux **ölçtü ve onayladı:** bugün `Callout` taşıyan **on formun
+onunda da** kutu `<ActionForm>`'un **ilk çocuğu**, istisnasız
+(`appointment:56`, `invoice:57`, `sign-in:19`, `sign-up:19`, `visit:43`,
+`reminder:61`, `client:37`, `payment:62`, `pet:111`, `staff:22`) —
+`client-form` ve `pet-form`'da `FormSection`'lardan önce, `payment-form`'da
+gizli input'tan bile önce. Yani *"form başına ayarlanabilirlik" korunacak
+bir şey değil: gömmek hiçbir esnekliği öldürmüyor, yalnızca on ikinci
+formun farklı karar verme ihtimalini öldürüyor.*
+
+**Üç uygulama şartı (ux):**
+1. Kutu **ilk çocuk**.
+2. Sınıfı **`sm:col-span-2`** içerir — ızgaralı formlarda (`reminder-form`)
+   gerekli, flex'te etkisiz.
+3. **Kaydırma hedefi bileşenin kendi ref'i**, `querySelector('[role="alert"]')`
+   **değil** — o arama ikinci bir alert varsa yanlış hedefi bulur.
+
+**ux'in yakaladığı çakışma, dev-ui kontrol edecek:** `invoice-form:58-60`
+`state.fieldErrors.lines` için **ikinci bir `Callout`** çiziyor; `lines` bir
+form elemanı adı olmadığı için `reportHomelessErrors`
+(`action-form.tsx:147-161`) onu zaten `state.error`'a katlıyor olabilir —
+o hâlde **aynı mesaj iki kutuda** çıkar.
+
+**Odak taşımama kararının yorumu, hangi gözlemin kararı değiştireceğini de
+yazacak:** pm "sayfa zıpladı, düğmemi kaybettim" bildirirse **odak taşıma +
+`live={false}` birlikte** gider.
+
+**Sayı düzeltmesi:** ux'in listesi 12 form diyor, bugün `next`'te
+**13 dosyada** `toast.error` var — `reminder-form.tsx` listede yoktu.
+**Kabul kriteri dosya sayısı değil, grep'in temiz çıkması.**
+
+**Duran kapılar — DÖRDÜNCÜ sürüme giriyor:** §10 `SENT` kaydı · 390px turu.
+İkisi de pm'de, ikisi de paketi **bekletmiyor**; gelmezlerse etikete
+**sayısıyla** yazılır. value pm'e 390px için öncelik verdi: **önce bu
+paketin dokunduğu ekranlar.**
+
+**Girmeyenler, adıyla:** 40'ın silmeleri · 38 · 21.
+
+**Etiket hatırlatması:** `HEAD`'e değil, **kapıların koşulduğu hash'e**
+(v0.3.0'ın hatası, TEAM.md'de kural).
+
+**Tek iş: E2 süpürmesi.** ux ölçtü: **18 formun 12'sinde kendi koyduğumuz
+kural tutmuyor** — 4'ü hem `Callout` hem toast (`client-form:38`,
+`payment-form:43`, `pet-form`, `staff-form`), **8'i yalnızca toast**
+(`clinic-settings`, `diagnostic`, `note`, `notification-settings`,
+`prescription`, `species-settings`, `treatment`, `vaccination`).
+
+**Seçilme gerekçesi (ux, value kabul etti):** 32c'yi bu turda yazdık
+("konan kuralın tuttuğu ölçülür") ve **ilk ölçtüğümüz kural tutmamış
+çıktı.** Bunu kapatmadan yeni bir tasarım alanı açmak, **ikinci bir
+tutmayan kural üretmek** olur. Kural **kaldırılmıyor, güçlendiriliyor** —
+gerekçesi hâlâ geçerli.
+
+**Ağırlaştırıcı sebep:** sekizden beşi (`diagnostic`, `note`,
+`prescription`, `treatment`, `vaccination`) `/visits/[id]` ve `/pets/[id]`
+içinde **katlanır `<details>` bloklarının içinde.** Kullanıcı açtığı bloğa
+bakıyor, toast **sayfanın köşesinde** beliriyor ve kayboluyor. "Kaçırılan
+toast" argümanı burada en ağır hâlinde.
+
+**Ölçülebilir kabul:** `grep -c 'toast.error' components/forms/*.tsx` →
+yalnızca yorum eşleşmeleri. **Kural teste bağlanır** (TEAM.md 6), yani geri
+gelmez. **`toast.success` hiçbir yerde silinmez** — başarı toast'a, hata
+forma.
+
+**Kesim şartı:** E2 süpürmesi biter, `grep` temiz, test yazılır.
+**Tek hat (dev-ui), tek iş, tek cümle.**
+
+**Ayrıca pakette (v0.3.0'dan düşen açık borç):** `5530acb` yetki kapısı —
+`appointments/[id]/page.tsx:73` `can(session.user.role,
+"appointments.write")`, servisin zorladığı iznin aynısı; "Düzenle" (`:94`)
+ve "Sonucu kaydedin" (`:203`) aynı kapının arkasında, kapanış cümlesi
+`VET_TECH`'e görünmeye devam ediyor. **Paketin cümlesine uymuyor ama açık
+borç taşımama kuralı cümle kuralının önünde.**
+
+**Girmeyenler, adıyla:** **45** (eylem düğmelerinin rol kontrolü, tüm
+ekranlar + test) → **v0.5.0** · 40'ın silmeleri + tarama testi · 38 · 21.
+
+**DURAN KAPILAR (paket içeriği değil — TEAM.md, Sürüm ritmi):**
+§10 `SENT` kaydı · 390px turu. Gelmedikleri her sürümde sayısıyla yazılır.
+
+**Açık soru (dev-ui'de):** uzun ayarlar formlarında hata kutusu formun
+başındayken alta kaymış kullanıcı onu da kaçırabilir. `ActionForm` zaten
+hataya kaydırıyorsa soru düşer; kaydırmıyorsa ux ayrı karar verecek ama
+**B-5'i bekletmeden.**
+
+---
+
+## v0.4.0'ın önceki iki adı (ikisi de düştü)
+
+**Vaat değişti**, çünkü ölçüm borçlarının **ikisi kapandı**:
+`INPUT_FILL_RATE_SINCE` (`454f02c`) ve 42a'nın ekran yarısı (`e709bf1`).
+value ikisini de doğruladı: ölçüm satırı `cutoff 2026-09-21T09:02:50Z ·
+before 11/2 · after 0/0` veriyor, yani **donmuş tabanı ayrı alanda taşıyor**
+ve 14 gün sonraki karşılaştırma tek bakışta okunacak; `messages/tr.json:289`
+ux'in birleşik cümlesini birebir taşıyor, `:290` "Sonucu kaydedin".
+**42a'nın ölçüm eşiği artık ölçülebilir** — mekanizma yerinde.
+
+**Sıra: §10 `SENT` kaydı → 390px turu → 45 → 40'ın silmeleri.**
+**İlk ikisi pm'de ve ikisi de ÜÇ SÜRÜMDÜR devrediyor — v0.4.0 esasen
+pm'in paketi.**
+
+### 45'in birinci ayağı: uygulanmamış bir karar
+
+**Bu bir unutma değil.** `app/(app)/appointments/[id]/page.tsx`'te `can(`
+**hiç geçmiyor** — ne `:92`'deki "Düzenle"de, ne `:198`'deki yeni "Sonucu
+kaydedin"de. ux önce yeni düğmeyi bilerek korumasız bırakmıştı, value karşı
+çıktı, **ux pozisyon değiştirdi ve ikisinin aynı commit'te korunmasına
+karar verdi.** Karar uygulanmadı, yani **bilinen bir kusurun ikinci örneği
+bile bile eklendi** — tam olarak eklememeye karar verilen şey. dev'e ux'in
+"evet"i iletildi; tek `can` importu, `:44`'te `session` zaten elde.
+**Yazılmazsa etikete yumuşatılmadan yazılır:** *"aynı sayfada aynı rotaya
+giden iki düğme de yetki kontrolsüz; ikisinin birlikte korunmasına karar
+verilmişti, uygulanmadı."* **Kararın uygulanmaması, kusurun kendisinden
+daha kayda değerdir.**
+
+**`shadow-sm` ölçümü eksik sayılmıyor** (value): gölge ayağı **yazılmadı**,
+yani yazılmamış bir şeyin ölçümü eksik değil — sırası gelmemiş.
+
+---
+
+## v0.4.0'ın eski vaadi — "Ölçebildiğimiz ve kapatabildiğimiz" (düştü)
+
+**Neden bu vaat:** üç eksik tek tek küçük ama **aynı yöne bakıyorlar —
+kod iniyor, cevap inmiyor.** `INPUT_FILL_RATE_SINCE` **ikinci sürümdür**
+inmedi; 42a'nın ekran yarısı olmadığı için **onun ölçüm eşiği de
+ölçülemez** durumda; `SENT` **üçüncü kez** sıfır. Bu paket onları
+kapatmak için var.
+
+**Sıra:** `INPUT_FILL_RATE_SINCE` → **42a'nın ekran yarısı** → §10 `SENT`
+kaydı → **45** → 40'ın silmeleri. **38 ve 21 ayrı pakette.**
+
+**(45) — eylem düğmelerinin rol kontrolü, tüm ekranlar + kuralı sabitleyen
+test.** 43'ün dersi tam burada işliyor: *orada vakayı kapattık, sınıfı
+kapatmadık, sınıf hemen yan ekranda çıktı.*
+**Sınıflandırma kesinleşti (ux + value):** servis aynı izni zaten zorluyor
+(`modules/appointments/service.ts:22,58,95`), yani **güvenlik açığı yok —
+dürüst olmayan bir arayüz var.** 43'ten farkı bu: orada veri sızıyordu,
+burada boşa giden bir tıklama var.
+**Uygulama şartı:** kapı `can(session.user.role, "appointments.write")`
+ile kapanır — arayüz **başka bir izne bakarsa iki yer ayrışır.**
+**ux pozisyon değiştirdi ve gerekçesi kayda değer:** *"tutarsızlığı
+önlemeyi hedefliyordum, kusuru korumayı değil; aynı fiyata daha iyi sonuç
+varken pahalı olanı seçmişim."* İki düğme (başlıktaki "Düzenle" ve yeni
+"Sonucu kaydedin") **aynı commit'te** korunacak.
+**`VET_TECH`'in göreceği ekran kayda geçti:** kapanış cümlesi durur,
+altındaki eylem olmaz — *yapamayacağı bir işi ona teklif etmiyoruz ama
+olan biteni de saklamıyoruz.*
+
+**Açık süreç notu (dev bildirdi):** `app/(app)/{pets,visits,appointments}/[id]/page.tsx`
+değişikliklerinin bir kısmı dev-ui'nin commit'lerinin içinde kaldı —
+paylaşımlı dosya `git add <dosya>` ile alınmış. **Kod doğru, yalnızca
+commit atfı karışık.** Düzeltilmiyor (churn), ama paylaşımlı dosya
+kuralının neden hunk seçimi istediğinin somut örneği.
+
+---
+
+## v0.3.0 — KESİLDİ (`v0.3.0`, 21 Eylül 2026)
+
+**Etikette vaat "v0.2.0'ın borçları kapanıyor" olarak yazıldı; value'nun
+onayladığı cümle "Doğru bilgi, doğru kişiye, doğru yerde"ydi ve "es"i
+kesimden sonra ulaştı.** Etiket yeniden yazılmıyor (kural), ama ikisi de
+aynı paketi tarif ediyor. **Value'nun etikete istediği ve oraya
+yetişemeyen not buraya yazılıyor:** *"bir paket bir öncekinin açık borcunu
+taşımaz" kuralının ilk gerçek sınavı 43b'ydi ve **tuttu**.* TEAM.md'ye de
+işlendi.
+
+### Plan (kesimden önceki hâl)
 
 **Bilerek tematik değil.** Elde kalan işler bir tema değil **borç** oluşturuyor;
 onları yapay bir başlık altında toplamak "bir de, bir de" kuralının kılık

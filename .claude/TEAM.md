@@ -263,6 +263,67 @@ fark, bir erişim açığı kadardır. 30b'den farkı ve neden ayrı madde: **ba
 gerekçe yanlış bir kararı savunur ve karara bakan onu görebilir; bayat kapsam
 notu ise bakmayı engeller** — aramayı durdurduğu için daha sinsidir.
 
+**30d. Koşula bağlı bir not, koşulu kontrol eden bir şey olmadıkça, koşul
+gerçekleştiğinde SESSİZCE yanlışa döner.** (21 Eylül 2026 — 30b'nin bayat
+**gerekçesi**, 30c'nin bayat **kapsamı**, bunun bayat **koşulu**.)
+`components/ui/forbidden-state.tsx`'in yorumunda *"üçüncü bir rol bu
+izinlerden birini alırsa cümle yalan söyler"* yazılıydı ve **yazıldığı an
+doğruydu**: iki çağrı yeri vardı, ikisi de ADMIN'e özeldi. Sonra 43 ile
+`/audit` kapısı eklendi, `audit.read` VETERINARIAN'da da var, **metin o gün
+yalan söylemeye başladı** — yeni çağrı yeri eklenirken kimse nota bakmadı.
+**Yorum düşmez, test geçer, ekran çalışır.** Tek çare koşulu **teste
+bağlamaktır:** bir nota *"şu olursa bu yanlış olur"* yazıyorsan, o "şu"yu
+kontrol eden testi **aynı anda** yaz ya da notun bir gün yanlış olacağını
+kabul et.
+
+**30e. Bir kuralı yazmadan önce, bugünkü DOĞRU hâlin o kuralı geçtiği
+kontrol edilir.** Aynı olaydan çıktı: koruma *"`description` içinde rol adı
+geçmez"* diye önerildi, ama onaylanan yeni metnin kendisi *"klinik
+yöneticinizle görüşünüz"* diyor — **kural yazıldığı hâliyle kendi metnini
+düşürürdü.** Keskinleştirilmiş hâli: yasaklanan **rol adı değil, münhasırlık
+iddiası** (`yalnızca` / `sadece` / `only`). Ayrım: *"bu bölüm yalnızca
+yöneticiler içindir"* bölümün **kime ait olduğunu iddia eder** ve on çağrı
+yerinin çoğunda yanlıştır; *"klinik yöneticinizle görüşünüz"* **nereye
+gidileceğini söyler** ve onunda da doğrudur.
+**Sınır, ÖLÇÜLDÜ (value): kelime listesine dayanan bir test tel tuzaktır ve
+teoride değil, İLK GÜN patlar.** `yönetici|administrator` araması bugün
+**üç** dizge buluyor ve **üçü de meşru:** `tr.json:381` `providerMissing`
+(*"klinik yöneticinizin sağlayıcı bilgilerini tanımlaması gerekir"* —
+çözümün kimde olduğunu söylüyor), `:704`'ün **onaylanan ikinci cümlesi**,
+ve `:733` `lastAdmin` (*"son yöneticisi devre dışı bırakılamaz"* — bir olgu
+bildiriyor, erişim iddiası değil). Yani test yazıldığı gün üç yanlış pozitif
+verir ve **biri, o testin korumaya çalıştığı cümlenin kendisi olur.**
+**Bu 32e'nin ters yönüdür:** test yanlış nedenle **yeşil** olabildiği gibi
+yanlış nedenle **kırmızı** da olabilir — ve ikincisinde kuralı tartışmak
+yerine **testi devre dışı bırakırlar.**
+
+**Bu yüzden testin şekli (value, 32f'yi kendi üstümüze uygulayarak):**
+münhasırlık iddiası genel olarak makineyle sınanamaz. Sınanabilen **dar**
+şey: `error.forbiddenPage.description` içinde *"yalnızca … içindir"* /
+*"… only"* kalıbı bulunmasın — **tek anahtar, tek kalıp.** Ötesi düzyazı
+yargısıdır. Ve **32f gereği testin yorumuna neyi kontrol ETMEDİĞİ yazılır:**
+*bu test yalnızca bu anahtarda bu kalıbı arar; başka bir anahtarda ya da
+başka bir ifadeyle yazılmış münhasırlık iddiasını yakalamaz.*
+
+> **Dar ve dürüst bir test, geniş ve tel tuzak bir testten iyidir** —
+> ikincisi ilk yanlış pozitifte kaldırılır ve geriye hiçbir şey kalmaz.
+
+~~kelime listesine dayanan bir test "yöneticilere ayrılmıştır"ı geçirir~~ Testin
+yorumu bu yüzden neyi koruduğunu yazar: *metni on çağrı yeri paylaşıyor,
+bölümün kime ait olduğuna dair iddia taşıyamaz.*
+
+**30f. Paylaşılan bir metin ancak EN KESİN çağrı yerinde de doğruysa
+doğrudur.** Sınıfın kökü paylaşım değil **kesinlik.** `recordNotFound`
+bilmediğimiz bir şeyi **bilmediğimizi söyleyerek** yazıldığı için altı çağrı
+yerinde de doğru kaldı; `forbiddenPage` **bildiğimizi sandığımız** bir şeyi
+söyledi ve iki çağrı yeri sonra yanlış oldu. Bir metni paylaşıma açarken
+sorulacak soru *"kaç yerde kullanılacak"* değil, **"en zayıf çağrı yerinde
+de doğru mu"**dur.
+**Taranan ve temiz:** `recordNotFound.*`, `pageNotFound.*` (altı çağrı yeri).
+**Taranmadı (30c):** `error.entity.*`, `error.conflict.*`,
+`error.validation.*`, `error.form.*` — farklı sınıf, servis/doğrulama
+mesajları.
+
 **31. Yeni kodda mantıksal yön sınıfı kullanılır** (`ms-*`/`me-*`/`ps-*`/
 `pe-*`/`text-start`/`text-end`), fiziksel değil. Bugün sağdan sola bir dili
 desteklemeye karar vermek zorunda değiliz; kuralı bugün koymak bedava,
@@ -286,7 +347,17 @@ tutmadıysa kural ya güçlendirilir ya kaldırılır. Kural koymak kadar tuttu�
 kanıtlamak da gerekiyor, ve bu genelde yapılmıyor. İlk örnek 31'dir: gerekçesi
 "bugün bedava, sonra yüzlerce satır" diye bir **tahmindi**; bu turda yazılan
 dört bileşende sıfır fiziksel yön sınıfı çıktı ve kimse ek maliyet ödemedi —
-kalan iki kullanım kuraldan öncedir. Performans eşiklerinin her sürümde
+~~kalan iki kullanım kuraldan öncedir.~~ **SAYI BAYATTI, düzeltildi
+(21 Eylül 2026, ux-2 yakaladı, ana oturum saydı): kuraldan önceki borç
+`app`+`components` altında 9 dosyada 16 kullanım** (`grep -rnE
+'\b(ml|mr|pl|pr)-[0-9]' --include='*.tsx'`), sekizi `pets/[id]` ve
+`visits/[id]`'de `mr-1` olarak. **Kararın kendisi ayakta — 31 tuttu**,
+kuraldan sonra yazılan kodda sıfır ihlal var; yalnızca sayı düzeliyor.
+**Neden önemli:** "kalan iki kullanım" cümlesini okuyan biri toplu
+çevirmenin bedava olduğunu sanır ve **o iş hiç açılmaz** — 30c'nin sinsi
+hâli: bayat gerekçe değil, **bayat kapsam**, ve aramayı durduruyor.
+Sekizi 45'in şartnamesinde (o satırlar diff'e nasılsa giriyor); kalanı
+ayrı iştir, açılmadı. Performans eşiklerinin her sürümde
 sıkılması da aynı ritüelin parçasıdır.
 
 **Ölçülecek kural bir sonraki sürüm için önceden seçilir** (value'nun
@@ -334,6 +405,16 @@ etti, iki hâl sayıldı: `app`+`components` altında `shadow-sm` **19 → 9**, 
 `<Card>`'a inmesinden geliyor. **Hiçbir yüzey gölgesini kaybetmedi; ux'in
 şartı çiğnenmedi.**
 
+**ÜÇÜNCÜ YÜZ: çalışma ağacındaki bir satır, DALDA o satırın olduğunun
+kanıtı değildir.** (21 Eylül 2026.) İki geliştirici aynı ağaçta çalışırken
+**`dosya:satır` kanıtı, hangi ref'te olduğu söylenmeden eksiktir.**
+**Kazanıldığı olay:** value, `appointments/[id]/page.tsx:101`'de
+`canWrite &&` gördü ve dev'e *"o düğme zaten kapalı, açık iş yok"* dedi.
+Gördüğü şey dev-ui'nin **henüz commit'lenmemiş** değişikliğiydi; `5b98b3b`'de
+düğme korumasızdı. Zararı bu kez oluşmadı (iş yine de yapıldı), ama
+**"açık iş yok" cümlesi aramayı durduran cinstendir** (30c).
+**Yöntem aynı:** `git show <ref>:<dosya>` — iki hâli say, ağaca bakma.
+
 **Dersin dersi: bir kez yazılması yetmedi.** Aynı hata aynı gün, ters yönden,
 **iki kişi tarafından** tekrarlandı. Bir şeyin **kalktığını** söylemek için de
 **iki hâlin sayılması** gerekir — `git grep -c <şey> <ref>` iki ref için,
@@ -344,6 +425,108 @@ diff'e bakarak değil.
 **Bu maddenin ilk ölçümünün "haklıydık" diye bitmemesi bir kusur değil,
 maddeyi ayakta tutan şeydir.** Her ölçümü kendini doğrulayan bir ritüel
 zaten 32c'nin kaçınmak istediği şeydir.
+
+### 32e-g — ORTAK BAŞLIK: **Bir şeyin var olması bakmayı durdurur.**
+
+(21 Eylül 2026. value'nun sentezi, ve ayrı ayrı yazılmamalarının sebebi onun
+cümlesi: *"ayrı ayrı yazılırsa üç kez öğrendiğimiz tek şey üç yere
+dağılır."*) Bu turda **üç kez** aynı şey oldu:
+**test vardı diye kapıya bakılmadı · `can()` vardı diye hangi izni koruduğuna
+bakılmadı · metin yazılacaktı diye onu kimin göreceğine bakılmadı.**
+Üçü de 30c'nin ailesidir: bir yerde bir şeyin bulunması, oraya bakma
+ihtiyacını ortadan kaldırıyormuş gibi okunur.
+
+**32e. Bir kuralı teste bağlarken testi bozmak yetmez: kuralı ihlal eden
+GERÇEK bir vakanın yakalandığı gösterilir.** Testi bozmak, testin **bir şey**
+sorduğunu kanıtlar; ihlal eden gerçek vaka, **doğru şeyi** sorduğunu.
+**Kanıtı bu turda oluştu ve iki yöntemin farkını bundan net gösteren bir
+örnek bulunamaz:** dev `e2bfc47`'de testi bozup düştüğünü doğruladı — doğru
+refleks — **ama ihlal eden gerçek vaka (`/pets/new`) o sırada ağaçta
+duruyordu ve test onu yakalamadı.** Test *"dosyada bir `can()` var mı"* diye
+soruyordu; `pets/new:64` ve `pets/[id]/edit:51`'deki, tamamen başka bir şeyi
+koruyan `can(..., "settings.manage")` onu tatmin ediyordu.
+**Ölçüt:** izin **adı** eşleşmeli, varlığı değil; `/pets/new`'ün bugünkü hâli
+testi **düşürmeli**. **Test düzelince sayı düşerse gerileme değil, ölçünün
+düzelmesidir** ve etikete öyle yazılır.
+
+**32f. Kaba bir tarama testi YANLIŞ NEDENLE yeşil olabilir — neyi kontrol
+etmediği yorumuna yazılmazsa, testin varlığı bakmayı durdurur.** Test kötü
+değildi: **gerçek hata hiçbir zaman ince bir uyuşmazlık değil, hiç sormayan
+sayfa oldu.** Ama bir güvenlik ağının içindeki sessiz yanlış, ağın kendisinden
+tehlikelidir — **35'in birebir kardeşi** (bozuk uygulamayı "hızlı" ölçen
+performans testi) ve madde 2'nin test katmanındaki hâli.
+**Örnek olarak kayda değer nadir bir savunma:** dev ikinci bir test ekledi —
+**tarama hiçbir şey bulamaz hâle gelirse asıl test sessizce yeşil kalırdı.**
+Bu, kuralın **kendi kendini boşaltmasına** karşı kurulmuş bir korumadır.
+
+**32g. Bir metin kusuru gibi görünen şey, kapı kusurunun SEMPTOMU olabilir —
+önce o metni kimin göreceğini ölç.** `/pets/new`'in boş hâl metni
+düzeltilecekti; ux izin matrisini ölçtü ve o metni görebilecek **hiçbir rol
+olmadığını** gösterdi. Yazılsaydı **sıfır çağrı yeri olan bir çeviri anahtarı**
+üretilecekti — **madde 30'a çeviri anahtarları da dahildir**
+(*"kullanılmayan bir çeviri anahtarı da kullanılmayan bir prop kadar
+borçtur"* — **`ux`'ün cümlesi**; value iki kez `ux-2`'ye atfetti ve
+düzeltti, `ux-2` kendi payı olmayanı reddetti: *"iyi iş adıyla yazılır"
+ilkesi ancak ad doğruysa çalışıyor*) (bugüne kadar
+yalnızca token/prop/bileşen sayıyordu). Düzeltilecek şey bir satır
+yukarıdaydı: **sayfanın kapısı hiç yoktu.**
+
+**Ama madde burada bitmez (value'nun eklemesi).** Bir hâle **hiç kimse
+düşemiyorsa** iki şeyden biridir:
+- ya o hâl **ÖLÜDÜR** → kod kaldırılır;
+- ya bir **YETENEK EKSİKTİR** → kimsenin yapamadığı bir şeyi birinin
+  yapabilmesi gerekiyordur.
+
+**Hangisi olduğuna karar verilmeden yalnızca metin atlanırsa, soru metinle
+birlikte kaybolur.** Buradaki somut soru: bu uygulamada **hayvan ekleyip
+müşteri ekleyemeyen bir rol yok** (`pets.write` ve `clients.write` üç rolde
+de birlikte; ux ölçtü, value ve ana oturum doğruladı). Bu bir tasarım kararı
+mı, kimsenin fark etmediği bir boşluk mu? **Bugünkü cevap: "kararlı
+görünüyor."** Soru kapanmadan kaybolmasın diye buradadır.
+
+**32h. Ekran, izin matrisini TEKRAR ETMEZ.** (21 Eylül 2026, value; ux
+kabul etti ve sertleştirdi.) **Kimin erişebileceğini söyleyen her cümle,
+izin modelinin ikinci bir kopyasıdır** ve kopya sessizce ayrışır. Ekran
+yalnızca **şu anki kullanıcının** erişemediğini ve **ne yapacağını** söyler.
+Bu, 33'ün **ters yönüdür:** orada ekran kodun **yapmadığını** vaat ediyordu,
+burada kodun **yaptığını yanlış anlatıyor.**
+
+**Kazanıldığı olay:** `forbiddenPage` **tek ve paylaşımlı** bir metin ama
+arkasındaki sayfaların izinleri farklı — `/staff` ve `/settings`
+`users.manage`/`settings.manage` (yalnızca ADMIN), `/audit` `audit.read`
+(ADMIN **+ VETERINARIAN**). *"Bu bölüm yalnızca yöneticiler içindir"* bu
+yüzden bugün `/audit`'te yalan.
+
+**Reddedilen çözüm ve gerekçesi — dokuz cümle yazılmadan durduruldu:**
+sayfa başına metin, izin matrisinin **elle senkron tutulması gereken bir
+kopyasını** üretir: hiçbir testin korumadığı, hiçbir ekranı bozmayan,
+**ilk izin değişikliğinde sessizce bayatlayacak** dokuz cümle — yani dokuz
+yeni 30b adayı. *"Bugün bir cümle yanlış diye dokuz cümle yazmak, bir yalanı
+dokuza bölmektir."* (value)
+**ux'in sertleştirmesi asıl mekanizmayı söylüyor:** sayfa başına metnin
+sorunu bakım borcu değil, **düzyazı olması** — *"kod kopyası bir gün
+`tsc`'ye takılır, cümle kopyası hiçbir şeye takılmaz."*
+
+**Karşı argüman denendi ve çürütüldü, çünkü sonucu değiştirebilirdi:**
+value *"rol adını atmak, kullanıcıya kime gideceğini söyleme gücünü
+azaltıyor; `/audit` için bir veteriner meslektaş da yardımcı olabilir"*
+dedi ve cümleyi **eksik ama asla yanlış olmayan** bir alt sınır saydı.
+ux çürüttü: cümle *"bu işi kim yapabilir"* demiyor, **"erişimini kim
+açabilir"** diyor — **roller `/staff`'ta atanıyor ve orası `users.manage`
+arkasında**, yani her sayfada, her rol için istisnasız yönetici. Bir
+veteriner meslektaş `/audit`'i okuyabilir ama **erişim veremez**; oraya
+yönlendirmek kullanıcıyı bir tur daha yürütür. **Cümle alt sınır değil, tam
+doğru.**
+
+**32i. Gittiğin bir sayfa sana açıklama borçludur; istemediğin bir eylem
+hiçbir şey borçlu değildir.** (ux, 45'in kabulünde gerekecek sınır.)
+Bir sayfaya **kendin gittiysen** (yer imi, yazılmış URL, eski bağlantı)
+cevapsız bırakmak seni **aynı bağlantıya tekrar tıklatır** — o sayfa
+yetkisiz hâlini ve ne yapacağını söylemek zorundadır. Ama **görünmeyen bir
+eylem** hiçbir açıklama borçlu değildir: *yokluğunu açıklamak, yapamayacağın
+işi teklif etmenin kibar hâlidir.*
+**Bu ayrım yazılmazsa iki yönden de bozulur:** ya sayfalar sessizce panele
+atar, ya ekranlar "şunu yapamazsınız" notlarıyla dolar.
 
 **33. Ekran, kodun yapmadığı bir şeyi vaat etmez.** Sessiz yanlışın tersi
 ama aynı derecede zararlı: görünür bir vaat, arkasında davranış yok.
@@ -445,7 +628,13 @@ paket ikiye bölünür. Pratik karşılığı:
   sonraki paketin ilk işi olarak **adıyla** yazılır.
 - **Bir paket, bir önceki paketin açık borcunu taşımaz.** Taşırsa paket değil
   birikmedir. (v0.1.0 açık bir P0 taşıdı; v0.2.0'ın ilk şartı onu kapatmaktı.)
-  **Bu kuralın durumu: henüz SINANMADI.** v0.2.0 bir borç (43b) taşıyarak
+  **BU KURAL SINANDI VE TUTTU (v0.3.0, 21 Eylül 2026).** v0.2.0'ın açık
+  borcu 43b'ydi ve v0.3.0'ın **tek kesim şartı** o oldu; paket 43b inene
+  kadar kesilmedi, indiği gün kesildi (`0914772`). Kuralın sınanabildiği
+  ilk yer burasıydı — kesim şartını value koydu, zamanlama tartışmalı
+  değildi. **Aşağıdaki eski durum notu tarih olarak duruyor (30b).**
+
+  **Eski durum notu — v0.2.0 dönemi: henüz SINANMADI.** v0.2.0 bir borç (43b) taşıyarak
   çıktı, ama kural **kesimle aynı anda konmuştu** — yani çiğnenmedi,
   sınanmadı. *Bir kuralın tutmadığını söylemek için önce tutabileceği bir
   durum olması gerekir* (value, 32c'nin ölçüm mantığı). **İlk gerçek sınavı
@@ -484,6 +673,52 @@ yazmıştı**; iş yine de indi (`7ff7c9a`). Paketi kapsam dışında tutan şey
 talimat olmadı, **kesim noktasının seçilmesi** oldu. Ders: kapsamı sözle
 değil **kesimle** korursun. Talimat gerekli ama yeterli değildir; bir işin
 pakete girmemesini gerçekten istiyorsan paketi ondan **önce** kes.
+
+**"Tek cümle" kuralının ölçüsü (ux):** *paketten bir işi çıkarınca cümle
+eksik kalıyor mu?* Kalıyorsa iki iş **aynı cümlenin içindedir** ve paket
+doğru boyuttadır; kalmıyorsa cümle iki şeyi "ve" ile bağlıyordur ve paket
+bölünür. Bu, "bir de, bir de" sezgisini **sınanabilir** hâle getirir.
+İlk uygulaması v0.4.0: *"E2 olmadan düğmeler dürüst ama form yalan
+söylüyor; 45 olmadan form dürüst ama düğme veremeyeceğini teklif ediyor."*
+
+**Paket cümlesi dar tutulur ama İKİ HATTI DA kapsar.** (21 Eylül 2026,
+value'nun gözlemi — iki sürümde art arda gözlendikten sonra yazıldı.)
+**İki sürümdür paket dışı iş iniyor ve sebebi aynı: paketin cümlesi bir
+hattı boşta bırakıyor.** Küçük paket kuralı doğru, ama **"küçük" tek hatlı
+demek değildir.** Tek hatlı bir cümle yazıldığında diğer hat boş oturmaz —
+sıradaki işi kendi başına alır ve paket dışı iş iner. Kanıtı v0.3.0
+(`0a7769d`) ve v0.2.0 (`d49f4ec`): ikisinde de cümle tek hatlıydı,
+ikisinde de diğer hattan iş indi.
+
+**Doğrusu:** cümle dar tutulur ve **iki hattı da** kapsar; kapsamıyorsa
+**boşta kalan hattın o sürümde ne yapacağı açıkça yazılır** — "B hattı bu
+pakette yok, kabul kuyruğunu boşaltıyor" gibi. Yazılmayan boşluk, kapsam
+dışı iş olarak dolar.
+
+**Bazı işler paket İÇERİĞİ değil, DURAN KAPIdır.** (21 Eylül 2026,
+value'nun düzeltmesi — kendi kuralını ihlal ettiğini fark edince.)
+Bir doğrulama borcu (bir kez alınması gereken kanıt, bir kez yapılması
+gereken tarama) **özellik gibi paketlenirse** ya paketi kilitler ya da
+paketten pakete kovalanır. Doğrusu: **her paketin kontrol listesinde
+bulunur, hiçbirinin içeriği olmaz.** Geldiği sürümde işaretlenir;
+gelmediği her sürümde **sayısıyla** eksik yazılır ("üçüncü sürümdür").
+
+**Bugünkü duran kapılar:** §10 — `SENT` statüsünde gerçek bir kayıt
+(döngünün uçtan uca koştuğunun tek kanıtı) · **390px turu** (TEAM.md 24'ün
+kapısı; bugüne kadar bir kez bile kapatılmadı).
+
+**Bunun doğal sonucu:** *"içeriği tamamen tek bir kişiye bağlı bir paket
+kesilemez."* value bir paketi "esasen pm'in paketi" diye tanımlamıştı ve
+geri aldı: bekletmeyeceğini söylediği şeyi paketin kendisi yapmak olurdu.
+
+**Etiket `HEAD`'e vurulmaz, kapıların koşulduğu COMMIT'e vurulur.**
+(21 Eylül 2026, v0.3.0'ın hatası.) Ajanlar es sırasında bile commit atmaya
+devam edebiliyor; `git tag -a vX` ile `HEAD`'i etiketlemek, kapıları
+koştuğun ağaçtan **başka** bir ağacı etiketler. v0.3.0'da tam bu oldu:
+etiket bir sonraki commit'e gitti, main bir commit geride kaldı, ve etiket
+metni **etiketlenen ağacın içerdiği bir işi "eksik" diye saydı.** Doğrusu:
+kapıları koştuğun hash'i not et, `git tag -a vX <hash>` ve `git push
+origin <hash>:main` aynı hash ile.
 
 **Yayımlanmış bir etiket yeniden yazılmaz.** Eksik çıkmışsa etiket öyle
 kalır ve eksik metninde durur; düzeltme bir **sonraki pakette** yapılır.
