@@ -4144,3 +4144,142 @@ ux, `radiogroup` kararından sonra kendi pratiğini değiştirdi:
 **Kuralın nerede geçerli olmadığını yazmak, kuralın kendisi kadar iş
 görüyor** — çünkü alanı yazılmamış kural, yeni vakada ya bükülüyor ya
 da sessizce atlanıyor.
+
+### Bir sürüm eksik olabilir, GERİYE gidemez
+
+pm, `2773bc4`'ün 768–799 bandını kapatırken **390 px'i her sayfada
+bozduğunu** ölçtü:
+
+```
+                ÖNCE (99032c5)   SONRA (2773bc4)
+PMTEST her rota        0               73
+HÂL    her rota        0               46
+```
+
+Ve hedeflenen bant da kapanmadı, **genişledi**: 31 → 35, 768–799 →
+**768–899**.
+
+value duruşu tek cümleyle koydu ve kesim şartı yaptı: **bir sürüm
+eksik olabilir, geriye gidemez.** Eksik bir özellik bekleyebilir;
+çalışan bir şeyin bozulması bekleyemez.
+
+**Kök neden, dev-ui'nin kendi kurduğu ayrımın eksik yarısı:**
+`components/topbar.tsx:25` klinik adı `truncate` taşıyor ama
+**`min-w-0` taşımıyor**; `:35`'teki sağ grup taşıyor. Bir flex öğesi
+`min-width: auto` ile **içeriğinden dar olmayı reddediyor.**
+
+> **Eşiğin çözdüğü şey ile içeriğin çözdüğü şey farklıdır.** `lg`
+> etiketi çözdü; **ad uzunluğunu hiçbir eşik çözmez.**
+
+Ve imzası ölçümde duruyordu: **taşmanın iki klinikte iki farklı sayı
+vermesi** (73 / 46) tesadüf değil, `min-width: auto`'nun kendisi.
+**Veriye göre değişen bir sayı, eşik kusuru değil içerik kusurudur.**
+
+Ölçüm şartı: düzeltme inince **iki uçtan** (390 ve 768–799) **ve iki
+farklı ad uzunluğuyla** ölçülecek — `/staff`'ta bir eşiği düzeltirken
+ötekini bozmuştuk.
+
+### Ayıramadığın sayıya "geçti" deme
+
+pm, `aeb7ff5`'i (panel 140 px) **"geçti" diye yazmadı**: sayı 140 →
+46'ya indi, **ama 46 tam olarak başlık gerilemesinin sayısı** ve hâl
+kliniğinin bütün rotalarında aynı.
+
+> Panelin kendi payı muhtemelen çözülmüş, **ama başlık düzelmeden
+> ayıramam.**
+
+Aynı refleksle tür çipini **bilerek ölçmedi**: taban 73/46 iken çipin
+76 px'i ayırt edilemez.
+
+**İki kusur aynı sayıyı üretiyorsa, ölçüm hangisinin kapandığını
+söyleyemez.** "Muhtemelen düzeldi" bir ölçüm sonucu değil; doğru
+çıktı **"bekliyor"**.
+
+### Aynı turda iki saat dilimi kusuru — biri ötekinin görünen ucu
+
+**Küçük olan** (lead buldu): `SEEDED.txt`'in `seeded_at`'i UTC,
+`SERVED_COMMIT.txt`'in `derlendi`'si yerel → yan yana iki zemin
+dosyası **3 saat** kaymış.
+
+**Büyük olan** (dev buldu, kalabalık günü eklerken): seed'in
+**bugüne kadarki her satırı** 3 saat kaymış. Mekanizma başka ve daha
+sinsi — sütunlar naive UTC (Prisma öyle yazıyor), ama
+**node-postgres bir JS `Date`'ini makinenin yerel diliminde
+serileştiriyor** ve Postgres duvar saatini tutup ofseti atıyor. Yani
+İstanbul'dan tohumlamak **09:00'ı 06:00'ın yerine** yazmış.
+
+> **Hata yok, uyarı yok, görünmüyor** — ta ki bir satırın saat değeri
+> anlam taşıyana kadar: *"klinik dokuzda açılıyor"* ekrana **öğlen**
+> olarak geldi.
+
+Ve çaresi de öğretici: **oturumu sabitlemek işe yaramıyor**, çünkü
+ofset Postgres değeri görmeden **istemci tarafında** seçiliyor. ISO
+dizgi göndermek çözüyor.
+
+> Bir dönüşüm zincirinde, **hatanın oluştuğu yer ile ayarın
+> bulunduğu yer aynı olmayabilir.** "Veritabanı dilimini ayarla"
+> doğru sesleniyor ve yanlış yerde duruyor.
+
+### Pencere bir disiplin, sabit kimlik bir YER
+
+ux tohumlamaya **dört kez** takıldı; dördüncüsü tek bir ölçüm adımının
+içinde. İlk çare **sessiz pencere** istemekti — value daha iyisini
+istedi:
+
+> **Seed sabit kimlikler üretsin.** Pencere bir disiplin (bugün üç kez
+> hatırlanmadı), sabit kimlik bir **yer**.
+
+Ve damgayla ilişkisini doğru kurdu: **damga tespit, sabit kimlik
+önleme** — biri ötekinin yerine geçmiyor, tamamlıyor.
+
+Yan faydası belki asıl değeri: kabul turları **kalıcı adres**
+kazanıyor; bugün pm ile ux birbirlerine **ölen `cuid`'ler** yazıyor.
+
+Şartı da yazılı: **sabit kimlikler yalnız hâl kliniğinde**, ürün
+akışları `cuid` üretmeye devam etsin. — Bu, bugün *"kuralı gereksiz
+kılan bir yer bul"* kalıbının **doğru** uygulanışı: yerin varlığı
+(seed betiği) ve **kapsamı** (yalnız hâl kliniği) birlikte yazılmış.
+
+### "Bitti" diye okunan cümle, durumu söylemek zorundadır
+
+ux, vizit sayfasındaki `Faturası: INV-2026-001` cümlesine ikinci bir
+şart koydu ve ne value ne dev görmüştü:
+
+> Bu cümle *"bu iş bitti"* diye okunuyor. Oysa fatura **taslak**
+> olabilir — kesilmiş **görünür**, gönderilmemiştir, tahsil
+> edilmemiştir.
+
+Para döngüsünün amacı *"kim ödemedi"* iken taslağı bitmiş göstermek,
+**kapatmaya çalıştığımız sessiz yanlışın kendisi** olurdu. Çare yeni
+bir şey değil, var olan `StatusBadge`:
+`Faturası: INV-2026-001 [Taslak]`.
+
+Ve ux şartı **en başta** koymanın gerekçesini de yazdı: *şart
+olmasaydı iş "bağ kuruldu" diye kapanacak ve `visitId` dolu ama
+görünmez bir kolon olacaktı.* **Şartı başta koymak, işin sonunda
+denetlemekten ucuz.**
+
+### Liste numarasını, listeyi görmeyene verme
+
+value ux'e *"6 ve 7'nin cümleleri"* dedi; o numaralar **dev-ui'ye
+verilmiş bir listenin** numaralarıydı ve ux o listeyi hiç görmemişti.
+**Bugün ikinci kez aynı hata** (*"paketin kalan maddeleri"*).
+
+ux **tahmin etmedi, sordu** — ve tahmini **yarı yanlıştı** (ikisini de
+boş durum metni sanmıştı; 6 = *"Cevabı kaldır"* düğmesinin metni, 7 =
+hatırlatma formunda hayvan listesi boşaldığında çıkacak cümle). Yani
+sorması doğrudan iş kurtardı.
+
+> **Bir liste numarası, listeyi görmeyen için bir ad değildir.** Şeyi
+> adıyla söyle.
+
+### Tetiği yazarken, bugün ÖLÇÜLEBİLİR olup olmadığını da yaz
+
+value kendi payını saydı: aynı tuzağa iki kez düştü (katalog, tutar
+kolonu) ama farkı, **oradaki tetiklerin ölçülebilir olması.**
+
+> **Ölçülemeyen tetik, park değil rafa kaldırmadır.**
+
+Bu, ux'in *"ölçülemeyen bir sayı kararı erteleyemez"* cümlesinin
+operasyonel hâli: park etmek meşru, **tetiği `REAL 0`'da
+üretilemeyecek bir sayıya bağlamak** değil.
