@@ -1,5 +1,7 @@
 "use client";
 
+import * as React from "react";
+
 /**
  * A live region that is already on the page before it has anything to say.
  *
@@ -20,10 +22,28 @@
  * messaged, where the description is correct and silent because nothing
  * moved. Both channels, one string, given once by the caller.
  */
-export function Announcer({ message }: { message: string | null }) {
+export function Announcer({
+  message,
+  clearAfterMs = 4000,
+}: {
+  message: string | null;
+  clearAfterMs?: number;
+}) {
+  // Derived rather than written from inside the effect: `message` shows
+  // until the timer marks that exact string as spoken, and a new one
+  // shows again because it is a different string.
+  const [spoken, setSpoken] = React.useState<string | null>(null);
+  const text = message && message !== spoken ? message : null;
+
+  React.useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setSpoken(message), clearAfterMs);
+    return () => clearTimeout(timer);
+  }, [message, clearAfterMs]);
+
   return (
     <p role="status" className="sr-only">
-      {message}
+      {text}
     </p>
   );
 }

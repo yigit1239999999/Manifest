@@ -436,14 +436,21 @@ export default async function RemindersPage({
                     // which does nothing when pressed. `basis-full` keeps
                     // the label with the row it describes and the actions
                     // together below it.
-                    // `basis-full` puts it on its own line while the
-                    // cluster wraps; `w-fit` stops it filling that line.
-                    // Without the second half the pill stretched to 260 of
-                    // the card's 294px -- a full-width grey band around
-                    // one word, visually heavier than the buttons under
-                    // it. pm measured it; the first half of this fix
-                    // created it.
-                    className="basis-full w-fit sm:basis-auto"
+                    // `max-w-fit` and NOT `w-fit`, which is the second
+                    // wrong answer here. `basis-full` gave the pill its
+                    // own line and then stretched it to 260px of a 294px
+                    // card, and `w-fit` did nothing at all about that:
+                    // on a flex item `flex-basis` wins over `width` along
+                    // the main axis, so the declaration sat in the class
+                    // list being ignored. It passed review because the
+                    // class was present; presence is not effect.
+                    //
+                    // The line break moved to the spacer below, because
+                    // `max-w-fit` alone shrinks the pill AND lets the
+                    // buttons back up beside it, which is the wrap defect
+                    // this started out fixing. pm measured all three
+                    // shapes: 260 own-line, 77 shared-line, 77 own-line.
+                    className="max-w-fit sm:max-w-none"
                   />
                   {/* No permission guard: `reminders.write` is held by
                       every role in the matrix, so a guard here could never
@@ -452,6 +459,13 @@ export default async function RemindersPage({
                       caught this one — I had written the guard by copying
                       the page next door, which is exactly the habit that
                       test exists for. */}
+                  {/* A line break, which flexbox has no other way to
+                      ask for: a zero-height item with `basis-full` fills
+                      the rest of the line so the next item starts a new
+                      one. Empty and unnamed, so it is nothing to a screen
+                      reader, and gone above `sm` where the row is wide
+                      enough not to wrap at all. */}
+                  <div className="h-0 basis-full sm:hidden" />
                   {/* Offered only where the server would take it. A row
                       blocked by consent, a missing number, the channel or
                       the clinic switch gets the sentence saying why and no
