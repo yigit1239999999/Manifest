@@ -123,6 +123,11 @@ export default async function DashboardPage() {
     value: w.count,
   }));
 
+  // Read once: the empty sentence and the footnote have to agree about
+  // whether there is money elsewhere, and two reads of the same thing is
+  // how they stop agreeing.
+  const revenueOtherCurrencies = insights.revenueOtherCurrencies;
+
   const revenueLast6MonthsData = insights.revenueLast6Months.map((m) => ({
     label: monthFmt.format(m.monthStart),
     value: m.cents,
@@ -199,7 +204,19 @@ export default async function DashboardPage() {
           <CardContent>
             <ColumnBars
               data={revenueLast6MonthsData}
-              emptyLabel={t("empty.revenue")}
+              // Two different pieces of news, and they were one: "nothing
+              // was paid" and "nothing was paid in lira". The second is
+              // what a clinic with four paid dollar invoices was being
+              // told, and it sends a vet after money that is already
+              // collected. Lists learned this distinction two releases
+              // ago (`empty` against `emptyFiltered`); the chart had one
+              // empty sentence and a filter nobody had told it about
+              // (TEAM.md #19).
+              emptyLabel={
+                revenueOtherCurrencies.length > 0
+                  ? t("empty.revenueCurrency", { currency })
+                  : t("empty.revenue")
+              }
               formatValue={(v) => formatMoney(fmt, v, currency)}
               partialLast={{
                 note: t("chart.partialPeriod"),
@@ -214,8 +231,8 @@ export default async function DashboardPage() {
               // missing pocket change or the entire total. In the case
               // that found this, it was the entire total.
               footnote={
-                insights.revenueOtherCurrencies.length > 0
-                  ? insights.revenueOtherCurrencies
+                revenueOtherCurrencies.length > 0
+                  ? revenueOtherCurrencies
                       .map((m) =>
                         t("chart.otherCurrency", {
                           amount: formatMoney(fmt, m.cents, m.currency),

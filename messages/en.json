@@ -117,6 +117,7 @@
       "appointments": "No upcoming appointments.",
       "pets": "No animals yet.",
       "revenue": "No paid invoices in this period.",
+      "revenueCurrency": "No invoices paid in {currency} in this period.",
       "visits": "No visits yet.",
       "vaccinations": "No vaccinations due soon."
     }

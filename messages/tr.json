@@ -117,6 +117,7 @@
       "appointments": "Yaklaşan randevu yok.",
       "pets": "Henüz hayvan yok.",
       "revenue": "Bu dönemde ödenmiş fatura yok.",
+      "revenueCurrency": "Bu dönemde {currency} cinsinden ödenmiş fatura yok.",
       "visits": "Henüz vizit yok.",
       "vaccinations": "Yaklaşan aşı yok."
     }
