@@ -26,7 +26,13 @@ export async function Topbar({
         {clinicName}
       </span>
 
-      <div className="flex items-center gap-3">
+      {/* `min-w-0` so this group can give way at all. Everything in it
+          but the user's name is a fixed size, so when the header runs
+          out of room the name is the only thing that can yield — and
+          without this it refuses, because a flex item will not go
+          below its content. That is the long-name half of the defect;
+          the breakpoint below is the short-name half. */}
+      <div className="flex min-w-0 items-center gap-3">
         <CommandPalette />
         <ThemeToggle initialTheme={theme} />
         <LocaleSwitcher />
@@ -40,7 +46,30 @@ export async function Topbar({
           >
             {initials(userName)}
           </span>
-          <span className="sr-only text-sm font-medium text-foreground sm:not-sr-only sm:inline">
+          {/* `lg`, not `sm`, and this is the third time we have fixed
+              this exact shape.
+
+              pm measured 31px of sideways scroll on every one of seven
+              routes between 768 and 799. The cause is two thresholds
+              chosen independently and firing against each other: these
+              two labels open at `sm` (640), and the sidebar widens from
+              64px to 240px at `md` (768). So at 768 the header is handed
+              176px less room at the moment it is already carrying two
+              labels it took on at 640.
+
+              `/staff` was the same shape and took the same answer
+              (`a126330`), so the codebase now has one rule rather than
+              two: a label that costs header width opens at `lg`, after
+              the sidebar has taken its share. The measured band clears
+              at 800 and `lg` is 1024, which is later than strictly
+              needed — deliberately. The exact edge moves with how long
+              the clinic and user names are, so a threshold tuned to
+              today's data would be a fourth instance of this bug
+              waiting for a longer name.
+
+              `truncate` for the same reason: the number is measured,
+              the names are not. */}
+          <span className="sr-only truncate text-sm font-medium text-foreground lg:not-sr-only lg:inline">
             {userName}
           </span>
         </div>
@@ -49,7 +78,7 @@ export async function Topbar({
             <LogOut />
             {/* Without this the narrow layout leaves an unnamed button whose
                 only action is to sign the user out. */}
-            <span className="sr-only sm:not-sr-only sm:inline">
+            <span className="sr-only lg:not-sr-only lg:inline">
               {t("signOut")}
             </span>
           </Button>
