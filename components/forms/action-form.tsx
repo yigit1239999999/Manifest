@@ -22,6 +22,7 @@ import { Callout } from "@/components/ui/callout";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import type { FormState } from "@/lib/action";
+import { clearDraft, readDraft, writeDraft } from "@/lib/form-draft";
 import { cn } from "@/lib/utils";
 
 const EMPTY: readonly string[] = [];
@@ -208,6 +209,29 @@ interface ActionFormProps extends Omit<React.ComponentProps<"form">, "action"> {
    * `lib/next-param.ts`, for the same reason.
    */
   focusFirstEmpty?: boolean;
+  /**
+   * Keep what has been typed here in the browser, and put it back if
+   * the form is left and returned to.
+   *
+   * Measured on the shipping product: a chief complaint and a history
+   * were typed into a visit, the vet went to the client list and came
+   * back, and both were empty with no warning on the way out. Their
+   * own scale: "a door annoys me, a lost note takes me off the
+   * program". So this is not a confirm dialogue -- asking on the way
+   * out stops the person doing the work a second time; the right
+   * behaviour is not to lose it.
+   *
+   * The key identifies the RECORD, not the route: `visit:new` and
+   * `visit:<id>` are different pieces of work, and one key for both
+   * would pour an unsaved new visit into the edit form of an old one.
+   * Scoping to whoever is signed in is handled in `lib/form-draft.ts`
+   * and no caller has to think about it.
+   *
+   * Cleared when the submit goes through, so a saved visit does not
+   * come back to haunt the next one; rewritten when the server rejects
+   * it, so a failed submit is still a draft.
+   */
+  draftKey?: string;
 }
 
 export function ActionForm({
@@ -216,11 +240,13 @@ export function ActionForm({
   onClick,
   wide,
   focusFirstEmpty,
+  draftKey,
   className,
   ...props
 }: ActionFormProps) {
   const {
     state,
+    pending,
     formAction,
     clearFieldError,
     resetToken,
@@ -235,12 +261,37 @@ export function ActionForm({
     restoreValues(ref.current, values);
   }, [values]);
 
-  // Once, on open. Not on every render: a later pass would move the
-  // cursor out from under someone mid-sentence.
+  // Whether a draft was put back, decided during the first render
+  // rather than in an effect: the announcement is part of what this
+  // render says, and setting it afterwards would be a second render
+  // that exists only to add a sentence. `null` on the server, where
+  // there is no storage and no draft to announce.
+  const [restoredDraft] = React.useState<Record<string, string> | null>(() =>
+    !draftKey || values || typeof window === "undefined"
+      ? null
+      : readDraft(draftKey),
+  );
+  const restored = restoredDraft !== null;
+
+  // Once, on open, and in this order: what was typed goes back in
+  // first, then the cursor is placed. The order is load-bearing --
+  // focus looks for the first field still empty, and a field a draft
+  // is about to fill is not empty. Folded into one effect so a later
+  // reorder cannot separate them.
   React.useEffect(() => {
-    if (!focusFirstEmpty) return;
     const formEl = ref.current;
     if (!formEl) return;
+
+    // Read during the first render (above), written into the DOM here,
+    // because the controls do not exist until the form is mounted. Not
+    // when the server has just echoed a rejected submission back: that
+    // is the fresher of the two and the effect above is already
+    // putting it in.
+    if (restoredDraft) {
+      restoreValues(formEl, restoredDraft, { keepFilled: true });
+    }
+
+    if (!focusFirstEmpty) return;
 
     const empty = (control: HTMLInputElement) =>
       !control.disabled && control.type !== "hidden" && !control.value;
@@ -274,7 +325,44 @@ export function ActionForm({
     // nobody has typed into yet, so reaching here means the premise
     // above went wrong somewhere.
     formEl.querySelector<HTMLButtonElement>("button[type=submit]")?.focus();
-  }, [focusFirstEmpty]);
+    // Mount only. A draft that rewrote itself on every render would
+    // fight whoever is typing, and the cursor would move under them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Everything typed right now, as the draft stores it. */
+  const snapshot = React.useCallback(() => {
+    const formEl = ref.current;
+    if (!draftKey || !formEl) return;
+    const values: Record<string, string> = {};
+    for (const [name, value] of new FormData(formEl).entries()) {
+      if (typeof value === "string" && !name.startsWith("$ACTION")) {
+        values[name] = value;
+      }
+    }
+    writeDraft(draftKey, values);
+  }, [draftKey]);
+
+  // Cleared the moment a submit starts, and written back if the server
+  // sends the submission home again.
+  //
+  // Not on success, because the successful case often never reports
+  // one: `createVisitAction` redirects, this component unmounts, and a
+  // draft waiting for a success that never arrives would be handed to
+  // the next visit as though it were unsaved work. The browser's own
+  // `required` check is what makes clearing this early safe -- a
+  // submit it blocks never reaches the action, so `pending` never
+  // turns true and the draft is still there.
+  const wasPending = React.useRef(false);
+  React.useEffect(() => {
+    if (!draftKey) return;
+    if (pending && !wasPending.current) clearDraft(draftKey);
+    wasPending.current = pending;
+  }, [pending, draftKey]);
+
+  React.useEffect(() => {
+    if (draftKey && values) writeDraft(draftKey, values);
+  }, [draftKey, values]);
 
   // An error for a field this form doesn't render (a hidden id, say) would be
   // invisible, and the submit would look like it silently did nothing. Hand
@@ -507,10 +595,15 @@ export function ActionForm({
       action={formAction}
       onInput={(e) => {
         scan();
+        snapshot();
         onInput?.(e);
       }}
       onClick={(e) => {
         scan();
+        // Chips and comboboxes write to a hidden input on click and
+        // fire no input event, so the draft would miss the species and
+        // the animal -- the two answers hardest to retype from memory.
+        snapshot();
         onClick?.(e);
       }}
     >
@@ -561,6 +654,16 @@ export function ActionForm({
             </ul>
           )}
         </Callout>
+      )}
+      {restored && (
+        // A line, not a dialogue and not a toast. It says what
+        // happened to somebody who has just arrived and might
+        // otherwise wonder why a form they left is full; a toast
+        // would be gone before they looked, and a dialogue would stop
+        // them, which is the thing this whole mechanism refuses to do.
+        <p className="col-span-full mb-4 text-sm text-muted-foreground">
+          {t("draftRestored")}
+        </p>
       )}
       {children}
     </form>
@@ -654,6 +757,7 @@ function labelFor(form: HTMLElement, control: Element): string {
 function restoreValues(
   form: HTMLFormElement | null,
   values: Record<string, string> | undefined,
+  options: { keepFilled?: boolean } = {},
 ) {
   if (!form || !values) return;
 
@@ -677,6 +781,14 @@ function restoreValues(
 
     const submitted = values[name];
     if (submitted === undefined || control.value === submitted) continue;
+
+    // The one exception, and it belongs to drafts. A draft is older
+    // than the URL that opened this form: coming back from the animal
+    // chain, the picker arrives filled with the animal just created
+    // while the draft remembers it empty. Writing the emptier of the
+    // two back would undo the walk the vet just made. A server echo
+    // never takes this path, because it is never older than the form.
+    if (options.keepFilled && submitted === "" && control.value !== "") continue;
 
     if (control instanceof HTMLSelectElement) {
       if (Array.from(control.options).some((o) => o.value === submitted)) {

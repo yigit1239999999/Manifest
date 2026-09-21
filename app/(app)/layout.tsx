@@ -61,6 +61,13 @@ export default async function AppLayout({
           />
           <main
             id="main"
+            // Who the unsaved drafts in this tab belong to
+            // (`lib/form-draft.ts`). Written once, here, rather than
+            // passed to each form: two vets share the machine at the
+            // counter inside one browser session, and a form that
+            // forgot to scope its draft would hand the second one the
+            // first one's half-written examination.
+            data-draft-scope={session.user.id}
             // Focusable only as a jump target, never in the tab order.
             tabIndex={-1}
             // No reading-width cap. There was one — `max-w-6xl`, 1152px,
