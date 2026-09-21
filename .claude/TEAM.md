@@ -3151,3 +3151,32 @@ tarif ediyor:** `py-1`'in yanlış commit'e atfı, birinin onu *"gereksiz
 dolgu"* diye silmesine zemin hazırlar. **Nöbetçi kırılmayı durdurur,
 KAYIT NİYETİ TAŞIR** — ikisi farklı işler, ve biri ötekinin yerine
 geçmez.
+
+### Şartname, ÇAĞRI YERİ tam görülmeden yazıldığında geri çekilir
+
+dev-ui'nin tespiti, ve bugün **üçüncü** vakası:
+
+- ux *"satır içi 'Ayarlarda aç' bağlantısı"* istedi — **üç satır aşağıda
+  duran "Türleri yönet" bağlantısını bilmeden.** Dürüst bir isim
+  (*"Tür ayarlarına git"*) onu duranla **kelimesi kelimesine aynı**
+  yapıyordu, yani dürüstlük bağlantıyı **gereksiz kılıyordu.**
+- dev-ui `role="alert"` davranışı istedi — **odağın koşullu render edilen
+  bir kutuya ineceğini hesaba katmadan.**
+
+**İkisinde de ortak biçim: mekanizma, sonuçtan önce belirtildi.** Ve
+ikisinin de bedeli **bir commit** oldu — *çünkü biri söyledi.*
+
+> **Şartname bir SONUÇ tarif eder. Mekanizma tarif eden şartname, çağrı
+> yerini tam görmeden yazıldığında sessizce yanlış olur** — ve
+> uygulayanın *"harfiyen uyguladım"* demesi onu doğru yapmaz.
+
+**Ve dev-ui'nin kendi yarım düzeltmesi bu kuralın ikinci yüzü:** iki
+bağlantıya **farklı kelimeler** verip **aynı işi** yapmalarını bıraktı,
+yani okuyan hâlâ **olmayan bir farkı arıyordu.** Çakışmayı çözmek
+kelimeyi değiştirmek değil, **birini kaldırmaktı.**
+
+**ux'in üçüncü gerekçesi de ayrı bir ders:** value'nun kısıtı
+*"veterineri iş ortasında ayarlara gönderme"*ydi; dev-ui bunu
+`target="_blank"` ile **lafzen** karşıladı. **Yeni sekme de bir çıkıştır**
+— hayvan masadayken ve hiçbir şey kaydedilmemişken. *Bir kısıtın
+lafzını karşılamak, amacını karşılamak değildir.*
