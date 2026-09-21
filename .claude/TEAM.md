@@ -1855,3 +1855,51 @@ Satır zaten rozet + saat + veterinerle okunuyordu, yani yedek hiçbir zaman
 gerekli değildi. Tip `string | null` oldu — **bir sonraki yedek artık
 derleme hatası.** Kusuru düzeltmek yerine **sınıfını imkânsız kılmak**
 (TEAM.md 4'ün en güçlü hâli).
+
+### Bir `??`'nin sağ tarafı kullanıcıya görünüyorsa, o bir TASARIM KARARIDIR
+
+— derleyiciyi susturmak için yazılmış olsa bile. ux'in kuralı, ve 21'in
+**kendi örneğinin** neden hayatta kaldığını açıklıyor.
+
+`app/(app)/layout.tsx:59-60`:
+
+```
+clinicName={clinic?.name ?? "Your clinic"}
+userName={session.user.name ?? "Vet"}
+```
+
+**Bunlar yedek değil, TİP SUSTURUCU.** NextAuth `user.name`'i nullable
+veriyor, klinik araması `T | null` dönüyor; `??` derleyiciyi susturmak için
+yazılmış. Kimse onları *"kullanıcıya gösterilecek metin"* diye yazmadı —
+**o yüzden kimse öyle okumadı**, ve 21'in tanımladığı kusur, 21'i yazan
+belgenin örnek olarak gösterdiği satırda yaşamaya devam etti.
+
+**Şema ile tip çelişiyorsa düzeltilecek şey tiptir:** `Clinic.name`,
+`User.name`, `User.clinicId` üçü de `NOT NULL` (doğrulandı), ve veride 129
+klinik / 134 kullanıcı içinde adsız **sıfır**. Yani iki dal da **şemanın
+yasakladığı** bir hâli koruyor.
+
+> **Tip "olmayabilir" derken şema "olamaz" diyorsa, düzeltilecek şey tiptir;
+> uydurulacak şey kelime değildir.**
+
+Ve ulaşılamaz bir hâl için **çeviri anahtarı da üretilmez** — o, sıfır çağrı
+yeri olan anahtar demektir (30).
+
+### Şartnamenin ÖRNEĞİ bayatlar, KURALI ayakta kalır — çelişirlerse kural izlenir
+
+value'nun kuralı, dev-ui'nin bir şartname çelişkisini **kendi başına doğru
+yönde** çözmesinden:
+
+- **Kural:** *"cümledeki gösterim, aynı karttaki tutarların gösterimiyle aynı
+  olsun, ve tek yerden gelsin."*
+- **Örnek:** *"₺ cinsinden"*.
+- **Olgu:** `en` + `TRY` → `"TRY"` bir fallback değil, o okuyucunun **her
+  tutarda gördüğü şey.** Yani `"₺"` yazmak **kuralı çiğnerdi.**
+
+> **Örneği izlemek, kuralı bozabilir. Çelişirlerse kural izlenir ve örnek
+> düzeltilir** — uygulayan, çelişkiyi sahibine bildirerek.
+
+Bu, 30b'nin (*"karar doğru, gerekçe çürük"*) **uygulayıcı tarafındaki**
+yüzü. Ve 32k'nın sınırını çiziyor: *"uygulayan hakem yapılmaz"* iki tasarım
+**sesi** çeliştiğinde geçerlidir; **tek bir sesin kuralı ile örneği**
+çeliştiğinde uygulayan susmaz, kuralı izler ve bildirir.
