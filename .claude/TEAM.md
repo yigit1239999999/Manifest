@@ -2356,3 +2356,55 @@ turun başında **okumuşlardı**, yorumunu bile alıntılamışlardı — sonra
 **deneyimlerinden** yola çıkıp "söylemedi" yazdılar. *Kodda gördüğün bir
 metin, ekranda görüldüğü anlamına gelmez; kendi deneyimin de metnin
 yokluğunun kanıtı değildir.*
+
+### "Biri ölçüldü, öteki varsayıldı" — bir düzeltme, varyantların HEPSİNDE ölçülür
+
+ux `8fad66f`'i kendi kanıtıyla doğruladı ve **kendi kararının ürettiği bir
+gerilemeyi** buldu. Koyu tema, gerçek `:focus-visible`:
+
+| düğme | `outline-color` | kontrast |
+|---|---|---|
+| "Arşivle" (secondary) | `rgb(52,192,168)` ✓ `--ring` | **16,18** |
+| "Aşıyı kaydet" (**primary**) | `rgb(4,20,15)` ✗ `currentColor` | **1,09** |
+
+Sınıflar birebir aynı; `outline-2` uygulanıyor, `outline-ring`
+uygulanmıyor, renk `currentColor`'a düşüyor ve birincil düğmenin rengi
+koyu. **Birincil düğmelerin odak konturu koyu temada pratik olarak
+görünmez.**
+
+**Karar doğruydu** (`ring-offset-background` kart üstünde sayfa rengi
+basıyordu, ölçülmüştü) **ama uygulama bir varyantta rengi kaybetti ve
+sonuç öncekinden kötü:** eskiden **görünür ama kusurlu** bir halka vardı,
+şimdi **görünmez** bir kontur var.
+
+> **Bir düzeltme, dokunduğu her varyantta ölçülür.** Bugünkü kusur tam
+> olarak *"biri ölçüldü, öteki varsayıldı"*dan çıktı — ve varsayılan
+> taraf, sınıfları **birebir aynı** olduğu için varsayıldı.
+
+**İki sonuç:**
+1. **Doğru bir karar, yanlış bir uygulamayla kendi gerekçesini çürütür
+   gibi görünür.** Burada çürüyen karar değil, bir varyanttaki renk.
+2. **Kararı veren kişinin kendi kanıtıyla kapatması** bu yüzden bir
+   nezaket değil **mekanizma**: ux doğrulamasaydı madde "kapandı" diye
+   işaretlenecekti, ve kapanan şey **bir gerileme** olacaktı.
+
+**Kabul kriteri de sayıya bağlandı:** dört varyantın **dördünde de**
+kontur `--ring` rengini taşır ve altındaki yüzeye karşı **≥ 3:1**.
+Kapsam ayrıldı: iddia **koyu tema** için; `ghost`/`destructive`
+ölçülmedi.
+
+### Kesim, ARA bir commit'e göre zamanlanmaz
+
+value'nun uyarısı, ve doğrudan kesimi uygulayan tarafa:
+
+Ölçek paketi **üç iniş** istiyor — `onSearch` arayüzü → `DROPDOWN`'ın
+**50**'ye inmesi → **ipucunun aramaya bağlanması.** İlki indiğinde iş
+"bitmiş" görünür ama:
+
+> Üçüncü adım inmeden ipucu, **çıkış yolu olmayan bir uyarı** olarak
+> kalır — ve paketin cümlesinin bütün değeri o çıkış yolunda.
+
+**Genel hâli:** bir paket, kullanıcıya **bir yol** vaat ediyorsa, yolun
+son adımı inmeden kesilen sürüm **uyarıyı verir, çareyi vermez** — yani
+yalnızca eksik değil, **daha kötü**: kullanıcı artık kaybettiğini biliyor
+ve yapabileceği bir şey yok.
