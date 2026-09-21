@@ -3016,3 +3016,96 @@ yayacak taşıyıcıyı (token + bileşen + test) koymak.
 **Açık kalan tek ölçüm:** kendi iskeleti olan dört rotada *şekil* doğru,
 ama pano dışındaki yüksekliklerin hepsi ölçüldü; ölçülmemiş olan, altı
 mirasçı rotanın sayıları. Tur açılınca ilk iş o.
+
+## Onboarding — dışarıya bakılarak alınan karar (21 Eylül 2026)
+
+Kullanıcı bütün ekibi durdurdu (*"nerdeyse herkes dursun, sadece
+onboarding'i nasıl iyi yaparız'a bakalım"*), Fable 5.1'i danışman olarak
+çağırttı, sonra onboarding'in **liderliğini ona verdi**. İki çerçeve
+düzeltmesi yaptı ve ikisi de bu kaydın biçimini belirliyor: *"kaynaktan
+kanıt yerine dünya çapında onboardinglere bakıp uygulasın"* ve *"farklı
+uygulamalardan kopya çekebiliriz, sadece dertli olmasın."*
+
+### Kök bulgu: ürün kendi yeteneğini kullanmıyordu
+
+`createVisitIntakeAction` (`modules/visits/actions.ts:32`) vizit + hayvan +
+sahibi **tek işlemde** yazıyor, testleri var, commit'lenmiş — ve tanımı
+dışında **tek çağrı yeri yok**. `VisitForm` hâlâ `createVisitAction`'a
+bağlı; "yeni hayvan aç" satırı `router.push('/pets/new')` ile **ekranı
+terk ediyor**. `name="newPet[...]"` çizen hiçbir bileşen yok.
+
+Bunun sonucu, kartın *"Önce sahibini ve hayvanı açacaksınız"* cümlesinin
+**doğru** olması. Önce "kod düzeldi, metin bayat kaldı" sanılmıştı; ters
+yönde çürüdü ve bu hâli daha kötü: ürün bahsi koymuş (*"bugün bir vizit
+yaz"*), kabloyu çekmemiş. Gün sıfırda "önce X gerekir" kapısı `MissingLink`
+ile **sekiz sayfada** duruyor.
+
+### Alınan kalıplar — ürün / ne yapıyor / neden alındı
+
+- **Shopify** — müşteri kaydı *"ad, e-posta veya telefondan en az biri"*
+  ister. Buraya **ad VEYA telefon** diye indi.
+- **Epic** (acil, "unknown patient") — kimliği bilinmeyen hasta geçici
+  kayıtla tedaviye alınır, eksiklik **işaretli** durur, sonra tamamlanır.
+  Buraya *"Telefon: şimdi yok — sonra sorulur"* diye indi.
+- **Digitail** — takvim modalında müşteri + hasta + randevu tek düğmeyle
+  doğar ("Nothing is saved until you click Add Appointment"), ve kopya
+  uyarısı **telefonla** verilir; hangi alanın eşleştiğini bilir.
+- **Jane App** — yeni hastada *"ad ve soyad tek zorunlu alan"*; telefon
+  önerilir, dayatılmaz.
+- **Calendly** — ilk girişte ilk etkinlik türü **hazır yaratılmış** gelir.
+  Buraya: veteriner = kaydı açan, tarih = şimdi, tür = genel kontrol.
+- **Linear** — ilk dakikada tur yok, tooltip yok, kontrol listesi yok;
+  *"cursor blinking, ready to work"*, ⌘K ilk günden.
+- **web.dev (CLS)** — iskelet içeriğin yerini **aynı boyutta** ayırır;
+  uyuşmuyorsa hiç olmasın.
+
+### Alınmayanlar, ve her birinin taşıdığı dert
+
+Kullanıcının *"sadece dertli olmasın"* kısıtı, büyük uygulamaların **kendi
+ölçeklerinin** derdini de kopyalamamak diye okundu. Bu üründeki kullanıcı
+tek kişi: akşam 20:00'de klinikte, yarın sabah hasta bakacak.
+
+- **Örnek veri / şablon klinik** — örnek kayıt aramaya düşer; *"ekranda
+  11, çekmecede 4"* hikâyesinin doğduğu yer.
+- **Kontrol listesi / ilerleme çubuğu** — hekimin kendi cümlesi:
+  *"3 günde bırakırım."* Ayrıca tamamlanma yüzdesi bir sayaçtır.
+- **Kurulum sihirbazı** — benimseme kurulumla değil **ilk geri almayla**
+  oluyor.
+- **"Ekibini davet et" / bildirim / tema adımı** — tek kişilik klinik.
+- **Onboarding uzmanı araması** (Digitail'de var) — 20:00'de kimse aramaz.
+- **Zorunlu cins / cinsiyet / kısırlık** — hekim: *"masada sormam gereken
+  alan yok."*
+- **İçe aktarma sihirbazı** — zaten ertelenmişti; ilk ekrana hiç girmez.
+- **Square'in banka-önce sırası** — şikâyetin ta kendisi ("önce şu
+  gerekir"), ve bizde o mevzuat derdi yok.
+
+### Telefon duvarı: çözüldü, ve migration istemiyor
+
+Kullanıcının asıl şikâyeti *"elimde olmayanı soruyor"* idi. Tek ekran bunu
+**çözmüyordu** — duvarı tek ekranın içine taşıyordu. Kural artık ad VEYA
+telefon; "şimdi yok" işaretlenirse kayıt açılır, sessiz bir rozet kalır,
+telefon **gerektiği anda** sorulur (hatırlatma, fatura, bir sonraki geliş).
+
+Hekimin *"numarasız bulamam"* gerekçesi korunuyor: ürün unutmuyor, **ne
+zaman soracağını** değiştiriyor. Ve uydurma numara yazma sebebi ortadan
+kalkıyor — `Deneme Deneme / 0000` kaydının bu üründe **iki yıl** yaşamış
+olması bu kararın en ağır kanıtı.
+
+**Doğrulandı:** `Client.phone` veritabanında zaten `String?`. Zorunluluk
+yalnız Zod katmanında (`modules/clients/schema.ts:27`,
+`modules/visits/schema.ts:68`, ikisi de `requiredPhone(40)`). Yani
+migration yok, iki doğrulama satırı. Boş telefon zaten "sonra sorulacak"
+işaretinin kendisi — bu deponun `lastName String?` ve
+`notificationsOptIn Boolean?` ile iki kez uyguladığı **"absent is not
+empty"** ilkesinin üçüncü uygulaması.
+
+### Açık kalan tek karar
+
+Sekiz `MissingLink` kapısının gün sıfırda her birinin nereye gideceği
+(`visits`, `appointments`, `appointments/new`, `invoices`, `invoices/new`,
+`pets`, `pets/new`, `reminders`). İlk teklif hepsini `/visits/new`'a
+yönlendiriyordu; **reddedildi**, çünkü randevu yarındır ve vizit şimdidir —
+"Randevular"a basan hekimi vizit yazmaya göndermek, bu turun kendi tezinin
+ihlali olurdu: *ürün kullanıcının ne yapmaya çalıştığını biliyor ama
+davranışını ona göre değiştirmiyor.* Muhtemel şekli: `appointments/new`
+aynı satır-içi kalıbı alır, yönlendirme almaz.
