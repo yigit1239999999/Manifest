@@ -77,9 +77,42 @@ describe("pointing at the row that was just created", () => {
     await settle();
     expect(row.dataset.spotlight).toBe("");
 
-    act(() => void vi.advanceTimersByTime(2500));
+    act(() => void vi.advanceTimersByTime(3500));
     expect(row.dataset.spotlight).toBeUndefined();
     expect(container.querySelector('[role="status"]')?.textContent).not.toBe("");
+  });
+
+  /**
+   * The two seconds are counted from arrival, not from departure.
+   *
+   * pm measured a new row at 3043px; a smooth scroll over that takes
+   * longer than half a second, so a countdown started at the top burns
+   * a good part of the mark before anyone can see it — and its worst
+   * version has the colour fading at the exact moment the row arrives.
+   */
+  it("starts the countdown when the scrolling stops, not when it starts", async () => {
+    const row = placeRow("reminder-r1", "Gönderilecek.");
+    render(<NewRowSpotlight rowId="reminder-r1" />);
+    await settle();
+
+    // Two seconds into a journey that has not ended: still marked.
+    act(() => void vi.advanceTimersByTime(2100));
+    expect(row.dataset.spotlight).toBe("");
+
+    act(() => void window.dispatchEvent(new Event("scrollend")));
+    act(() => void vi.advanceTimersByTime(2100));
+    expect(row.dataset.spotlight).toBeUndefined();
+  });
+
+  // `scrollend` never fires when no scroll was needed, so something has
+  // to start the clock for a row that was already on screen.
+  it("does not wait forever for a scroll that never happened", async () => {
+    const row = placeRow("reminder-r1", "Gönderilecek.");
+    render(<NewRowSpotlight rowId="reminder-r1" />);
+    await settle();
+
+    act(() => void vi.advanceTimersByTime(3000));
+    expect(row.dataset.spotlight).toBeUndefined();
   });
 
   // The list is re-rendered from the server after the save, so the row is

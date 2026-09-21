@@ -3,8 +3,17 @@
 import * as React from "react";
 import { Announcer } from "@/components/ui/announcer";
 
-/** How long the row stays tinted before fading back. */
+/** How long the row stays tinted once the reader has arrived at it. */
 const HOLD_MS = 2000;
+/**
+ * How long to wait for a smooth scroll before starting that countdown
+ * anyway.
+ *
+ * `scrollend` is the real signal, but it never fires when no scroll was
+ * needed -- the row was already on screen -- so something has to start
+ * the clock in that case too. Whichever happens first wins.
+ */
+const SCROLL_SETTLE_MS = 700;
 /**
  * Stop watching for a row that is never coming.
  *
@@ -74,6 +83,7 @@ export function NewRowSpotlight({
   React.useEffect(() => {
     if (!rowId) return;
     let holdTimer: ReturnType<typeof setTimeout> | undefined;
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
     let giveUpTimer: ReturnType<typeof setTimeout> | undefined;
     let observer: MutationObserver | undefined;
 
@@ -95,9 +105,29 @@ export function NewRowSpotlight({
         id: rowId,
         text: row.querySelector(sentenceSelector)?.textContent?.trim() ?? null,
       });
-      holdTimer = setTimeout(() => {
-        delete row.dataset.spotlight;
-      }, HOLD_MS);
+
+      // The two seconds are counted from ARRIVAL, not from the start of
+      // the journey. pm measured a new row at 3043px, and a smooth
+      // scroll over that takes longer than half a second: counted from
+      // here, a good part of the mark would burn before the reader sees
+      // it, and the worst version has the colour beginning to fade at
+      // the exact moment the row comes into view (ux).
+      let started = false;
+      const startHold = () => {
+        if (started) return;
+        started = true;
+        window.removeEventListener("scrollend", startHold);
+        holdTimer = setTimeout(() => {
+          delete row.dataset.spotlight;
+        }, HOLD_MS);
+      };
+      if (reduced) {
+        // Nothing to wait for: the jump already happened.
+        startHold();
+      } else {
+        window.addEventListener("scrollend", startHold, { once: true });
+        settleTimer = setTimeout(startHold, SCROLL_SETTLE_MS);
+      }
     };
 
     // The row is not in the document yet: the list is re-rendered from
@@ -120,6 +150,7 @@ export function NewRowSpotlight({
     return () => {
       observer?.disconnect();
       if (holdTimer) clearTimeout(holdTimer);
+      if (settleTimer) clearTimeout(settleTimer);
       if (giveUpTimer) clearTimeout(giveUpTimer);
       // A second save while the first is still lit: hand the tint over
       // rather than leaving two rows claiming to be the new one.
