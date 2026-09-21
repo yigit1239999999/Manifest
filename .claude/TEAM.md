@@ -480,6 +480,18 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    yazarken *"bu bugün doğru mu"* diye sor, *"bu doğru olacak mı"* diye
    değil.
 
+   **Ve kuralın SINIRI, çünkü az vaat etmenin kendi tuzağı var:**
+
+   > **Küçültülmüş bir vaat yalan bir vaatten iyidir; gizlenmiş bir
+   > iyilik ise gereksiz kayıptır.**
+
+   Vaadi kısarken ürünün **gerçekten yaptığı** iyi şeyi de kısmak, bu
+   kuralın yanlış uygulanmasıdır. *Vaka:* aynı cümlenin iki adayı
+   vardı; kazanan, ayrılmayı adıyla söylerken (*"açmaya gider"*)
+   dönüşü de söyleyen oldu (*"kaldığınız yere dönersiniz"*) — çünkü
+   hekimin **övdüğü** şey tam olarak oydu (*"hiçbir şeyi iki kez
+   yazmadım"*). Az vaat eden cümle, **doğru olan iyiliği** saklamaz.
+
    *Vaka:* ilk çalıştırma kartı *"hayvanı ve sahibini **yol üstünde**
    açarsınız"* diyordu ve ekran bunu yapmıyordu. **İki hekim de bunu
    yalan diye işaretledi**, biri kendi ağzıyla: *"beni yalancı
