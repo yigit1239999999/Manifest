@@ -2284,3 +2284,34 @@ söyler; bu, **ölçüleni neyin açıkladığını** sorar.
 **Pratik biçimi:** bir yokluk bulgusu yazarken cümle şu iki parçayı
 taşır — *"X yok"* **ve** *"X'in işini yapan başka bir şey de yok."*
 İkincisi yoksa bulgu değil, **gözlem.**
+
+### Zemin kendini söylesin — hatırlamaya bağlı bir kural, hatırlanmadığı gün çöker
+
+pm'in isteği ve gerekçesi bugünün faturası:
+
+> **Zemini değiştirenin ölçen herkese söylemesi** ile **zeminin kendini
+> söylemesi** arasında ikincisi daha güvenli — **kimsenin hatırlamasına
+> bağlı değil.**
+
+Uygulaması: **`/Users/yigitsonbahar/Manifest-prod/SERVED_COMMIT.txt`** —
+3001'in hangi commit'i, hangi derleme zamanıyla sunduğu yazılı. Tazeleyen
+onu da günceller; **ölçen her tur başında `cat` eder.**
+
+**Ve pm'in kendi payı, ölçüm alışkanlıkları hakkında genel bir şey
+söylüyor:** perf turunda derleme damgasını yazmışlardı, genişlik turunda
+yazmamışlardı. Farkın sebebi:
+
+> *"Perf turunda value bana açık bir zemin şartı koymuştu, genişlik turunda
+> kimse koymamıştı — yani ben **alışkanlık değil talimat** taşıyormuşum."*
+
+**Bir davranış, yalnızca istendiğinde ortaya çıkıyorsa henüz alışkanlık
+değildir.** Ve talimatla taşınan bir davranış, talimatı veren kişi o turda
+konuşmadığında **sessizce kaybolur** — kaybolduğunda da kimse fark etmez,
+çünkü eksik olan bir çıktı değil **bir satır.**
+
+### Sunucu yönetimi ana oturumundur — ve tuzağı `next-server`
+
+`next dev` ve `next start` **ikisi de** `next-server` adıyla çalışır.
+`pkill -f "next-server"` **üretim sunucusunu da öldürür** — bu oturumda
+dev sunucusunu tazelerken 3001 böyle düştü. Dev sunucusu için
+`pkill -f "next dev"`, üretim için `pkill -f "next start -p 3001"`.
