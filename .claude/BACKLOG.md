@@ -2291,6 +2291,75 @@ dökümünü **yazdırıp** imzalayıp kaşelemek."*
 Mesaj yolu **rakip değil yoldaş**: *"hem kâğıdı veririm hem telefonuna
 kopya düşer, bir dahakine bana sormaz."*
 
+## Mesajlaşma hâli tek yerden türetilmeli — beş kusur, biri "gönderdim" diyip göndermiyor
+
+**Açıldı, kodlanıyor.** `pm` buldu, `dev-ui` koddan takip edip mekanizmayı
+çıkardı ve **kusurun sahibi olduğunu** söyledi.
+
+### Bulunan şey: iki ekran iki farklı soru soruyor, ikisine de "kurulu" diyor
+
+| ekran | tanıdığı hâl |
+|---|---|
+| `/reminders` | hiç kurulmadı → kurulmuş ama kapalı → taşıyıcı yok → klinik hatası |
+| `/appointments/[id]` | `isChannelConfigured`: taşıyıcı **var mı, yok mu** |
+
+`pm`'in ölçtüğü klinik *"hiç kurulmadı"* hâlindeydi — randevu kartının **hiç
+tanımadığı** bir hâl. Sonuç: uyarısız **"SMS gönder"** düğmesi. *"Burada ekran
+yalnız susmuyor, **tersini ima ediyor.**"* Randevudan başlayan bir hekim,
+kliniğinin otomatik mesaj göndermediğini **hiç öğrenmiyor.**
+
+### Ve ortak türetme tasarlanırken BEŞİNCİ kusur çıktı
+
+`/reminders` bir **test kipi** biliyor: taşıyıcı `log` ise mesaj dosyaya
+yazılıyor ve **kimseye gitmiyor.** Randevu kartında bu **hiç yok.**
+
+> Log taşıyıcısıyla çalışan bir klinikte kart *"SMS gönder"* diyor,
+> basıldığında mesaj **hiçbir yere gitmiyor**, ve ekran bunu söylemiyor.
+
+Bu, sürümün kendi vaadinin (*"yanlış mesaj göndermiyor"*) en sert ihlali:
+ürün **göndermediği bir şeyi gönderdim** diye sunuyor.
+
+**Ve bu kusur, cümleleri kopyalasaydık bulunmayacaktı.** Ana oturum
+kopyalamayı reddedip *"hâl türetmesini ortaklaştır"* dediği için ortaya
+çıktı — dördüncüsü kapanırken beşincisi görünür oldu.
+
+### Şekil (dev-ui önerdi, `lib/messaging/transports.ts`)
+
+Yanlış kullanılan `isChannelConfigured`'ın **hemen yanına**, kasıtlı olarak:
+
+```ts
+export type ClinicMessagingState =
+  | { kind: "notSetUp" }
+  | { kind: "messagingOff" }
+  | { kind: "channelUnconfigured"; channel: Channel }
+  | { kind: "ready"; channel: Channel; testMode: boolean };
+```
+
+**Ayrık birleşim olması işin kendisi:** yeni bir hâl eklendiğinde
+**derleyici** bütün çağrı yerlerini gösterir — TEAM.md:2132'nin (*"bir kural
+yazıldığında çağrı yerleri aynı işte taranır"*) kendi kendini uygulayan hâli.
+
+**`dev-ui` kendi ifadesini de düzeltti:** *"aynı dört hâl"* demişti, **üçü
+doğru** — dördüncüsü (`clinicFailure`) hatırlatma **teslimat kayıtlarından**
+geliyor ve randevu kartında öyle bir liste yok.
+
+### Neden bu turda açıldı
+
+`dev-ui`: *"Bugün **dördüncü kez** aynı biçim — kural bir yerde uygulanıp
+komşusunda uygulanmamış, ve bu sefer komşuyu bırakan da benim."* TEAM.md'de
+kural **zaten yazılıydı** (satır 2132, dört vakayla), ve bugün dört kez daha
+kaçtı. Kural 7'nin tarifi: **uyarı okundu ve yine kaçtı, o hâlde uyarıyı
+güçlendirmek çare değil.** Çare türetmeyi tekleştirmek.
+
+**Bölüşme:** türetme + tip `dev`'de (`lib/messaging/`), iki çağrı yerinin
+bağlanması `dev-ui`'de, cümleler `ux`'te. `dev-ui`'nin cümlesi: *"cümleler
+artık bir **yüzeye** değil bir **hâle** bağlanacak."*
+
+**Elle gönderim düğmesi kalıyor** (`pm` doğruladı: duran şey elle gönderim
+değil, **otomatik** gönderim). Eksik olan yanındaki cümle, ve o cümle
+*"otomatik gönderilmeyecek, elle gönderebilirsiniz"* ayrımını taşımalı —
+yoksa düğmeyle cümle **aynı ekranda** çelişir.
+
 ## KULLANICI KARARLARI — 21 Eylül 2026, dördü birden
 
 Ana oturum dört soruyu kullanıcıya önizlemeli olarak sordu, dördü de
