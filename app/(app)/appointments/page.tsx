@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock, Plus } from "lucide-react";
+import { AlertTriangle, CalendarClock, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
@@ -46,9 +46,10 @@ export default async function AppointmentsPage({
   const date = isDayKey(dateParam) ? dateParam : today;
   const range = showAllDates ? null : dayRange(date, fmt.timeZone);
 
-  const [t, tCommon, tType, tStatus, result] = await Promise.all([
+  const [t, tCommon, tPet, tType, tStatus, result] = await Promise.all([
     getTranslations("appointment"),
     getTranslations("common"),
+    getTranslations("pet"),
     getTranslations("enum.visitType"),
     getTranslations("enum.appointmentStatus"),
     listAppointmentsPage({
@@ -184,6 +185,27 @@ export default async function AppointmentsPage({
                     <div className="text-xs text-muted-foreground">
                       {a.client.firstName} {a.client.lastName}
                     </div>
+                    {/* On the row, not behind a click. This is the screen
+                        reception works from all morning, and "bites" read
+                        after the animal is in the room is not a warning
+                        (TEAM.md #20). Not a `Callout`: it belongs to one
+                        row, and eight boxed warnings would turn a day plan
+                        into a wall of amber. */}
+                    {a.pet.alerts && (
+                      <div className="mt-1 flex items-start gap-1 text-xs font-medium text-warning">
+                        <AlertTriangle
+                          className="mt-0.5 size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span>
+                          {/* The colour and the icon say "warning" to
+                              people who can see them; this says it to
+                              everyone else. */}
+                          <span className="sr-only">{tPet("alerts")}: </span>
+                          {a.pet.alerts}
+                        </span>
+                      </div>
+                    )}
                     {/* The columns hidden on a phone still matter, so the
                         essentials ride along in this cell. */}
                     <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground sm:hidden">

@@ -74,7 +74,10 @@ export async function listAppointmentsPage({
       skip: (page - 1) * perPage,
       take: perPage,
       include: {
-        pet: { select: { id: true, name: true, species: true } },
+        // `alerts` on the row: the day plan is where reception decides who
+        // goes into which room, and "bites" has to be readable before that
+        // decision, not after opening the animal (TEAM.md #20).
+        pet: { select: { id: true, name: true, species: true, alerts: true } },
         client: {
           // The phone is on the row so reception can call without
           // leaving the day plan.

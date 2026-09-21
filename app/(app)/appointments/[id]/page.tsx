@@ -41,11 +41,12 @@ export default async function AppointmentPage({
   const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
-  const [appointment, t, tCommon, tType, tStatus, tKind, tMsgStatus, tLang, tChannel, preview, log] =
+  const [appointment, t, tCommon, tPet, tType, tStatus, tKind, tMsgStatus, tLang, tChannel, preview, log] =
     await Promise.all([
       getAppointmentById(session.user.clinicId, id),
       getTranslations("appointment"),
       getTranslations("common"),
+      getTranslations("pet"),
       getTranslations("enum.visitType"),
       getTranslations("enum.appointmentStatus"),
       getTranslations("enum.messageKind"),
@@ -98,6 +99,16 @@ export default async function AppointmentPage({
           />
         )}
       </PageHeader>
+
+      {/* "Bites" and "allergic to" belong on every screen where someone is
+          about to handle the animal, not only on its own page (TEAM.md #20).
+          Reception books, the vet reads this page before the animal walks
+          in, and until now the warning was two clicks away. */}
+      {appointment.pet.alerts && (
+        <Callout variant="warning" title={tPet("alerts")}>
+          {appointment.pet.alerts}
+        </Callout>
+      )}
 
       <Card>
         <CardHeader>
