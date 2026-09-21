@@ -170,16 +170,35 @@ export default async function AppointmentPage({
             // A cancelled, missed or finished appointment must not offer to
             // confirm it or to remind the client to come — there is no
             // message here that is true any more.
-            <p className="text-sm text-muted-foreground">
-              {appointment.status === "COMPLETED"
-                ? t("notifications.completedNotice")
-                : isAppointmentClosed(appointment.status)
-                  ? t("notifications.cancelledNotice")
-                  : // Still `SCHEDULED`, but the day has gone by. Saying
-                    // "cancelled" here would be a second false statement on
-                    // top of the one we just stopped.
-                    t("notifications.pastNotice")}
-            </p>
+            <div className="flex flex-col items-start gap-3">
+              <p className="text-sm text-muted-foreground">
+                {appointment.status === "COMPLETED"
+                  ? t("notifications.completedNotice")
+                  : isAppointmentClosed(appointment.status)
+                    ? t("notifications.cancelledNotice")
+                    : // Still `SCHEDULED`, but the day has gone by. Saying
+                      // "cancelled" here would be a second false statement on
+                      // top of the one we just stopped.
+                      t("notifications.pastNotice")}
+              </p>
+              {/* Only this one of the three closing sentences carries an
+                  action, because only this one leaves something undone: the
+                  other two report a fact and ask for nothing. The heading
+                  already has "Edit" pointing at the same route, and that is
+                  on purpose — that one is navigation, this one is the
+                  invitation. A vet who reads "the outcome has not been
+                  recorded" should not have to look back up the page and work
+                  out that "Edit" is the name of the job. */}
+              {!isAppointmentClosed(appointment.status) &&
+                appointment.status !== "COMPLETED" && (
+                  <Link
+                    href={`/appointments/${appointment.id}/edit`}
+                    className={buttonVariants({ variant: "secondary", size: "sm" })}
+                  >
+                    {t("notifications.recordOutcome")}
+                  </Link>
+                )}
+            </div>
           ) : !preview?.confirmation.recipient ? (
             <p className="text-sm text-muted-foreground">{t("notifications.noPhone")}</p>
           ) : (
