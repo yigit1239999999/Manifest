@@ -38,6 +38,7 @@
 
 import pg from "pg";
 import bcrypt from "bcryptjs";
+import { writeFile } from "node:fs/promises";
 
 /** The name `loop-metrics.mjs` filters on. Changing it changes both. */
 export const STATE_CLINIC_NAME = "HÂL KLİNİĞİ";
@@ -576,6 +577,40 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(
       `LOGIN [${STATE_CLINIC_LOGIN.email} / ${STATE_CLINIC_LOGIN.password}] — seed fixture, synthetic clinic only`,
     );
+
+    // The data ground, written where the measurer is already looking.
+    //
+    // team-lead's protocol: beside SERVED_COMMIT.txt, in the served
+    // checkout, so nobody has to learn a new habit — the person taking
+    // a measurement opens that directory anyway. A reseed drops every
+    // session and changes every id; ux lost a measurement to one
+    // mid-run and read "record not found" as a product defect, because
+    // the commit had not moved.
+    //
+    // Written after the build, and written even when states are
+    // missing, with whatever count came out. A half-built clinic still
+    // means new ids, which is the thing this file exists to announce.
+    //
+    // The database carries the same stamp (the clinic's own settings,
+    // printed by loop-metrics as DATA_GROUND) and that one is
+    // authoritative: this file describes the machine that ran the
+    // seed, and the database describes the data everyone shares. They
+    // disagree the moment somebody seeds from another checkout — in
+    // which case believe the database.
+    const stampPath = "/Users/yigitsonbahar/Manifest-prod/SEEDED.txt";
+    await writeFile(
+      stampPath,
+      `# VERİNİN NE ZAMAN DEĞİŞTİĞİ. SERVED_COMMIT.txt'in veri tarafındaki eşi.\n` +
+        `# Oku:  cat ${stampPath}\n` +
+        `# Tur BAŞINDA ve SONUNDA oku. Değiştiyse ÖLÇÜM GEÇERSİZ —\n` +
+        `# kodun değişmemiş olması yetmez.\n` +
+        `#\n` +
+        `seeded_at: ${new Date().toISOString().slice(0, 16).replace("T", " ")}\n` +
+        `clinic:    ${STATE_CLINIC_NAME}  ${produced.length}/${STATES.length}\n` +
+        `login:     ${STATE_CLINIC_LOGIN.email} / ${STATE_CLINIC_LOGIN.password}\n` +
+        `note:      oturumlar düştü, kayıt kimlikleri YENİ\n`,
+    );
+    console.log(`SEEDED [${stampPath}]`);
     if (missing.length > 0) {
       console.error("not produced:", missing.map((s) => s.id).join(", "));
       process.exitCode = 1;

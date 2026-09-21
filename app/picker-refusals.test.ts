@@ -3,6 +3,24 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+// A CALL-SITE SENTINEL, not a behaviour test. It reads source and
+// proves nothing about what the query returns: `excludeDeceased` could
+// be ignored by `listPets` entirely and every line below would still
+// be green.
+//
+// The other half lives in `modules/pets/queries.test.ts`, which calls
+// `listPets` and asserts the flag reaches the query — that one is what
+// says the flag works, and it is mutation-checked. Together they cover
+// "wired" and "working"; this file alone would cover a flag that is
+// passed everywhere and does nothing, which is the shape that kept
+// `theme-tokens.test.ts` green for six months over CSS that was never
+// generated.
+//
+// Its own limit, so nobody counts it for more: even the behaviour half
+// asserts the query builder, not that Postgres honours `deceased:
+// false`. That last step would cost a database round trip and this
+// does not earn one.
+//
 // A picker must not offer what the server will refuse.
 //
 // `createReminder` rejects an animal that has died. The reminder form's

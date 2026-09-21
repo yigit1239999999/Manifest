@@ -29,6 +29,15 @@ export async function createReminder(input: ReminderInput, ctx: ActionContext) {
     });
     if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
     if (isPetSilenced(pet))
+      // The message behind this key is long on purpose and says why:
+      // "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için onun adına
+      // hatırlatma oluşturulamaz." Do not shorten it. The picker no
+      // longer offers a dead animal, so reaching this refusal means
+      // something unusual happened — a stale tab, a link, an import —
+      // and an unexplained "no" on a field the vet cannot fix is the
+      // whole of what they are left with. The sentence is the last
+      // protection; `messages/*.json` cannot hold a comment, so it is
+      // kept here.
       throw validationFailed({ petId: ["error.validation.petSilenced"] });
   }
 
