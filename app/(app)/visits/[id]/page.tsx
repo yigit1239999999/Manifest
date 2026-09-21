@@ -21,6 +21,8 @@ import { VaccinationForm } from "@/components/forms/vaccination-form";
 import { PrescriptionForm } from "@/components/forms/prescription-form";
 import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
+import { DiagnosticReadButton } from "@/components/diagnostic-read-button";
+import { markDiagnosticReadAction } from "@/modules/diagnostics/actions";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -90,6 +92,9 @@ export default async function VisitPage({
   // reading them is allowed and a row that disappears reads as data loss
   // (TEAM.md #16c).
   const canAddVaccination = can(session.user.role, "vaccinations.write");
+  // The permission the service demands, asked here so the screen does
+  // not offer a press the server refuses.
+  const canInterpret = can(session.user.role, "diagnostics.interpret");
   // Either offer to bill this visit or point at the bill it already
   // has, never both and never neither. Two invoices for one visit are
   // two demands for the same money, and the clinic hears about it from
@@ -418,6 +423,30 @@ export default async function VisitPage({
                   • <strong>{d.name}</strong>
                   {d.result && (
                     <span className="text-muted-foreground"> · {d.result}</span>
+                  )}
+                  {/* Here as well as on the animal, and for the same
+                      reason rather than for symmetry: a vet opening the
+                      visit reads the result here, and a confirmation
+                      that lives on another page is one they will not go
+                      to. Same condition, same one tap. */}
+                  {d.externalLab && d.result && (
+                    <span className="ms-2 inline-flex align-middle">
+                      {d.readAt ? (
+                        <span className="text-xs text-muted-foreground">
+                          {tDiag("readOnAnon", {
+                            at: formatDateTime(fmt, d.readAt),
+                          })}
+                        </span>
+                      ) : (
+                        canInterpret && (
+                          <DiagnosticReadButton
+                            action={markDiagnosticReadAction.bind(null, d.id)}
+                            label={tDiag("markRead")}
+                            name={tDiag("markReadName", { subject: d.name })}
+                          />
+                        )
+                      )}
+                    </span>
                   )}
                 </li>
               ))}

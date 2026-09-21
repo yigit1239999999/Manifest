@@ -16,6 +16,8 @@ import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions
 import { listPrescriptionsForPet } from "@/modules/prescriptions/queries";
 import { listTreatmentsForPet } from "@/modules/treatments/queries";
 import { listDiagnosticsForPet } from "@/modules/diagnostics/queries";
+import { markDiagnosticReadAction } from "@/modules/diagnostics/actions";
+import { DiagnosticReadButton } from "@/components/diagnostic-read-button";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
@@ -123,6 +125,9 @@ export default async function PetPage({
   // on submit. The records already listed stay visible: reading them is
   // allowed, and a row that vanishes reads as data loss (TEAM.md #16c).
   const canAddVaccination = can(session.user.role, "vaccinations.write");
+  // The same permission the service demands, so the screen cannot
+  // offer a press the server will refuse.
+  const canInterpret = can(session.user.role, "diagnostics.interpret");
   const canAddPrescription = can(session.user.role, "prescriptions.write");
   const canAddTreatment = can(session.user.role, "treatments.write");
   // No `canAddNote`. Every role holds `notes.write`, so the guard I wrote
@@ -497,6 +502,45 @@ export default async function PetPage({
                           </span>
                           {d.interpretation}
                         </p>
+                      )}
+                      {/* The button sits beside the words it is about,
+                          because that was the condition attached to it:
+                          results are read on a phone between patients,
+                          and a confirmation on another page does not get
+                          pressed. The dashboard line brings somebody
+                          here; the job ends here.
+
+                          Only where there is something to read, and only
+                          for a result that entered the loop -- an
+                          in-house one was never waiting on anybody.
+                          Afterwards the row says who read it and when,
+                          so the state is visible rather than merely
+                          gone from a list. */}
+                      {d.externalLab && d.result && (
+                        <div className="mt-2">
+                          {d.readAt ? (
+                            <p className="text-xs text-muted-foreground">
+                              {d.readBy?.name
+                                ? tDiag("readOn", {
+                                    name: d.readBy.name,
+                                    at: formatDateTime(fmt, d.readAt),
+                                  })
+                                : tDiag("readOnAnon", {
+                                    at: formatDateTime(fmt, d.readAt),
+                                  })}
+                            </p>
+                          ) : (
+                            canInterpret && (
+                              <DiagnosticReadButton
+                                action={markDiagnosticReadAction.bind(null, d.id)}
+                                label={tDiag("markRead")}
+                                name={tDiag("markReadName", {
+                                  subject: d.name ?? tDiagType(d.type as never),
+                                })}
+                              />
+                            )
+                          )}
+                        </div>
                       )}
                     </li>
                   ))}

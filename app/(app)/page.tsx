@@ -16,6 +16,7 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { dashboardInsights } from "@/modules/dashboard/queries";
 import { blockedReminders } from "@/modules/notifications/queries";
+import { unreadDiagnostics } from "@/modules/diagnostics/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
 import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
@@ -39,16 +40,32 @@ import {
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const [t, tCommon, tSpecies, tVisitType, insights, blocked, currency, fmt] =
-    await Promise.all([
+  const [
+    t,
+    tCommon,
+    tSpecies,
+    tVisitType,
+    tDiag,
+    tDiagType,
+    insights,
+    blocked,
+    unread,
+    currency,
+    fmt,
+  ] = await Promise.all([
       getTranslations("dashboard"),
       getTranslations("common"),
       getTranslations("enum.species"),
       getTranslations("enum.visitType"),
+      getTranslations("diagnostic"),
+      getTranslations("enum.diagnosticType"),
       dashboardInsights(session.user.clinicId),
       // Only the number here; the rows live on the tab this card sends
       // the reader to.
       blockedReminders(session.user.clinicId, { take: 0 }),
+      // Rows, not just a number: one link cannot take a vet to three
+      // results, and the job finishes where each result's text is.
+      unreadDiagnostics(session.user.clinicId),
       getClinicCurrency(session.user.clinicId),
       getFormatContext(),
     ]);
@@ -390,6 +407,57 @@ export default async function DashboardPage() {
             <HorizontalBars data={visitTypeBars} emptyLabel={t("empty.visits")} />
           </CardContent>
         </Card>
+
+        {/* A result nobody has read is the only thing on this page
+            that can cost an animal rather than a morning, so it goes
+            above the vaccination backlog.
+
+            Rows and not a single number, because one link cannot take
+            a vet to three results and the job ends where each
+            result's text is -- this card carries them there and the
+            button is waiting when they arrive.
+
+            Absent at zero, and value drew the line finer than that:
+            no "everything has been read" sentence either. The vet
+            said they would like one and the answer is still no. A
+            reassurance we print is a claim we have to keep being
+            right about; something never asserted cannot be wrong. */}
+        {unread.total > 0 && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{tDiag("sectionUnread")}</CardTitle>
+              {/* The total, not the row count: the list is capped, and
+                  "three of three" and "three of forty" are different
+                  mornings. */}
+              <p className="text-sm text-muted-foreground">
+                {tDiag("unreadCount", { count: unread.total })}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-1">
+                {unread.items.map((d) => (
+                  <li
+                    key={d.id}
+                    className="flex items-center justify-between gap-2 rounded-control px-2 py-2"
+                  >
+                    <span className="text-sm font-medium">
+                      <Link
+                        href={`/pets/${d.pet.id}`}
+                        className="hover:underline"
+                      >
+                        {d.pet.name}
+                      </Link>{" "}
+                      · {d.name ?? tDiagType(d.type as never)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(fmt, d.createdAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Only when there is something overdue. A card that says
             "nothing is overdue" every day takes a place on the

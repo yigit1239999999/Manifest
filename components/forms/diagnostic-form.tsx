@@ -90,6 +90,32 @@ export function DiagnosticForm({
         </Field>
       </div>
 
+      {/* Unticked by default, which is what three quarters of tests
+          are. The two mistakes are not symmetrical: wrongly ticked
+          fills the unread list with in-house results until nobody
+          reads it, wrongly left loses one row. And the label says
+          where it came from rather than asking whether somebody ought
+          to read it -- that judgement is not the typist's to make.
+
+          Above the two long text areas, not below them, and that is
+          the placement rather than a tidy-up. It is a fact about the
+          TEST -- what it is, when it was done, where it came from --
+          so it belongs with the other three, and the asymmetry above
+          decides the rest: the mistake that costs is forgetting to
+          tick, and a checkbox under two textareas is the thing a
+          typist pasting a long report scrolls past on the way to
+          Save. */}
+      <label className="flex items-start gap-3 text-sm sm:col-span-2">
+        <input
+          type="checkbox"
+          name="externalLab"
+          className="mt-0.5 size-4 rounded border-border"
+        />
+        <span className="flex flex-col gap-1">
+          <span className="font-medium">{t("externalLab")}</span>
+          <span className="text-xs text-muted-foreground">{t("externalLabHint")}</span>
+        </span>
+      </label>
       <div className="sm:col-span-2">
         <Field label={t("result")} error={state.fieldErrors?.result}>
           <Textarea name="result" rows={3} placeholder={t("resultPlaceholder")} />
@@ -104,23 +130,6 @@ export function DiagnosticForm({
           />
         </Field>
       </div>
-      {/* Unticked by default, which is what three quarters of tests
-          are. The two mistakes are not symmetrical: wrongly ticked
-          fills the unread list with in-house results until nobody
-          reads it, wrongly left loses one row. And the label says
-          where it came from rather than asking whether somebody ought
-          to read it -- that judgement is not the typist's to make. */}
-      <label className="flex items-start gap-3 text-sm sm:col-span-2">
-        <input
-          type="checkbox"
-          name="externalLab"
-          className="mt-0.5 size-4 rounded border-border"
-        />
-        <span className="flex flex-col gap-1">
-          <span className="font-medium">{t("externalLab")}</span>
-          <span className="text-xs text-muted-foreground">{t("externalLabHint")}</span>
-        </span>
-      </label>
       <SubmitButton size="sm" className="w-fit sm:col-span-2">
         {t("create")}
       </SubmitButton>
