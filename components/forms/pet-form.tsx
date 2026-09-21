@@ -147,6 +147,9 @@ export function PetForm({
         <Field label={t("species")} error={state.fieldErrors?.species} required>
           <SpeciesPicker
             name="species"
+            // The `<label>` above cannot reach a `div[role="group"]`, so
+            // the group is named here with the same word.
+            label={t("species")}
             options={speciesChoices}
             defaultValue={initialSpeciesKey}
             onChange={setSpeciesKey}
