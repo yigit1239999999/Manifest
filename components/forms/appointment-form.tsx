@@ -7,6 +7,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import {
@@ -18,6 +19,7 @@ import {
   updateAppointmentAction,
 } from "@/modules/appointments/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { searchPetsAction } from "@/modules/pets/actions";
 
 interface Props {
   appointment?: Appointment;
@@ -35,6 +37,10 @@ export function AppointmentForm({
   vets,
   defaultPetId,
 }: Props) {
+  const petOptions = useMemo(
+    () => pets.map((p) => ({ value: p.id, label: p.name })),
+    [pets],
+  );
   const t = useTranslations("appointment");
   const tCommon = useTranslations("common");
   const tType = useTranslations("enum.visitType");
@@ -57,28 +63,21 @@ export function AppointmentForm({
     <ActionForm form={form} className="flex flex-col gap-4">
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          label={tPet("one")}
-          error={state.fieldErrors?.petId}
-          hint={
-            petsCapped ? tCommon("listCapped", { count: pets.length }) : undefined
-          }
-          required
-        >
-          <Select
+        <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
+          {/* See `InvoiceForm`: searchable only once the list is short
+              of the whole clinic. */}
+          <Combobox
             name="petId"
-            defaultValue={appointment?.petId ?? defaultPetId ?? ""}
             required
-          >
-            <option value="" disabled>
-              {tCommon("select")}
-            </option>
-            {pets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
+            options={petOptions}
+            defaultValue={appointment?.petId ?? defaultPetId ?? ""}
+            placeholder={tCommon("searchOrType")}
+            noResultsLabel={tCommon("noResults")}
+            onSearch={petsCapped ? searchPetsAction : undefined}
+            hasMore={petsCapped}
+            searchHintLabel={tCommon("searchMinChars")}
+            hasMoreLabel={tCommon("searchMore")}
+          />
         </Field>
         <Field label={t("startsAt")} error={state.fieldErrors?.startsAt} required>
           <DateTimeInput

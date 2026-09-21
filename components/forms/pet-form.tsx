@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { SpeciesPicker } from "@/components/species-picker";
 import { SubmitButton } from "@/components/submit-button";
+import { searchClientsAction } from "@/modules/clients/actions";
 import { SPECIES, SEXES } from "@/modules/pets/schema";
 import { createPetAction, updatePetAction } from "@/modules/pets/actions";
 import { toDateInput } from "@/lib/format";
@@ -44,6 +45,14 @@ export function PetForm({
   enabledSpecies = SPECIES,
   manageHref,
 }: Props) {
+  const ownerOptions = useMemo(
+    () =>
+      owners.map((o) => ({
+        value: o.id,
+        label: `${o.firstName} ${o.lastName}`,
+      })),
+    [owners],
+  );
   const t = useTranslations("pet");
   const tSpecies = useTranslations("enum.species");
   const tSex = useTranslations("enum.sex");
@@ -114,30 +123,22 @@ export function PetForm({
       {/* The essentials: everything a vet needs to register an animal in
           under a minute. Everything else lives under "optional details". */}
       <FormSection title={t("sections.identity")} description={t("sections.identityHint")}>
-        <Field
-          label={t("owner")}
-          error={state.fieldErrors?.ownerId}
-          hint={
-            ownersCapped
-              ? tCommon("listCapped", { count: owners.length })
-              : undefined
-          }
-          required
-        >
-          <Select
+        <Field label={t("owner")} error={state.fieldErrors?.ownerId} required>
+          {/* See `InvoiceForm`: searchable only once the list is short
+              of the whole clinic, so a small one is not taxed for a
+              problem it does not have. */}
+          <Combobox
             name="ownerId"
-            defaultValue={pet?.ownerId ?? defaultOwnerId ?? ""}
             required
-          >
-            <option value="" disabled>
-              {tCommon("select")}
-            </option>
-            {owners.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.firstName} {o.lastName}
-              </option>
-            ))}
-          </Select>
+            options={ownerOptions}
+            defaultValue={pet?.ownerId ?? defaultOwnerId ?? ""}
+            placeholder={tCommon("searchOrType")}
+            noResultsLabel={tCommon("noResults")}
+            onSearch={ownersCapped ? searchClientsAction : undefined}
+            hasMore={ownersCapped}
+            searchHintLabel={tCommon("searchMinChars")}
+            hasMoreLabel={tCommon("searchMore")}
+          />
         </Field>
 
         <Field label={t("name")} error={state.fieldErrors?.name} required>

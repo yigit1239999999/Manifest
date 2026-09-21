@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { useLocale, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
@@ -9,6 +11,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { VISIT_TYPES } from "@/modules/appointments/schema";
@@ -17,6 +20,7 @@ import {
   updateVisitAction,
 } from "@/modules/visits/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { searchPetsAction } from "@/modules/pets/actions";
 
 interface Props {
   visit?: Visit;
@@ -35,6 +39,10 @@ export function VisitForm({
   defaultPetId,
 }: Props) {
   const locale = useLocale();
+  const petOptions = useMemo(
+    () => pets.map((p) => ({ value: p.id, label: p.name })),
+    [pets],
+  );
   const t = useTranslations("visit");
   const tCommon = useTranslations("common");
   const tType = useTranslations("enum.visitType");
@@ -49,28 +57,21 @@ export function VisitForm({
     <ActionForm form={form} className="flex flex-col gap-6">
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          label={tPet("one")}
-          error={state.fieldErrors?.petId}
-          hint={
-            petsCapped ? tCommon("listCapped", { count: pets.length }) : undefined
-          }
-          required
-        >
-          <Select
+        <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
+          {/* See `InvoiceForm`: searchable only once the list is short
+              of the whole clinic. */}
+          <Combobox
             name="petId"
-            defaultValue={visit?.petId ?? defaultPetId ?? ""}
             required
-          >
-            <option value="" disabled>
-              {tCommon("select")}
-            </option>
-            {pets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
+            options={petOptions}
+            defaultValue={visit?.petId ?? defaultPetId ?? ""}
+            placeholder={tCommon("searchOrType")}
+            noResultsLabel={tCommon("noResults")}
+            onSearch={petsCapped ? searchPetsAction : undefined}
+            hasMore={petsCapped}
+            searchHintLabel={tCommon("searchMinChars")}
+            hasMoreLabel={tCommon("searchMore")}
+          />
         </Field>
         <Field label={t("type")} error={state.fieldErrors?.type} required>
           <Select

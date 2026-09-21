@@ -22,12 +22,20 @@ export const PAGE_SIZES = {
    * is the end of the alphabet; animals by age, so it is the oldest, which
    * belong to the longest-standing customers.
    *
-   * It stays at 500 until the pickers ask the server as the user types.
-   * Lowering it first would only lose more people. What changes now is the
-   * silence: the queries report whether they hit the cap
-   * (`SEARCH_RESULTS` below is what a search returns instead).
+   * Fifty now that the pickers can ask the server (`onSearch`), down from
+   * five hundred. The number is no longer a wall: past it the picker
+   * searches rather than simply not showing the rest, so the list can be
+   * the size that is comfortable to look through instead of the size that
+   * tries to contain a clinic.
+   *
+   * Five hundred rows were also five hundred rows of payload on every
+   * form page, whether or not the picker was ever opened — about 63 KB of
+   * clients and 78 KB of animals, and `/reminders` carried both.
+   *
+   * It could not be lowered before the search existed: doing that would
+   * have lost more people, not fewer.
    */
-  DROPDOWN: 500,
+  DROPDOWN: 50,
   /**
    * A picker's worth of search results. Larger than the palette's five —
    * a list is being chosen from, not jumped to — and small enough that the

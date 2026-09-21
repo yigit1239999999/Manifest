@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
 import { centsToInputValue } from "@/lib/money";
@@ -8,11 +8,13 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { INVOICE_STATUSES } from "@/modules/invoices/schema";
 import { createInvoiceAction } from "@/modules/invoices/actions";
+import { searchClientsAction } from "@/modules/clients/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Line {
@@ -57,6 +59,14 @@ export function InvoiceForm({
   const tStatus = useTranslations("enum.invoiceStatus");
   const tClient = useTranslations("client");
   const [lines, setLines] = useState<Line[]>([{ ...emptyLine }]);
+  const clientOptions = useMemo(
+    () =>
+      clients.map((c) => ({
+        value: c.id,
+        label: `${c.firstName} ${c.lastName}`,
+      })),
+    [clients],
+  );
   const form = useActionForm(createInvoiceAction, {});
   const { state } = form;
 
@@ -69,26 +79,25 @@ export function InvoiceForm({
   return (
     <ActionForm form={form} className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          label={tClient("one")}
-          error={state.fieldErrors?.clientId}
-          hint={
-            clientsCapped
-              ? tCommon("listCapped", { count: clients.length })
-              : undefined
-          }
-          required
-        >
-          <Select name="clientId" defaultValue={defaultClientId ?? ""} required>
-            <option value="" disabled>
-              {tCommon("select")}
-            </option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.firstName} {c.lastName}
-              </option>
-            ))}
-          </Select>
+        <Field label={tClient("one")} error={state.fieldErrors?.clientId} required>
+          {/* Searchable only once the list is actually short of the whole
+              clinic. Attaching the search unconditionally would make every
+              small clinic type two letters to reach a list of twelve they
+              can already see — fixing the 51st client by taxing the first.
+              When `onSearch` is absent the picker browses `options`, which
+              is the complete list in that case. */}
+          <Combobox
+            name="clientId"
+            required
+            options={clientOptions}
+            defaultValue={defaultClientId ?? ""}
+            placeholder={tCommon("searchOrType")}
+            noResultsLabel={tCommon("noResults")}
+            onSearch={clientsCapped ? searchClientsAction : undefined}
+            hasMore={clientsCapped}
+            searchHintLabel={tCommon("searchMinChars")}
+            hasMoreLabel={tCommon("searchMore")}
+          />
         </Field>
         <Field label={t("number")} error={state.fieldErrors?.number} required>
           <Input name="number" defaultValue={defaultNumber} required />
