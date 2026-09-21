@@ -37,9 +37,32 @@
 // bought for one script.
 
 import pg from "pg";
+import bcrypt from "bcryptjs";
 
 /** The name `loop-metrics.mjs` filters on. Changing it changes both. */
 export const STATE_CLINIC_NAME = "HÂL KLİNİĞİ";
+
+/**
+ * The account that can open this clinic and look at it.
+ *
+ * Every state here is a claim about a screen, and a claim nobody can
+ * open is a claim nobody can check. Three times today a measurement
+ * stalled because what was needed lived in somebody's head rather than
+ * in a file, so this lives in the file and is printed on every run.
+ *
+ * The vet created below deliberately cannot log in -- its hash is a
+ * sentence -- because that row exists to be displayed. This one exists
+ * to be used.
+ *
+ * Not a secret, and it must never become one. It belongs to a clinic
+ * this script deletes and rebuilds, every row of which is invented. If
+ * this ever runs against a database with real animals in it, the
+ * password is the smallest of that day's problems.
+ */
+export const STATE_CLINIC_LOGIN = {
+  email: "hal@ornek-veteriner-klinigi.example",
+  password: "hal-klinigi-seed",
+};
 
 /**
  * Every state this clinic exists to hold, ordered by the surface it
@@ -208,6 +231,20 @@ export async function buildStateClinic(db) {
     ],
   );
   made("species.builtIn.disabled");
+
+  await db.query(
+    `INSERT INTO users (id, "clinicId", name, email, "passwordHash", role, "updatedAt")
+     VALUES (gen_random_uuid()::text, $1, 'Hâl Yönetici', $2, $3, 'ADMIN', now())`,
+    // Hashed here rather than pasted in as a literal: a hash copied into
+    // a file is a derived artefact that nobody can check against the
+    // password printed beside it, and the two would drift the first time
+    // either changed. Same cost setting is used as the sign-up path.
+    [
+      clinic.id,
+      STATE_CLINIC_LOGIN.email,
+      await bcrypt.hash(STATE_CLINIC_LOGIN.password, 10),
+    ],
+  );
 
   const vet = await one(
     `INSERT INTO users (id, "clinicId", name, email, "passwordHash", role, "updatedAt")
@@ -456,6 +493,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const missing = STATES.filter((s) => !produced.includes(s.id));
     console.log(
       `${STATE_CLINIC_NAME}: ${produced.length}/${STATES.length} states`,
+    );
+    // Printed every run, beside the count. Whoever seeded it is rarely
+    // whoever comes to measure it.
+    console.log(
+      `LOGIN [${STATE_CLINIC_LOGIN.email} / ${STATE_CLINIC_LOGIN.password}] — seed fixture, synthetic clinic only`,
     );
     if (missing.length > 0) {
       console.error("not produced:", missing.map((s) => s.id).join(", "));

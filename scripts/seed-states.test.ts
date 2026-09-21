@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   STATES,
+  STATE_CLINIC_LOGIN,
   STATE_CLINIC_NAME,
   buildStateClinic,
 } from "./seed-states.mjs";
@@ -91,5 +92,29 @@ describe("the state clinic produces what it promises", () => {
       /INSERT INTO clinics/.test(sql),
     );
     expect(clinicsTouched).toHaveLength(1);
+  });
+});
+
+describe("getting into the clinic to look at it", () => {
+  it("creates an account that can actually sign in", async () => {
+    // The vet row in this clinic has a sentence where its hash should
+    // be, deliberately -- it exists to be displayed. If the admin ever
+    // gets the same treatment, every state here becomes a claim nobody
+    // can open, which is the one failure this clinic must not have.
+    const { db } = recorder();
+
+    await buildStateClinic(db);
+
+    const insert = db.query.mock.calls.find(
+      ([sql]) => /INSERT INTO users/.test(sql) && /ADMIN/.test(sql),
+    );
+    expect(insert).toBeDefined();
+    const [, params] = insert!;
+    expect(params).toContain(STATE_CLINIC_LOGIN.email);
+    // A bcrypt hash, not the password and not a sentence.
+    expect(params!.some((p) => typeof p === "string" && /^\$2[aby]\$/.test(p))).toBe(
+      true,
+    );
+    expect(params).not.toContain(STATE_CLINIC_LOGIN.password);
   });
 });
