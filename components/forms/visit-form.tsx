@@ -68,7 +68,13 @@ export function VisitForm({
   const { state } = form;
 
   return (
-    <ActionForm form={form} className="flex flex-col gap-6">
+    <ActionForm
+      form={form}
+      focusFirstEmpty={Boolean(defaultPetId)}
+      className="flex flex-col gap-6"
+    >
+      {/* Part-filled arrivals only: the chain a new clinic walks, or a
+          deep link from a record's own page. See `focusFirstEmpty`. */}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={tPet("one")} error={state.fieldErrors?.petId} required>

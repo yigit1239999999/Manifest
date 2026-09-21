@@ -74,7 +74,13 @@ export function AppointmentForm({
   );
 
   return (
-    <ActionForm form={form} className="flex flex-col gap-4">
+    <ActionForm
+      form={form}
+      focusFirstEmpty={Boolean(defaultPetId)}
+      className="flex flex-col gap-4"
+    >
+      {/* Part-filled arrivals only: the chain a new clinic walks, or a
+          deep link from a record's own page. See `focusFirstEmpty`. */}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={tPet("one")} error={state.fieldErrors?.petId} required>

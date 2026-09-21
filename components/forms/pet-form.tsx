@@ -152,7 +152,13 @@ export function PetForm({
   );
 
   return (
-    <ActionForm form={form} className="flex flex-col gap-8">
+    <ActionForm
+      form={form}
+      focusFirstEmpty={Boolean(defaultOwnerId)}
+      className="flex flex-col gap-8"
+    >
+      {/* Part-filled arrivals only: the chain a new clinic walks, or a
+          deep link from a record's own page. See `focusFirstEmpty`. */}
       {/* The errand, travelling with the form because a server action
           cannot see the URL it was submitted from. */}
       {next && <input type="hidden" name="next" value={next} />}

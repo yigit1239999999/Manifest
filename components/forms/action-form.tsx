@@ -175,6 +175,27 @@ interface ActionFormProps extends Omit<React.ComponentProps<"form">, "action"> {
    * where a value far from its label is not a pair.
    */
   wide?: boolean;
+  /**
+   * Put the cursor in the first empty required field when the form
+   * opens, and on the submit button when there is none.
+   *
+   * For a form that arrives already part-filled: the vet has just come
+   * back from creating the animal this visit is about, and leaving the
+   * cursor at the top of the document hands them the job of finding
+   * where the work resumes -- at the last step of a chain built to
+   * stop exactly that.
+   *
+   * EMPTY is the load-bearing word. A filled field must not be
+   * focused: focus on a chosen picker reads as an invitation to
+   * choose again, and re-picking is how the wrong animal ends up
+   * attached to a visit (`combobox.tsx`). So this never touches what
+   * the chain just filled in.
+   *
+   * Opt-in, because most forms are opened deliberately by someone who
+   * is already looking at them, and a page that grabs focus on load
+   * moves the screen and opens a keyboard for no reason.
+   */
+  focusFirstEmpty?: boolean;
 }
 
 export function ActionForm({
@@ -182,6 +203,7 @@ export function ActionForm({
   onInput,
   onClick,
   wide,
+  focusFirstEmpty,
   className,
   ...props
 }: ActionFormProps) {
@@ -200,6 +222,26 @@ export function ActionForm({
   React.useEffect(() => {
     restoreValues(ref.current, values);
   }, [values]);
+
+  // Once, on open. Not on every render: a later pass would move the
+  // cursor out from under someone mid-sentence.
+  React.useEffect(() => {
+    if (!focusFirstEmpty) return;
+    const formEl = ref.current;
+    if (!formEl) return;
+    const controls = formEl.querySelectorAll<HTMLInputElement>(
+      "input[required], select[required], textarea[required]",
+    );
+    for (const control of controls) {
+      if (control.disabled || control.type === "hidden") continue;
+      if (control.value) continue;
+      control.focus();
+      return;
+    }
+    // Nothing left to fill: the work is to submit, so that is where the
+    // cursor goes rather than nowhere.
+    formEl.querySelector<HTMLButtonElement>("button[type=submit]")?.focus();
+  }, [focusFirstEmpty]);
 
   // An error for a field this form doesn't render (a hidden id, say) would be
   // invisible, and the submit would look like it silently did nothing. Hand
