@@ -48,32 +48,67 @@ export const NETGSM_ERRORS: Record<string, { key: string; scope: FailureScope }>
 };
 
 /**
- * Netgsm's delivery-report statuses, and the reason `version=1` is not
- * optional.
+ * Netgsm's delivery-report statuses, mapped only where the provider's
+ * own documentation says what they mean.
  *
- * Without it the API folds `11`, `12` and `13` into one "timeout"
- * answer. Those three are the difference between "the number is wrong,
- * ask the owner for a new one" and "nothing to do here", so folding
- * them collapses the screen's four buckets into three and the vet
- * loses the only one that has an action attached. The parameter looks
- * like a detail and is the whole distinction; this comment exists
- * because the first person to simplify this call will otherwise drop
- * it and nothing will appear to break.
+ * Read the table from the docs before touching this, and note that `0`
+ * is NOT delivered: it is "İletilmeyi bekleyenler", still inside the
+ * retry window. This file had `0` and `1` the wrong way round for an
+ * hour, which made every queued message read "delivered" and every
+ * delivered one read "waiting" -- and the first of those is the
+ * dangerous direction, because nobody goes back to check a row that
+ * says a message arrived.
+ *
+ *   0  İletilmeyi bekleyenler          → pending
+ *   1  İletilmiş olanlar               → delivered
+ *   2  Zaman aşımına uğramış olanlar   → expired
+ *   3  Hatalı veya kısıtlı numara      → undelivered  (the actionable one)
+ *
+ * `version=1` is still not optional: without it the provider folds
+ * `11`, `12` and `13` into the timeout answer, and `13` in particular
+ * is not a delivery failure at all (see below). The parameter looks
+ * like a detail and carries the distinction.
  */
 const REPORT_STATES: Record<string, DeliveryState> = {
-  // Delivered to the handset.
-  "0": "delivered",
-  // In the operator's queue, no answer yet.
-  "1": "pending",
-  "2": "pending",
-  // Not delivered, and the three reasons `version=1` keeps apart.
-  "11": "undelivered",
-  "12": "undelivered",
-  "13": "undelivered",
-  // Validity period ran out before the handset was reachable.
-  "3": "expired",
-  "100": "expired",
+  // Still in the retry system. Temporary by definition: the send has a
+  // `stopdate`, defaulting to 21 hours after the start, and until that
+  // passes the operator is still trying.
+  "0": "pending",
+  "1": "delivered",
+  // The retry window closed. Permanent, and deliberately not
+  // `undelivered`: what we know is that the provider stopped, not that
+  // the handset refused.
+  "2": "expired",
+  // A wrong or restricted number -- the one report that has an action
+  // attached, and the reason the four buckets exist.
+  "3": "undelivered",
 };
+
+/**
+ * Report codes the documentation does not classify, listed rather than
+ * silently missing, because an unmapped code is reported as ABSENT and
+ * absence is read as "we have not heard".
+ *
+ *   4   Operatöre gönderilemedi     — unclassified
+ *   11  Operatör kabul etmemiş      — unclassified
+ *   12  Gönderim hatası             — unclassified
+ *   13  Mükerrer                    — not a delivery failure at all:
+ *       the provider blocks the same text to the same number inside an
+ *       hour. That is OUR repeat, not the owner's phone, and sending a
+ *       vet to call them would be entirely wrong.
+ *   14  Yetersiz kredi · 15 kara liste · 16/17 İYS · 22 yurt dışı
+ *       — account and regulatory matters, none of them the owner's.
+ *
+ * Netgsm's own `version=0` default folds 11/12/13 into the timeout
+ * bucket, which hints at the permanent side for the first two -- a
+ * hint, not a classification, and not enough to put a sentence on a
+ * screen. Pending an answer from Netgsm support, they are left absent,
+ * so the poller keeps asking and the row keeps saying "we have not
+ * heard" rather than accusing a phone number.
+ *
+ * `100` is not a delivery status at all: it is an API error code
+ * (100-110, "Sistem hatası"). It was mapped to `expired` here, wrongly.
+ */
 
 /**
  * Netgsm keeps reports for three months; older ids answer nothing, and

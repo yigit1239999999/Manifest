@@ -40,9 +40,15 @@ function pretendReport(providerId: string): DeliveryReport {
   // Roughly: seven delivered, two undelivered, one still pending. A
   // pending one has to exist or "we have not heard yet" -- the state a
   // screen must not read as failure -- never appears either.
-  if (bucket < 7) return { state: "delivered", code: "0", at: new Date() };
-  if (bucket < 9) return { state: "undelivered", code: "12", at: null };
-  return { state: "pending", code: "1", at: null };
+  // The codes are the provider's real ones: `1` is delivered, `3` is a
+  // wrong or restricted number, `0` is still in the retry window. A
+  // pretend operator that answered with invented codes would let a
+  // mapping mistake pass unnoticed here and only surface in
+  // production -- which is how `0` and `1` came to be the wrong way
+  // round in the first place.
+  if (bucket < 7) return { state: "delivered", code: "1", at: new Date() };
+  if (bucket < 9) return { state: "undelivered", code: "3", at: null };
+  return { state: "pending", code: "0", at: null };
 }
 
 export const logTransport: MessageTransport = {

@@ -1059,6 +1059,12 @@ export async function sendReminderNow(reminderId: string, ctx: ActionContext) {
     throw new AppError("VALIDATION_FAILED", "error.notifications.optedOut");
   if (automaticSendBlock(reminder.messages, new Date()) === "alreadySent")
     throw new AppError("VALIDATION_FAILED", "error.notifications.alreadySent");
+  // Note for whoever shortens the sweep's own wait: Netgsm blocks the
+  // same text to the same number inside an hour as a duplicate, and
+  // reports it as a failure that is ours rather than the owner's. The
+  // sweep waits six hours so it cannot trip that; this path does not
+  // wait at all, by design -- a person pressing send twice in a minute
+  // may see the provider refuse the second one.
 
   const language = toMessageLocale(reminder.client.preferredLanguage);
   const recipient = normalizePhone(reminder.client.phone, countryCallingCode(clinic.country));
@@ -1139,6 +1145,17 @@ export interface DeliverySweepSummary {
   pending: number;
   /** Asked, and the provider said nothing at all about it. */
   silent: number;
+  /**
+   * When the oldest still-open message was accepted, or null if none.
+   *
+   * The detector for a wait that will never end. Some provider codes
+   * are documented without saying what they imply, and those are left
+   * unmapped on purpose -- so the poller keeps asking and the row
+   * keeps saying "we have not heard". That is the right answer for a
+   * day and the wrong one for a month, and this is the number that
+   * tells the difference without anybody having to suspect it first.
+   */
+  oldestOpenAt: Date | null;
 }
 
 const DELIVERY_STATE_TO_STATUS = {
@@ -1174,6 +1191,7 @@ export async function runDeliveryReportSweep(
     expired: 0,
     pending: 0,
     silent: 0,
+    oldestOpenAt: null,
   };
 
   // Only messages the provider accepted: a FAILED row never reached it,
@@ -1203,8 +1221,12 @@ export async function runDeliveryReportSweep(
     where,
     orderBy: { createdAt: "asc" },
     take: DELIVERY_REPORT_BATCH,
-    select: { id: true, channel: true, providerId: true },
+    select: { id: true, channel: true, providerId: true, createdAt: true },
   });
+  // Oldest first, so the first row is it. Read before anything is
+  // written, because a run that resolves it should still report that
+  // it was this old when the run started.
+  summary.oldestOpenAt = rows[0]?.createdAt ?? null;
 
   // Grouped by channel because each channel has its own provider, and a
   // transport that cannot answer at all is left alone rather than being

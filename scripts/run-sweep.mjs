@@ -138,6 +138,14 @@ async function sweepOnce() {
   console.log(`  süresi doldu ${d.expired}`);
   console.log(`  beklemede   ${d.pending}  — sorduk, sağlayıcı henüz bilmiyor`);
   console.log(`  cevapsız    ${d.silent}  — sorduk, sağlayıcı bu mesaj hakkında hiçbir şey demedi`);
+  if (d.oldestOpenAt) {
+    // A wait that never ends looks exactly like a wait that has not
+    // ended yet, and only the age tells them apart. Some provider
+    // codes are deliberately unmapped, so the poller keeps asking
+    // about them -- right for a day, wrong for a month.
+    const days = (Date.now() - new Date(d.oldestOpenAt).getTime()) / 86_400_000;
+    console.log(`  en eski açık ${days.toFixed(1)} gün — bu sayı büyümeye devam ediyorsa cevabı hiç gelmeyen bir kod var`);
+  }
   if (d.open > d.asked) {
     // The one number that says the schedule is not keeping up, and it
     // cannot be read off `asked` alone.

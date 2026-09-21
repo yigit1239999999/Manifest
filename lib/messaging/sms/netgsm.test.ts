@@ -70,19 +70,23 @@ describe("netgsmTransport.reports", () => {
     // is sent. Those three are the difference between "the number is
     // wrong, ask the owner" and "nothing to do", so dropping the
     // parameter silently removes the only bucket with an action on it.
-    fetchMock.mockResolvedValue(reply(200, { messages: [{ status: "0", donedate: "2026-09-20 11:00:00" }] }));
+    fetchMock.mockResolvedValue(reply(200, { messages: [{ status: "1", donedate: "2026-09-20 11:00:00" }] }));
 
     await netgsmTransport.reports!(["job-1"]);
 
     expect(reportBody()).toEqual({ bulkid: "job-1", version: 1 });
   });
 
-  it("maps the operator's codes onto the four answers a screen can show", async () => {
+  // `0` is "İletilmeyi bekleyenler" and `1` is "İletilmiş olanlar".
+  // They were the wrong way round here for an hour, which made every
+  // queued message read as delivered -- the dangerous direction,
+  // because nobody re-checks a row that says the message arrived.
+  it("maps the operator's codes onto the answers a screen can show", async () => {
     const cases: [string, string][] = [
-      ["0", "delivered"],
-      ["1", "pending"],
-      ["12", "undelivered"],
-      ["100", "expired"],
+      ["0", "pending"],
+      ["1", "delivered"],
+      ["2", "expired"],
+      ["3", "undelivered"],
     ];
     for (const [code, state] of cases) {
       fetchMock.mockReset();
@@ -102,8 +106,22 @@ describe("netgsmTransport.reports", () => {
     expect(await netgsmTransport.reports!(["job-1"])).toEqual({});
   });
 
+  // The codes Netgsm documents without saying what they imply, and the
+  // one that is not about the owner at all. Guessing any of them puts
+  // a sentence on a screen that the documentation does not support --
+  // and `13` would send a vet to phone somebody about a message OUR
+  // own duplicate filter stopped.
+  it("leaves the unclassified codes unanswered, including the duplicate one", async () => {
+    for (const code of ["4", "11", "12", "13", "14", "15", "16", "17", "22", "100"]) {
+      fetchMock.mockReset();
+      fetchMock.mockResolvedValue(reply(200, { messages: [{ status: code }] }));
+
+      expect(await netgsmTransport.reports!(["job-1"])).toEqual({});
+    }
+  });
+
   it("carries a delivery time only for a delivered message", async () => {
-    fetchMock.mockResolvedValue(reply(200, { messages: [{ status: "12", donedate: "2026-09-20 11:00:00" }] }));
+    fetchMock.mockResolvedValue(reply(200, { messages: [{ status: "3", donedate: "2026-09-20 11:00:00" }] }));
 
     expect((await netgsmTransport.reports!(["job-1"]))["job-1"].at).toBeNull();
   });

@@ -977,6 +977,28 @@ describe("runDeliveryReportSweep", () => {
 
   // `open` is what makes a small `asked` readable: fifty of fifty is a
   // finished run, fifty of nine hundred is a schedule falling behind.
+  // The detector for a wait that never ends: unmapped provider codes
+  // are left absent on purpose, so the poller keeps asking, and only
+  // the age of the oldest open message says whether that is patience
+  // or a code nobody will ever answer.
+  it("reports how old the oldest unanswered message is", async () => {
+    vi.mocked(prisma.messageLog.findMany).mockResolvedValue([
+      { ...accepted("m-1", "job-1"), createdAt: new Date("2026-08-01T00:00:00.000Z") },
+      { ...accepted("m-2", "job-2"), createdAt: new Date("2026-09-01T00:00:00.000Z") },
+    ] as never);
+    transport.reports = vi.fn(async () => ({}));
+
+    const summary = await runDeliveryReportSweep(new Date("2026-09-20T12:00:00.000Z"));
+
+    expect(summary.oldestOpenAt).toEqual(new Date("2026-08-01T00:00:00.000Z"));
+  });
+
+  it("has nothing to report an age for when nothing is open", async () => {
+    vi.mocked(prisma.messageLog.count).mockResolvedValue(0 as never);
+
+    expect((await runDeliveryReportSweep()).oldestOpenAt).toBeNull();
+  });
+
   it("reports how many were open, not just how many it asked about", async () => {
     vi.mocked(prisma.messageLog.count).mockResolvedValue(900 as never);
     transport.reports = vi.fn(async () => ({}));
