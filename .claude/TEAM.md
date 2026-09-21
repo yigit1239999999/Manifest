@@ -130,6 +130,31 @@ yapısal olarak imkânsız.
 ekibe tek satır yaz. (`3000`'deki dev sunucusu hâlâ ana oturumda;
 ölmüşse haber verin.)
 
+**⚠ pm betiğin İLK KOŞUSUNDA bir pencere buldu ve kapatıldı.** `BUILD_ID`
+derleme biter bitmez doğuyordu ama `SERVED_COMMIT.txt` saniyeler sonra
+yazılıyordu — arada **artefakt YENİ, dosya ESKİ**, ve ikisi de kendi
+içinde tutarlı görünüyordu. pm on saniye arayla beş kez bakıp bir
+derlemeyi akışta yakaladı:
+
+```
+1) BUILD_ID yok                        ← derleme sürüyor
+2-4) BUILD_ID yeni, dosya hâlâ eski    ← PENCERE
+5) dosya yetişti
+```
+
+**pm ölçmedi, bekledi** — *"zaman damgasına baksaydım 2-4'ü taze
+sanacaktım."*
+
+**Çare, pm'in önerisi:** dosya **derlemeden ÖNCE siliniyor**, yani
+**yokluğu artık bir mesaj**: *derleme sürüyor ya da başarısız oldu,
+ölçme.* Tazelik artık **iki katmanlı**: (1) dosya yoksa bekle,
+(2) varsa `build_id` satırı `.next-prod/BUILD_ID` ile eşleşmeli.
+
+**Ve bu, value'nun kuralının aynısı, bu kez bir betikte:** pencereyi
+kapatamıyorsan parantez içine al — burada **kapatıldı**, çünkü bayat bir
+dosya bırakmaktansa **hiç dosya bırakmamak** iyidir. *Yokluğu anlamlı
+olan bir göstergenin bayatlaması imkânsızdır.*
+
 **Ve bu, "kural değil yer" kalıbının rol tarafındaki hâli:** *"lider
 tazelesin"* bir kuraldı ve her seferinde bir tur yiyordu; **betik onu
 gereksiz kılıyor.**
