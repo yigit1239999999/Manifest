@@ -101,6 +101,7 @@ export default async function AppointmentsPage({
       <FilterTabs
         basePath="/appointments"
         param="status"
+        label={t("status")}
         active={status}
         allLabel={tCommon("all")}
         params={{ date: showAllDates ? "all" : date }}

@@ -9,25 +9,35 @@ import { SearchForm } from "@/components/search-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SpeciesIcon } from "@/components/species-icon";
 import { Pagination } from "@/components/pagination";
+import { FilterTabs } from "@/components/filter-tabs";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { petAge } from "@/lib/format";
 
 export default async function PetsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; species?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    page?: string;
+    species?: string;
+    archived?: string;
+  }>;
 }) {
   const fmt = await getFormatContext();
   const session = await requireSession();
-  const { q, page: pageParam, species } = await searchParams;
+  const { q, page: pageParam, species, archived } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
-  const [t, tSpecies, result] = await Promise.all([
+  const includeArchived = archived === "1";
+  const [t, tCommon, tSpecies, result] = await Promise.all([
     getTranslations("pet"),
+    getTranslations("common"),
     getTranslations("enum.species"),
     listPetsPage({
       clinicId: session.user.clinicId,
       search: q ?? null,
       species: species ?? null,
+      includeArchived,
       page,
     }),
   ]);
@@ -41,7 +51,18 @@ export default async function PetsPage({
         </Link>
       </PageHeader>
 
-      <SearchForm action="/pets" placeholder={t("search")} defaultValue={q} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <SearchForm action="/pets" placeholder={t("search")} defaultValue={q} />
+        <FilterTabs
+          basePath="/pets"
+          param="archived"
+          label={tCommon("archiveFilter")}
+          active={includeArchived ? "1" : undefined}
+          allLabel={tCommon("activeOnly")}
+          options={[{ value: "1", label: tCommon("withArchived") }]}
+          params={{ q, species }}
+        />
+      </div>
 
       {result.items.length === 0 ? (
         <EmptyState
@@ -69,8 +90,21 @@ export default async function PetsPage({
                       <SpeciesIcon species={pet.species} className="size-5" />
                     </span>
                     <div className="flex min-w-0 flex-col">
-                      <span className="truncate text-sm font-semibold text-foreground">
-                        {pet.name}
+                      <span className="flex items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-foreground">
+                          {pet.name}
+                        </span>
+                        {/* An owner's archiving takes its animals with it, so
+                            the card says "archived" for that too — otherwise
+                            a pet nobody archived turns up in the archived
+                            list with no explanation on it. */}
+                        {(pet.archivedAt || pet.owner.archivedAt) && (
+                          <StatusBadge
+                            kind="archive"
+                            status="archived"
+                            label={tCommon("archived")}
+                          />
+                        )}
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
                         {meta.join(" · ")}
@@ -92,7 +126,7 @@ export default async function PetsPage({
             total={result.total}
             page={result.page}
             perPage={result.perPage}
-            params={{ q, species }}
+            params={{ q, species, archived }}
           />
         </>
       )}

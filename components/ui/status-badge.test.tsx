@@ -58,6 +58,9 @@ const enums: Record<StatusKind, Record<string, string>> = {
   // Not a database enum: `User.active` is a boolean, named here so the
   // coverage check below still walks every kind.
   staff: { active: "active", inactive: "inactive" },
+  // Not one either: `archivedAt` is a nullable timestamp with one named
+  // state.
+  archive: { archived: "archived" },
 };
 
 const everyTone = () =>

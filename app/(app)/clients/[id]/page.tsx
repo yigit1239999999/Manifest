@@ -4,12 +4,17 @@ import { Edit3, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { getClientById } from "@/modules/clients/queries";
 import { clientTimeline } from "@/modules/timeline/queries";
-import { archiveClientAction } from "@/modules/clients/actions";
+import {
+  archiveClientAction,
+  restoreClientAction,
+} from "@/modules/clients/actions";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
+import { RestoreButton } from "@/components/restore-button";
 import { PetCard } from "@/components/pet-card";
 import { Timeline } from "@/components/timeline";
 import { NoteForm } from "@/components/forms/note-form";
@@ -45,6 +50,10 @@ export default async function ClientPage({
 
   if (!client) notFound();
 
+  // The service refuses either way; hiding the button keeps the refusal
+  // from arriving as a click that silently does nothing (lib/permissions.ts).
+  const canArchive = can(session.user.role, "clients.archive");
+
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/clients" label={tCommon("back")} />
@@ -60,16 +69,34 @@ export default async function ClientPage({
           <Edit3 />
           {tCommon("edit")}
         </Link>
-        <DeleteButton
-          action={archiveClientAction.bind(null, client.id)}
-          label={tCommon("archive")}
-          confirmText={t("archiveConfirm")}
-        />
+        {/* The archive button goes away while the record is archived: the
+            action that undoes it lives in the notice below, where the state
+            it undoes is stated. */}
+        {canArchive && !client.archivedAt && (
+          <DeleteButton
+            action={archiveClientAction.bind(null, client.id)}
+            label={tCommon("archive")}
+            confirmText={t("archiveConfirm")}
+            description={tCommon("archiveUndoHint")}
+          />
+        )}
       </PageHeader>
 
       {client.archivedAt && (
         <Callout variant="warning">
-          {t("archivedTitle")}: {formatDate(fmt, client.archivedAt)}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>
+              {tCommon("archivedOn", {
+                date: formatDate(fmt, client.archivedAt),
+              })}
+            </span>
+            {canArchive && (
+              <RestoreButton
+                action={restoreClientAction.bind(null, client.id)}
+                label={tCommon("restore")}
+              />
+            )}
+          </div>
         </Callout>
       )}
 

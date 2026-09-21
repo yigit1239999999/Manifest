@@ -10,16 +10,22 @@ export interface ListVisitsArgs {
   type?: string | null;
   from?: Date | null;
   to?: Date | null;
+  includeArchived?: boolean;
   take?: number;
 }
 
 function buildVisitWhere(args: Omit<ListVisitsArgs, "take">): Prisma.VisitWhereInput {
   return {
     clinicId: args.clinicId,
-    archivedAt: null,
-    // Cascade soft-delete: visits hide as soon as their pet or client is archived.
-    pet: { archivedAt: null },
-    client: { archivedAt: null },
+    ...(args.includeArchived
+      ? {}
+      : {
+          archivedAt: null,
+          // Cascade soft-delete: visits hide as soon as their pet or client
+          // is archived.
+          pet: { archivedAt: null },
+          client: { archivedAt: null },
+        }),
     ...(args.petId ? { petId: args.petId } : {}),
     ...(args.clientId ? { clientId: args.clientId } : {}),
     ...(args.vetId ? { vetId: args.vetId } : {}),
@@ -66,8 +72,20 @@ export async function listVisitsPage({
       skip: (page - 1) * perPage,
       take: perPage,
       include: {
-        pet: { select: { id: true, name: true, species: true } },
-        client: { select: { id: true, firstName: true, lastName: true } },
+        // `archivedAt` on both sides because a visit is hidden by its own
+        // archiving *or* by its pet's or client's, and the row has to be
+        // able to say which.
+        pet: {
+          select: { id: true, name: true, species: true, archivedAt: true },
+        },
+        client: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            archivedAt: true,
+          },
+        },
         vet: { select: { id: true, name: true } },
       },
     }),

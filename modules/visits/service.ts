@@ -100,3 +100,24 @@ export async function archiveVisit(id: string, ctx: ActionContext) {
   );
   return existing;
 }
+
+export async function restoreVisit(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "visits.write");
+  const existing = await prisma.visit.findFirst({
+    where: { id, clinicId: ctx.clinicId },
+    select: { id: true, petId: true },
+  });
+  if (!existing) throw notFound("visit", id);
+
+  await withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "RESTORE",
+      entityType: "Visit",
+      entityId: id,
+    },
+    (tx) => tx.visit.update({ where: { id }, data: { archivedAt: null } }),
+  );
+  return existing;
+}

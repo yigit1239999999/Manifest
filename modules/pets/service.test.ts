@@ -20,7 +20,7 @@ vi.mock("@/lib/prisma", () => {
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
-import { archivePet, createPet, updatePet } from "./service";
+import { archivePet, createPet, restorePet, updatePet } from "./service";
 
 const ctx = {
   clinicId: "clinic-1",
@@ -181,5 +181,33 @@ describe("archivePet", () => {
     expect(prisma.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: "ARCHIVE", entityType: "Pet" }),
     });
+  });
+});
+
+describe("restorePet", () => {
+  it("clears archivedAt and records who undid it", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "p-1",
+      ownerId: "owner-1",
+    } as never);
+    vi.mocked(prisma.pet.update).mockResolvedValue({ id: "p-1" } as never);
+
+    const result = await restorePet("p-1", ctx);
+
+    expect(result.ownerId).toBe("owner-1");
+    expect(prisma.pet.update).toHaveBeenCalledWith({
+      where: { id: "p-1" },
+      data: { archivedAt: null },
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: "RESTORE", entityType: "Pet" }),
+    });
+  });
+
+  it("refuses a pet from another clinic", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue(null);
+
+    await expect(restorePet("p-x", ctx)).rejects.toBeInstanceOf(AppError);
+    expect(prisma.pet.update).not.toHaveBeenCalled();
   });
 });

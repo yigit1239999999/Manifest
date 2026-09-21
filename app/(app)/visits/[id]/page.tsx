@@ -4,12 +4,17 @@ import { Edit3, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
-import { archiveVisitAction } from "@/modules/visits/actions";
+import {
+  archiveVisitAction,
+  restoreVisitAction,
+} from "@/modules/visits/actions";
 import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
+import { RestoreButton } from "@/components/restore-button";
 import { VaccinationForm } from "@/components/forms/vaccination-form";
 import { PrescriptionForm } from "@/components/forms/prescription-form";
 import { TreatmentForm } from "@/components/forms/treatment-form";
@@ -24,6 +29,7 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import {
+  formatDate,
   formatDateTime,
   formatMoney,
 } from "@/lib/format";
@@ -64,6 +70,9 @@ export default async function VisitPage({
 
   if (!visit) notFound();
 
+  // See the clients page: a button that only produces a refusal is hidden.
+  const canArchive = can(session.user.role, "visits.write");
+
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/visits" label={tCommon("back")} />
@@ -80,12 +89,43 @@ export default async function VisitPage({
           <Edit3 />
           {tCommon("edit")}
         </Link>
-        <DeleteButton
-          action={archiveVisitAction.bind(null, visit.id)}
-          label={tCommon("archive")}
-          confirmText={tCommon("archive") + "?"}
-        />
+        {canArchive && !visit.archivedAt && (
+          <DeleteButton
+            action={archiveVisitAction.bind(null, visit.id)}
+            label={tCommon("archive")}
+            // Was `tCommon("archive") + "?"`, which asked "Archive?" with no
+            // object and read as a stub in both languages.
+            confirmText={t("archiveConfirm")}
+            description={tCommon("archiveUndoHint")}
+          />
+        )}
       </PageHeader>
+
+      {visit.archivedAt ? (
+        <Callout variant="warning">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>
+              {tCommon("archivedOn", {
+                date: formatDate(fmt, visit.archivedAt),
+              })}
+            </span>
+            {canArchive && (
+              <RestoreButton
+                action={restoreVisitAction.bind(null, visit.id)}
+                label={tCommon("restore")}
+              />
+            )}
+          </div>
+        </Callout>
+      ) : (
+        // Hidden because its animal or its client is archived, not in its
+        // own right. Restoring the visit would put nothing back while they
+        // are still archived, so the notice explains instead of offering a
+        // button that does nothing (TEAM.md #33).
+        (visit.pet.archivedAt || visit.client.archivedAt) && (
+          <Callout variant="warning">{t("archivedBySubject")}</Callout>
+        )
+      )}
 
       {visit.pet.alerts && (
         <Callout variant="warning" title={tPet("alerts")}>

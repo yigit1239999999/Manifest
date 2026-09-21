@@ -7,24 +7,28 @@ import { PageHeader } from "@/components/page-header";
 import { SearchForm } from "@/components/search-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
+import { FilterTabs } from "@/components/filter-tabs";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
 
 export default async function ClientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; archived?: string }>;
 }) {
   const session = await requireSession();
-  const { q, page: pageParam } = await searchParams;
+  const { q, page: pageParam, archived } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
+  const includeArchived = archived === "1";
   const [t, tCommon, result] = await Promise.all([
     getTranslations("client"),
     getTranslations("common"),
     listClientsPage({
       clinicId: session.user.clinicId,
       search: q ?? null,
+      includeArchived,
       page,
     }),
   ]);
@@ -38,7 +42,24 @@ export default async function ClientsPage({
         </Link>
       </PageHeader>
 
-      <SearchForm action="/clients" placeholder={t("search")} defaultValue={q} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <SearchForm
+          action="/clients"
+          placeholder={t("search")}
+          defaultValue={q}
+        />
+        {/* An archived client is not gone, so the way back to it is a filter
+            on the list it left, not a second screen. */}
+        <FilterTabs
+          basePath="/clients"
+          param="archived"
+          label={tCommon("archiveFilter")}
+          active={includeArchived ? "1" : undefined}
+          allLabel={tCommon("activeOnly")}
+          options={[{ value: "1", label: tCommon("withArchived") }]}
+          params={{ q }}
+        />
+      </div>
 
       {result.items.length === 0 ? (
         <EmptyState
@@ -65,6 +86,14 @@ export default async function ClientsPage({
                     <Badge className="ms-2">
                       {t("petsCount", { count: c._count.pets })}
                     </Badge>
+                    {c.archivedAt && (
+                      <StatusBadge
+                        kind="archive"
+                        status="archived"
+                        label={tCommon("archived")}
+                        className="ms-2"
+                      />
+                    )}
                   </>
                 ),
               },
@@ -100,7 +129,7 @@ export default async function ClientsPage({
             total={result.total}
             page={result.page}
             perPage={result.perPage}
-            params={{ q }}
+            params={{ q, archived }}
           />
         </>
       )}

@@ -5,7 +5,12 @@ import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { action, parse, type FormState } from "@/lib/action";
 import { visitSchema } from "./schema";
-import { archiveVisit, createVisit, updateVisit } from "./service";
+import {
+  archiveVisit,
+  createVisit,
+  restoreVisit,
+  updateVisit,
+} from "./service";
 
 export const createVisitAction = action(
   "visit.create",
@@ -50,5 +55,16 @@ export const archiveVisitAction = action(
     revalidatePath(`/pets/${petId}`);
     revalidatePath("/");
     redirect(`/pets/${petId}`);
+  },
+);
+
+export const restoreVisitAction = action(
+  "visit.restore",
+  async (ctx, id: string): Promise<void> => {
+    const { petId } = await restoreVisit(id, ctx);
+    revalidatePath("/visits");
+    revalidatePath(`/visits/${id}`);
+    revalidatePath(`/pets/${petId}`);
+    revalidatePath("/");
   },
 );

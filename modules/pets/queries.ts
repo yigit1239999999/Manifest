@@ -80,7 +80,17 @@ export async function listPetsPage({
       skip: (page - 1) * perPage,
       take: perPage,
       include: {
-        owner: { select: { id: true, firstName: true, lastName: true } },
+        // The owner's `archivedAt` too: an archived client takes its pets
+        // out of the list with it, and the card has to be able to say so
+        // rather than look archived for no visible reason.
+        owner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            archivedAt: true,
+          },
+        },
         customSpecies: { select: { id: true, name: true } },
       },
     }),

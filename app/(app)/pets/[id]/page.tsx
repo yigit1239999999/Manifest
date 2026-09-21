@@ -9,9 +9,10 @@ import {
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { getPetById } from "@/modules/pets/queries";
 import { petTimeline } from "@/modules/timeline/queries";
-import { archivePetAction } from "@/modules/pets/actions";
+import { archivePetAction, restorePetAction } from "@/modules/pets/actions";
 import { listVaccinationsForPet } from "@/modules/vaccinations/queries";
 import { listPrescriptionsForPet } from "@/modules/prescriptions/queries";
 import { listTreatmentsForPet } from "@/modules/treatments/queries";
@@ -19,6 +20,7 @@ import { listDiagnosticsForPet } from "@/modules/diagnostics/queries";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
+import { RestoreButton } from "@/components/restore-button";
 import { SpeciesIcon } from "@/components/species-icon";
 import { Timeline } from "@/components/timeline";
 import { NoteForm } from "@/components/forms/note-form";
@@ -96,6 +98,9 @@ export default async function PetPage({
 
   if (!pet) notFound();
 
+  // See the clients page: a button that only produces a refusal is hidden.
+  const canArchive = can(session.user.role, "pets.archive");
+
   const vets = staff
     .filter((m) => m.active && (m.role === "VETERINARIAN" || m.role === "ADMIN"))
     .map((m) => ({ id: m.id, name: m.name }));
@@ -131,12 +136,48 @@ export default async function PetPage({
           <Edit3 />
           {tCommon("edit")}
         </Link>
-        <DeleteButton
-          action={archivePetAction.bind(null, pet.id)}
-          label={tCommon("archive")}
-          confirmText={t("archiveConfirm")}
-        />
+        {canArchive && !pet.archivedAt && (
+          <DeleteButton
+            action={archivePetAction.bind(null, pet.id)}
+            label={tCommon("archive")}
+            confirmText={t("archiveConfirm")}
+            description={tCommon("archiveUndoHint")}
+          />
+        )}
       </PageHeader>
+
+      {pet.archivedAt ? (
+        <Callout variant="warning">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>
+              {tCommon("archivedOn", { date: formatDate(fmt, pet.archivedAt) })}
+            </span>
+            {canArchive && (
+              <RestoreButton
+                action={restorePetAction.bind(null, pet.id)}
+                label={tCommon("restore")}
+              />
+            )}
+          </div>
+        </Callout>
+      ) : (
+        // Archived by its owner rather than in its own right. No restore
+        // button here on purpose: restoring this animal would change nothing
+        // visible while the owner is still archived, and a button that
+        // appears to do nothing is worse than none (TEAM.md #33). The way
+        // back is the owner's record, so that is what the notice points at.
+        pet.owner.archivedAt && (
+          <Callout variant="warning">
+            {t("archivedByOwner")}{" "}
+            <Link
+              href={`/clients/${pet.owner.id}`}
+              className="font-medium underline"
+            >
+              {pet.owner.firstName} {pet.owner.lastName}
+            </Link>
+          </Callout>
+        )
+      )}
 
       {pet.alerts && (
         <Callout variant="warning" title={t("alerts")}>

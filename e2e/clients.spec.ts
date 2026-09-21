@@ -42,4 +42,45 @@ test.describe("Clients", () => {
     await page.goto("/clients");
     await expect(page.getByText("Avery Chen")).toBeVisible();
   });
+
+  // Backlog 39: "Archive" was a one-way door. The record left every list,
+  // nothing rendered `restoreClientAction`, and the only way back was the
+  // database. The round trip is the test.
+  test("an archived client can be found again and restored", async ({
+    page,
+  }) => {
+    await signUp(page, Date.now());
+
+    await page.goto("/clients/new");
+    await page.getByLabel(/first name|^ad$/i).fill("Robin");
+    await page.getByLabel(/last name|soyad/i).fill("Vale");
+    await page
+      .getByRole("button", { name: /create client|müşteri oluştur/i })
+      .click();
+    await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
+
+    await page.getByRole("button", { name: /^archive$|^arşivle$/i }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /^archive$|^arşivle$/i })
+      .click();
+    await expect(page).toHaveURL(/\/clients$/);
+    await expect(page.getByText("Robin Vale")).toBeHidden();
+
+    // The filter is the way back in: without it the record exists and is
+    // unreachable, which is the same as gone.
+    await page
+      .getByRole("link", { name: /with archived|arşiv dahil/i })
+      .click();
+    await expect(page.getByText("Robin Vale")).toBeVisible();
+
+    await page.getByRole("link", { name: "Robin Vale" }).click();
+    await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
+    await page
+      .getByRole("button", { name: /restore from archive|arşivden çıkar/i })
+      .click();
+
+    await page.goto("/clients");
+    await expect(page.getByText("Robin Vale")).toBeVisible();
+  });
 });

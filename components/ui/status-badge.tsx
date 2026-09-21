@@ -117,6 +117,21 @@ const staff = {
   inactive: "attention",
 } satisfies Record<"active" | "inactive", StatusTone>;
 
+// Not an enum either: `archivedAt` is a nullable timestamp, so there is only
+// ever one named state to render. It goes through the same door as the rest
+// for the reason `staff` does — an archived row now appears in the lists
+// beside live ones, and a one-off grey pill invented at that call site would
+// be a second badge system next to this one (TEAM.md #30).
+//
+// The tone is `quiet`, not `attention`: the backlog asked for "inactive",
+// which was a tone name before the tones were retuned and is now a *staff
+// status*. What it described — "no longer valid, but not an error" — is word
+// for word what `quiet` means today, and archiving is a deliberate act by
+// the clinic, not something anyone has to go and fix.
+const archive = {
+  archived: "quiet",
+} satisfies Record<"archived", StatusTone>;
+
 const tones = {
   appointment,
   invoice,
@@ -124,6 +139,7 @@ const tones = {
   message,
   prescription,
   staff,
+  archive,
 } as const;
 
 export type StatusKind = keyof typeof tones;

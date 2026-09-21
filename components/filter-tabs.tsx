@@ -9,6 +9,14 @@ interface FilterOption {
 interface Props {
   basePath: string;
   param: string;
+  /**
+   * The accessible name of the group, translated.
+   *
+   * Required rather than defaulted to `param`, which is what it used to be:
+   * a screen reader announced the visits filter as "archived" and "type",
+   * raw query-string keys, in English, on a Turkish screen.
+   */
+  label: string;
   active?: string;
   allLabel: string;
   options: FilterOption[];
@@ -19,6 +27,7 @@ interface Props {
 export function FilterTabs({
   basePath,
   param,
+  label,
   active,
   allLabel,
   options,
@@ -38,7 +47,7 @@ export function FilterTabs({
     <div
       className="flex flex-wrap items-center gap-1.5"
       role="group"
-      aria-label={param}
+      aria-label={label}
     >
       <FilterPill href={buildHref()} active={!active}>
         {allLabel}

@@ -47,6 +47,7 @@ export default async function InvoicesPage({
       <FilterTabs
         basePath="/invoices"
         param="status"
+        label={t("status")}
         active={status}
         allLabel={tCommon("all")}
         options={INVOICE_STATUSES.map((s) => ({

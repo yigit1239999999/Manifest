@@ -139,6 +139,27 @@ export async function archivePet(id: string, ctx: ActionContext) {
   return existing;
 }
 
+export async function restorePet(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "pets.archive");
+  const existing = await prisma.pet.findFirst({
+    where: { id, clinicId: ctx.clinicId },
+    select: { id: true, ownerId: true },
+  });
+  if (!existing) throw notFound("pet", id);
+
+  await withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "RESTORE",
+      entityType: "Pet",
+      entityId: id,
+    },
+    (tx) => tx.pet.update({ where: { id }, data: { archivedAt: null } }),
+  );
+  return existing;
+}
+
 export async function markPetDeceased(
   id: string,
   deceasedAt: Date,

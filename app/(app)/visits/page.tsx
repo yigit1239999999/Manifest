@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
@@ -17,12 +18,13 @@ import { formatDateTime } from "@/lib/format";
 export default async function VisitsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; type?: string }>;
+  searchParams: Promise<{ page?: string; type?: string; archived?: string }>;
 }) {
   const fmt = await getFormatContext();
   const session = await requireSession();
-  const { page: pageParam, type } = await searchParams;
+  const { page: pageParam, type, archived } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
+  const includeArchived = archived === "1";
   const [t, tCommon, tVisitType, tPet, result] = await Promise.all([
     getTranslations("visit"),
     getTranslations("common"),
@@ -31,6 +33,7 @@ export default async function VisitsPage({
     listVisitsPage({
       clinicId: session.user.clinicId,
       type: type ?? null,
+      includeArchived,
       page,
     }),
   ]);
@@ -44,21 +47,37 @@ export default async function VisitsPage({
         </Link>
       </PageHeader>
 
-      <FilterTabs
-        basePath="/visits"
-        param="type"
-        active={type}
-        allLabel={tCommon("all")}
-        options={VISIT_TYPES.map((v) => ({
-          value: v,
-          label: tVisitType(v),
-        }))}
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <FilterTabs
+          basePath="/visits"
+          param="type"
+          label={t("type")}
+          active={type}
+          allLabel={tCommon("all")}
+          options={VISIT_TYPES.map((v) => ({
+            value: v,
+            label: tVisitType(v),
+          }))}
+          params={{ archived }}
+        />
+        <FilterTabs
+          basePath="/visits"
+          param="archived"
+          label={tCommon("archiveFilter")}
+          active={includeArchived ? "1" : undefined}
+          allLabel={tCommon("activeOnly")}
+          options={[{ value: "1", label: tCommon("withArchived") }]}
+          params={{ type }}
+        />
+      </div>
 
       {result.items.length === 0 ? (
         // A filtered list with no rows is not an empty clinic. Offering
         // "New visit" here answers a question nobody asked and hides the
         // filter that is actually doing the hiding (TEAM.md #19).
+        //
+        // Only the type filter is asked about: "with archived" can only ever
+        // widen the result, so no rows under it really does mean no visits.
         type ? (
           <EmptyState
             icon={Stethoscope}
@@ -96,9 +115,22 @@ export default async function VisitsPage({
                 key: "visitedAt",
                 header: t("visitedAt"),
                 cell: (v) => (
-                  <Link href={`/visits/${v.id}`} className="hover:underline">
-                    {formatDateTime(fmt, v.visitedAt)}
-                  </Link>
+                  <span className="flex flex-wrap items-center gap-2">
+                    <Link href={`/visits/${v.id}`} className="hover:underline">
+                      {formatDateTime(fmt, v.visitedAt)}
+                    </Link>
+                    {/* A visit is also out of the lists when its animal or
+                        its client is, so all three cases carry the badge —
+                        the row is hidden either way, and a row with no mark
+                        on it would look like it had no reason to be here. */}
+                    {(v.archivedAt || v.pet.archivedAt || v.client.archivedAt) && (
+                      <StatusBadge
+                        kind="archive"
+                        status="archived"
+                        label={tCommon("archived")}
+                      />
+                    )}
+                  </span>
                 ),
               },
               {
@@ -129,7 +161,7 @@ export default async function VisitsPage({
             total={result.total}
             page={result.page}
             perPage={result.perPage}
-            params={{ type }}
+            params={{ type, archived }}
           />
         </>
       )}

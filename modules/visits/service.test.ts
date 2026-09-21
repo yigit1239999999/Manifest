@@ -19,7 +19,12 @@ vi.mock("@/lib/prisma", () => {
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
-import { createVisit, updateVisit } from "./service";
+import {
+  archiveVisit,
+  createVisit,
+  restoreVisit,
+  updateVisit,
+} from "./service";
 
 const ctx = {
   clinicId: "clinic-1",
@@ -89,6 +94,55 @@ describe("updateVisit", () => {
       updateVisit("v-x", validInput, ctx),
     ).rejects.toBeInstanceOf(AppError);
 
+    expect(prisma.visit.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("archiveVisit", () => {
+  it("stamps archivedAt and records it", async () => {
+    vi.mocked(prisma.visit.findFirst).mockResolvedValue({
+      id: "v-1",
+      petId: "pet-1",
+    } as never);
+    vi.mocked(prisma.visit.update).mockResolvedValue({ id: "v-1" } as never);
+
+    const result = await archiveVisit("v-1", ctx);
+
+    expect(result.petId).toBe("pet-1");
+    expect(prisma.visit.update).toHaveBeenCalledWith({
+      where: { id: "v-1" },
+      data: { archivedAt: expect.any(Date) },
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: "ARCHIVE", entityType: "Visit" }),
+    });
+  });
+});
+
+describe("restoreVisit", () => {
+  it("clears archivedAt and records who undid it", async () => {
+    vi.mocked(prisma.visit.findFirst).mockResolvedValue({
+      id: "v-1",
+      petId: "pet-1",
+    } as never);
+    vi.mocked(prisma.visit.update).mockResolvedValue({ id: "v-1" } as never);
+
+    const result = await restoreVisit("v-1", ctx);
+
+    expect(result.petId).toBe("pet-1");
+    expect(prisma.visit.update).toHaveBeenCalledWith({
+      where: { id: "v-1" },
+      data: { archivedAt: null },
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: "RESTORE", entityType: "Visit" }),
+    });
+  });
+
+  it("refuses a visit from another clinic", async () => {
+    vi.mocked(prisma.visit.findFirst).mockResolvedValue(null);
+
+    await expect(restoreVisit("v-x", ctx)).rejects.toBeInstanceOf(AppError);
     expect(prisma.visit.update).not.toHaveBeenCalled();
   });
 });

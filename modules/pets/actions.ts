@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { action, parse, type FormState } from "@/lib/action";
 import { petSchema } from "./schema";
-import { archivePet, createPet, updatePet, markPetDeceased } from "./service";
+import {
+  archivePet,
+  createPet,
+  markPetDeceased,
+  restorePet,
+  updatePet,
+} from "./service";
 
 export const createPetAction = action(
   "pet.create",
@@ -47,6 +53,17 @@ export const archivePetAction = action(
     revalidatePath(`/clients/${ownerId}`);
     revalidatePath("/");
     redirect("/pets");
+  },
+);
+
+export const restorePetAction = action(
+  "pet.restore",
+  async (ctx, id: string): Promise<void> => {
+    const { ownerId } = await restorePet(id, ctx);
+    revalidatePath("/pets");
+    revalidatePath(`/pets/${id}`);
+    revalidatePath(`/clients/${ownerId}`);
+    revalidatePath("/");
   },
 );
 
