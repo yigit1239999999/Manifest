@@ -195,20 +195,37 @@ export function DetailSkeleton() {
  * and a centred line above the panel while this file carries two rules.
  *
  * It cannot carry more. `loading.tsx` is drawn before any data, so it does
- * not know whether that card will render. Reserving the 166px would buy one
- * clinic's first load at the price of an equal jump, upward, on every
- * dashboard of every clinic that is past first run -- the opposite trade.
- * The shift that remains is downward onto a skeleton nothing can be aimed
- * at, so it costs a glance rather than a mis-tap.
+ * not know whether that card will render. Reserving the 166px would pay
+ * for the clinics that see the card with an equal jump, upward, on every
+ * dashboard of every clinic that is past first run -- the opposite trade,
+ * and much the larger one, though not as lopsided as it first looked: the
+ * card stays until the chain is complete, so a clinic that signs up and
+ * adds its first client a week later meets this on every dashboard for a
+ * week, not once.
  *
- * It is a glance the vet really takes, which was worth checking before
+ * It is a jump the vet really takes, which was worth checking before
  * settling for it: on an empty clinic the insight queries run against
- * empty tables, and this could have been drawn too briefly to register.
- * Sampled every 8ms across a real soft navigation, five runs out of five
- * painted it, for 376ms to 514ms -- several times over the ~100ms where a
- * change stops being noticed. So the jump is lived, not merely a
- * difference between two static shapes, and it is still the cheaper of
- * the two things on offer.
+ * empty tables, and the skeleton could have been drawn too briefly to
+ * register. Sampled every 8ms across a real soft navigation, five runs
+ * out of five painted it, for 376ms to 514ms -- several times over the
+ * ~100ms where a change stops being noticed.
+ *
+ * Moving the card below the preview is the other way to reach zero, and
+ * it would work: the grids would hold the skeleton's y, and the card
+ * would arrive underneath as new content with nothing displaced. It is
+ * refused on the design rather than on the cost. The card is the only
+ * thing on that screen anyone can act on, and putting it under ten grey
+ * placeholders walks the vet through a mock-up to reach it. The whole
+ * first-run layout is one foreground against one background -- the card
+ * at full contrast with a shadow, the preview pulled back -- and sending
+ * the card down inverts that. Half a second of movement is cheaper than
+ * the reading order of the first screen a clinic ever sees.
+ *
+ * None of this breaks the condition it sounds like it breaks. That
+ * condition is about *what* moves, not how far: nothing the reader can
+ * aim at changes place, and no text slides upward while it is being read.
+ * The skeleton holds no target, and the card's button does not move into
+ * position -- it appears where there was nothing before.
  */
 export function DashboardSkeleton() {
   return (
