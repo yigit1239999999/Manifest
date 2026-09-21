@@ -134,14 +134,13 @@ describe("the panel a clinic sees before it has records", () => {
 
     expect(frame.className).toContain("border-dashed");
     expect(frame.className).toContain("shadow-none");
-    // Different material rather than a fainter card: a real card here is
-    // bg-card plus a solid border plus a shadow. The fill is the weaker
-    // half of the signal (1.11:1 against the page in the light theme) and
-    // the dashed line the stronger (1.21), so losing either leaves the
-    // other doing a job it measured too low to do alone.
-    expect(frame.className).toContain("bg-muted");
-    // In the dark theme card and page are already close (#161c18 on
-    // #0f1411); opacity dissolves what little separation there is.
+    // And held back by neither a fill nor opacity, both of which were
+    // tried. A muted fill measures 1.11:1 against the page where a real
+    // card's own background measures 1.10 -- surfaces here are not told
+    // apart by background at all -- while costing the text 5.78:1 down
+    // to 4.73:1, which is the AA floor. Opacity dissolves the little
+    // separation the dark theme has (#161c18 on #0f1411).
+    expect(frame.className).not.toMatch(/\bbg-muted\b/);
     expect(frame.className).not.toMatch(/\bopacity-/);
   });
 });

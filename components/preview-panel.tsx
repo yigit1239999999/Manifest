@@ -48,27 +48,29 @@ import { formatTime, formatWeekday } from "@/lib/format";
  * about the first. `preview-panel.test` is what stops a third: hand
  * checking did not work, and the answer to that is not more care.
  *
- * Held back by being made of different material, not by being a fainter
- * card. A real card in this product is `bg-card` plus a solid border
- * plus a shadow; this is a muted fill, no shadow, and a dashed border.
- * ux's reason is that thickening or darkening the line makes it more of
- * a box when the job is to say it is not one.
+ * Held back by a dashed border and no shadow, and NOT by a fill. That
+ * was tried and measured, and the numbers are the reason it is not
+ * here -- read them before making this block "a bit more obvious".
  *
- * Measured, because the fill carries less of that than it sounds like.
- * Against the page it is 1.11:1 in the light theme and 1.19:1 in the
- * dark -- on its own, close to invisible. The dashed border is still
- * the load-bearing half at 1.21 and 1.37, and the two are meant to be
- * read together rather than either being sufficient. The text pays for
- * the fill too: `--muted-fg` on muted is 4.73 in the light theme where
- * it was 5.78 on card. That clears AA and nothing else here does any
- * better, but it is the floor, and anyone lightening this fill takes
- * the text below it.
+ * In the light theme, against the page: a muted fill is 1.11:1, the
+ * dashed border is 1.21:1, and a REAL card's background is 1.10:1.
+ * That last figure is the useful one. Surfaces in this product are not
+ * told apart by their background at all; they are told apart by border
+ * and shadow. So a fill buys almost nothing, and darkening the dashed
+ * line would make this block stand out MORE than the real cards beside
+ * it -- saying "this is not real" by making it look more real.
  *
- * Not opacity, which was the other way to hold it back: in the dark
- * theme card and page are already close (#161c18 against #0f1411) and
- * opacity dissolves what little separation there is. A dashed frame
- * already means "nothing here yet" in this codebase
- * (`empty-state.tsx`).
+ * The fill also costs the one signal that is working. `--muted-fg` is
+ * 5.78:1 on card and 4.73:1 on muted, so filling the block trades the
+ * text -- five times more visible than any border here, and the text
+ * that carries the sentence doing the explaining -- for 1.11 of
+ * surface. At 4.73 it is also sitting on the AA floor, where one step
+ * darker breaks it and nothing on screen says so.
+ *
+ * Not opacity either: in the dark theme card and page are already close
+ * (#161c18 against #0f1411) and opacity dissolves what little
+ * separation there is. A dashed frame already means "nothing here yet"
+ * in this codebase (`empty-state.tsx`).
  */
 
 /**
@@ -112,7 +114,7 @@ export async function PreviewPanel() {
     <div
       className={cn(
         surface,
-        "flex flex-col gap-4 border-dashed bg-muted p-6 shadow-none",
+        "flex flex-col gap-4 border-dashed p-6 shadow-none",
       )}
     >
       {/* Read, unlike the rows below it. Describing a shape to somebody
