@@ -30,9 +30,16 @@ const client = new pg.Client({
   ssl: { rejectUnauthorized: false },
 });
 
+const NO_REAL = "N/A — no real clinics (see POPULATION above)";
+// Set once the census below has run. The queries still execute while it
+// is true: an empty answer proves nothing about whether the query still
+// compiles, and a column renamed under a silent script is how a
+// measurement comes back wrong the first day it matters.
+let noRealClinics = false;
+
 const q = async (label, sql) => {
   const r = await client.query(sql);
-  console.log(label, JSON.stringify(r.rows));
+  console.log(label, noRealClinics ? NO_REAL : JSON.stringify(r.rows));
 };
 
 /**
@@ -57,7 +64,11 @@ const ratio = async (label, sql, denominator) => {
   const empty = r.rows.every((row) => Number(row[denominator]) === 0);
   console.log(
     label,
-    empty ? `N/A — no data (${denominator} is zero)` : JSON.stringify(r.rows),
+    noRealClinics
+      ? NO_REAL
+      : empty
+        ? `N/A — no data (${denominator} is zero)`
+        : JSON.stringify(r.rows),
   );
 };
 
@@ -76,28 +87,34 @@ await client.connect();
 // script with this exact shape; the reminders were fine.
 await client.query("SET TIME ZONE 'UTC'");
 
-// Synthetic clinics are excluded from every number below, and the list
-// of what was excluded is printed on every run.
+// Every clinic is classified, the classification is printed, and only
+// the ones classified REAL are counted below.
 //
-// Two kinds, and the second one is the one that keeps growing.
+// This replaced a filter that removed synthetic clinics and called the
+// remainder real. It was not. The database holds 147 clinics: one seeded
+// by scripts/seed-states.mjs, 142 left behind by e2e sign-ups, one
+// measurement fixture, and three set up by hand while building the
+// product. Filtering the first two left "4 clinics, 39 pets", of which
+// 32 pets belong to the fixture — a number that looks like a baseline
+// and is not one.
 //
-// `scripts/seed-states.mjs` builds one clinic holding every state a
-// screen can be in — a void invoice, a deceased animal, a paid invoice
-// in a currency this clinic does not bill in. All of it is synthetic and
-// none of it is a measurement of anything.
+// Adding a filter for the fixture would have shrunk that number while
+// keeping the word "real" on it, and we would have taken the decision
+// again for the next kind of clinic. Classifying says the true thing
+// instead: REAL is zero. Nobody is using this product yet, so there is
+// no loop to measure, and every derived number below is N/A rather than
+// bad news.
 //
-// The e2e suite signs up through the real form, so every run leaves a
-// clinic behind: "Clinic <epoch ms>", and "Perf Clinic <epoch ms>" from
-// the performance spec. These are not a trickle. Measured the day this
-// filter was written, they were 142 of the database's 147 clinics and
-// 111 of its clients — the "real" population every agreed baseline was
-// drawn from was, in fact, mostly the test suite signing up.
+// The day a clinic arrives, REAL becomes 1 by itself and the numbers
+// start meaning something. A filter list would have had to be edited
+// that day; this does not.
 //
-// Matched by name pattern rather than by a flag on the row, because the
-// suite signs up through the product and the product has no such flag.
-// That makes the pattern load-bearing: an e2e spec that names its clinic
-// anything else rejoins the population silently. Worth replacing with an
-// explicit prefix when the specs can be touched.
+// The classification rests on name patterns, which is the same
+// fragility as before — but now a break is visible. A clinic that stops
+// matching its pattern lands in REAL and the count moves unexpectedly,
+// where before it silently joined the population. `Money Clinic <ms>`
+// did exactly that and could have hidden for six months; dev-ui's
+// e2e/clinic-name.test.ts now holds the e2e end of the same pattern.
 //
 // Done as temporary views rather than a WHERE on each of the fourteen
 // queries below. `pg_temp` comes first in the search path, so every
@@ -105,26 +122,47 @@ await client.query("SET TIME ZONE 'UTC'");
 // query added later is filtered without anyone remembering to. Fourteen
 // hand-written conditions would work until the fifteenth query.
 //
-// The cost, and it will bite somebody: a query that wants to measure an
-// excluded clinic ITSELF returns zero from here on, because those are
-// the clinics these views hide. Whoever comes to ask "are all 31 states
-// still there" has to qualify the table — `public.clients`, not
-// `clients` — or the answer is a confident, wrong "no".
+// The cost, and it will bite somebody: a query that wants to measure a
+// non-REAL clinic ITSELF returns zero from here on. Whoever comes to ask
+// "are all 32 states still there" has to qualify the table —
+// `public.clients`, not `clients` — or the answer is a confident, wrong
+// "no".
 const STATE_CLINIC_NAME = "HÂL KLİNİĞİ";
 // "Clinic 1789996168424" / "Perf Clinic 1789974778229": the e2e sign-up
 // helper's name, an epoch in milliseconds. Ten digits or more so that a
 // real clinic called "Clinic 3" is never swept up.
 const E2E_CLINIC_PATTERN = "^(Perf )?Clinic [0-9]{10,}$";
+// Clinics typed in by hand while building the product, named on 21
+// September 2026. A list and not a pattern because there is no pattern:
+// they were named by people, one at a time. It does not need
+// maintaining — anything new falls into REAL, which is the point.
+const HAND_MADE = ["PM Test Klinigi", "Yiğit Klinik", "Sunrise"];
 
-const excluded = await client.query(
+const census = await client.query(
   `SELECT id, name,
-          CASE WHEN name = $1 THEN 'state' ELSE 'e2e' END AS kind
-     FROM clinics
-    WHERE name = $1 OR name ~ $2`,
-  [STATE_CLINIC_NAME, E2E_CLINIC_PATTERN],
+          CASE
+            WHEN name = $1            THEN 'seed'
+            WHEN name ~ $2            THEN 'e2e'
+            WHEN name LIKE 'PMTEST%'  THEN 'fixture'
+            WHEN name = ANY($3::text[]) THEN 'hand-made'
+            ELSE 'REAL'
+          END AS kind
+     FROM clinics`,
+  [STATE_CLINIC_NAME, E2E_CLINIC_PATTERN, HAND_MADE],
 );
 
-if (excluded.rowCount > 0) {
+const counts = {};
+for (const row of census.rows) counts[row.kind] = (counts[row.kind] ?? 0) + 1;
+const real = census.rows.filter((r) => r.kind === "REAL");
+const notReal = census.rows.filter((r) => r.kind !== "REAL");
+
+console.log(
+  `POPULATION [${["seed", "e2e", "fixture", "hand-made", "REAL"]
+    .map((k) => `${k} ${counts[k] ?? 0}`)
+    .join(" · ")}] — everything below counts REAL only`,
+);
+
+if (notReal.length > 0) {
   // The ids go into a temp table rather than into the view definitions.
   // `CREATE VIEW` is a utility statement and takes no bind parameters —
   // the first version passed `$1` and every run died on the first view
@@ -136,7 +174,7 @@ if (excluded.rowCount > 0) {
   await client.query(`CREATE TEMP TABLE excluded_clinic (id text)`);
   await client.query(
     `INSERT INTO excluded_clinic (id) SELECT unnest($1::text[])`,
-    [excluded.rows.map((r) => r.id)],
+    [notReal.map((r) => r.id)],
   );
 
   // Every public table carrying `clinicId`, not only the ones read today,
@@ -185,25 +223,17 @@ if (excluded.rowCount > 0) {
   );
 }
 
-// Named and counted, not just counted: "4 clinics excluded" would not
-// tell the next reader whether the filter caught what they think it
-// caught, and the e2e half is matched by a pattern that can silently
-// stop matching.
-{
-  const state = excluded.rows.filter((r) => r.kind === "state").length;
-  const e2e = excluded.rows.filter((r) => r.kind === "e2e").length;
-  const parts = [];
-  parts.push(
-    state > 0
-      ? `"${STATE_CLINIC_NAME}" — synthetic, see scripts/seed-states.mjs`
-      : `"${STATE_CLINIC_NAME}" not seeded`,
+// With nothing real to measure, every line below would be a zero that
+// reads like a finding. "No vaccination came back" and "no vaccination
+// exists" are the same distinction `ratio` was written for, one level
+// up: here the whole population is missing, not one denominator.
+noRealClinics = real.length === 0;
+if (noRealClinics) {
+  console.log(
+    "REAL_POPULATION [none] — no clinic in this database belongs to anyone " +
+      "using the product, so every measurement below reads N/A. " +
+      "Nothing is failing; nothing has started.",
   );
-  parts.push(
-    e2e > 0
-      ? `/${E2E_CLINIC_PATTERN}/ — ${e2e} clinic(s) left behind by e2e sign-ups`
-      : `/${E2E_CLINIC_PATTERN}/ — none`,
-  );
-  console.log(`EXCLUDED [${parts.join("; ")}]`);
 }
 
 await q(
