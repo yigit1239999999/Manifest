@@ -1,3 +1,4 @@
+import { pickOption } from "./helpers";
 import { test, expect } from "@playwright/test";
 
 // /appointments answers "what is happening today", so the default view is
@@ -25,7 +26,7 @@ async function createPet(page: import("@playwright/test").Page, name: string) {
   await expect(page.getByRole("heading", { name: /ayse yilmaz/i })).toBeVisible();
 
   await page.goto("/pets/new");
-  await page.getByLabel(/owner/i).selectOption({ index: 1 });
+  await pickOption(page, page.getByLabel(/owner/i));
   await page.getByLabel(/^name$/i).fill(name);
   await page.getByRole("button", { name: /^cat$/i }).click();
   await page.getByRole("button", { name: /create pet/i }).click();
@@ -36,7 +37,7 @@ async function createPet(page: import("@playwright/test").Page, name: string) {
 
 async function book(page: import("@playwright/test").Page, wallTime: string) {
   await page.goto("/appointments/new");
-  await page.getByLabel(/^pet$/i).selectOption({ index: 1 });
+  await pickOption(page, page.getByLabel(/^pet$/i));
   await page.getByLabel(/starts at/i).fill(wallTime);
   await page.getByRole("button", { name: /create appointment/i }).click();
   await expect(page).toHaveURL(/\/appointments\/(?!new)[\w-]+$/);

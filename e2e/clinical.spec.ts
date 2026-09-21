@@ -1,3 +1,4 @@
+import { pickOption } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 
 // The clinical happy path against a real, migrated database: a client, a pet
@@ -26,7 +27,7 @@ async function createClient(page: Page) {
 
 async function createPet(page: Page) {
   await page.goto("/pets/new");
-  await page.getByLabel(/^owner$|^sahibi$/i).selectOption({ index: 1 });
+  await pickOption(page, page.getByLabel(/^owner$|^sahibi$/i));
   await page.getByLabel(/^name$|^isim$/i).fill("Sarı");
   await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
   await page.getByLabel(/^breed$|^cins$/i).fill("Tekir");

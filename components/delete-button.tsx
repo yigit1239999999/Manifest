@@ -78,6 +78,10 @@ export function DeleteButton({
       cancelLabel={tCommon("nevermind")}
       tone={tone}
       action={action}
+      // Every action behind this button changes the record and stays on
+      // its page; see `reloadAfter` on ConfirmDialog for why the page is
+      // loaded again rather than refreshed in place.
+      reloadAfter
     >
       {(open) => (
         <button

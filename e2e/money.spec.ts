@@ -1,3 +1,4 @@
+import { pickOption } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 
 // Money, end to end: what a person types must be what the clinic is owed.
@@ -42,7 +43,7 @@ test.describe("Money is stored as the amount that was typed", () => {
 
     // An invoice of 2 × 500 = 1000.
     await page.goto("/invoices/new");
-    await page.getByLabel(/^client$|^müşteri$/i).selectOption({ index: 1 });
+    await pickOption(page, page.getByLabel(/^client$|^müşteri$/i));
     await page.getByPlaceholder(/description|açıklama/i).fill("Muayene");
     await page.getByPlaceholder(/^qty$|^adet$/i).fill("2");
     await page.getByPlaceholder(/unit price|birim fiyat/i).fill("500");

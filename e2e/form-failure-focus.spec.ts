@@ -39,13 +39,14 @@ test.describe("A submit the server refused", () => {
     // The browser would block an empty submit before the server ever
     // saw it. Turning `novalidate` on is how ux produced the failure
     // and it writes nothing: the server rejects the body.
-    await page.evaluate(() => {
-      document.querySelector("form")?.setAttribute("novalidate", "");
-    });
-
     const submit = page.getByRole("button", {
       name: /create client|müşteri oluştur/i,
     });
+    // The form that owns the submit: the first form on the page is the
+    // sign-out button in the top bar.
+    await page
+      .locator("form", { has: submit })
+      .evaluate((form) => form.setAttribute("novalidate", ""));
     await submit.focus();
     await page.keyboard.press("Enter");
 

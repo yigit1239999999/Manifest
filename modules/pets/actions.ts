@@ -52,11 +52,7 @@ export const updatePetAction = action(
 export const archivePetAction = action(
   "pet.archive",
   async (ctx, id: string): Promise<void> => {
-    const { ownerId } = await archivePet(id, ctx);
-    revalidatePath("/pets");
-    revalidatePath(`/pets/${id}`);
-    revalidatePath(`/clients/${ownerId}`);
-    revalidatePath("/");
+    await archivePet(id, ctx);
     // No redirect: archiving is a state change on a record that still
     // exists, and its own page is the one place that says so and offers
     // the way back. Being thrown to the list instead hides the notice and
