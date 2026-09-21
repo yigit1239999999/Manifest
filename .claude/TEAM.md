@@ -4287,15 +4287,36 @@ operasyonel hâli: park etmek meşru, **tetiği `REAL 0`'da
 ### Teşhis çelişkisinde ÖLÇÜM kazanır, çıkarım kaybeder
 
 value, `2773bc4` gerilemesinin sebebini koddan okudu: *klinik adında
-`truncate` var, **`min-w-0` yok**.* Lead bunu **doğrulamadan** pm'e ve
-dev-ui'ye olgu olarak taşıdı. ux ölçtü ve ikisi de yanlıştı:
+`truncate` var, **`min-w-0` yok**.* — **ve bu okuma o zeminde
+DOĞRUYDU** (`git show 2773bc4:components/topbar.tsx:25`). Lead bunu
+önce doğrulamadan taşıdı, sonra **HEAD'de** (üç commit sonra, dev-ui
+`c60abb8` ile `min-w-0`'ı eklemişken) okuyup *"zaten vardı"* diye
+**yanlış bir düzeltme** yazdı. ux ölçümle itiraz etti ve haklıydı.
 
-- `components/topbar.tsx` klinik adında **`min-w-0` zaten var** —
-  ve dahası `truncate`'in verdiği `overflow:hidden`, flex öğesinin
-  otomatik asgarisini **zaten sıfırlıyor**; eklemek boş işlem olurdu.
-- Klinik adı **zaten kısılıyor** (81 → 63 px). Sağ grup da kısılıyor.
+Doğru tablo:
+
+| kim | zemin | ne dedi | doğru mu |
+|---|---|---|---|
+| value | `2773bc4` | `min-w-0` yok | **evet** |
+| ux | `2773bc4` | eklemek boş işlem, suçlu `FORM` | **evet** |
+| lead | `HEAD` (`c60abb8` sonrası) | "zaten var, value yanıldı" | **hayır** |
+
+- Eklemek yine de boş işlem olurdu: `truncate`'in verdiği
+  `overflow:hidden`, flex öğesinin otomatik asgarisini **zaten
+  sıfırlıyor**. **Doğru cümle:** *`min-w-0` orada yoktu ve gerekmiyor
+  — çünkü `overflow:hidden` onun işini zaten yapıyor.*
+- Klinik adı **zaten kısılıyordu** (81 → 63 px). Sağ grup da.
 - **Kısılmayan tek şey çıkış `FORM`'u** (`minW:auto`,
-  `overflow:visible`), sağ kenarı 436'ya taşıyor.
+  `overflow:visible`), sağ kenarı 436'ya taşıyordu.
+
+**Ve lead'in ikinci kusuru birincisinden öğreticidir:** zemin kuralını
+**ölçüme** uyguluyorduk, **kod okumaya** uygulamıyorduk. Bir dosyayı
+`HEAD`'de okuyup **üç commit önce yapılmış bir tartışmayı** hükme
+bağlamak, bayat bir derlemede ölçmekle aynı şey.
+
+> **Kod okuması da bir ölçümdür ve zemini vardır.** Bir tartışmayı
+> koda bakarak çözerken, tartışmanın yürüdüğü **commit'te** bakılır —
+> `git show <commit>:<dosya>`, `cat` değil.
 
 > **Kodu okumak bir hipotez üretir, ölçüm bir olgu.** Hipotezi olgu
 > gibi taşımak, düzeltmeyi *"tutmadı"* görünecek bir boş işleme
