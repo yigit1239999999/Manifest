@@ -10,6 +10,7 @@
 
 import { z, type ZodError } from "zod";
 import { MAX_MONEY_CENTS, parseMoneyToCents } from "./money";
+import { isPossiblePhoneText } from "./phone";
 
 /** Marker prefix for an encoded, not-yet-translated message. */
 export const MESSAGE_PREFIX = "@t:";
@@ -77,6 +78,18 @@ export const optionalEmail = trim
   .refine((v) => v === "" || EMAIL_RE.test(v), msg("error.form.email"))
   .refine((v) => v.length <= 120, msg("error.form.emailTooLong"))
   .transform((v) => (v === "" ? null : v));
+
+/**
+ * A phone field. The text is kept as the user wrote it (spacing and country
+ * habits are information), but it has to be a number a gateway could dial —
+ * "sabit hat yok" used to be stored as a phone and then silently skipped at
+ * send time. See `lib/phone.ts` for the one reading of a number.
+ */
+export const optionalPhone = (max = 40) =>
+  trim
+    .refine((v) => v === "" || isPossiblePhoneText(v), msg("error.form.phone"))
+    .refine((v) => v.length <= max, maxLengthMsg(max))
+    .transform((v) => (v === "" ? null : v));
 
 /** Password rules shared by sign-up and staff creation. */
 export const password = (field = "auth.password") =>

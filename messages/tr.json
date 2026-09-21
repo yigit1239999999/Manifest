@@ -701,6 +701,7 @@
       "select": "{field} seçiniz.",
       "invalidChoice": "Geçersiz seçim.",
       "email": "Geçerli bir e-posta adresi giriniz.",
+      "phone": "Geçerli bir telefon numarası giriniz.",
       "emailTooLong": "E-posta adresi çok uzun.",
       "passwordMin": "Şifre en az {min} karakter olmalı.",
       "date": "Geçerli bir tarih giriniz.",

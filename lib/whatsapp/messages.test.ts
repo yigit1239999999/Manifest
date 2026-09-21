@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   composeAppointmentMessage,
   composeReminderMessage,
-  normalizePhone,
   whatsappLink,
   type AppointmentMessageContext,
 } from "./messages";
@@ -23,21 +22,6 @@ const base: AppointmentMessageContext = {
   },
   now: new Date("2026-09-20T05:00:00.000Z"),
 };
-
-describe("normalizePhone", () => {
-  it("turns Turkish local formats into international digits", () => {
-    expect(normalizePhone("0532 123 45 67")).toBe("905321234567");
-    expect(normalizePhone("+90 (532) 123 45 67")).toBe("905321234567");
-    expect(normalizePhone("5321234567")).toBe("905321234567");
-    expect(normalizePhone("0090 532 123 45 67")).toBe("905321234567");
-  });
-
-  it("rejects unusable input", () => {
-    expect(normalizePhone("")).toBeNull();
-    expect(normalizePhone("123")).toBeNull();
-    expect(normalizePhone(null)).toBeNull();
-  });
-});
 
 describe("whatsappLink", () => {
   it("builds a wa.me deep link with the encoded body", () => {

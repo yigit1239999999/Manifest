@@ -3,6 +3,7 @@ import {
   checkbox,
   optionalEmail,
   optionalEnum,
+  optionalPhone,
   optionalText,
   requiredText,
 } from "@/lib/forms";
@@ -14,8 +15,8 @@ export const clientSchema = z.object({
   firstName: requiredText(1, 80, "client.firstName"),
   lastName: requiredText(1, 80, "client.lastName"),
   email: optionalEmail,
-  phone: optionalText(40),
-  secondaryPhone: optionalText(40),
+  phone: optionalPhone(40),
+  secondaryPhone: optionalPhone(40),
   address: optionalText(200),
   city: optionalText(80),
   postalCode: optionalText(20),

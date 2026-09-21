@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  optionalText,
+  optionalPhone,
   password,
   requiredEmail,
   requiredEnum,
@@ -19,7 +19,7 @@ export const staffSchema = z.object({
   name: requiredText(1, 100, "staff.name"),
   email: requiredEmail,
   role: requiredEnum(USER_ROLES),
-  phone: optionalText(40),
+  phone: optionalPhone(40),
   password: password("staff.password"),
 });
 

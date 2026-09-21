@@ -75,20 +75,6 @@ export function toMessageLocale(value: string | null | undefined, fallback: Mess
   return value === "tr" || value === "en" ? value : fallback;
 }
 
-/**
- * Digits-only international number for wa.me / the Cloud API.
- * "0532 123 45 67" → "905321234567"; "+90 532…" → "90532…"; already
- * international numbers pass through. Returns null when unusable.
- */
-export function normalizePhone(raw: string | null | undefined, defaultCountryCode = "90"): string | null {
-  if (!raw) return null;
-  let digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("00")) digits = digits.slice(2);
-  if (digits.length === 11 && digits.startsWith("0")) digits = defaultCountryCode + digits.slice(1);
-  else if (digits.length === 10 && !digits.startsWith("0")) digits = defaultCountryCode + digits;
-  return digits.length >= 10 && digits.length <= 15 ? digits : null;
-}
-
 export function whatsappLink(phone: string, body: string): string {
   return `https://wa.me/${phone}?text=${encodeURIComponent(body)}`;
 }

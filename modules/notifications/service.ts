@@ -5,12 +5,12 @@ import { logger } from "@/lib/logger";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import {
-  normalizePhone,
   toMessageLocale,
   visitTypeLabel,
   whatsappLink,
   type AppointmentMessageKind,
 } from "@/lib/whatsapp/messages";
+import { normalizePhone } from "@/lib/phone";
 import { isReminderDue, isReminderNoticeDue } from "@/lib/whatsapp/schedule";
 import { composeAppointmentFor, composeReminderFor } from "@/lib/messaging/compose";
 import { getTransport, isChannelConfigured } from "@/lib/messaging/transports";

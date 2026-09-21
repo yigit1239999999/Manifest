@@ -701,6 +701,7 @@
       "select": "Select {field}.",
       "invalidChoice": "Invalid selection.",
       "email": "Enter a valid email address.",
+      "phone": "Enter a valid phone number.",
       "emailTooLong": "The email address is too long.",
       "passwordMin": "The password must be at least {min} characters.",
       "date": "Enter a valid date.",

@@ -10,6 +10,7 @@ import {
   optionalFloat,
   optionalInt,
   optionalMoneyCents,
+  optionalPhone,
   requiredMoneyCents,
   optionalText,
   requiredEmail,
@@ -158,6 +159,25 @@ describe("money helpers", () => {
     expect(requiredMoneyCents().safeParse("").success).toBe(false);
     expect(requiredMoneyCents().safeParse("abc").success).toBe(false);
     expect(requiredMoneyCents().safeParse("-5").success).toBe(false);
+  });
+});
+
+describe("optionalPhone", () => {
+  it("keeps the number as the user wrote it", () => {
+    const r = optionalPhone().safeParse(" 0532 123 45 67 ");
+    expect(r.success && r.data).toBe("0532 123 45 67");
+  });
+
+  it("blank stays blank", () => {
+    expect(optionalPhone().safeParse("").data).toBeNull();
+    expect(optionalPhone().safeParse(undefined).data).toBeNull();
+  });
+
+  // A note in a phone field is not a phone number: it used to be stored and
+  // then silently skipped when a message was due.
+  it("rejects a note written where a number belongs", () => {
+    expect(optionalPhone().safeParse("sabit hat yok").success).toBe(false);
+    expect(optionalPhone().safeParse("0532").success).toBe(false);
   });
 });
 
