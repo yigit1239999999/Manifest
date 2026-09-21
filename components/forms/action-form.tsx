@@ -310,6 +310,11 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
   // carries information here, it is not decoration.
   // Skipped on mount: a message that was there at first paint did not
   // arrive, so there is nothing to bring the user's attention to.
+  // Whether a box is on screen, as a render value rather than a ref.
+  // The effect below has to wake up when this turns true, and a ref
+  // cannot be a dependency.
+  const hasBox = Boolean(state.error) || summary.length > 0;
+
   const firstResponse = React.useRef(true);
   // Which response has already been settled on, so that waiting for the
   // box below cannot turn into moving focus twice.
@@ -339,6 +344,18 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
     //
     // So when there are field errors, wait for the box rather than
     // settle for what is on screen this instant.
+    //
+    // ux asked the right question about this wait: what if the box
+    // never comes? It comes. An error for a field the form does not
+    // render has no summary line — that is deliberate, a link to a
+    // field that is not on the page is worse than no link — but it is
+    // not dropped either: `reportHomelessErrors` puts it in
+    // `state.error`, which is the box's first sentence. So every
+    // rejected submit produces a box by one route or the other, and
+    // `hasBox` in the dependencies is what wakes this up for the
+    // second route. Without it the all-homeless case waited forever
+    // and moved nothing — the same silence, in the case where the
+    // user can see least.
     if (!box && fieldErrors) return;
     const target = box ?? ref.current?.querySelector('[aria-invalid="true"]');
     if (!(target instanceof HTMLElement)) return;
@@ -355,7 +372,7 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
     // and stealing focus from whatever it becomes would be its own
     // defect.
     target.focus();
-  }, [responseToken, summary, fieldErrors]);
+  }, [responseToken, summary, fieldErrors, hasBox]);
 
   // Skip the initial render: only an explicit reset() clears the form.
   const firstRender = React.useRef(true);

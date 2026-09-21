@@ -389,6 +389,43 @@ describe("what the box says when fields are wrong", () => {
     expect(document.activeElement).toBe(box);
   });
 
+  it("still lands somewhere when every error belongs to a field it cannot show", async () => {
+    // ux's question about the wait: what if the box never comes?
+    //
+    // An error for a field this form does not render gets no summary
+    // line on purpose — a link to a field that is not on the page is
+    // worse than no link. If that were the only kind of error, the
+    // summary would be empty and the wait could hang forever, and the
+    // silence would fall in the case where the user can see least.
+    //
+    // It does not, because the message is not dropped either: it goes
+    // into the box's first sentence by the homeless route. This is the
+    // assertion that the second route wakes the wait up.
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(harness({}, 0));
+
+    // The response lands with an error that has no field to sit under,
+    // so there is no summary line and nothing to focus yet. The fake
+    // api here does not fold homeless messages — that is the real
+    // hook's job and it has its own test above — so the arrival is
+    // modelled directly: same response, box one render later.
+    const errors = { fieldErrors: { clinicId: ["Bulunamadı."] } };
+    view.rerender(harness(errors, 1));
+    await act(async () => {});
+    expect(view.container.querySelector("[data-form-error]")).toBeNull();
+    // Nothing has been grabbed in the meantime. The old behaviour took
+    // the first invalid control; there is none here, and taking one
+    // would have been wrong anyway.
+    expect(document.activeElement).toBe(document.body);
+
+    view.rerender(harness({ ...errors, error: "Bulunamadı." }, 1));
+    await act(async () => {});
+
+    const box = view.container.querySelector("[data-form-error]");
+    expect(box).not.toBeNull();
+    expect(document.activeElement).toBe(box);
+  });
+
   it("counts the fields and names each one", () => {
     Element.prototype.scrollIntoView = vi.fn();
     const view = render(harness({}, 0));
