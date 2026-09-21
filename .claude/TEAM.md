@@ -500,6 +500,50 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    çünkü tek ekran indiğinde cümle **büyüyecek** — ve o yönde büyümenin
    bedeli yok.
 
+12. **Bir tespit kuralı, tespit ettiği şeyin SİLDİĞİ alana bağlanamaz.**
+   `value` kendi kural setini sayarken buldu, `ux` üçlü tabloyu yazan
+   kişi olarak *"bunu görmemiştim"* dedi.
+
+   *Vaka:* mükerrer **sahip** kaydını yakalamak için kural **telefon
+   numarası** üzerinden eşleştiriyordu. Ama o kopyanın en yaygın doğma
+   sebebi zaten **numaranın değişmiş olması**: sahip numarasını
+   değiştirir, söylemez, resepsiyon yeni numarayla arar, bulamaz, **yeni
+   kayıt açar.** Yani kural, tam da kendisini doğuran olayın **sildiği**
+   alana yaslanıyordu — ve en sık vakada hiç ateşlemiyordu.
+
+   > **Teşhis: kural, kendisini doğuran olayın sildiği alana bağlıydı.**
+
+   **Çözüm anahtarı genişletmek oldu**, yeni kural değil: *aynı telefon
+   **ya da** aynı katlanmış sahip adı*, ve yanında **ikinci** bir koşul
+   (aynı hayvan adı). Güç tek sinyalden değil **birleşimden** geliyor:
+   *"aynı isimde iki sahip"* tek başına zayıf (üç Mehmet Yılmaz), ama
+   ikisinin de aynı adlı bir hayvanı olması tesadüf değil.
+
+   **Sorulacak soru:** bu kuralın dayandığı alan, yakalamaya çalıştığı
+   olay sırasında **değişmiş** olabilir mi? Olabiliyorsa kural en sık
+   vakada sessiz kalır — ve sessiz kaldığı için kimse fark etmez.
+
+13. **Soru sormanın da maliyeti var, ve bozuk soru ölçüm değildir.**
+   *Vaka:* `ux` bir kararı **hekime sormadan** verdi ve sebebini yazdı:
+   cevap kararı değiştirmiyordu (maliyet bir `OR` dalı), vaka hekimin
+   kendi ağzından defalarca anlattığı vakaydı. *"Bugün hekime on ikiden
+   fazla soru gitti; dikkati, cevabı kararı değiştirmeyecek bir soruya
+   harcanmamalı."*
+
+   **`value` kuralı kendi kuyruğuna uyguladı ve bir adım ileri
+   götürdü:** bir soru yalnız *kararı değiştirmediği* için değil,
+   **cevabın hiçbir yönü bir şey söylemediği** için de düşer. Kâğıttan
+   geçmiş bir hekimde veri kaybı yarası **olmayabilir**, ve olmaması
+   kanıt değildir — yani soru **ölçüm olarak bozuk.**
+
+   **Ve `ux`'in çıkardığı biçim:** *vaat tasarımında sorulacak soru
+   geçmişi değil **eşiği** ölçer* — *"bunu yaşadın mı"* değil, **"sana
+   ne söylenirse güvenirdin"**.
+
+   **Hekimin dikkati bu ekipteki en kıt kaynak.** Sorular tek mesajda
+   ve **koşullu sırayla** gider: birincinin cevabı bir dalı kapatıyorsa
+   ikincisi hiç sorulmaz.
+
 **Ve bir ölçüm kuralı, aynı gün beş kez lazım oldu:**
 
 > **İki sabiti çarpmak ölçüm değildir.** Ölçülmemiş bir sayı, ölçülmüş gibi
