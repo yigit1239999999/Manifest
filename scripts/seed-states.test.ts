@@ -107,6 +107,48 @@ describe("the state clinic produces what it promises", () => {
   });
 });
 
+// The addresses. A rebuild used to change every id in the clinic, so a
+// page somebody had open died mid-measurement and an id quoted in a
+// message meant nothing an hour later; ux lost six rounds to it.
+describe("addresses that survive a rebuild", () => {
+  const seededIds = async () => {
+    const { db } = recorder();
+    await buildStateClinic(db);
+    return db.query.mock.calls.flatMap(([, params]) =>
+      (params ?? []).filter(
+        (p): p is string => typeof p === "string" && p.startsWith("hal-"),
+      ),
+    );
+  };
+
+  it("gives every seeded row one", async () => {
+    const { db } = recorder();
+
+    await buildStateClinic(db);
+
+    const inserts = db.query.mock.calls.filter(([sql]) => /INSERT INTO/i.test(sql));
+    // The bulk of owners builds its ids in SQL ('hal-client-yigin-' || n)
+    // rather than passing them as parameters, which is the same promise
+    // made a different way.
+    const addressless = inserts.filter(
+      ([sql, params]) =>
+        !/'hal-[a-z-]+' \|\|/.test(sql) &&
+        !(params ?? []).some(
+          (p) => typeof p === "string" && p.startsWith("hal-"),
+        ),
+    );
+
+    expect(addressless.map(([sql]) => sql.trim().split("\n")[0])).toEqual([]);
+    expect(inserts.filter(([sql]) => /gen_random_uuid/.test(sql))).toEqual([]);
+  });
+
+  it("gives the same one twice", async () => {
+    // What "deterministic" has to mean in practice: the seed can be run
+    // again and the links people are holding still open the same rows.
+    expect(await seededIds()).toEqual(await seededIds());
+  });
+});
+
 describe("getting into the clinic to look at it", () => {
   it("creates an account that can actually sign in", async () => {
     // The vet row in this clinic has a sentence where its hash should

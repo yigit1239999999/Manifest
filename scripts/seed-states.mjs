@@ -224,6 +224,36 @@ function localStamp(date) {
   return `${local}${sign}${pad(minutes / 60)}:${pad(minutes % 60)}`;
 }
 
+/**
+ * A permanent address for a seeded record.
+ *
+ * The clinic is deleted and rebuilt on every run, so every row used to
+ * get a fresh `cuid` — which meant every open page died mid-measurement
+ * and every id quoted between people went stale. ux lost six rounds to
+ * it. A stamp says the data moved; this says the address still works.
+ *
+ * Deterministic and readable, because the second is half the value:
+ * "hal-pet-zeytin" can be pasted into a message and still mean
+ * something tomorrow, where a cuid cannot. The prefix also makes it
+ * obvious in any URL that this row is a fixture.
+ *
+ * Fixture-only. Records born from the product keep generating cuids —
+ * a deterministic id is a property of this clinic, not of the schema,
+ * and blurring that is how two real records would one day collide.
+ * Nothing outside this file calls it.
+ */
+const halId = (...parts) => ["hal", ...parts].join("-");
+
+/** A name as it can appear in a URL: folded, lower-case, dashed. */
+const slug = (name) =>
+  name
+    .toLocaleLowerCase("tr")
+    .replace(/ı/g, "i")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
 const DAY = 86_400_000;
 
 /**
@@ -286,7 +316,7 @@ export async function buildStateClinic(db) {
 
   const clinic = await one(
     `INSERT INTO clinics (id, name, currency, timezone, settings, "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, 'TRY', 'Europe/Istanbul', $2::jsonb, now())
+     VALUES ($3, $1, 'TRY', 'Europe/Istanbul', $2::jsonb, now())
      RETURNING id`,
     // RABBIT is left out of the enabled list, and the clinic already has
     // a rabbit. That pairing is the state: an animal that exists as a
@@ -300,6 +330,13 @@ export async function buildStateClinic(db) {
     // choice recorded by inheritance cannot be told from a choice
     // nobody made, which is the same distinction the null consent row
     // above is here to hold.
+    //
+    // `hoursBefore: 24` rather than the default `morningOf`: the mode
+    // decides at what hour of the clinic's day a reminder becomes due,
+    // so `morningOf` makes whether a fixture is sendable depend on what
+    // time the seed was run. A fixed number of hours before the
+    // appointment is the same fixture at nine in the morning and at
+    // eleven at night.
     [
       STATE_CLINIC_NAME,
       JSON.stringify({
@@ -314,13 +351,14 @@ export async function buildStateClinic(db) {
           "OTHER",
         ],
       }),
+      halId("clinic"),
     ],
   );
   made("species.builtIn.disabled");
 
   await db.query(
     `INSERT INTO users (id, "clinicId", name, email, "passwordHash", role, "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, 'Hâl Yönetici', $2, $3, 'ADMIN', now())`,
+     VALUES ($4, $1, 'Hâl Yönetici', $2, $3, 'ADMIN', now())`,
     // Hashed here rather than pasted in as a literal: a hash copied into
     // a file is a derived artefact that nobody can check against the
     // password printed beside it, and the two would drift the first time
@@ -329,12 +367,13 @@ export async function buildStateClinic(db) {
       clinic.id,
       STATE_CLINIC_LOGIN.email,
       await bcrypt.hash(STATE_CLINIC_LOGIN.password, 10),
+      halId("user", "admin"),
     ],
   );
 
   const vet = await one(
     `INSERT INTO users (id, "clinicId", name, email, "passwordHash", role, "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, 'Hâl Veteriner', $2, 'seed-only-never-a-login',
+     VALUES ($3, $1, 'Hâl Veteriner', $2, 'seed-only-never-a-login',
              'VETERINARIAN', now())
      RETURNING id`,
     // Deliberately long: the staff table and the appointment row both have
@@ -342,6 +381,7 @@ export async function buildStateClinic(db) {
     [
       clinic.id,
       "cok.uzun.bir.eposta.adresi.hal@ornek-veteriner-klinigi.example",
+      halId("user", "vet"),
     ],
   );
   made("text.longEmail");
@@ -349,24 +389,24 @@ export async function buildStateClinic(db) {
   // Three owners, because consent has three values and one row can only
   // hold one of them. Everything else in this clinic hangs off the first;
   // the other two exist to be looked at.
-  const owner = async (firstName, lastName, phone, consent) =>
+  const owner = async (key, firstName, lastName, phone, consent) =>
     one(
       `INSERT INTO clients (id, "clinicId", "firstName", "lastName", phone,
                             "notificationsOptIn", "updatedAt")
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, now())
+       VALUES ($6, $1, $2, $3, $4, $5, now())
        RETURNING id`,
-      [clinic.id, firstName, lastName, phone, consent],
+      [clinic.id, firstName, lastName, phone, consent, halId("client", key)],
     );
 
-  const client = await owner("Hâl", "Sahibi", "0532 000 00 00", true);
+  const client = await owner("consented", "Hâl", "Sahibi", "0532 000 00 00", true);
   made("client.consent.granted");
-  await owner("Reddeden", "Sahip", "0532 000 00 01", false);
+  await owner("declined", "Reddeden", "Sahip", "0532 000 00 01", false);
   made("client.consent.declined");
   // `null` and not "leave it out": the column has no default any more
   // (20260921180000), so an omitted value would also be null -- writing
   // it plainly is what says this row is the unasked state on purpose
   // rather than by inheritance.
-  await owner("Sorulmamış", "Sahip", "0532 000 00 02", null);
+  await owner("unasked", "Sorulmamış", "Sahip", "0532 000 00 02", null);
   made("client.consent.unasked");
 
   // Enough owners to overflow a picker. PAGE_SIZES.DROPDOWN is 50, and
@@ -381,7 +421,7 @@ export async function buildStateClinic(db) {
   await db.query(
     `INSERT INTO clients (id, "clinicId", "firstName", "lastName", phone,
                           "notificationsOptIn", "updatedAt")
-     SELECT gen_random_uuid()::text, $1, 'Müşteri',
+     SELECT 'hal-client-yigin-' || to_char(n, 'FM00'), $1, 'Müşteri',
             'Yığın ' || to_char(n, 'FM00'),
             '0533 ' || to_char(n, 'FM000') || ' 00 00',
             NULL, now()
@@ -390,14 +430,19 @@ export async function buildStateClinic(db) {
   );
   made("client.list.capped");
 
+  // The id comes from the animal's own name, lower-cased and stripped
+  // of Turkish letters by the same fold the search uses -- so
+  // "Zeytin" is always `hal-pet-zeytin`, and the address survives a
+  // rebuild. Two animals with one name would collide, which is why the
+  // busy day's eighteen are all named differently on purpose.
   const pet = async (name, species, extra = "", params = []) =>
     one(
       `INSERT INTO pets (id, "clinicId", "ownerId", name, species, "updatedAt"${extra ? `, ${extra.split("=")[0]}` : ""})
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4::"Species", now()${extra ? `, $5` : ""})
+       VALUES (${extra ? "$6" : "$5"}, $1, $2, $3, $4::"Species", now()${extra ? `, $5` : ""})
        RETURNING id`,
       extra
-        ? [clinic.id, client.id, name, species, ...params]
-        : [clinic.id, client.id, name, species],
+        ? [clinic.id, client.id, name, species, ...params, halId("pet", slug(name))]
+        : [clinic.id, client.id, name, species, halId("pet", slug(name))],
     );
 
   // Ordinary names, on purpose. They used to be "Etkin", "Arşivli" and
@@ -413,26 +458,26 @@ export async function buildStateClinic(db) {
   made("pet.archived");
   const dead = await one(
     `INSERT INTO pets (id, "clinicId", "ownerId", name, species, deceased, "deceasedAt", "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, $2, 'Fındık', 'RABBIT', true, $3, now())
+     VALUES ($4, $1, $2, 'Fındık', 'RABBIT', true, $3, now())
      RETURNING id`,
-    [clinic.id, client.id, ago(60)],
+    [clinic.id, client.id, ago(60), halId("pet", "findik")],
   );
   made("pet.deceased");
 
   await db.query(
     `INSERT INTO appointments (id, "clinicId", "petId", "clientId", "vetId", "startsAt",
                                type, status, reason, "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, 'WELLNESS_CHECK', 'SCHEDULED',
+     VALUES ($6, $1, $2, $3, $4, $5, 'WELLNESS_CHECK', 'SCHEDULED',
              'Yıllık kontrol', now())`,
-    [clinic.id, active.id, client.id, vet.id, ahead(2)],
+    [clinic.id, active.id, client.id, vet.id, ahead(2), halId("appt", "vet")],
   );
   made("appointment.vet.named");
 
   await db.query(
     `INSERT INTO appointments (id, "clinicId", "petId", "clientId", "startsAt",
                                type, status, "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, $2, $3, $4, 'VACCINATION', 'CONFIRMED', now())`,
-    [clinic.id, active.id, client.id, ahead(3)],
+     VALUES ($5, $1, $2, $3, $4, 'VACCINATION', 'CONFIRMED', now())`,
+    [clinic.id, active.id, client.id, ahead(3), halId("appt", "novet")],
   );
   made("appointment.vet.none");
 
@@ -454,16 +499,16 @@ export async function buildStateClinic(db) {
   // failure this clinic is here to prevent. Two instants keep them
   // apart, which is all the per-animal-per-instant index asks
   // (20260921140000).
-  for (const [status, when, reason] of [
-    ["SCHEDULED", ago(1), "Gelmedi"],
-    ["ARRIVED", ago(2), "Geldi, sonuç yazılmadı"],
+  for (const [key, status, when, reason] of [
+    ["past-scheduled", "SCHEDULED", ago(1), "Gelmedi"],
+    ["past-arrived", "ARRIVED", ago(2), "Geldi, sonuç yazılmadı"],
   ]) {
     await db.query(
       `INSERT INTO appointments (id, "clinicId", "petId", "clientId", "vetId", "startsAt",
                                  type, status, reason, "updatedAt")
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, 'WELLNESS_CHECK',
+       VALUES ($8, $1, $2, $3, $4, $5, 'WELLNESS_CHECK',
                $6::"AppointmentStatus", $7, now())`,
-      [clinic.id, active.id, client.id, vet.id, when, status, reason],
+      [clinic.id, active.id, client.id, vet.id, when, status, reason, halId("appt", key)],
     );
   }
   made("appointment.past.scheduled");
@@ -519,9 +564,9 @@ export async function buildStateClinic(db) {
     await db.query(
       `INSERT INTO appointments (id, "clinicId", "petId", "clientId", "vetId", "startsAt",
                                  type, status, "updatedAt")
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, 'WELLNESS_CHECK',
+       VALUES ($7, $1, $2, $3, $4, $5, 'WELLNESS_CHECK',
                $6::"AppointmentStatus", now())`,
-      [clinic.id, animal.id, client.id, vet.id, iso(at), status],
+      [clinic.id, animal.id, client.id, vet.id, iso(at), status, halId("appt", slug(name))],
     );
   }
   made("appointment.day.busy");
@@ -529,7 +574,7 @@ export async function buildStateClinic(db) {
   const visit = await one(
     `INSERT INTO visits (id, "clinicId", "petId", "clientId", "vetId", "visitedAt", type,
                          "chiefComplaint", "totalCents", currency, "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, 'SICK_VISIT', $6, 45000, 'TRY', now())
+     VALUES ($7, $1, $2, $3, $4, $5, 'SICK_VISIT', $6, 45000, 'TRY', now())
      RETURNING id`,
     [
       clinic.id,
@@ -540,6 +585,7 @@ export async function buildStateClinic(db) {
       // The longest Turkish text a row has to hold without pushing its
       // neighbours off a phone.
       "Sağ arka bacakta topallama ve şişlik, iki gündür süren iştahsızlık",
+      halId("visit", "sick"),
     ],
   );
   made("text.longTurkishLabel");
@@ -547,40 +593,45 @@ export async function buildStateClinic(db) {
   await db.query(
     `INSERT INTO prescriptions (id, "clinicId", "petId", "visitId", "medicationName",
                                 dosage, frequency, "startedAt", status, "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, $2, $3, 'Amoksisilin', '250 mg',
+     VALUES ($5, $1, $2, $3, 'Amoksisilin', '250 mg',
              'Günde iki kez', $4, 'ACTIVE', now())`,
-    [clinic.id, active.id, visit.id, ago(7)],
+    [clinic.id, active.id, visit.id, ago(7), halId("prescription")],
   );
   made("clinical.prescription");
 
   await db.query(
     `INSERT INTO treatments (id, "clinicId", "petId", "visitId", name, "performedAt", "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, $2, $3, 'Yara temizliği ve pansuman', $4, now())`,
-    [clinic.id, active.id, visit.id, ago(7)],
+     VALUES ($5, $1, $2, $3, 'Yara temizliği ve pansuman', $4, now())`,
+    [clinic.id, active.id, visit.id, ago(7), halId("treatment")],
   );
   made("clinical.treatment");
 
   await db.query(
     `INSERT INTO diagnostics (id, "clinicId", "petId", "visitId", type, name,
                               "performedAt", "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, $2, $3, 'XRAY', 'Sağ arka bacak röntgeni', $4, now())`,
-    [clinic.id, active.id, visit.id, ago(7)],
+     VALUES ($5, $1, $2, $3, 'XRAY', 'Sağ arka bacak röntgeni', $4, now())`,
+    [clinic.id, active.id, visit.id, ago(7), halId("diagnostic")],
   );
   made("clinical.diagnostic");
 
+  // The invoice number already names the state ("HAL-PAID-USD"), so the
+  // address comes from it rather than from a second list that could
+  // disagree with it.
   const invoice = async (number, status, currency, cents, paidAt) => {
+    const key = slug(number.replace(/^HAL-/, ""));
     const row = await one(
       `INSERT INTO invoices (id, "clinicId", "clientId", number, currency, status,
                              "issuedAt", "paidAt", "subtotalCents", "totalCents", "updatedAt")
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5::"InvoiceStatus", $6, $7, $8, $8, now())
+       VALUES ($9, $1, $2, $3, $4, $5::"InvoiceStatus", $6, $7, $8, $8, now())
        RETURNING id`,
-      [clinic.id, client.id, number, currency, status, ago(20), paidAt, cents],
+      [clinic.id, client.id, number, currency, status, ago(20), paidAt, cents,
+       halId("invoice", key)],
     );
     await db.query(
       `INSERT INTO invoice_lines (id, "invoiceId", description, quantity,
                                   "unitPriceCents", "totalCents")
-       VALUES (gen_random_uuid()::text, $1, 'Muayene', 1, $2, $2)`,
-      [row.id, cents],
+       VALUES ($3, $1, 'Muayene', 1, $2, $2)`,
+      [row.id, cents, halId("invoice-line", key)],
     );
     return row;
   };
@@ -592,19 +643,19 @@ export async function buildStateClinic(db) {
   await invoice("HAL-VOID", "VOID", "TRY", 40_000, null);
   made("invoice.void");
 
-  const pay = async (invoiceId, cents, method, at) =>
+  const pay = async (key, invoiceId, cents, method, at) =>
     db.query(
       `INSERT INTO payments (id, "invoiceId", "amountCents", method, "paidAt")
-       VALUES (gen_random_uuid()::text, $1, $2, $3::"PaymentMethod", $4)`,
-      [invoiceId, cents, method, at],
+       VALUES ($5, $1, $2, $3::"PaymentMethod", $4)`,
+      [invoiceId, cents, method, at, halId("payment", key)],
     );
 
   const partial = await invoice("HAL-PARTIAL", "PARTIAL", "TRY", 50_000, null);
-  await pay(partial.id, 20_000, "CASH", ago(10));
+  await pay("partial", partial.id, 20_000, "CASH", ago(10));
   made("invoice.partial");
 
   const paid = await invoice("HAL-PAID", "PAID", "TRY", 60_000, ago(5));
-  await pay(paid.id, 60_000, "CARD", ago(5));
+  await pay("paid", paid.id, 60_000, "CARD", ago(5));
   made("invoice.paid");
   made("invoice.paid.ownCurrency");
 
@@ -612,7 +663,7 @@ export async function buildStateClinic(db) {
   // added to the rest. It is the state that makes the line under the
   // revenue chart appear at all.
   const foreign = await invoice("HAL-PAID-USD", "PAID", "USD", 11_111, ago(5));
-  await pay(foreign.id, 11_111, "TRANSFER", ago(5));
+  await pay("paid-usd", foreign.id, 11_111, "TRANSFER", ago(5));
   made("invoice.paid.foreignCurrency");
 
   const NOTES = [
@@ -626,8 +677,8 @@ export async function buildStateClinic(db) {
   for (const [kind, id, body] of NOTES) {
     await db.query(
       `INSERT INTO notes (id, "clinicId", "petId", "authorId", kind, body, "updatedAt")
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4::"NoteKind", $5, now())`,
-      [clinic.id, active.id, vet.id, kind, body],
+       VALUES ($6, $1, $2, $3, $4::"NoteKind", $5, now())`,
+      [clinic.id, active.id, vet.id, kind, body, halId("note", slug(kind))],
     );
     made(id);
   }
@@ -642,23 +693,24 @@ export async function buildStateClinic(db) {
     await db.query(
       `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
                               "dueAt", status, "sentAt", "updatedAt")
-       VALUES (gen_random_uuid()::text, $1, $2, $3, 'CHECKUP', 'Kontrol hatırlatması',
+       VALUES ($7, $1, $2, $3, 'CHECKUP', 'Kontrol hatırlatması',
                $4, $5::"ReminderStatus", $6, now())`,
-      [clinic.id, client.id, active.id, dueAt, status, sentAt],
+      [clinic.id, client.id, active.id, dueAt, status, sentAt,
+       halId("reminder", slug(status))],
     );
     made(id);
   }
 
   // The archived and deceased animals get a history, so they are pages
   // with something on them rather than rows carrying a flag.
-  for (const [petId, when, type] of [
-    [archived.id, ago(120), "WELLNESS_CHECK"],
-    [dead.id, ago(200), "SICK_VISIT"],
+  for (const [key, petId, when, type] of [
+    ["archived", archived.id, ago(120), "WELLNESS_CHECK"],
+    ["deceased", dead.id, ago(200), "SICK_VISIT"],
   ]) {
     await db.query(
       `INSERT INTO visits (id, "clinicId", "petId", "clientId", "visitedAt", type, "updatedAt")
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5::"VisitType", now())`,
-      [clinic.id, petId, client.id, when, type],
+       VALUES ($6, $1, $2, $3, $4, $5::"VisitType", now())`,
+      [clinic.id, petId, client.id, when, type, halId("visit", key)],
     );
   }
 
