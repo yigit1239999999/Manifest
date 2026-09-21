@@ -6007,3 +6007,38 @@ listesi hep aynı ikame: commit sayısı yerine fark, karakter sayısı
 yerine satır sayısı, müşteri sayısı yerine mesaj sayısı, nüfus
 yerine iş, ve *"kaç satır ulaşılabilir"* yerine *"kaç **gerçek
 kişi** ulaşılabilir"*.
+
+### Bu hafta sıfıra inemeyen sayı, panele ait değildir
+
+value panel sayısının kapsamını **daralttı** ve bunu yaparken
+genelleştirilebilir bir test kurdu:
+
+> **Bu sayı bu hafta sıfıra inebilir mi?**
+>
+> - `optedOut` → **asla.** Karar verilmiş, geri gelmeyecek.
+> - `neverAsked` → **bu hafta hayır.** Ancak aylar süren ziyaretlerle
+>   erir.
+>
+> Sıfıra inemeyen bir sayıyı insanlar **okumayı bırakır.**
+
+Bu, Deniz'in kapatma tıkı şartıyla aynı gerekçe: sabah listesi
+kapanabilir olmalı, yoksa sabah listesi olmaktan çıkar.
+
+**Ayrım şöyle oturdu:**
+
+| küme | nerede | ne zaman bakılır |
+|---|---|---|
+| **denendi ve ulaşmadı** (`undelivered`, tükenmiş `failed`) | **panel sayısı** | sabah, telefonu elime alacağım |
+| **kayıt boşlukları** (`neverAsked`, `optedOut`, `noPhone`) | **"Ulaşmayacak" sekmesi** | temizlik yapmaya gidilir |
+
+Ve dayanağı yine veterinerin kendi cümlesi: *"Panelde bir satır
+yeter: **'3 hatırlatma gönderilemedi'**."* — **gönderilemedi**
+= denendi, olmadı. value kapsamı o cümleden geniş yazmıştı ve
+kendisi geri aldı.
+
+**Kriter de düzeldi:** *"panel sayısı sekmedeki satır sayısıyla
+birebir aynı"* artık doğru değil — panel, sekmenin **adlandırılmış
+bir alt kümesi.** Yerine: aynı fonksiyondan türer, ve **panel
+sayısına tıklanınca sekme o alt kümeye süzülmüş açılır.** Orijinal
+korku (*panel 3 der, liste 5 gösterir*) böylece daralmaya rağmen
+kapanıyor: **sayı neyi sayıyorsa, tıklayınca onu gösteriyor.**
