@@ -65,15 +65,17 @@ describe("DescriptionList", () => {
     expect(stacked.className).toContain("flex-col");
     expect(stacked.className).not.toContain("sm:flex-row");
 
-    // Below `sm` a row pair stacks too. The long Turkish labels
-    // ("Solunum sayısı/dk") push the value off a 390px screen when both
-    // share a line, and a reading past the edge does not exist.
+    // Below `sm` a row pair stacks outright, and above it wraps rather
+    // than overflowing. The tight width is not the phone: it is the
+    // three-column grid at 1024px, where the column holds ~176px and the
+    // longest pair needs ~215px.
     const row = render(
       <DescriptionList layout="row" items={[{ label: "Kilo", value: "4 kg" }]} />,
     ).container.querySelector("dt")!.parentElement!;
     expect(row.className).toContain("flex-col");
     expect(row.className).toContain("sm:flex-row");
     expect(row.className).toContain("sm:items-baseline");
+    expect(row.className).toContain("sm:flex-wrap");
   });
 
   it("sets figures in tabular digits so a column of readings lines up", () => {

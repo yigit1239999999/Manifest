@@ -97,11 +97,24 @@ export function DescriptionList({
           key={item.label}
           className={
             row
-              ? // Stacked below `sm` on purpose: the long Turkish labels
-                // ("Solunum sayısı/dk") push the value off a 390px screen
-                // when both share a line, and an action or a reading past
-                // the edge does not exist (TEAM.md #27).
-                "flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+              ? // Two fallbacks, because the narrow case is not the phone.
+                //
+                // Measured on the vitals card, the only `row` call site:
+                // the longest label is English, "Respiration (bpm)" at 17
+                // characters against Turkish "Solunum (bpm)" at 13
+                // (TEAM.md #32b — which language is longer is per surface,
+                // and the instinct was wrong here too). At 390px the card
+                // is full width and has ~310px of content, which the pair
+                // fits. Where it does not fit is the `lg:grid-cols-3`
+                // column at exactly 1024px: ~176px, and the pair needs
+                // ~215px.
+                //
+                // So `flex-wrap` rather than a breakpoint: below `sm` the
+                // pair is stacked outright, and above it the value drops
+                // to its own line whenever the two cannot share one. No
+                // guess about which width is the tight one, and nothing
+                // lands off the edge at any width (TEAM.md #27).
+                "flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-4 sm:gap-y-0.5"
               : "flex flex-col gap-0.5"
           }
         >
