@@ -1605,6 +1605,16 @@ belirlesin, ne çıkacaksa ux lead'iyle konuşup."*
 **Bir daha olmaz:** kesim, value'nun "es"ini **bekler**; value da "es"i
 ux'e danıştıktan sonra verir.
 
+**Ve ux kendi sınırını yazdı — madde 2 "ortak sahiplik" diye okunmasın:**
+
+> *"Sıra kuramam ve kurmaya çalışmayacağım; getirebileceğim şey **kesme
+> çizgisi ve paket sınırı.**"*
+
+Yani **sıralama value'nun**, **paketin sınırı ve neyin kesilebilir olduğu
+ux'in getirdiği girdi.** Danışma bir oy değil, bir **girdi türü** — ve bu
+sınır olmadan iki kişi aynı kararı iki kez verir, ki 32k'nın (*"iki tasarım
+sesi varsa uygulayan hakem yapılmaz"*) karar tarafındaki hâli budur.
+
 ## ÖLÇÜM YÖNTEMİ — ölçmeden önce okunur
 
 Bu oturumda ölçüm **sekiz kez** yanılttı ve yedi ayrı kural doğurdu. Dağınık
@@ -2151,3 +2161,39 @@ açılış **kasıtlı bir eylem**, bizde **odağın yan etkisi.**
 seçilebiliyor"* — çünkü kusurun hâli "Down sonra Up"tı, yani soru
 *"doğru mu"* değil **"kaç tuş"**du. Kusur bir **maliyet** ise testi de
 maliyeti ölçer.
+
+### Bir sorunun bir alanı vardır — alan dışında güvenle yanlış cevap verir
+
+ux, kendi kesme çizgisi sorusunu ölçek paketine uyguladı ve **sorunun
+kapsamsız olduğunu kendisi söyledi:**
+
+> *"Hangi duran cümle yalan olur"* **özellik paketleri** için yazıldı;
+> ölçek paketinde **ekran hiçbir şey vaat etmiyor**, o yüzden iki madde de
+> "kesilebilir" çıktı.
+
+**Tell (belirti) kayda değer: soru AYIRT ETMEYİ bıraktı.** Her şeye aynı
+cevabı veren bir ölçüt bozulmuş değildir — **alan dışındadır.** Ve tehlikesi
+tam olarak buradan gelir: yanlış cevabı **kendinden emin** verir, çünkü
+mekanizması hâlâ çalışıyordur.
+
+**Altyapı paketlerinin doğru sorusu 16b'den:**
+
+> **Ertelenirse maliyeti sabit mi kalıyor, yoksa artıyor mu?**
+
+Ve uygulandığında **farklı** cevap verdi:
+- **`DROPDOWN: 500` kesilmez** — ama gerekçesi *"kullanıcıya görünür"*
+  değil, **geri alınamaz veri**: ertelenen her sürümde elle temizlenecek
+  mükerrer kayıt birikiyor. **Maliyet artıyor.**
+- **`/pets/<id>`'nin maliyetinin açıklanması kesilebilir** — soru açık
+  kalır, **hiçbir şey birikmez**, cevabı bir sürüm sonra aramak bugünkü
+  fiyata. **Şartıyla:** kesilirse **açık soru olarak yazılır**, yoksa bir
+  sonraki okuyan "bakılmış" sanar.
+
+**Genel kural:** bir ölçütü başka bir alana taşımadan önce, o alanda
+**ayırt edip etmediği** sınanır. Ayırt etmiyorsa cevabı değil, **ölçütü**
+değiştir.
+
+**Ve ux'in sentetik veri sınırına eklemesi aynı aileden:** `DROPDOWN: 500`'ün
+**davranış** tarafı sentetikle doğrulanamaz, çünkü kusur kullanıcının
+*"bulamadım, yenisini açayım"* **kararından** doğuyor — veri değil **karar**
+üretilemiyor.
