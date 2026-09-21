@@ -38,6 +38,7 @@
 
 import pg from "pg";
 import bcrypt from "bcryptjs";
+import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 
 /** The name `loop-metrics.mjs` filters on. Changing it changes both. */
@@ -853,10 +854,28 @@ export async function buildStateClinic(db) {
   return produced;
 }
 
+/**
+ * TLS for a hosted database, none for a local one. The CI job and a
+ * developer's Postgres speak plain TCP and refuse an SSL handshake, and
+ * this script has to run there too, since the tap-target spec signs into
+ * the clinic it builds.
+ */
+function sslFor(connectionString) {
+  try {
+    const host = new URL(connectionString).hostname;
+    if (host === "localhost" || host === "127.0.0.1") return false;
+  } catch {
+    // Not a URL: let pg decide.
+  }
+  return { rejectUnauthorized: false };
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
+  const connectionString =
+    process.env.DIRECT_URL ?? process.env.DATABASE_URL;
   const db = new pg.Client({
-    connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    connectionString,
+    ssl: sslFor(connectionString),
   });
   await db.connect();
   try {
@@ -890,8 +909,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     // seed, and the database describes the data everyone shares. They
     // disagree the moment somebody seeds from another checkout — in
     // which case believe the database.
-    const stampPath = "/Users/yigitsonbahar/Manifest-prod/SEEDED.txt";
-    await writeFile(
+    //
+    // The served checkout is one machine's path. Anywhere else (CI, a
+    // developer's clone) there is no such directory and no measurer
+    // reading it, so the stamp is skipped and said to be skipped, rather
+    // than a seed that built 35 states exiting 1 over a file nobody
+    // there would open. SEED_STAMP_DIR points it elsewhere.
+    const stampDir =
+      process.env.SEED_STAMP_DIR ?? "/Users/yigitsonbahar/Manifest-prod";
+    const stampPath = `${stampDir}/SEEDED.txt`;
+    if (!existsSync(stampDir)) {
+      console.log(`SEEDED (no stamp: ${stampDir} is not on this machine)`);
+    } else await writeFile(
       stampPath,
       `# VERİNİN NE ZAMAN DEĞİŞTİĞİ. SERVED_COMMIT.txt'in veri tarafındaki eşi.\n` +
         `# Oku:  cat ${stampPath}\n` +
@@ -903,7 +932,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         `login:     ${STATE_CLINIC_LOGIN.email} / ${STATE_CLINIC_LOGIN.password}\n` +
         `note:      oturumlar düştü, kayıt kimlikleri YENİ\n`,
     );
-    console.log(`SEEDED [${stampPath}]`);
+    if (existsSync(stampDir)) console.log(`SEEDED [${stampPath}]`);
     if (missing.length > 0) {
       console.error("not produced:", missing.map((s) => s.id).join(", "));
       process.exitCode = 1;
