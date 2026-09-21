@@ -32,17 +32,20 @@ yanlış klinik kayıt** (ilke 2). Ölçek ve para kalemleri de adın dışında
 buraya yazılır. Ad üzerine tur harcanmadı.
 
 **İkinci bulgu, ux'ten:** üst çubuğun **yedi düğmesinden altısı**
-`buttonVariants` kullanmıyor ve tarayıcı varsayılanına düşüyor (**3,11** —
-eşiği kıl payı geçiyor). Kapı değil, tutarlılık borcu. **Ama adın
+`buttonVariants` kullanmıyor ve tarayıcı varsayılanına düşüyor. **Ama adın
 *"her ekranda"* çağrışımı o altısını kapsıyormuş gibi okunmamalı.**
 
-**ADIN KAPSAMI — etikete girmesi gereken iki satır, value'nun isteği.**
+**ADIN KAPSAMI — ÜÇ satır, iki değil (value'nun düzeltmesi).**
 Etiket main'e gitti, v0.3.0 kuralı gereği yeniden yazılmıyor; düzeltme
 burada:
 
 1. **Ölçüm masaüstü genişlikte yapıldı. 390 px'te HİÇBİR odak işareti
    ölçülmedi** — ve ürünün gerçekten kullanıldığı genişlik orası.
-2. ~~Üst çubuğun altı denetimi sistemin desenini paylaşmıyor (3,11).~~
+2. **Ölçüm KOYU temada yapıldı. AÇIK temada hiçbir odak işareti
+   ölçülmedi.** (ux'in `classList` / `data-theme` hatasının sonucu; ayrıntı
+   aşağıdaki kutuda. *Bu maddenin sonradan eklenmesi gerekti, çünkü "iki
+   temada ölçtüm" sanılıyordu.*)
+3. ~~Üst çubuğun altı denetimi sistemin desenini paylaşmıyor (3,11).~~
    **BU SATIR v0.8.0 İÇİN DOĞRU, BUGÜN İÇİN DEĞİL — açık madde listesine
    taşınmasın.** dev-ui `76c8dce` ile bir e2e nöbetçi indirdi ve **ilk
    koşuşunda beş gerçek kusur buldu** (⌘K, üç tema segmenti, bir dil
@@ -83,6 +86,34 @@ value: *"savunulabilir."*
 >
 > **Ortak kök:** üçünde de yüzey ya yanlış okundu ya hiç kaydedilmedi —
 > *"hangi zemin"* maddesinin tema ve yüzey tarafı.
+>
+> **VE BİR RAHATLAMA — tema hatası YAYILMADI, kendim doğruladım:**
+> `e2e/focus-ring.spec.ts:53-56` temayı doğru mekanizmayla değiştiriyor
+> (`document.documentElement.setAttribute("data-theme", t)`), yani
+> `76c8dce`'nin *"iki temada"* iddiası **gerçek** ve beş bulgusu geçerli.
+> **Oturumun tema etiketli diğer ölçümlerini yeniden gözden geçirmek
+> gerekmiyor.** — *Bir yöntem hatası bulunduğunda hasadın tamamı şüpheli
+> hâle gelir (pm'in kuralı); burada hasadın sınırı ölçüldü ve dar çıktı.
+> **Şüphenin sınırını ölçmek, şüpheyi kaldırmak kadar iş.***
+
+## v0.9.0'A KESİM ŞARTI — onay kutusu ve radyo odak işareti
+
+`app/globals.css:157-159`'daki odak kuralı `a` / `summary` / `[tabindex]`'i
+kapsıyor, **`input[type=checkbox]` ve `[type=radio]`'yu kapsamıyor.**
+ux saydı: **7 checkbox + 2 radio, dokuzunda da tek bir `focus` sınıfı yok**
+— hepsi Chromium'un mavisine düşüyor, `pinned` kutusu koyu temada **2,89**.
+Aralarında **`components/forms/client-form.tsx:152` — KVKK onayının
+kendisi.**
+
+**Neden kesim şartı, ve gerekçe paketin cümlesinden geliyor:** v0.9.0'ın
+cümlesi *"Onay soruluyor ve verilen cevap kaydediliyor"* ve o paketin
+**başrol denetimi** ux'in radyo grubu. Odak işareti olmayan bir denetimle
+çıkarsak paket, klavyeyle çalışan veterinere **soruyu soramadan** iner —
+**cümlesini kendi denetiminde çiğner.**
+
+Tek kural, dokuz çağrı yeri (30'a takılmıyor). **`border-radius`
+yazılmayacak** — radyonun dairesel çizgisini köşelendirir; ux bu kararın
+yorumda belirtilmesini istedi.
 
 ### Ve bir sayıyı iki kez yanlış taşıdım — `notificationsOptIn` = 10
 
