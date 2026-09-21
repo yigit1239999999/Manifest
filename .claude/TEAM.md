@@ -575,6 +575,23 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    karşısındakinin bir ÖNCEKİ mesajına** cevap veriyor, ve öteki taraf
    çoktan geçtiği bir kararı buluyor.
 
+   **Simetrik yarısı, `ux`'ten** — çünkü indirme tarafını kapatmak tek
+   başına yetmiyor:
+
+   > **Canlı hâl hakkında varsayımla karar verme.** *"İnen kalsın"*
+   > demeden önce ya **sor**, ya **hash yaz**, ya da **koşullu kur**
+   > (*"şu an canlı olan X ise kalsın"*). Bedeli sıfır.
+
+   Bugün üç çakışmanın üçü de **bu iki ucun ikisi birden açıkken** oldu:
+   biri son mesajı beklemeden indirdi, öteki canlı hâli varsayarak karar
+   verdi.
+
+   **Ve maliyetin nerede olduğu:**
+
+   > **Tek dizelik işlerde asıl maliyet dizede değil, iki kişinin
+   > farklı bir gerçeği doğru sanmasında — ve o maliyet dizenin
+   > boyutuyla ölçeklenmiyor.**
+
    Kart cümlesinde sonuç bir **yanlış varsayıma** dönüştü: biri *"inen
    cümle kalsın"* dedi, ama o sırada inen **öbürününkiydi.** Düzelten
    kişi üçüncü kez aynı dizeyi taşıdı ve savunmadı — sebebini yazdı:
