@@ -199,28 +199,22 @@ export default async function RemindersPage({
         return delivery.sendAt.getTime() <= now
           ? { state: "dueNow", channel: tChannel(delivery.channel) }
           : { ...delivery, channel: tChannel(delivery.channel) };
-      // Five ways a message can have been accepted, and in test mode all
-      // five collapse into one.
+      // Five ways a message can have been accepted, and in test mode
+      // each of them says so alongside what it says.
       //
-      // `logTransport` writes to a file and now also answers with a
-      // synthetic delivery report, so on this ground a row can reach
-      // `delivered` without anything having left the app. "Ulaştı" there
-      // would be the worst version of the claim this whole naming rule
-      // exists to prevent -- not a word reaching past its evidence, but a
-      // word with no evidence underneath it at all. The same goes for
-      // "Ulaşmadı": a fake report cannot fail either.
+      // `logTransport` writes to a file and answers with a synthetic
+      // delivery report, so on this ground a row really can reach
+      // `delivered` -- a provider was asked and it answered. What the
+      // note adds is what kind of provider that was. Replacing the
+      // five sentences instead of qualifying them was my first answer
+      // and the wrong one: development is the only place these five
+      // can be seen, since there is no provider account in production,
+      // and a state nobody can produce is a state nobody has measured.
       case "delivered":
       case "sentAwaitingReport":
       case "undelivered":
       case "sentNoReportChannel":
       case "reportExpired":
-        if (testMode)
-          return {
-            state: "sent",
-            at: delivery.at,
-            channel: tChannel(delivery.channel),
-            testMode: true,
-          };
         return {
           // `sentNoReportChannel` says "Sent" and stops, because that is
           // everything this channel will ever tell us -- no wait is
@@ -235,6 +229,7 @@ export default async function RemindersPage({
                 : delivery.state,
           at: delivery.at,
           channel: tChannel(delivery.channel),
+          testMode,
         };
     }
     // Not a `default:` branch, on purpose. A tenth state added to

@@ -266,6 +266,30 @@ describe("longest translation, measured", () => {
       .map((k) => t(k, values).length);
   };
 
+  /**
+   * Test mode gets a THIRD line, and a bound of its own rather than an
+   * exemption.
+   *
+   * The 80 is the vet's row at 390px. A test-mode row is a diagnostic
+   * surface: it exists on a ground with no provider account, it is read
+   * by whoever is checking the five delivery states, and no clinic sees
+   * it. Truncating an honest qualifier to fit a constraint that does
+   * not apply would be trading correctness for a budget borrowed from
+   * somewhere else — which is the mistake that produced 118 in the
+   * first place, run the other way.
+   *
+   * So the note may spill to a third line and no further. Written down
+   * so a three-line row in test mode is not reported as overflow.
+   */
+  it("allows the test-mode note a third line, and no more", () => {
+    const withNote = (locale: "tr" | "en", m: typeof tr | typeof en) => {
+      const note = m.reminder.delivery.testModeNote;
+      return Math.max(...rendered(locale, m)) + 1 + note.length;
+    };
+    expect(withNote("tr", tr)).toBeLessThanOrEqual(118);
+    expect(withNote("en", en)).toBeLessThanOrEqual(118);
+  });
+
   it("keeps both languages inside two rendered lines at 390px", () => {
     expect(Math.max(...rendered("tr", tr))).toBeLessThanOrEqual(80);
     expect(Math.max(...rendered("en", en))).toBeLessThanOrEqual(80);
@@ -369,5 +393,60 @@ describe("the five things that can have happened to an accepted message", () => 
     const text = await drawn("sent");
     expect(text).toMatch(/Gönderildi/);
     expect(text).not.toMatch(/bekleniyor/);
+  });
+});
+
+/**
+ * In test mode the row still says which of the five happened, and says
+ * what kind of provider answered.
+ *
+ * My first answer collapsed all five into one test-mode sentence,
+ * because `logTransport` replies with a synthetic delivery report and a
+ * row could reach "arrived" with nothing having left the app. dev
+ * pointed out what that cost: development is the only place these five
+ * sentences can be seen, since there is no provider account in
+ * production, so the fix removed the only measurement of the thing it
+ * was protecting. Silence is not cheaper than a lie.
+ *
+ * Both facts, then. The note comes FIRST and that is the load-bearing
+ * part: it cannot wrap away from the claim it qualifies, and nobody
+ * reading left to right meets "arrived" before meeting the thing that
+ * makes it true.
+ */
+describe("test mode qualifies the claim instead of replacing it", () => {
+  const ACCEPTED = [
+    "delivered",
+    "awaitingReport",
+    "undelivered",
+    "reportExpired",
+    "sent",
+  ] as const;
+
+  it("keeps each of the five distinguishable, and marks all of them", async () => {
+    const seen = new Set<string>();
+    for (const state of ACCEPTED) {
+      const { container, unmount } = render(
+        await ReminderDeliveryLine({ ...SAMPLE[state], testMode: true } as ReminderDeliveryLineProps),
+      );
+      const text = container.textContent ?? "";
+      expect(text, `${state} loses its test-mode note`).toMatch(
+        new RegExp(tr.reminder.delivery.testModeNote),
+      );
+      seen.add(text);
+      unmount();
+    }
+    expect(seen.size, "two states read alike in test mode").toBe(ACCEPTED.length);
+  });
+
+  // The whole point of the ordering. A qualifier that follows the claim
+  // can end up on the next line, or be read after it.
+  it("puts the note before the claim it qualifies", async () => {
+    const { container } = render(
+      await ReminderDeliveryLine({ ...SAMPLE.delivered, testMode: true } as ReminderDeliveryLineProps),
+    );
+    const text = container.textContent ?? "";
+    expect(text.indexOf(tr.reminder.delivery.testModeNote)).toBeLessThan(
+      text.indexOf("Ulaştı"),
+    );
   });
 });

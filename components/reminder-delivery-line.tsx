@@ -131,10 +131,10 @@ export type ReminderDeliveryStateName =
 export type ReminderDeliveryLineProps =
   | { state: "scheduled"; sendAt: Date; channel: string }
   | { state: "dueNow"; channel: string }
-  | { state: "delivered"; at: Date; channel: string }
-  | { state: "awaitingReport"; at: Date; channel: string }
-  | { state: "undelivered"; at: Date; channel: string }
-  | { state: "reportExpired"; at: Date; channel: string }
+  | { state: "delivered"; at: Date; channel: string; testMode?: boolean }
+  | { state: "awaitingReport"; at: Date; channel: string; testMode?: boolean }
+  | { state: "undelivered"; at: Date; channel: string; testMode?: boolean }
+  | { state: "reportExpired"; at: Date; channel: string; testMode?: boolean }
   | {
       state: "sent";
       at: Date;
@@ -143,11 +143,19 @@ export type ReminderDeliveryLineProps =
        * The channel is wired to the `log` transport, so the message was
        * written to a file and handed to nobody.
        *
-       * "Sent" already means only "the provider accepted it", which is one
-       * step short of "it arrived". In log mode we are a step below that
-       * again: no provider ever saw it. The word would be claiming a
-       * guarantee we hold no part of, and the distinction disappears on
-       * its own the day a real provider is connected.
+       * It does NOT replace the sentence, and that was my first answer
+       * and the wrong one. `logTransport` answers with a synthetic
+       * delivery report, so a row can reach `delivered` with nothing
+       * having gone out -- but collapsing all five states into one
+       * test-mode sentence removes the only place those five can be
+       * seen at all, since there is no provider account in production
+       * (dev). Silence is not cheaper than a lie; we decided that
+       * today, repeatedly, and then I reached for it anyway.
+       *
+       * So both facts are said. The claim is true of what happened --
+       * a provider was asked and answered -- and the note says what
+       * kind of provider that was. It disappears on its own the day a
+       * real one is connected.
        */
       testMode?: boolean;
     }
@@ -271,18 +279,20 @@ export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
           channel: props.channel,
         });
       case "sent":
-        return t(props.testMode ? "sentTestMode" : "sent", {
-          at: formatDateTime(fmt, props.at),
-          channel: props.channel,
-        });
       case "delivered":
       case "awaitingReport":
       case "undelivered":
-      case "reportExpired":
-        return t(props.state, {
+      case "reportExpired": {
+        const said = t(props.state, {
           at: formatDateTime(fmt, props.at),
           channel: props.channel,
         });
+        // The note goes FIRST, and that is the load-bearing part. It
+        // cannot wrap away from the claim it qualifies, and nobody
+        // reading left to right meets "arrived" before meeting the
+        // thing that makes it true.
+        return props.testMode ? `${t("testModeNote")} ${said}` : said;
+      }
       // The provider's own words never reach the row. `MessageLog.error`
       // holds raw transport text -- Netgsm answers things like "30 -
       // Hatalı kullanıcı adı" -- and a vet reading a row should not have
