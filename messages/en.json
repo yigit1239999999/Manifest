@@ -701,7 +701,7 @@
     },
     "forbiddenPage": {
       "title": "You do not have access to this page",
-      "description": "This section is for administrators only. Ask your clinic administrator if you need access."
+      "description": "This section is not open to your role. Ask your clinic administrator if you need access."
     },
     "recordNotFound": {
       "title": "Record not found",

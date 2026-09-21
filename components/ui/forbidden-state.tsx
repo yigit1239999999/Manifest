@@ -21,6 +21,17 @@ import { buttonVariants } from "@/components/ui/button";
  * The sidebar already omits these links for roles that cannot use them
  * (`components/sidebar.tsx`), so this is the bookmark-and-typed-URL case.
  * Rare, but nothing about it is self-correcting.
+ *
+ * There is no `description` override, and the absence is deliberate. When
+ * only /staff and /settings were gated, the sentence said "for
+ * administrators only" and that was more specific than what it says now.
+ * It stopped being true as soon as the gates spread: this is shown to a vet
+ * tech turned away from /visits/new, a page open to vets and receptionists
+ * alike. The specificity that was lost is the part that mattered least —
+ * where to go next is still in the sentence. A per-call-site variant would
+ * be unused at nine of ten of them (TEAM.md #30), and the rule that keeps
+ * the shared sentence honest is in `messages/messages.test.ts`: it may not
+ * claim who the section belongs to.
  */
 export async function ForbiddenState() {
   const t = await getTranslations("error");

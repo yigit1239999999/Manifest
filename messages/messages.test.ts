@@ -131,6 +131,51 @@ describe("Turkish house style", () => {
   });
 });
 
+describe("the forbidden page speaks for ten call sites", () => {
+  // `error.forbiddenPage.description` is one sentence shown by every
+  // permission gate in the app, and it used to say "this section is for
+  // administrators only". That was written when the only two gates were
+  // /staff and /settings. It is now shown to a vet tech turned away from
+  // /visits/new — a page open to vets and receptionists both — where it is
+  // simply false, and it teaches them they need to be promoted when the
+  // colleague beside them could do it in two seconds. It was already wrong
+  // at one call site before the others existed: /audit's gate reads
+  // `audit.read`, which VETERINARIAN also holds.
+  //
+  // The note in `components/ui/forbidden-state.tsx` warned about exactly
+  // this, and it did not help: the new gate was added by someone who never
+  // read the note. A caveat with nothing checking its condition turns into
+  // a lie the moment the condition changes (TEAM.md #16b).
+  //
+  // What the rule protects: the sentence may not claim who the section
+  // belongs to. What it does NOT protect, and cannot: the word list catches
+  // today's spelling of that claim, not the claim itself. "Bu bölüm
+  // yöneticilere ayrılmıştır" and "reserved for administrators" both pass
+  // and say the same untrue thing. That is a review question, and the
+  // answer a reviewer needs is this paragraph, not a longer word list —
+  // that race is not winnable.
+  //
+  // Naming a role is fine. "Ask your clinic administrator" says where to go
+  // and is true at every call site; "only administrators" says who owns the
+  // page and is false at most of them. The banned thing is the claim of
+  // ownership, not the word.
+  const EXCLUSIVE = /\b(yalnızca|sadece|only)\b/i;
+
+  it("claims no exclusive owner, in either language", () => {
+    const offenders = [tr, en]
+      .map((source) => flatten(source).get("error.forbiddenPage.description") ?? "")
+      .filter((sentence) => EXCLUSIVE.test(sentence));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("would catch the sentence it replaced", () => {
+    expect(EXCLUSIVE.test("Bu bölüm yalnızca yöneticiler içindir.")).toBe(true);
+    expect(EXCLUSIVE.test("This section is for administrators only.")).toBe(true);
+    expect(EXCLUSIVE.test("Bu bölüm rolünüze açık değil.")).toBe(false);
+  });
+});
+
 describe("the style rules have teeth", () => {
   // A rule that cannot fail is decoration. Each fixture is the exact mistake
   // the rule above is there to catch.

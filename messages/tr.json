@@ -701,7 +701,7 @@
     },
     "forbiddenPage": {
       "title": "Bu sayfaya erişim yetkiniz yok",
-      "description": "Bu bölüm yalnızca yöneticiler içindir. Erişmeniz gerekiyorsa klinik yöneticinizle görüşünüz."
+      "description": "Bu bölüm rolünüze açık değil. Erişmeniz gerekiyorsa klinik yöneticinizle görüşünüz."
     },
     "recordNotFound": {
       "title": "Kayıt bulunamadı",
