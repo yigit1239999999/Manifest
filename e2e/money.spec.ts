@@ -12,7 +12,13 @@ import { test, expect, type Page } from "@playwright/test";
 
 async function signUp(page: Page, stamp: number) {
   await page.goto("/sign-up");
-  await page.getByLabel(/clinic name|klinik adı/i).fill(`Money Clinic ${stamp}`);
+  // "Clinic <stamp>", like every other spec. It used to be "Money
+  // Clinic <stamp>", which reads better and is excluded from no
+  // measurement at all: `loop-metrics.mjs` filters e2e clinics by
+  // `^(Perf )?Clinic [0-9]{10,}$`, so every clinic this file has ever
+  // created has been counted as a real one. `e2e/clinic-name.test.ts`
+  // found it the first time it ran.
+  await page.getByLabel(/clinic name|klinik adı/i).fill(`Clinic ${stamp}`);
   await page.getByLabel(/your name|adınız/i).fill("E2E Tester");
   await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(`money+${stamp}@pettrack.test`);
   await page.getByLabel(/^password|^şifre/i).fill("supersecret123");

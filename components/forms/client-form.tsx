@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
@@ -42,6 +42,7 @@ export function ClientForm({ client }: Props) {
   // the radios are what the form submits. `=== true` / `=== false`
   // rather than a truthiness test, so that a null arrives here as null
   // instead of collapsing into "declined" on its way through.
+  const consentNoteId = useId();
   const [consent, setConsent] = useState<"true" | "false" | null>(
     client?.notificationsOptIn === true
       ? "true"
@@ -52,10 +53,16 @@ export function ClientForm({ client }: Props) {
 
   return (
     <ActionForm form={form} className="flex flex-col gap-8">
-
-      <FormSection title={t("sections.identity")} description={t("sections.identityHint")}>
+      <FormSection
+        title={t("sections.identity")}
+        description={t("sections.identityHint")}
+      >
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("firstName")} error={state.fieldErrors?.firstName} required>
+          <Field
+            label={t("firstName")}
+            error={state.fieldErrors?.firstName}
+            required
+          >
             <Input
               name="firstName"
               defaultValue={client?.firstName}
@@ -63,7 +70,11 @@ export function ClientForm({ client }: Props) {
               required
             />
           </Field>
-          <Field label={t("lastName")} error={state.fieldErrors?.lastName} required>
+          <Field
+            label={t("lastName")}
+            error={state.fieldErrors?.lastName}
+            required
+          >
             <Input
               name="lastName"
               defaultValue={client?.lastName}
@@ -74,7 +85,10 @@ export function ClientForm({ client }: Props) {
         </div>
       </FormSection>
 
-      <FormSection title={t("sections.contact")} description={t("sections.contactHint")}>
+      <FormSection
+        title={t("sections.contact")}
+        description={t("sections.contactHint")}
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("email")} error={state.fieldErrors?.email}>
             <Input
@@ -144,6 +158,20 @@ export function ClientForm({ client }: Props) {
                     type="radio"
                     name="notificationsOptIn"
                     value={answer}
+                    // On the inputs, not on the `fieldset`.
+                    //
+                    // The line underneath was visible and silent: it
+                    // told anyone who could see it that no automatic
+                    // message goes out until an answer is recorded,
+                    // and told nobody else. A description on a
+                    // `fieldset` is announced unevenly across screen
+                    // readers; on the control it is read when focus
+                    // arrives, which is the moment the sentence is
+                    // about. One channel rather than both, for the
+                    // same reason the error summary is not also a live
+                    // region — two copies of one sentence is not twice
+                    // the information.
+                    aria-describedby={consentNoteId}
                     checked={consent === answer}
                     onChange={() => setConsent(answer)}
                     // No focus class and no `accent-color`: both come
@@ -152,7 +180,9 @@ export function ClientForm({ client }: Props) {
                     // here would be the one that drifts.
                     className="size-4"
                   />
-                  {t(answer === "true" ? "consent.granted" : "consent.declined")}
+                  {t(
+                    answer === "true" ? "consent.granted" : "consent.declined",
+                  )}
                 </label>
               ))}
             </div>
@@ -162,7 +192,10 @@ export function ClientForm({ client }: Props) {
                 do, the other is a closed question. And consent needs a
                 sentence of its own — copy that only describes the
                 refusal leaves the vet to infer what a yes buys. */}
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p
+              id={consentNoteId}
+              className="mt-2 text-xs text-muted-foreground"
+            >
               {t(
                 consent === "true"
                   ? "consent.grantedHint"
@@ -208,7 +241,10 @@ export function ClientForm({ client }: Props) {
         </div>
       </FormSection>
 
-      <FormSection title={t("sections.address")} description={t("sections.addressHint")}>
+      <FormSection
+        title={t("sections.address")}
+        description={t("sections.addressHint")}
+      >
         <Field label={t("address")} error={state.fieldErrors?.address}>
           <Input
             name="address"

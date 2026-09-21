@@ -114,3 +114,51 @@ describe("the client's notification consent", () => {
     ).toBeInTheDocument();
   });
 });
+
+// The sentence under the radios was visible and silent.
+//
+// It is the only place the form says what happens next — "no automatic
+// messages until an answer is recorded", "reminders are sent to this
+// client" — and a screen reader never reached it. Three states written
+// out carefully in two languages, for readers who could see them.
+describe("the consequence is announced, not only printed", () => {
+  it("describes each radio by the line that says what happens", () => {
+    renderForm();
+
+    const note = screen.getByText(consent.unansweredHint);
+    expect(note.id).toBeTruthy();
+    for (const answer of [consent.granted, consent.declined]) {
+      expect(
+        screen.getByRole("radio", { name: answer }).getAttribute(
+          "aria-describedby",
+        ),
+      ).toBe(note.id);
+    }
+  });
+
+  it("follows the answer, so what is read is what is true", () => {
+    renderForm();
+
+    fireEvent.click(screen.getByRole("radio", { name: consent.granted }));
+    const note = screen.getByText(consent.grantedHint);
+    expect(
+      screen
+        .getByRole("radio", { name: consent.granted })
+        .getAttribute("aria-describedby"),
+    ).toBe(note.id);
+  });
+
+  it("says it once, on the control, and not twice", () => {
+    // The `fieldset` deliberately does not also carry it. Two copies of
+    // one sentence is not twice the information — the same call the
+    // error summary makes about not being a live region as well as a
+    // focus target.
+    renderForm();
+
+    expect(
+      screen
+        .getByRole("group", { name: consent.legend })
+        .getAttribute("aria-describedby"),
+    ).toBeNull();
+  });
+});
