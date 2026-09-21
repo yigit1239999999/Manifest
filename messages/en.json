@@ -41,6 +41,9 @@
     "yes": "Yes",
     "no": "No",
     "all": "All",
+    "emptyFiltered": "Nothing matches this filter.",
+    "emptyFilteredHint": "Clear the filter to see every record.",
+    "clearFilter": "Clear filter",
     "open": "Open",
     "details": "Details",
     "emailPlaceholder": "example@email.com",
@@ -270,7 +273,7 @@
     "dayPlan": "Day plan",
     "petClient": "Pet · Client",
     "phone": "Phone",
-    "emptyDay": "No appointments on this day.",
+    "emptyDay": "No appointments on {date}.",
     "emptyDayHint": "Use the arrows to look at another day, or book an appointment.",
     "emptyHint": "Appointments you book appear here, the nearest first."
   },

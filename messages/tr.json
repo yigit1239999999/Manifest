@@ -41,6 +41,9 @@
     "yes": "Evet",
     "no": "Hayır",
     "all": "Tümü",
+    "emptyFiltered": "Bu filtreye uyan kayıt yok.",
+    "emptyFilteredHint": "Filtreyi kaldırırsanız tüm kayıtlar listelenir.",
+    "clearFilter": "Filtreyi temizle",
     "open": "Aç",
     "details": "Detaylar",
     "emailPlaceholder": "ornek@eposta.com",
@@ -270,7 +273,7 @@
     "dayPlan": "Gün planı",
     "petClient": "Hayvan · Müşteri",
     "phone": "Telefon",
-    "emptyDay": "Bu gün için randevu bulunmuyor.",
+    "emptyDay": "{date} için randevu bulunmuyor.",
     "emptyDayHint": "Başka bir güne bakmak için okları kullanabilir veya yeni randevu oluşturabilirsiniz.",
     "emptyHint": "Oluşturduğunuz randevular, en yakın tarihli olan başta olmak üzere burada görünür."
   },

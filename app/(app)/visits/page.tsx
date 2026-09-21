@@ -54,16 +54,35 @@ export default async function VisitsPage({
       />
 
       {result.items.length === 0 ? (
-        <EmptyState
-          icon={Stethoscope}
-          title={t("empty")}
-          action={
-            <Link href="/visits/new" className={buttonVariants()}>
-              <Plus />
-              {t("new")}
-            </Link>
-          }
-        />
+        // A filtered list with no rows is not an empty clinic. Offering
+        // "New visit" here answers a question nobody asked and hides the
+        // filter that is actually doing the hiding (TEAM.md #19).
+        type ? (
+          <EmptyState
+            icon={Stethoscope}
+            title={tCommon("emptyFiltered")}
+            description={tCommon("emptyFilteredHint")}
+            action={
+              <Link
+                href="/visits"
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                {tCommon("clearFilter")}
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={Stethoscope}
+            title={t("empty")}
+            action={
+              <Link href="/visits/new" className={buttonVariants()}>
+                <Plus />
+                {t("new")}
+              </Link>
+            }
+          />
+        )
       ) : (
         <>
           <div className="overflow-hidden rounded-2xl border border-border bg-card">

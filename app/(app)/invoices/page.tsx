@@ -56,16 +56,34 @@ export default async function InvoicesPage({
       />
 
       {result.items.length === 0 ? (
-        <EmptyState
-          icon={Receipt}
-          title={t("empty")}
-          action={
-            <Link href="/invoices/new" className={buttonVariants()}>
-              <Plus />
-              {t("new")}
-            </Link>
-          }
-        />
+        // See the same branch in /visits: "no unpaid invoices" and "no
+        // invoices at all" are opposite pieces of news (TEAM.md #19).
+        status ? (
+          <EmptyState
+            icon={Receipt}
+            title={tCommon("emptyFiltered")}
+            description={tCommon("emptyFilteredHint")}
+            action={
+              <Link
+                href="/invoices"
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                {tCommon("clearFilter")}
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={Receipt}
+            title={t("empty")}
+            action={
+              <Link href="/invoices/new" className={buttonVariants()}>
+                <Plus />
+                {t("new")}
+              </Link>
+            }
+          />
+        )
       ) : (
         <>
           <div className="overflow-hidden rounded-2xl border border-border bg-card">

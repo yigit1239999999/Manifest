@@ -110,20 +110,41 @@ export default async function AppointmentsPage({
       />
 
       {result.items.length === 0 ? (
-        <EmptyState
-          icon={CalendarClock}
-          title={
-            showAllDates
-              ? t("empty")
-              : `${t("emptyDay")} (${formatDate(fmt, range?.from)})`
-          }
-          description={showAllDates ? t("emptyHint") : t("emptyDayHint")}
-          action={
-            <Link href="/appointments/new" className={buttonVariants()}>
-              {t("new")}
-            </Link>
-          }
-        />
+        // Three different pieces of news, and they were one before: no
+        // appointments at all, none on the day being looked at, and none
+        // matching the status filter. The last one used to offer "Book an
+        // appointment", which is not what someone filtering by "No-show"
+        // is asking for (TEAM.md #19).
+        status ? (
+          <EmptyState
+            icon={CalendarClock}
+            title={tCommon("emptyFiltered")}
+            description={tCommon("emptyFilteredHint")}
+            action={
+              <Link
+                href={hrefFor({ status: null })}
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                {tCommon("clearFilter")}
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={CalendarClock}
+            title={
+              showAllDates
+                ? t("empty")
+                : t("emptyDay", { date: formatDate(fmt, range?.from) })
+            }
+            description={showAllDates ? t("emptyHint") : t("emptyDayHint")}
+            action={
+              <Link href="/appointments/new" className={buttonVariants()}>
+                {t("new")}
+              </Link>
+            }
+          />
+        )
       ) : (
         <>
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
