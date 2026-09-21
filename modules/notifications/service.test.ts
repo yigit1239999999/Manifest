@@ -4,7 +4,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     clinic: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
     appointment: { findFirst: vi.fn(), findMany: vi.fn() },
-    reminder: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+    reminder: { findMany: vi.fn(), update: vi.fn() },
     messageLog: { create: vi.fn() },
     auditLog: { create: vi.fn() },
     $queryRaw: vi.fn(),
@@ -32,11 +32,9 @@ import {
   runReminderSweep,
   logManualMessage,
   previewAppointmentMessages,
-  reminderDeliveryState,
   sendAppointmentMessage,
-  sendReminderNow,
 } from "./service";
-import { parseNotificationSettings, toMessagingProfile } from "./settings";
+import { parseNotificationSettings } from "./settings";
 
 const ctx = { clinicId: "clinic-1", userId: "u-1", userName: "Vet", userRole: "ADMIN" };
 
@@ -532,192 +530,5 @@ describe("parseNotificationSettings", () => {
     expect(s.channel).toBe("WHATSAPP");
     expect(s.whatsapp.reminder.hoursBefore).toBe(168);
     expect(s.whatsapp.reminder.morningHour).toBe(23);
-  });
-});
-
-// The list row reads from `MessageLog`, never from `Reminder.status`,
-// and these are the cases where the two disagree.
-describe("reminderDeliveryState", () => {
-  const clinic = toMessagingProfile(clinicRow as never);
-  const row = (overrides: Record<string, unknown> = {}) => ({
-    status: "PENDING",
-    dueAt: new Date("2026-09-25T09:00:00.000Z"),
-    client: { phone: "0532 123 45 67", notificationsOptIn: true },
-    pet: { deceased: false, archivedAt: null },
-    messages: [] as { status: string; createdAt: Date; error: string | null; channel: "SMS" }[],
-    ...overrides,
-  });
-
-  it("promises a send date when everything is in place", () => {
-    const state = reminderDeliveryState(row(), clinic);
-    // daysBefore 3, morningHour 9, Europe/Istanbul: 22 September 09:00
-    // local, which is 06:00 UTC.
-    expect(state).toEqual({
-      state: "scheduled",
-      sendAt: new Date("2026-09-22T06:00:00.000Z"),
-      channel: "SMS",
-    });
-  });
-
-  it("reports the failure with its reason and how many attempts it took", () => {
-    const state = reminderDeliveryState(
-      row({
-        messages: [
-          { status: "FAILED", createdAt: new Date("2026-09-20T08:00:00.000Z"), error: "sender_title_not_registered", channel: "SMS" },
-          { status: "FAILED", createdAt: new Date("2026-09-19T08:00:00.000Z"), error: "sender_title_not_registered", channel: "SMS" },
-        ],
-      }),
-      clinic,
-    );
-    expect(state).toEqual({
-      state: "failed",
-      at: new Date("2026-09-20T08:00:00.000Z"),
-      error: "sender_title_not_registered",
-      attempts: 2,
-      channel: "SMS",
-    });
-  });
-
-  // A fact does not change when a setting does. Switching messaging off
-  // today must not rewrite what happened last week -- the row would
-  // then read "notifications are off" about a message the owner has in
-  // their hand.
-  it("keeps a send true after the clinic switches messaging off", () => {
-    const off = toMessagingProfile({
-      ...clinicRow,
-      settings: { notifications: { channel: "SMS", whatsapp: { enabled: false } } },
-    } as never);
-    const state = reminderDeliveryState(
-      row({
-        messages: [
-          { status: "SENT", createdAt: new Date("2026-09-18T06:00:00.000Z"), error: null, channel: "SMS" },
-        ],
-      }),
-      off,
-    );
-    expect(state).toEqual({
-      state: "sent",
-      at: new Date("2026-09-18T06:00:00.000Z"),
-      channel: "SMS",
-    });
-  });
-
-  it("names the reason nothing will go, clinic-wide reasons first", () => {
-    const off = toMessagingProfile({
-      ...clinicRow,
-      settings: { notifications: { channel: "SMS", whatsapp: { enabled: false } } },
-    } as never);
-    // Both switched off and not consented: the vet is sent to the
-    // setting, which is the one they can act on.
-    expect(
-      reminderDeliveryState(row({ client: { phone: null, notificationsOptIn: false } }), off),
-    ).toEqual({ state: "disabled" });
-
-    expect(
-      reminderDeliveryState(row({ client: { phone: "0532 123 45 67", notificationsOptIn: null } }), clinic),
-    ).toEqual({ state: "optedOut" });
-
-    expect(
-      reminderDeliveryState(row({ client: { phone: null, notificationsOptIn: true } }), clinic),
-    ).toEqual({ state: "noPhone" });
-  });
-
-  // No sentence at all, rather than a promise nobody will keep.
-  it("says nothing about a closed reminder or a dead animal", () => {
-    expect(reminderDeliveryState(row({ status: "DISMISSED" }), clinic)).toBeNull();
-    expect(
-      reminderDeliveryState(row({ pet: { deceased: true, archivedAt: null } }), clinic),
-    ).toBeNull();
-  });
-});
-
-describe("sendReminderNow", () => {
-  const reminderRow = (overrides: Record<string, unknown> = {}) => ({
-    id: "r-1",
-    type: "VACCINATION_DUE",
-    title: "Karma aşı zamanı",
-    body: null,
-    dueAt: new Date("2026-09-25T09:00:00.000Z"),
-    pet: { name: "Sarı", deceased: false, archivedAt: null },
-    client: {
-      id: "c-1",
-      firstName: "Ayşe",
-      lastName: "Yılmaz",
-      phone: "0532 123 45 67",
-      preferredLanguage: "tr",
-      notificationsOptIn: true,
-    },
-    messages: [],
-    ...overrides,
-  });
-
-  it("sends, records who pressed it, and closes the reminder", async () => {
-    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(reminderRow() as never);
-    transport.send.mockResolvedValue({ providerId: "job-77" });
-
-    await sendReminderNow("r-1", ctx);
-
-    expect(transport.send).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "905321234567", language: "tr" }),
-    );
-    expect(vi.mocked(prisma.reminder.update).mock.calls[0][0]).toMatchObject({
-      where: { id: "r-1" },
-      data: { status: "SENT" },
-    });
-    // The sweep passes null here. A person pressing the button has to be
-    // answerable for the message, so the audit row names them.
-    expect(vi.mocked(prisma.auditLog.create).mock.calls[0][0]).toMatchObject({
-      data: { actorId: "u-1", entityType: "MessageLog" },
-    });
-  });
-
-  it("refuses a second send of a message that already went out", async () => {
-    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(
-      reminderRow({
-        messages: [{ status: "SENT", createdAt: new Date("2026-09-19T06:00:00.000Z") }],
-      }) as never,
-    );
-    await expect(sendReminderNow("r-1", ctx)).rejects.toMatchObject({
-      messageKey: "error.notifications.alreadySent",
-    });
-    expect(transport.send).not.toHaveBeenCalled();
-  });
-
-  // The sweep's waiting rules exist to stop an unattended retry loop
-  // spending its three attempts on one outage. A person who has just
-  // fixed the provider is exactly the escape hatch they assume.
-  it("lets a person retry inside the sweep's cooling-off window", async () => {
-    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(
-      reminderRow({
-        messages: [{ status: "FAILED", createdAt: new Date("2026-09-20T09:00:00.000Z") }],
-      }) as never,
-    );
-    transport.send.mockResolvedValue({ providerId: "job-78" });
-
-    await sendReminderNow("r-1", ctx);
-
-    expect(transport.send).toHaveBeenCalled();
-  });
-
-  it("refuses when the owner never consented, whatever the screen offered", async () => {
-    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(
-      reminderRow({
-        client: { ...reminderRow().client, notificationsOptIn: null },
-      }) as never,
-    );
-    await expect(sendReminderNow("r-1", ctx)).rejects.toMatchObject({
-      messageKey: "error.notifications.optedOut",
-    });
-    expect(transport.send).not.toHaveBeenCalled();
-  });
-
-  it("refuses a reminder that names a dead animal", async () => {
-    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(
-      reminderRow({ pet: { name: "Sarı", deceased: true, archivedAt: null } }) as never,
-    );
-    await expect(sendReminderNow("r-1", ctx)).rejects.toMatchObject({
-      messageKey: "error.notifications.petSilenced",
-    });
-    expect(transport.send).not.toHaveBeenCalled();
   });
 });

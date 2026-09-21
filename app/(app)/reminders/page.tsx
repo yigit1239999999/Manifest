@@ -5,6 +5,7 @@ import { surface } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { telHref } from "@/lib/phone";
 import {
   listReminders,
@@ -16,6 +17,12 @@ import {
   dismissReminderAction,
   reopenReminderAction,
 } from "@/modules/reminders/actions";
+import {
+  reminderDeliveryState,
+  type ReminderDeliveryState,
+} from "@/modules/notifications/service";
+import { getClinicMessagingProfile } from "@/modules/notifications/settings";
+import { sendReminderNowAction } from "@/modules/notifications/actions";
 import { listClients } from "@/modules/clients/queries";
 import { listPets } from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
@@ -23,6 +30,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FilterTabs } from "@/components/filter-tabs";
 import { ReminderForm } from "@/components/forms/reminder-form";
 import { ReminderCloseButtons } from "@/components/reminder-close-buttons";
+import {
+  ReminderDeliveryLine,
+  type ReminderDeliveryLineProps,
+} from "@/components/reminder-delivery-line";
+import { ReminderSendNowButton } from "@/components/reminder-send-now-button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -62,12 +74,18 @@ export default async function RemindersPage({
         ? [...CLOSED_REMINDER_STATUSES]
         : [...REMINDER_STATUSES];
 
-  const [t, tType, tStatus, tCommon, reminders, clients, pets] =
+  const [t, tType, tStatus, tCommon, tChannel, clinic, reminders, clients, pets] =
     await Promise.all([
       getTranslations("reminder"),
       getTranslations("enum.reminderType"),
       getTranslations("enum.reminderStatus"),
       getTranslations("common"),
+      getTranslations("enum.messageChannel"),
+      // What the clinic has switched on, which decides whether any of
+      // these rows will ever be sent at all. The switch defaults to off,
+      // so until now every clinic's reminders sat here reading "Pending"
+      // while nothing was going out and no screen said so.
+      getClinicMessagingProfile(session.user.clinicId),
       listReminders({ clinicId: session.user.clinicId, statuses }),
       listClients({ clinicId: session.user.clinicId }),
       // Without `excludeDeceased` the picker offers an animal the
@@ -77,6 +95,36 @@ export default async function RemindersPage({
       // must not offer what the server will not take.
       listPets({ clinicId: session.user.clinicId, excludeDeceased: true }),
     ]);
+
+  // The sentence is shown to everyone; the link out of it only to a role
+  // that can follow it. Hiding the reason from someone who cannot fix it
+  // would leave them with a reminder that quietly does nothing, and
+  // naming the page they cannot open would be a dead end (TEAM.md #30e).
+  const settingsHref = can(session.user.role, "settings.manage")
+    ? "/settings"
+    : undefined;
+
+  /**
+   * The service's answer, with the channel turned into a label.
+   *
+   * A pure mapping and nothing more: every decision about what a row's
+   * delivery state *is* belongs to `reminderDeliveryState`, so the list
+   * and the server action cannot drift into offering a send the server
+   * would refuse.
+   */
+  function lineProps(
+    delivery: NonNullable<ReminderDeliveryState>,
+  ): ReminderDeliveryLineProps {
+    switch (delivery.state) {
+      case "optedOut":
+      case "noPhone":
+        return { state: delivery.state };
+      case "disabled":
+        return { state: "disabled", settingsHref };
+      default:
+        return { ...delivery, channel: tChannel(delivery.channel) };
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -162,6 +210,7 @@ export default async function RemindersPage({
             // does nothing when tapped promises what it cannot do
             // (TEAM.md #33). Only a number we can dial becomes a link.
             const dial = telHref(r.client.phone);
+            const delivery = clinic ? reminderDeliveryState(r, clinic) : null;
             return (
               <li
                 key={r.id}
@@ -221,6 +270,11 @@ export default async function RemindersPage({
                       {r.body}
                     </p>
                   )}
+                  {/* What the app is going to do about this row, which the
+                      badge beside it cannot say: "Pending" reads the same
+                      for a reminder going out tomorrow morning and for one
+                      that will never go out at all. */}
+                  {delivery && <ReminderDeliveryLine {...lineProps(delivery)} />}
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <StatusBadge
@@ -235,6 +289,29 @@ export default async function RemindersPage({
                       caught this one — I had written the guard by copying
                       the page next door, which is exactly the habit that
                       test exists for. */}
+                  {/* Offered only where the server would take it. A row
+                      blocked by consent, a missing number, the channel or
+                      the clinic switch gets the sentence saying why and no
+                      button to press against it; an already-sent row gets
+                      none either, because the duplicate guard would refuse
+                      it and a button that is always refused is worse than
+                      no button at all.
+
+                      It is here because the sweep runs on a cron: on a
+                      machine where no cron runs, the moment a vet sees that
+                      reminders actually go out never arrives. */}
+                  {delivery &&
+                    (delivery.state === "scheduled" ||
+                      delivery.state === "failed") && (
+                      <ReminderSendNowButton
+                        action={sendReminderNowAction.bind(null, r.id)}
+                        label={t("sendNow")}
+                        name={tCommon("actionFor", {
+                          action: t("sendNow"),
+                          subject: r.title,
+                        })}
+                      />
+                    )}
                   {OPEN_REMINDER_STATUSES.includes(r.status as never) ? (
                     <ReminderCloseButtons
                       acknowledge={acknowledgeReminderAction.bind(null, r.id)}

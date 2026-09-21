@@ -34,27 +34,9 @@ export async function listReminders({
       // detour through the client page to fetch one field, which is how a
       // list of things to do stops being used as one.
       client: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          phone: true,
-          // Consent is why a row will never be sent, and without it the
-          // list can only say "not sent yet" about an owner who said no.
-          notificationsOptIn: true,
-        },
+        select: { id: true, firstName: true, lastName: true, phone: true },
       },
-      pet: { select: { id: true, name: true, deceased: true, archivedAt: true } },
-      // What actually happened to this reminder's message, which
-      // `Reminder.status` cannot say: the status is the vet's decision,
-      // these rows are the provider's answer. Bounded per reminder by
-      // the sweep's own retry rule (one success, or at most three
-      // failures), so this adds one query to the page, not one per row.
-      messages: {
-        where: { kind: "REMINDER_DUE" },
-        orderBy: { createdAt: "desc" },
-        select: { status: true, createdAt: true, error: true, channel: true },
-      },
+      pet: { select: { id: true, name: true } },
     },
   });
 }

@@ -525,7 +525,20 @@
     "filterClosed": "Kapatılanlar",
     "filterAll": "Tümü",
     "emptyClosed": "Kapatılmış hatırlatma yok.",
-    "emptyClosedHint": "Tamamladığınız ya da gerek kalmadığı için kapattığınız hatırlatmalar burada birikir."
+    "emptyClosedHint": "Tamamladığınız ya da gerek kalmadığı için kapattığınız hatırlatmalar burada birikir.",
+    "sendNow": "Şimdi gönder",
+    "delivery": {
+      "scheduled": "Gönderilecek: {at} · {channel}",
+      "sent": "Gönderildi: {at} · {channel}",
+      "failed": "Gönderilemedi: {at} · {attempts, plural, one {1 deneme} other {# deneme}} · {error}",
+      "failedNoReason": "Gönderilemedi: {at} · {attempts, plural, one {1 deneme} other {# deneme}}",
+      "optedOut": "Gönderilmeyecek: müşteri bildirim mesajlarına onay vermemiş.",
+      "noPhone": "Gönderilmeyecek: müşterinin kayıtlı telefon numarası yok.",
+      "notConfigured": "Gönderilmeyecek: {channel} bağlantısı henüz yapılmadı.",
+      "disabled": "Gönderilmeyecek: bildirimler kapalı.",
+      "openSettings": "Bildirim ayarları",
+      "askAdmin": "Klinik yöneticinizle görüşünüz."
+    }
   },
   "invoice": {
     "title": "Faturalar",
@@ -782,9 +795,7 @@
       "sendFailed": "Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin.",
       "appointmentClosed": "Bu randevu kapandığı için mesaj gönderilemez.",
       "appointmentPast": "Randevu saati geçtiği için bu mesaj artık doğru değil.",
-      "petSilenced": "Bu hayvan için mesaj gönderilmez.",
-      "remindersDisabled": "Hatırlatma mesajları klinik ayarlarında kapalı.",
-      "alreadySent": "Bu hatırlatma için mesaj zaten gönderildi."
+      "petSilenced": "Bu hayvan için mesaj gönderilmez."
     },
     "validation": {
       "ownerNotInClinic": "Bu sahip bu klinikte bulunamadı.",
