@@ -30,20 +30,48 @@ import { buttonVariants } from "@/components/ui/button";
 // -- a technician has neither `clients.write` nor `pets.write`, and
 // telling them to do something the server will refuse is worse than the
 // empty dashboard they can already read.
-export async function FirstStepCard({ need }: { need: "client" | "pet" }) {
+// Everything about a step in one row, and this is load-bearing rather
+// than tidiness: ux is still deciding what this card should say and
+// where it should send somebody, after the vet said the thing they sit
+// down to do on a first evening is a visit, not data entry -- "ben veri
+// girmek için oturmuyorum, iş yapıyorum". So the sentence, the route,
+// the button's wording and the permission behind it are one row each.
+// Whatever comes back is an edit here and a string in `messages/*.json`,
+// not a hunt through the file, and no branch of this component can
+// disagree with another about which of the four is being talked about.
+//
+// A third row is not a free addition. The card has exactly the two
+// states of the mandatory chain, and the moment it can name a third
+// thing it becomes a setup checklist -- which is the shape the vet said
+// they would abandon in three days.
+const STEPS = {
+  client: {
+    href: "/clients/new",
+    namespace: "client",
+    permission: "clients.write",
+  },
+  pet: {
+    href: "/pets/new",
+    namespace: "pet",
+    permission: "pets.write",
+  },
+} as const;
+
+export async function FirstStepCard({ need }: { need: keyof typeof STEPS }) {
+  const step = STEPS[need];
+
   const session = await requireSession();
-  if (!can(session.user.role, need === "client" ? "clients.write" : "pets.write")) {
+  if (!can(session.user.role, step.permission)) {
     return null;
   }
 
-  const [t, tClient, tPet] = await Promise.all([
+  const [t, tAction] = await Promise.all([
     getTranslations("dashboard.firstStep"),
-    getTranslations("client"),
-    getTranslations("pet"),
+    getTranslations(step.namespace),
   ]);
 
-  const href = need === "client" ? "/clients/new" : "/pets/new";
-  const label = need === "client" ? tClient("new") : tPet("new");
+  const href = step.href;
+  const label = tAction("new");
 
   return (
     <Card className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
