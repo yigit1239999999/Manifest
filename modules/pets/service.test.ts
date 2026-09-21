@@ -113,12 +113,61 @@ describe("createPet", () => {
     });
   });
 
+  it.each([
+    ["Kedi", "CAT"],
+    ["kedi", "CAT"],
+    ["KEDİ", "CAT"],
+    ["Kopek", "DOG"],
+    ["Cat", "CAT"],
+    ["Tavsan", "RABBIT"],
+    ["Sığır", "CATTLE"],
+  ])("records %s as the built-in %s, with no custom species", async (typed, expected) => {
+    // The defect ux-3 reported, and the half the unique index does not
+    // reach: the server compared what was typed against the enum keys,
+    // so "Kedi" found nothing and became a clinic-defined species. The
+    // animal was then stored as OTHER, and fell out of every list that
+    // groups by CAT -- present in the clinic, absent from the report.
+    //
+    // Both languages and either spelling, because the folding is the
+    // same one the search uses and "the same name" has to mean one
+    // thing everywhere.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: typed }, ctx);
+
+    expect(prisma.customSpecies.create).not.toHaveBeenCalled();
+    expect(prisma.customSpecies.findFirst).not.toHaveBeenCalled();
+    expect(prisma.pet.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ species: expected, customSpeciesId: null }),
+    });
+  });
+
+  it("still lets a clinic name something the list does not have", async () => {
+    // The other side, and the reason this is a lookup rather than a
+    // ban: "Kirpi" is a real thing a clinic sees and is not a built-in.
+    // A check that swallowed it would close the custom species feature
+    // while looking like a bug fix.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.customSpecies.create).mockResolvedValue({ id: "cs-1" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: "Kirpi" }, ctx);
+
+    expect(prisma.customSpecies.create).toHaveBeenCalled();
+  });
+
   it("looks for a species the way the clinic would recognise it", async () => {
-    // "Kopek" and "Köpek" are one species to a vet and were two rows to
+    // "Kırpı" and "Kirpi" are one species to a vet and were two rows to
     // the product: the dedupe read used `mode: "insensitive"`, which is
     // ILIKE, which folds case and nothing else. Unlike a search that
     // misses, this one writes -- the second row is permanent, the
     // picker offers both forever, and animals get filed under either.
+    //
+    // A clinic-defined name on both sides here. "Köpek" would no longer
+    // reach this code at all: it is a built-in under its Turkish name
+    // and is resolved before the custom path.
     //
     // Asserted on the query rather than the outcome, because the
     // outcome here is a row that does not get created and every wrong
@@ -128,11 +177,11 @@ describe("createPet", () => {
     vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue({ id: "cs-9" } as never);
     vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
 
-    await createPet({ ...validInput, species: "Kopek" }, ctx);
+    await createPet({ ...validInput, species: "Kırpı" }, ctx);
 
     expect(prisma.customSpecies.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { clinicId: ctx.clinicId, nameKey: "kopek" },
+        where: { clinicId: ctx.clinicId, nameKey: "kirpi" },
       }),
     );
   });

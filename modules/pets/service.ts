@@ -6,6 +6,7 @@ import type { ActionContext } from "@/lib/action";
 import type { Species } from "@/generated/prisma/enums";
 import { fold } from "@/lib/search";
 import { SPECIES, type PetInput } from "./schema";
+import { builtInSpeciesNamed } from "./species-names";
 
 async function assertOwnerInClinic(ownerId: string, clinicId: string) {
   const owner = await prisma.client.findFirst({
@@ -47,6 +48,23 @@ async function resolveSpecies(
   const name = raw.trim();
   if (!name)
     throw validationFailed({ species: ["error.validation.speciesUnknown"] });
+
+  // A vet types "Kedi", not "CAT". The check above compares against enum
+  // keys, so the typed name fell through to the custom path and the
+  // clinic grew a species called "Kedi": the animal was stored as OTHER
+  // with a custom species beside it, and dropped out of every list that
+  // groups by CAT. The cat was in the building and not in the report.
+  //
+  // Here rather than only in the picker, because the picker is a
+  // convenience and this is the guarantee. Fix the picker alone and the
+  // next import, or the next form, recreates the duplicate -- making it
+  // impossible beats writing down that it must not happen.
+  //
+  // Disabled species included on purpose: turning one off governs what
+  // the picker offers, not what exists. Recording a cat as something
+  // else to respect a display setting is a lie in the data.
+  const builtIn = builtInSpeciesNamed(name);
+  if (builtIn) return { species: builtIn, customSpeciesId: null };
 
   // Folded, not `mode: "insensitive"`. ILIKE folds case and nothing
   // else, so "Kopek" did not find "Köpek" and the clinic ended up with
