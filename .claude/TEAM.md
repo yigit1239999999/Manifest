@@ -2197,3 +2197,25 @@ değiştir.
 **davranış** tarafı sentetikle doğrulanamaz, çünkü kusur kullanıcının
 *"bulamadım, yenisini açayım"* **kararından** doğuyor — veri değil **karar**
 üretilemiyor.
+
+### Kapı zararı durdurmak için vardır — bir merak kesim kapısına konmaz
+
+value'nun kendi şartını daraltmasından. Taslak *"`/pets/<id>`'nin sabit
+maliyeti **açıklanacak**"* diyordu; ux 16b ile ölçtü ve **maliyeti sabit**
+çıktı — hiçbir şey birikmiyor.
+
+> *"Açıklanması şart"* demek, **bir merakı kesim kapısına koymaktı.**
+> Kapı **zararı** durdurmak için var.
+
+**Ayrım:** bir soruyu cevaplamak **değerlidir**; cevaplanmamış olması
+**zarar değilse** kapı olamaz. Aksi hâlde kapı listesi öğrenmek istediğimiz
+her şeyle dolar ve **gerçek kapılar onların arasında görünmez olur** —
+"sahte pozitif kural listesinde de zararlıdır"ın kapı tarafı.
+
+**Ve ertelemeyi güvenli kılan şeyin ne olduğu yazılır:** burada **1500 ms
+gerileme koruması.** Soru açık kalıyor ama **sessizce kötüleşmiyor** — bir
+şeyi ertelerken *"kötüleşirse nasıl haberimiz olur"* sorusunun cevabı
+varsa erteleme ucuz, yoksa değil.
+
+**Kesilen soru açık soru olarak yazılır** (30c): *"ölçülmedi; N+1 olabilir
+de olmayabilir de."* Yazılmazsa bir sonraki okuyan **bakılmış sanar.**
