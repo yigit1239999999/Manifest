@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import { requireSession } from "@/lib/session";
 import { can, type Permission } from "@/lib/permissions";
+import { safeNext } from "@/lib/next-param";
 
 // A clinic's records hang off a chain: client → pet → everything else.
 // Four `/new` routes sit further down that chain than a fresh database
@@ -41,7 +42,23 @@ import { can, type Permission } from "@/lib/permissions";
 // dashboard row with nothing to do is noise on a page of other things; this
 // is the whole screen somebody has just walked into, and the reason they are
 // stuck is the one thing worth saying there.
-export async function MissingLink({ need }: { need: "client" | "pet" }) {
+export async function MissingLink({
+  need,
+  next,
+}: {
+  need: "client" | "pet";
+  /**
+   * Where to come back to once the missing link exists.
+   *
+   * Without it the vet saves the new record, lands on its page, and has
+   * to remember the errand they were on -- which on an empty clinic is
+   * two manual steps in an eight-screen walk. The value is validated
+   * before it decides anything (`lib/next-param.ts`), here and again in
+   * the action that redirects, because neither may assume the other
+   * looked.
+   */
+  next?: string;
+}) {
   // One async function rather than a wrapper around an async child: a
   // component that returns another component's promise renders as
   // nothing outside a server request, so the version with a helper
@@ -73,6 +90,11 @@ export async function MissingLink({ need }: { need: "client" | "pet" }) {
           permission: "pets.write",
         };
 
+  const errand = safeNext(next);
+  const href = errand
+    ? `${variant.href}?next=${encodeURIComponent(errand)}`
+    : variant.href;
+
   const [t, tAction, session] = await Promise.all([
     getTranslations("common"),
     getTranslations(variant.namespace),
@@ -87,7 +109,7 @@ export async function MissingLink({ need }: { need: "client" | "pet" }) {
       description={t(variant.hint)}
       action={
         can(session.user.role, variant.permission) ? (
-          <Link href={variant.href} className={buttonVariants()}>
+          <Link href={href} className={buttonVariants()}>
             {tAction("new")}
           </Link>
         ) : undefined

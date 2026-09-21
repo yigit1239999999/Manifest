@@ -57,6 +57,12 @@ interface Props {
   /** Only for a reader who may change the setting; absent means absent. */
   /** Link to the species settings page, only for users who may manage it. */
   manageHref?: string;
+  /**
+   * Where the vet was going when they found they needed an animal
+   * first. See `ClientForm` -- same errand, one link further down the
+   * chain, and validated on the server for the same reason.
+   */
+  next?: string;
 }
 
 export function PetForm({
@@ -71,6 +77,7 @@ export function PetForm({
   hiddenBuiltIns,
   hiddenQualifier,
   manageHref,
+  next,
 }: Props) {
   const ownerOptions = useMemo(
     () =>
@@ -146,6 +153,9 @@ export function PetForm({
 
   return (
     <ActionForm form={form} className="flex flex-col gap-8">
+      {/* The errand, travelling with the form because a server action
+          cannot see the URL it was submitted from. */}
+      {next && <input type="hidden" name="next" value={next} />}
       {/* The essentials: everything a vet needs to register an animal in
           under a minute. Everything else lives under "optional details". */}
       <FormSection

@@ -33,7 +33,7 @@ export default async function NewAppointmentPage({
       <BackLink href="/appointments" label={tCommon("back")} />
       <PageHeader title={t("new")} />
       {pets.items.length === 0 ? (
-        <MissingLink need="pet" />
+        <MissingLink need="pet" next="/appointments/new" />
       ) : (
         <Card className="p-6">
           <AppointmentForm

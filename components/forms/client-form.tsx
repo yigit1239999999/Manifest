@@ -18,9 +18,18 @@ import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   client?: Client;
+  /**
+   * Where the vet was going when they found they needed a client
+   * first. Carried through the save so they land back on it instead
+   * of on the new client's page with their errand forgotten.
+   *
+   * Validated on the server before it is used -- `lib/next-param.ts`
+   * -- because this ends up deciding a redirect.
+   */
+  next?: string;
 }
 
-export function ClientForm({ client }: Props) {
+export function ClientForm({ client, next }: Props) {
   const t = useTranslations("client");
   const tEnum = useTranslations("enum.contactMethod");
   const tCommon = useTranslations("common");
@@ -53,6 +62,9 @@ export function ClientForm({ client }: Props) {
 
   return (
     <ActionForm form={form} className="flex flex-col gap-8">
+      {/* The errand, travelling with the form because a server action
+          cannot see the URL it was submitted from. */}
+      {next && <input type="hidden" name="next" value={next} />}
       <FormSection
         title={t("sections.identity")}
         description={t("sections.identityHint")}

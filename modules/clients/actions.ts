@@ -6,6 +6,7 @@ import { action, parse, type FormState } from "@/lib/action";
 import { clientSchema } from "./schema";
 import { quickSearchClients } from "./queries";
 import { PAGE_SIZES } from "@/lib/pagination";
+import { safeNext, withCreated } from "@/lib/next-param";
 import { requireSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
 import {
@@ -24,6 +25,15 @@ export const createClientAction = action(
     const client = await createClient(parsed.data, ctx);
     revalidatePath("/clients");
     revalidatePath("/");
+    // Back to whatever the vet was doing when they discovered they
+    // needed a client, carrying the client they just made. Without it
+    // they land on the new record and have to remember the errand
+    // themselves -- which is two manual steps in an eight-screen walk.
+    //
+    // Validated rather than trusted: this decides a redirect, and an
+    // invalid value behaves as though nobody asked.
+    const next = safeNext(formData.get("next")?.toString());
+    if (next) redirect(withCreated(next, "client", client.id));
     redirect(`/clients/${client.id}`);
   },
 );

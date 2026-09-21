@@ -45,6 +45,31 @@ describe("the missing link", () => {
     expect(screen.getByText(tr.common.missingPetHint)).toBeInTheDocument();
   });
 
+  // The walk down the chain has to remember what it was for. Without
+  // it the vet saves the new record, lands on its page, and has to
+  // reconstruct the errand -- two manual steps on an empty clinic.
+  it("carries the errand down to the next form", async () => {
+    await renderAs("ADMIN", "client");
+    render(await MissingLink({ need: "pet", next: "/visits/new" }));
+
+    const hrefs = screen.getAllByRole("link").map((l) => l.getAttribute("href"));
+    expect(hrefs).toContain("/pets/new?next=%2Fvisits%2Fnew");
+  });
+
+  // Validated here as well as in the action that redirects: this value
+  // decides where a browser goes, and neither side may assume the
+  // other looked.
+  it("drops an errand that leads off the site", async () => {
+    await renderAs("ADMIN", "pet");
+    render(await MissingLink({ need: "client", next: "https://ornek.test" }));
+
+    const hrefs = screen.getAllByRole("link").map((l) => l.getAttribute("href"));
+    // The button still works; it just goes where it would have gone
+    // with nobody asking.
+    expect(hrefs).toContain("/clients/new");
+    expect(hrefs.some((h) => h?.includes("ornek.test"))).toBe(false);
+  });
+
   // The two links are separate permissions and a technician holds
   // neither, but they are asked separately so that a role holding one
   // and not the other gets the right answer on each screen.

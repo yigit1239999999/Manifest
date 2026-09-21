@@ -84,7 +84,7 @@ export default async function NewInvoicePage({
       <BackLink href="/invoices" label={tCommon("back")} />
       <PageHeader title={t("new")} />
       {clients.items.length === 0 ? (
-        <MissingLink need="client" />
+        <MissingLink need="client" next="/invoices/new" />
       ) : (
         <Card className="p-6">
           <InvoiceForm

@@ -33,7 +33,7 @@ export default async function NewVisitPage({
       <BackLink href="/visits" label={tCommon("back")} />
       <PageHeader title={t("new")} />
       {pets.items.length === 0 ? (
-        <MissingLink need="pet" />
+        <MissingLink need="pet" next="/visits/new" />
       ) : (
         <Card className="p-6">
           <VisitForm

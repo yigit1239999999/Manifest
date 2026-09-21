@@ -7,6 +7,7 @@ import { petSchema } from "./schema";
 import { quickSearchPets } from "./queries";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { ownerLabel, petLabel } from "@/lib/pet-label";
+import { safeNext, withCreated } from "@/lib/next-param";
 import { requireSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
 import {
@@ -27,6 +28,10 @@ export const createPetAction = action(
     revalidatePath("/pets");
     revalidatePath(`/clients/${pet.ownerId}`);
     revalidatePath("/");
+    // Same errand as `createClientAction`, one link further up: the
+    // animal the visit form was waiting for.
+    const next = safeNext(formData.get("next")?.toString());
+    if (next) redirect(withCreated(next, "pet", pet.id));
     redirect(`/pets/${pet.id}`);
   },
 );

@@ -12,17 +12,25 @@ import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { MissingLink } from "@/components/missing-link";
+import { safeNext } from "@/lib/next-param";
 import { PetForm } from "@/components/forms/pet-form";
 import { hiddenBuiltInSpecies } from "@/modules/pets/species-names";
 
 export default async function NewPetPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ownerId?: string }>;
+  searchParams: Promise<{ ownerId?: string; next?: string }>;
 }) {
   const session = await requireSession();
   if (!can(session.user.role, "pets.write")) return <ForbiddenState />;
-  const { ownerId } = await searchParams;
+  const { ownerId, next } = await searchParams;
+  // The errand the vet is on, and the one this page hands further down:
+  // `/clients/new` needs to know where to come back to, which is here,
+  // with everything this page was already carrying.
+  const errand = safeNext(next);
+  const ownErrand = errand
+    ? `/pets/new?next=${encodeURIComponent(errand)}`
+    : "/pets/new";
   const [
     t,
     tCommon,
@@ -62,7 +70,7 @@ export default async function NewPetPage({
       <BackLink href="/pets" label={tCommon("back")} />
       <PageHeader title={t("new")} />
       {owners.items.length === 0 ? (
-        <MissingLink need="client" />
+        <MissingLink need="client" next={ownErrand} />
       ) : (
         <Card className="p-6">
           <PetForm
@@ -80,6 +88,7 @@ export default async function NewPetPage({
             hiddenBuiltIns={hiddenBuiltIns}
             hiddenQualifier={t("hiddenSpeciesQualifier")}
             manageHref={canManageSpecies ? "/settings" : undefined}
+            next={errand ?? undefined}
           />
         </Card>
       )}
