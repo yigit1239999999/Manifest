@@ -9,7 +9,7 @@ import { PaymentForm } from "@/components/forms/payment-form";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Card,
   CardContent,
@@ -47,7 +47,11 @@ export default async function InvoicePage({
         title={`#${invoice.number}`}
         description={`${invoice.client.firstName} ${invoice.client.lastName}`}
       >
-        <Badge variant="secondary">{tStatus(invoice.status as never)}</Badge>
+        <StatusBadge
+          kind="invoice"
+          status={invoice.status}
+          label={tStatus(invoice.status as never)}
+        />
         {invoice.status !== "VOID" && (
           <DeleteButton
             action={voidInvoiceAction.bind(null, invoice.id)}

@@ -12,6 +12,9 @@ const badgeVariants = cva(
         secondary: "bg-accent/60 text-accent-foreground",
         outline: "border border-border bg-background text-muted-foreground",
         destructive: "bg-destructive/10 text-destructive",
+        // Same tint-plus-role-colour recipe as `destructive` and as `Callout`,
+        // so "needs attention" looks the same whether it is a badge or a box.
+        warning: "bg-warning/10 text-warning",
       },
     },
     defaultVariants: {

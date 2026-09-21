@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDate, formatMoney } from "@/lib/format";
 
@@ -102,9 +102,11 @@ export default async function InvoicesPage({
                       {formatMoney(fmt, inv.totalCents, currency)}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="secondary">
-                        {tStatus(inv.status as never)}
-                      </Badge>
+                      <StatusBadge
+                        kind="invoice"
+                        status={inv.status}
+                        label={tStatus(inv.status as never)}
+                      />
                     </td>
                   </tr>
                 ))}

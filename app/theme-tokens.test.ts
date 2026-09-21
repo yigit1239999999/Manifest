@@ -294,3 +294,52 @@ describe("status colours are readable in both themes", () => {
     ).toBeLessThan(4.5);
   });
 });
+
+// --- Filled surfaces ------------------------------------------------------
+// The tinted-box test above measures `text-<role>` over `bg-<role>/10`. The
+// status badges add a second recipe: text of one role over a *solid* fill of
+// another (`bg-muted text-muted-foreground`, `bg-accent text-accent-foreground`).
+// That pair was never measured, and the neutral badge — the most common one in
+// the app — was failing at 4.08:1.
+
+describe("filled surfaces are readable in both themes", () => {
+  const { light, dark } = readThemePalettes(css);
+
+  /** Every `bg-<fill> text-<role>` pair the UI actually paints. */
+  const filled = [
+    // `Badge variant="default"`, and every `hover:bg-muted` control that keeps
+    // its muted text: `button` ghost, the sidebar, the command palette.
+    { name: "muted-foreground on a muted fill", fg: "--muted-fg", bg: "--muted" },
+    // `Badge variant="primary"` and `variant="secondary"`.
+    { name: "accent-foreground on an accent fill", fg: "--accent-fg", bg: "--accent" },
+    // Filled primary buttons.
+    { name: "primary-foreground on primary", fg: "--primary-fg", bg: "--primary" },
+  ] as const;
+
+  for (const [themeName, palette] of [
+    ["light", light],
+    ["dark", dark],
+  ] as const) {
+    for (const pair of filled) {
+      it(`${pair.name} clears WCAG AA in ${themeName}`, () => {
+        const fg = palette.get(pair.fg)!;
+        const bg = palette.get(pair.bg)!;
+        expect(contrastRatio(fg, bg), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+      });
+    }
+  }
+
+  it("scores the muted foreground that shipped as failing, so the bar is real", () => {
+    // #756f64 looked fine because it was only ever checked against the page
+    // background (4.53). On the muted fill it actually sits on, it was 4.08.
+    const shipped = "#756f64";
+    expect(
+      contrastRatio(shipped, light.get("--muted")!),
+      "the previous --muted-fg on a light muted fill",
+    ).toBeLessThan(4.5);
+    expect(
+      contrastRatio(shipped, light.get("--bg")!),
+      "…while clearing AA on the page background, which is why it was missed",
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+});

@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { ReminderForm } from "@/components/forms/reminder-form";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Card,
   CardContent,
@@ -82,7 +83,11 @@ export default async function RemindersPage() {
                   <p className="mt-1 text-sm text-muted-foreground">{r.body}</p>
                 )}
               </div>
-              <Badge variant="secondary">{tStatus(r.status as never)}</Badge>
+              <StatusBadge
+                kind="reminder"
+                status={r.status}
+                label={tStatus(r.status as never)}
+              />
             </li>
           ))}
         </ul>

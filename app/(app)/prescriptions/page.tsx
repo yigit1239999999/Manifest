@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/session";
 import { activePrescriptions } from "@/modules/prescriptions/queries";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate } from "@/lib/format";
 
 export default async function PrescriptionsPage() {
@@ -59,9 +59,11 @@ export default async function PrescriptionsPage() {
                     {formatDate(fmt, p.startedAt)}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant="secondary">
-                      {tStatus(p.status as never)}
-                    </Badge>
+                    <StatusBadge
+                      kind="prescription"
+                      status={p.status}
+                      label={tStatus(p.status as never)}
+                    />
                   </td>
                 </tr>
               ))}

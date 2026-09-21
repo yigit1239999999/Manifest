@@ -35,7 +35,12 @@
   --card: #ffffff;
   --card-fg: #1f1d1a;
   --muted: #ece8e0;
-  --muted-fg: #756f64;
+  /* Darkened from #756f64, which cleared AA on the page (4.53) but not on a
+     muted fill (4.08) — and a muted fill is exactly where this colour lands:
+     the neutral status badge, the table headers, every `hover:bg-muted`
+     control. Measured against the surface the text actually sits on, not a
+     flat white one (see app/theme-tokens.test.ts). */
+  --muted-fg: #6b6559;
   --border: #e4dfd4;
   --input: #e0dacd;
   --primary: #0f7a6e;

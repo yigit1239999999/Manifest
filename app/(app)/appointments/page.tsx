@@ -11,6 +11,7 @@ import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
 import { DayNav } from "@/components/day-nav";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
   dayKey,
@@ -181,9 +182,11 @@ export default async function AppointmentsPage({
                       <Badge variant="secondary">{tType(a.type as never)}</Badge>
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <Badge variant="secondary">
-                        {tStatus(a.status as never)}
-                      </Badge>
+                      <StatusBadge
+                        kind="appointment"
+                        status={a.status}
+                        label={tStatus(a.status as never)}
+                      />
                     </td>
                     <td className="hidden px-4 py-3 align-top text-muted-foreground md:table-cell">
                       {a.vet?.name ?? "-"}
