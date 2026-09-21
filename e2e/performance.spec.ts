@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { test, expect, type Page } from "@playwright/test";
 
 // Page-load performance budget.
@@ -9,21 +11,53 @@ import { test, expect, type Page } from "@playwright/test";
 // regression fails the build before it ships.
 //
 // Tighten the budget by setting PERF_BUDGET_MS in the workflow env.
+//
+// Backlog 35: a number on its own does not say the page worked. This file
+// used to measure duration and nothing else, and during one measuring run
+// `/clients` was falling into the error boundary — a column missing from the
+// database — and the suite recorded it at 182 ms and passed. A broken
+// application measures fast, and the faster it is broken the better it
+// scores. So every route now has to show a mark that only that route
+// renders, and the timing is only reported for a page that showed it.
 
 const BUDGET_MS = Number(process.env.PERF_BUDGET_MS ?? 6000);
 
-const ROUTES = [
-  "/",
-  "/clients",
-  "/clients/new",
-  "/pets",
-  "/pets/new",
-  "/visits",
-  "/appointments",
-  "/prescriptions",
-  "/reminders",
-  "/invoices",
-  "/settings",
+const messages = (locale: string) =>
+  JSON.parse(
+    readFileSync(
+      fileURLToPath(new URL(`../messages/${locale}.json`, import.meta.url)),
+      "utf8",
+    ),
+  ) as Record<string, Record<string, string>>;
+
+const TR = messages("tr");
+const EN = messages("en");
+
+/**
+ * The route's own heading, read from the message files rather than copied
+ * here: a heading that gets reworded should not quietly stop being checked,
+ * and the suite runs in whichever locale the browser asks for.
+ */
+function heading(namespace: string, key: string): RegExp {
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = (source: Record<string, Record<string, string>>) =>
+    // `{name}` and friends are filled in at render time.
+    escape(source[namespace][key]).replace(/\\\{\w+\\\}/g, ".+");
+  return new RegExp(`^(${pattern(TR)}|${pattern(EN)})$`, "i");
+}
+
+const ROUTES: { path: string; heading: RegExp }[] = [
+  { path: "/", heading: heading("dashboard", "greeting") },
+  { path: "/clients", heading: heading("client", "title") },
+  { path: "/clients/new", heading: heading("client", "new") },
+  { path: "/pets", heading: heading("pet", "title") },
+  { path: "/pets/new", heading: heading("pet", "new") },
+  { path: "/visits", heading: heading("visit", "title") },
+  { path: "/appointments", heading: heading("appointment", "title") },
+  { path: "/prescriptions", heading: heading("prescription", "title") },
+  { path: "/reminders", heading: heading("reminder", "title") },
+  { path: "/invoices", heading: heading("invoice", "title") },
+  { path: "/settings", heading: heading("settings", "title") },
 ];
 
 async function signUp(page: Page) {
@@ -39,9 +73,9 @@ async function signUp(page: Page) {
   await page.waitForURL(/\/$/);
 }
 
-async function measure(page: Page, route: string) {
+async function measure(page: Page, route: { path: string; heading: RegExp }) {
   const started = Date.now();
-  await page.goto(route, { waitUntil: "load" });
+  const response = await page.goto(route.path, { waitUntil: "load" });
   const wall = Date.now() - started;
   const nav = await page.evaluate(() => {
     const [entry] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
@@ -49,6 +83,16 @@ async function measure(page: Page, route: string) {
       ? { ttfb: Math.round(entry.responseStart), load: Math.round(entry.loadEventEnd) }
       : null;
   });
+
+  // Checked after the clock is read, so waiting for the assertion can never
+  // be mistaken for page-load time.
+  expect(response?.status(), `${route.path} answered ${response?.status()}`).toBeLessThan(400);
+  await expect(
+    page.getByRole("heading", { level: 1, name: route.heading }),
+    `${route.path} did not render its own heading — an error page, a redirect ` +
+      `or an empty shell would time just as well`,
+  ).toBeVisible();
+
   return { wall, ...nav };
 }
 
@@ -60,7 +104,7 @@ test.describe("Performance budget", () => {
 
     const results: { route: string; wall: number; load?: number; ttfb?: number }[] = [];
     for (const route of ROUTES) {
-      results.push({ route, ...(await measure(page, route)) });
+      results.push({ route: route.path, ...(await measure(page, route)) });
     }
 
     // One table in the report, then one assertion per route so the failing
