@@ -1649,7 +1649,11 @@ talimat gelmeyince düşer.) Üretim derlemesinin kimliği
    tehlikelidir** — çünkü kabul bir kapıyı kapatır ve kimse arkasına
    bakmaz.
 2. **Hangi zeminde?** Dev sunucusu mu, üretim derlemesi mi, temiz mi kirli
-   mi. **Zemini değiştiren, ölçen HERKESE söyler.** Ve zemin **lehine**
+   mi. **En temiz sayısal örnek ux'ten:** birincil düğmenin odak konturu,
+   **aynı renk**, kart zeminine karşı **1,09**, düğme dolgusuna karşı
+   **8,32** — **7,2 kat.** Dolguya karşı ölçen *"sorun yok"* derdi. Doğru
+   zemin, **işaretin gerçekte üstünde durduğu yüzeydir**; dev-ui ile
+   ux'in 7,62'de birebir tutmasının sebebi de buydu. **Zemini değiştiren, ölçen HERKESE söyler.** Ve zemin **lehine**
    yanıldığında hiçbir alarm çalmaz — *"bulamadım" en az "buldum" kadar
    zemin sorgulaması ister.*
 3. **Neyi, hangi olayı?** 307 yönlendirmesini "hızlı sayfa" diye ölçmek bu
@@ -2408,3 +2412,55 @@ value'nun uyarısı, ve doğrudan kesimi uygulayan tarafa:
 son adımı inmeden kesilen sürüm **uyarıyı verir, çareyi vermez** — yani
 yalnızca eksik değil, **daha kötü**: kullanıcı artık kaybettiğini biliyor
 ve yapabileceği bir şey yok.
+
+### Bir sürüm EKSİK olabilir, GERİYE gidemez — ve şart "düzeltilsin" değil "çözülsün"
+
+value'nun kesim tabanı, ve iki ayrı inceliği var.
+
+**Taban:** paketin cümlesiyle ilgisi olmayan bir kusur bile, **bizim
+ürettiğimiz bir gerilemeyse** kesimi durdurur. Sıraya girmez, kapı da
+sayılmaz — **taban**tır. *Bir paket eksik olabilir; sürüm bir öncekinden
+kötü olamaz.*
+
+**İncelik:** şart *"düzeltilsin"* değil **"çözülsün"** diye yazıldı, çünkü
+ölçümün **zemini henüz belli değildi.** value iki hipotez kurdu ve
+**farklı sayı öngördüklerini** gösterdi:
+
+- `outline-ring` uygulanmıyorsa renk `currentColor`'a düşer,
+- yoksa turkuaz kontur turkuaz dolguya karşı ölçülmüştür.
+
+**Bir tur ölçümle ayrılır** — ve ayrıldı: `outline-color` ham değeri
+`rgb(4,20,15)`, `--color-ring` `rgb(52,192,168)`, **eşit değil.**
+Gerileme gerçek. *(value'nun karşı hipotezinin öncülü yanlıştı: birincil
+düğmenin dolgusu turkuaz olduğu için metni **koyu**, yani `currentColor`
+burada koyu bir kontur demek.)*
+
+> **Bir bulguya "yanlış" demeden zemini sorulur, ve soru sayıyla
+> ayrılabilecek biçimde kurulur.** *"Emin misin"* bir tur harcar; *"iki
+> hipotez şu iki farklı sayıyı verir"* bir turda kapatır.
+
+**Ve sonuç ne çıkarsa çıksın kesim çözülür:** gerileme gerçekse iner,
+yanlış zeminse şarttan düşer. **Bekleyen şey bir düzeltme değil, bir
+cevaptı.**
+
+### `null` bir seçenek değil, bir YOKLUKTUR — seçilebilir yapılmaz
+
+ux, üç durumlu onay alanının metinlerini yazarken taslağın **şeklini**
+değiştirdi:
+
+> **Üç seçenek değil, iki seçenek + seçilmemiş hâl.**
+
+*"Sorulmadı"*yı seçilebilir yapmak onu **bir karara** çevirir — veteriner
+işaretlediğinde *"sordum, cevap alamadım"* mı demiş olur, *"sormadım"* mı?
+**İkisi farklı ve ekran ayıramaz.** Seçilmemiş bir radyo grubu **zaten**
+`null`'dur: veri modeliyle birebir örtüşür ve **ekran hiçbir şey
+uydurmaz.**
+
+**Sonuç satırı yine de üç hâl için de yazılır**, ve `null` ile `false`
+aynı sonucu verse bile **iki ayrı cümleyle**: fark sonuçta değil
+**sebepte** — *"sorulmadı"* **yapılacak bir iş** bildirir, *"izin
+vermedi"* **kapanmış bir konu.**
+
+**Ve gösterimde:** `null` için **tire basılmaz.** Tire yokluk işaretidir,
+oysa *"sorulmadı"* **bilgidir** — ayrım yeni kazanılıyorsa gösterimde
+hemen kaybedilmemeli.
