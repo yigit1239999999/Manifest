@@ -199,6 +199,53 @@ describe("blockedReminders", () => {
     expect((await blockedReminders("clinic-1")).unreachedTotal).toBe(0);
   });
 
+  // Never set up is not switched off. One is an invitation, the other
+  // is a reminder of the clinic's own decision -- and a clinic that
+  // has never opened the settings page was being told it had decided.
+  it("tells a clinic that never set this up from one that switched it off", async () => {
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([reminder()] as never);
+
+    vi.mocked(getClinicMessagingProfile).mockResolvedValue(clinic({}));
+    expect((await blockedReminders("clinic-1")).byReason.notSetUp).toBe(1);
+
+    vi.mocked(getClinicMessagingProfile).mockResolvedValue(
+      clinic({ notifications: { channel: "SMS", whatsapp: { enabled: false } } }),
+    );
+    expect((await blockedReminders("clinic-1")).byReason.disabled).toBe(1);
+  });
+
+  // The settings screen needs one reason on its own, and it has to
+  // come from here: a count of its own beside the switch would
+  // eventually disagree with the one on the dashboard.
+  it("breaks the count down by reason, over everything and not the capped rows", async () => {
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+      reminder({ id: "r-1", client: { ...reminder().client, notificationsOptIn: null } }),
+      reminder({ id: "r-2", client: { ...reminder().client, notificationsOptIn: null } }),
+      reminder({ id: "r-3", client: { ...reminder().client, notificationsOptIn: false } }),
+    ] as never);
+
+    const { byReason } = await blockedReminders("clinic-1", { take: 1 });
+
+    // Two never asked, one refused -- and the refusal is not counted
+    // as a gap: it is a decision the owner made.
+    expect(byReason.neverAsked).toBe(2);
+    expect(byReason.optedOut).toBe(1);
+    expect(byReason.noPhone).toBe(0);
+  });
+
+  it("leaves out a reminder whose owner has been archived", async () => {
+    // The sweep's candidate query excludes them, and a tab listing
+    // them would send a vet to tidy a record for somebody the clinic
+    // no longer sees.
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([] as never);
+
+    await blockedReminders("clinic-1");
+
+    const where = vi.mocked(prisma.reminder.findMany).mock.calls[0][0]
+      ?.where as { client?: unknown };
+    expect(where.client).toEqual({ archivedAt: null });
+  });
+
   it("asks only for the days the sweep can act on", async () => {
     vi.mocked(prisma.reminder.findMany).mockResolvedValue([] as never);
 

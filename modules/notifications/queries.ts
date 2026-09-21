@@ -40,6 +40,10 @@ const BLOCKED_STATES = [
   "petSilenced",
   "notConfigured",
   "disabled",
+  // Never set up, as distinct from switched off: the clinic has not
+  // been here yet, and the sentence for it is an invitation rather
+  // than a reminder of its own decision.
+  "notSetUp",
 ] as const;
 
 /**
@@ -114,13 +118,36 @@ export async function blockedReminders(
   unreachedTotal: number;
   /** Never sent, and will not be: the tab's other half. */
   blockedTotal: number;
+  /**
+   * Per reason, over everything found rather than the capped rows.
+   *
+   * The settings screen needs one of these on its own -- how many
+   * messages are held up because nobody has asked those owners for
+   * consent -- and it has to come from here rather than from a query
+   * of its own, or the number beside the switch and the number on
+   * the dashboard will one day disagree.
+   */
+  byReason: Record<BlockedReminderReason, number>;
 }> {
   const clinic = await getClinicMessagingProfile(clinicId);
-  if (!clinic) return { items: [], total: 0, unreachedTotal: 0, blockedTotal: 0 };
+  const emptyByReason = () =>
+    Object.fromEntries(
+      [...BLOCKED_STATES, ...UNREACHED_STATES].map((r) => [r, 0]),
+    ) as Record<BlockedReminderReason, number>;
+  if (!clinic)
+    return { items: [], total: 0, unreachedTotal: 0, blockedTotal: 0, byReason: emptyByReason() };
 
   const { from, to } = reminderNoticeWindow(now, clinic.notifications.whatsapp.reminders);
   const rows = await prisma.reminder.findMany({
-    where: { clinicId, status: "PENDING", dueAt: { gte: from, lte: to } },
+    where: {
+      clinicId,
+      status: "PENDING",
+      dueAt: { gte: from, lte: to },
+      // An archived owner is not work. The sweep's own candidate
+      // query excludes them, and a tab that lists them would send a
+      // vet to tidy a record for somebody the clinic no longer sees.
+      client: { archivedAt: null },
+    },
     orderBy: { dueAt: "asc" },
     include: {
       client: {
@@ -170,9 +197,13 @@ export async function blockedReminders(
     });
   }
 
+  const byReason = emptyByReason();
+  for (const b of blocked) byReason[b.reason]++;
+
   return {
     items: blocked.slice(0, take),
     total: blocked.length,
+    byReason,
     // Counted over everything found, not over the capped rows: a
     // badge that shrinks when the list is cut describes a different
     // set than the one it sits on.

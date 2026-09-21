@@ -1079,7 +1079,17 @@ export type ReminderDeliveryState =
   | { state: "petSilenced" }
   | { state: "noPhone" }
   | { state: "notConfigured"; channel: Channel }
+  /** Somebody opened the settings and switched sending off. */
   | { state: "disabled" }
+  /**
+   * Nobody has ever set this clinic up.
+   *
+   * Not the same as switched off, and the difference is what a vet
+   * should do next: turn it on, versus remember that you turned it
+   * off. Collapsing them told a clinic that had never seen the
+   * settings page that it had decided against messaging.
+   */
+  | { state: "notSetUp" }
   | null;
 
 export interface ReminderDeliveryRow {
@@ -1216,6 +1226,10 @@ export function reminderDeliveryState(
   // dev-ui found this, from the comment that used to justify the
   // opposite: a reason written down is what makes it checkable when
   // the thing underneath it moves.
+  // `null` is "nobody has said anything", `false` is "somebody said
+  // no". The reminders half only has a boolean, so an unset clinic
+  // reads as never set up whatever that says.
+  if (cfg.enabled === null) return { state: "notSetUp" };
   if (!cfg.enabled || !cfg.reminders.enabled) return { state: "disabled" };
 
   return {
