@@ -2315,3 +2315,39 @@ konuşmadığında **sessizce kaybolur** — kaybolduğunda da kimse fark etmez,
 `pkill -f "next-server"` **üretim sunucusunu da öldürür** — bu oturumda
 dev sunucusunu tazelerken 3001 böyle düştü. Dev sunucusu için
 `pkill -f "next dev"`, üretim için `pkill -f "next start -p 3001"`.
+
+### "Etkisiz metin" demeden önce, metnin OKUNDUĞU yer ölçülür
+
+ux'in onuncu yakalaması, ve sınıfı bir öncekinden de ince. Sıra şöyle
+işledi:
+
+1. ux: *"hiçbir şey onay kutusunun önemli olduğunu söylemedi."*
+2. value düzeltti: **söylüyor** — `components/forms/client-form.tsx:150-160`,
+   kutucuğun yanında, `messages/tr.json:151` sonucu birebir yazıyor.
+   Sonuç: *metin eksik değil, **etkisiz.***
+3. ux ölçtü ve **ikinci çerçeve de yanlıştı:**
+
+| `/clients/new`, 1280×900 | konum |
+|---|---|
+| Telefon alanı | **482 px** — ilk ekranın içinde |
+| Adres başlığı | 765 px |
+| **Onay kutusu** | **1093 px** — ilk ekranın dışında |
+
+**Metin kusursuz; sorun konumda.** Zorunlu alanlar ve telefon 482'de
+bitiyor, görev orada **tamamlanmış hissediyor**; onay kutusu çoğu zaman
+atlanan Adres bölümünün ardında, 1,2 ekran aşağıda. Ve bu, ölçülen oranı
+**birebir** açıklıyor: **telefon %100, onay 1/33.**
+
+> **Sınıf: "etkisiz metin" değil, ERİŞİLMEYEN metin.** Bir metnin işe
+> yaramadığını söylemeden önce, **okunduğu yere kadar gidilip gidilmediği**
+> ölçülür.
+
+**Neden önemli:** iki sınıfın **çaresi zıt.** "Etkisiz" ise metin yeniden
+yazılır; "erişilmeyen" ise metne dokunulmaz, **konum** değişir. Birinci
+teşhisle çalışsaydık kusursuz bir metni bozup oranı hiç oynatmayacaktık.
+
+**Ve ux'in kendi payı, sınıfın en sinsi tarafını gösteriyor:** o metni aynı
+turun başında **okumuşlardı**, yorumunu bile alıntılamışlardı — sonra kendi
+**deneyimlerinden** yola çıkıp "söylemedi" yazdılar. *Kodda gördüğün bir
+metin, ekranda görüldüğü anlamına gelmez; kendi deneyimin de metnin
+yokluğunun kanıtı değildir.*
