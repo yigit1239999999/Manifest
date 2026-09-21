@@ -103,9 +103,24 @@ export type ReminderDeliveryStateName =
 export type ReminderDeliveryLineProps =
   | { state: "scheduled"; sendAt: Date; channel: string }
   | { state: "dueNow"; channel: string }
-  | { state: "sent"; at: Date; channel: string }
+  | {
+      state: "sent";
+      at: Date;
+      channel: string;
+      /**
+       * The channel is wired to the `log` transport, so the message was
+       * written to a file and handed to nobody.
+       *
+       * "Sent" already means only "the provider accepted it", which is one
+       * step short of "it arrived". In log mode we are a step below that
+       * again: no provider ever saw it. The word would be claiming a
+       * guarantee we hold no part of, and the distinction disappears on
+       * its own the day a real provider is connected.
+       */
+      testMode?: boolean;
+    }
   | { state: "failedRetrying"; at: Date; attempts: number }
-  | { state: "failedExhausted"; at: Date; attempts: number }
+  | { state: "failedExhausted"; attempts: number }
   | { state: "failedClinic"; at: Date }
   | { state: "optedOut" }
   | { state: "neverAsked" }
@@ -200,7 +215,7 @@ export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
           channel: props.channel,
         });
       case "sent":
-        return t("sent", {
+        return t(props.testMode ? "sentTestMode" : "sent", {
           at: formatDateTime(fmt, props.at),
           channel: props.channel,
         });
@@ -218,11 +233,15 @@ export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
       case "failedExhausted":
         // Not "abandoned" or "given up on", which the vet who reviewed
         // this rejected by asking the right question: "who gave up, me or
-        // the system?" Long and plain beats short and riddling.
-        return t("failedExhausted", {
-          at: formatDateTime(fmt, props.at),
-          attempts: props.attempts,
-        });
+        // the system?" It names what stopped -- automatic sending -- and
+        // what is left, which is a person pressing the button beside it.
+        //
+        // No timestamp, and that is a trade rather than an omission. The
+        // line has room for two of the three, and once the attempts are
+        // spent "it has stopped" is worth more than the minute the last
+        // one failed: a row that only counted tries looked identical to
+        // one still waiting, with a different number on it.
+        return t("failedExhausted", { attempts: props.attempts });
       case "failedClinic":
         return t("failedClinic", { at: formatDateTime(fmt, props.at) });
       case "optedOut":

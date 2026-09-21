@@ -368,3 +368,55 @@ describe("warning that this reminder cannot reach anyone", () => {
     expect(screen.getByText(/hiç sorulmamış/)).toBeInTheDocument();
   });
 });
+
+/**
+ * One of the five types turns the title field into the message.
+ *
+ * `CUSTOM` puts the title into the owner's SMS word for word
+ * (`lib/messaging/sms-templates.ts:87`); the other four templates ignore
+ * it entirely. The field is labelled "Title" either way, which gives no
+ * signal at all — "Notes" underneath it at least sounds internal. A vet
+ * picking "Custom" for a job the list does not cover, and typing their
+ * own shorthand, sends the owner that shorthand.
+ *
+ * The second half of the rule is the one worth a test: it must NOT appear
+ * under the other four. A caution shown where it does not apply is spent,
+ * and it is spent for every future case as well as this one.
+ */
+describe("the title field, when the title is the message", () => {
+  const hint = () => screen.queryByText(tr.reminder.customTitleHint);
+  const pickType = (value: string) =>
+    fireEvent.change(screen.getByRole("combobox", { name: /tür/i }), {
+      target: { value },
+    });
+
+  it("says so when the type is Custom", () => {
+    renderForm();
+    pickType("CUSTOM");
+
+    expect(hint()).toBeInTheDocument();
+  });
+
+  it("says nothing under the four types that ignore the title", () => {
+    renderForm();
+    for (const type of ["VACCINATION_DUE", "CHECKUP", "FOLLOWUP", "BIRTHDAY"]) {
+      pickType(type);
+      expect(hint(), `${type} shows a hint that is not true of it`).toBeNull();
+    }
+  });
+
+  // Through `Field`'s `hint`, so it is wired to `aria-describedby` rather
+  // than sitting beside the input as loose text somebody driving by voice
+  // never hears (TEAM.md #26).
+  it("reaches the field itself, not just the layout", () => {
+    renderForm();
+    pickType("CUSTOM");
+
+    const input = screen.getByRole("textbox", { name: /başlık/i });
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)?.textContent).toBe(
+      tr.reminder.customTitleHint,
+    );
+  });
+});

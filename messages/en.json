@@ -528,6 +528,7 @@
     "emptyClosed": "No closed reminders.",
     "emptyClosedHint": "Reminders you have completed, or closed because they were no longer needed, collect here.",
     "sendNow": "Send now",
+    "customTitleHint": "This title is sent to the client word for word.",
     "unreachable": {
       "neverAsked": "This client has never been asked for notification consent.",
       "optedOut": "This client has not given notification consent.",
@@ -538,8 +539,9 @@
       "scheduled": "Will be sent: {at} · {channel}",
       "dueNow": "Waiting to go out ({channel}). You can also send it now.",
       "sent": "Sent: {at} · {channel}",
-      "failedRetrying": "Could not be sent. {attempts, plural, one {1 attempt} other {# attempts}} so far, the last at {at}. It will be tried again automatically.",
-      "failedExhausted": "Tried {attempts, plural, other {# times}}, the operator refused. Last attempt {at}. You can send it by hand.",
+      "sentTestMode": "Recorded in test mode: {at} · {channel}. No message left the app.",
+      "failedRetrying": "Could not be sent: {at} · {attempts, plural, one {1 try} other {# tries}}. Will retry.",
+      "failedExhausted": "{attempts, plural, other {# tries}} failed and automatic sending stopped. Send it by hand.",
       "failedClinic": "Could not be sent. Last attempt {at}. The reason is shown above.",
       "optedOut": "Will not be sent: the client has not given notification consent.",
       "neverAsked": "Will not be sent: notification consent has never been asked for.",
@@ -551,6 +553,7 @@
     },
     "banner": {
       "disabled": "Automatic messages are switched off. No reminder on this list will be sent.",
+      "notConfigured": "{channel} is not connected. No message can go out from this list.",
       "clinicFailure": "Message sending has stopped: {reason}"
     }
   },

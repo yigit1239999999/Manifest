@@ -115,6 +115,9 @@ export function ReminderForm({
   const contactFor = (id: string) =>
     handedContact.get(id) ?? searchedContact.current.get(id) ?? null;
   const [pet, setPet] = useState<ComboOption | null>(initialPet);
+  // Watched only because one of the five types changes what the title
+  // field IS. See the hint below.
+  const [type, setType] = useState("CHECKUP");
   const clientId = client?.value ?? "";
 
   // Who owns the animals the search has returned. The picker deals in
@@ -221,6 +224,7 @@ export function ReminderForm({
     setPet(initialPet);
     setPetOwner(null);
     setContact(handedContact.get(defaultClientId ?? "") ?? null);
+    setType("CHECKUP");
   }
 
   /**
@@ -345,7 +349,12 @@ export function ReminderForm({
         </Field>
       )}
       <Field label={t("type")} error={state.fieldErrors?.type} required>
-        <Select name="type" defaultValue="CHECKUP" required>
+        <Select
+          name="type"
+          defaultValue="CHECKUP"
+          onChange={(e) => setType(e.target.value)}
+          required
+        >
           {REMINDER_TYPES.map((r) => (
             <option key={r} value={r}>
               {tType(r)}
@@ -374,7 +383,30 @@ export function ReminderForm({
         </div>
       )}
       <div className="sm:col-span-2">
-        <Field label={t("name")} error={state.fieldErrors?.title} required>
+        {/* The same field is an internal note under four of the five
+            types and the message itself under the fifth: the templates
+            ignore the title for a vaccination, a check-up, a follow-up
+            and a birthday, and `CUSTOM` puts it into the owner's SMS word
+            for word (`lib/messaging/sms-templates.ts:87`). Nothing on
+            screen said so, and the label "Title" gives no signal at all
+            -- "Notes", right below it, at least sounds internal.
+
+            So a vet picking "Custom" for a job the list does not cover
+            and typing their own shorthand sends the owner whatever that
+            shorthand was.
+
+            Only under `CUSTOM`. A hint shown beside the four types where
+            it is untrue would spend the warning: a caution that appears
+            where it does not apply stops being read where it does. It
+            goes through `Field`'s `hint` rather than beside it so it is
+            wired to `aria-describedby` and reaches somebody who never
+            sees the layout. */}
+        <Field
+          label={t("name")}
+          error={state.fieldErrors?.title}
+          hint={type === "CUSTOM" ? t("customTitleHint") : undefined}
+          required
+        >
           <Input name="title" required />
         </Field>
       </div>

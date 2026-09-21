@@ -22,6 +22,7 @@ import {
   type ReminderDeliveryState,
 } from "@/modules/notifications/service";
 import { getClinicMessagingProfile } from "@/modules/notifications/settings";
+import { isChannelConfigured, transportName } from "@/lib/messaging/transports";
 import { sendReminderNowAction } from "@/modules/notifications/actions";
 import { listClients } from "@/modules/clients/queries";
 import { listPets } from "@/modules/pets/queries";
@@ -119,6 +120,20 @@ export default async function RemindersPage({
   // eslint-disable-next-line react-hooks/purity -- server component, evaluated once per request
   const now = Date.now();
 
+  // Two more facts that belong to the clinic and not to any owner. The
+  // channel having no credentials stops every message the same way the
+  // master switch does, so it is said once above the list for the same
+  // reason -- and the rows it would otherwise have covered are all of
+  // them.
+  const channelUnconfigured = clinic
+    ? !isChannelConfigured(clinic.notifications.channel)
+    : false;
+  // The `log` transport writes to a file and hands the message to nobody,
+  // so a row must not say plainly that it was sent.
+  const testMode = clinic
+    ? transportName(clinic.notifications.channel) === "log"
+    : false;
+
   const deliveries = clinic
     ? reminders.map((r) => reminderDeliveryState(r, clinic))
     : [];
@@ -155,6 +170,7 @@ export default async function RemindersPage({
   ): ReminderDeliveryLineProps | null {
     switch (delivery.state) {
       case "disabled":
+      case "notConfigured":
         return null;
       case "optedOut":
       case "neverAsked":
@@ -164,11 +180,13 @@ export default async function RemindersPage({
       case "failed":
         return delivery.scope === "CLINIC"
           ? { state: "failedClinic", at: delivery.at }
-          : {
-              state: delivery.exhausted ? "failedExhausted" : "failedRetrying",
-              at: delivery.at,
-              attempts: delivery.attempts,
-            };
+          : delivery.exhausted
+            ? { state: "failedExhausted", attempts: delivery.attempts }
+            : {
+                state: "failedRetrying",
+                at: delivery.at,
+                attempts: delivery.attempts,
+              };
       case "scheduled":
         // The service computes the notice time and deliberately does not
         // compare it to the clock -- a notice date in the past is still
@@ -181,8 +199,11 @@ export default async function RemindersPage({
           ? { state: "dueNow", channel: tChannel(delivery.channel) }
           : { ...delivery, channel: tChannel(delivery.channel) };
       case "sent":
-      case "notConfigured":
-        return { ...delivery, channel: tChannel(delivery.channel) };
+        return {
+          ...delivery,
+          channel: tChannel(delivery.channel),
+          testMode,
+        };
     }
     // Not a `default:` branch, on purpose. A tenth state added to
     // `ReminderDeliveryState` would have fallen through a default and been
@@ -202,15 +223,25 @@ export default async function RemindersPage({
       {/* Above the form as well as the list, because a reminder created
           while this is true will not be sent either.
 
-          One banner at a time, and the switch wins when both apply. The
-          clinic-scope failure is the more urgent of the two while sending
-          is on, because money and a sender reputation are being spent on
-          rejected messages. With the switch off nothing is being attempted
-          at all, so that failure is a record of the past and "nothing goes
-          out" is the fact the vet has to act on first. */}
+          One banner at a time, in the order the blocks actually sit in:
+          the switch is off so nothing is attempted, the channel has no
+          credentials so nothing can be, the provider was reached and
+          refused. The same order the service checks them in, and for the
+          same reason -- the outer block makes the inner ones moot. It also
+          settles which is more urgent: a clinic-scope rejection burns
+          money and a sender reputation while sending is ON, but with the
+          switch off nothing is being attempted, so that rejection is a
+          record of the past and "nothing goes out at all" is the fact to
+          act on first. */}
       {messagingOff ? (
         <NotificationBlockedBanner settingsHref={settingsHref}>
           {t("banner.disabled")}
+        </NotificationBlockedBanner>
+      ) : channelUnconfigured ? (
+        <NotificationBlockedBanner settingsHref={settingsHref}>
+          {t("banner.notConfigured", {
+            channel: tChannel(clinic!.notifications.channel),
+          })}
         </NotificationBlockedBanner>
       ) : (
         clinicFailure?.state === "failed" &&
@@ -383,6 +414,15 @@ export default async function RemindersPage({
                     kind="reminder"
                     status={r.status}
                     label={tStatus(r.status as never)}
+                    // Its own line while the cluster is wrapping. The
+                    // badge is a state and the three beside it are
+                    // actions, and pm found the wrap putting "Pending"
+                    // and "Send now" on one row and "Done · Dismiss" on
+                    // the next -- which reads as three buttons, one of
+                    // which does nothing when pressed. `basis-full` keeps
+                    // the label with the row it describes and the actions
+                    // together below it.
+                    className="basis-full sm:basis-auto"
                   />
                   {/* No permission guard: `reminders.write` is held by
                       every role in the matrix, so a guard here could never

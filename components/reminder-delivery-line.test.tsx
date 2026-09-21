@@ -35,7 +35,7 @@ const SAMPLE: Record<ReminderDeliveryStateName, ReminderDeliveryLineProps> = {
   dueNow: { state: "dueNow", channel: "SMS" },
   sent: { state: "sent", at: AT, channel: "SMS" },
   failedRetrying: { state: "failedRetrying", at: AT, attempts: 1 },
-  failedExhausted: { state: "failedExhausted", at: AT, attempts: 3 },
+  failedExhausted: { state: "failedExhausted", attempts: 3 },
   failedClinic: { state: "failedClinic", at: AT },
   optedOut: { state: "optedOut" },
   neverAsked: { state: "neverAsked" },
@@ -109,12 +109,16 @@ describe("consent has three values, not two", () => {
 describe("a failure explains itself in plain words", () => {
   it("says what was tried and what happens next while attempts remain", async () => {
     render(await ReminderDeliveryLine(props("failedRetrying")));
-    expect(screen.getByText(/tekrar denenecek/)).toBeInTheDocument();
+    expect(screen.getByText(/Tekrar denenecek/)).toBeInTheDocument();
   });
 
+  // A row that had only counted its tries looked the same as one still
+  // waiting, with a different number on it -- pm found exactly that on the
+  // served build. Saying the automatic sending has stopped is the part
+  // that distinguishes them.
   it("says the attempts are spent, and that a person can still send it", async () => {
     render(await ReminderDeliveryLine(props("failedExhausted")));
-    const text = screen.getByText(/operatör kabul etmedi/);
+    const text = screen.getByText(/otomatik gönderim durdu/);
     expect(text).toBeInTheDocument();
     expect(text.textContent).toMatch(/Elle gönderebilirsiniz/);
   });
@@ -126,7 +130,7 @@ describe("a failure explains itself in plain words", () => {
   it("keeps a clinic-wide reason off the row", async () => {
     render(await ReminderDeliveryLine(props("failedClinic")));
     expect(screen.getByText(/Gönderilemedi/)).toBeInTheDocument();
-    expect(screen.queryByText(/operatör kabul etmedi/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/otomatik gönderim durdu/)).not.toBeInTheDocument();
   });
 });
 
@@ -139,6 +143,19 @@ describe("a failure explains itself in plain words", () => {
  * changing a string six months from now because it "reads better". When
  * `deliveredAt` exists, "Ulaştı" is born as a second and separate word and
  * this test is amended on purpose rather than tripped over.
+ *
+ * A word list cannot tell a claim from its denial, and this fired on
+ * "it reached nobody" — a sentence that says the opposite of what the
+ * rule forbids. The test was kept and the sentence reworded, not the
+ * other way round: a narrow guard that occasionally asks you to pick a
+ * different word is worth keeping, and one widened until it accepts
+ * negations is a guard nobody can reason about (TEAM.md #30e). The rule
+ * it enforces is therefore the strict one — these words do not appear
+ * here at all, in any grammatical direction.
+ *
+ * WHAT IT DOES NOT CHECK (#30c): only `reminder.delivery`. The same claim
+ * written into a badge label, a banner or the appointment history would
+ * pass.
  */
 describe("sent is not delivered", () => {
   it.each([
@@ -153,19 +170,28 @@ describe("sent is not delivered", () => {
 });
 
 /**
- * Which language runs longer is measured per surface, not assumed
- * (TEAM.md #32b), and measured on the *rendered* sentence rather than on the
- * stored string — the stored one counts ICU syntax nobody ever sees.
+ * Every sentence fits two rendered lines in the row, and the bound is 80
+ * characters because that is what was MEASURED — not what was calculated.
  *
- * The bound is 118 and it is derived, not picked: a 390px viewport leaves
- * 358px inside the row's `p-4`, and at `text-xs` that is about 59
- * characters, so 118 is two rendered lines. Two is what a delivery sentence
- * may take; three turns a list of ten reminders into a page of prose.
+ * This replaces a derivation of mine that was wrong in both of its inputs.
+ * I had reasoned: 390px viewport, minus the row's `p-4`, leaves 358px, and
+ * at `text-xs` that is about 59 characters, so two lines is 118. pm put
+ * real Turkish strings into the real element at 390px and measured the
+ * container at 260px — the action cluster beside it takes the rest — with
+ * 41 characters the widest that stays on one line, 80 the widest that
+ * stays on two, and 82 already spilling onto a third. My own
+ * `failedRetrying` sentence was 96 characters and rendered on three lines
+ * on the served build.
  *
- * Nothing is excluded from the bound any more. It used to exempt the
- * failure sentence because its length was the provider's; now the row
- * writes its own words there, so its length is ours and it is measured
- * like the rest.
+ * So the number here is pm's, arrived at by resizing a browser, and the
+ * arithmetic that produced 118 is not repeated anywhere. A bound derived
+ * from an unverified premise is a guess wearing a calculation's clothes:
+ * it looked rigorous, it passed its own test, and it was wrong by 38
+ * characters in the permissive direction.
+ *
+ * Measured on the *rendered* sentence rather than the stored string — the
+ * stored one counts ICU syntax nobody ever sees. The two link labels are
+ * excluded: they are appended to a sentence, not sentences themselves.
  */
 describe("longest translation, measured", () => {
   const rendered = (locale: "tr" | "en", messages: typeof tr | typeof en) => {
@@ -181,13 +207,15 @@ describe("longest translation, measured", () => {
   };
 
   it("keeps both languages inside two rendered lines at 390px", () => {
-    expect(Math.max(...rendered("tr", tr))).toBeLessThanOrEqual(118);
-    expect(Math.max(...rendered("en", en))).toBeLessThanOrEqual(118);
+    expect(Math.max(...rendered("tr", tr))).toBeLessThanOrEqual(80);
+    expect(Math.max(...rendered("en", en))).toBeLessThanOrEqual(80);
   });
 
-  // Measured, not assumed, and asserted rather than written in a comment
-  // and left to rot (TEAM.md #30g). Whoever makes the Turkish sentences the
-  // longer ones fails here and updates the claim in the same commit.
+  // Which language runs longer is measured per surface, not assumed
+  // (TEAM.md #32b), and asserted rather than written in a comment and left
+  // to rot (#30g). English is still the longer one here, now by four
+  // characters rather than twelve; whoever overtakes it in Turkish fails
+  // this and updates the claim in the same commit.
   it("finds English the longer language on this surface", () => {
     expect(Math.max(...rendered("en", en))).toBeGreaterThan(
       Math.max(...rendered("tr", tr)),

@@ -528,6 +528,7 @@
     "emptyClosed": "Kapatılmış hatırlatma yok.",
     "emptyClosedHint": "Tamamladığınız ya da gerek kalmadığı için kapattığınız hatırlatmalar burada birikir.",
     "sendNow": "Şimdi gönder",
+    "customTitleHint": "Bu başlık müşteriye aynen gönderilir.",
     "unreachable": {
       "neverAsked": "Bu müşteriye bildirim onayı hiç sorulmamış.",
       "optedOut": "Bu müşteri bildirim onayı vermemiş.",
@@ -538,8 +539,9 @@
       "scheduled": "Gönderilecek: {at} · {channel}",
       "dueNow": "Gönderilmeyi bekliyor ({channel}). Şimdi de gönderebilirsiniz.",
       "sent": "Gönderildi: {at} · {channel}",
-      "failedRetrying": "Gönderilemedi. {attempts, plural, one {1 deneme} other {# deneme}} yapıldı, son deneme {at}. Otomatik olarak tekrar denenecek.",
-      "failedExhausted": "{attempts, plural, other {# kez}} denendi, operatör kabul etmedi. Son deneme {at}. Elle gönderebilirsiniz.",
+      "sentTestMode": "Test kipinde kaydedildi: {at} · {channel}. Mesaj dışarı çıkmadı.",
+      "failedRetrying": "Gönderilemedi: {at} · {attempts, plural, one {1 deneme} other {# deneme}}. Tekrar denenecek.",
+      "failedExhausted": "{attempts, plural, other {# deneme}} başarısız oldu, otomatik gönderim durdu. Elle gönderebilirsiniz.",
       "failedClinic": "Gönderilemedi. Son deneme {at}. Sebebi yukarıda yazıyor.",
       "optedOut": "Gönderilmeyecek: müşteri bildirim onayı vermemiş.",
       "neverAsked": "Gönderilmeyecek: bildirim onayı hiç sorulmamış.",
@@ -551,6 +553,7 @@
     },
     "banner": {
       "disabled": "Otomatik mesajlar kapalı. Bu listedeki hiçbir hatırlatma gönderilmeyecek.",
+      "notConfigured": "{channel} bağlantısı yapılmadı. Bu listeden hiçbir mesaj gönderilemiyor.",
       "clinicFailure": "Bildirim gönderimi durdu: {reason}"
     }
   },
