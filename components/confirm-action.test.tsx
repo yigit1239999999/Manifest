@@ -6,6 +6,7 @@ import tr from "@/messages/tr.json";
 import { DeleteButton } from "@/components/delete-button";
 import { StaffStatusButton } from "@/components/staff-status-button";
 import { CustomSpeciesDeleteButton } from "@/components/custom-species-delete-button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // jsdom ships `<dialog>` without the top layer, so `showModal` is missing.
 // The dialog's behaviour is the platform's job; what is tested here is that
@@ -132,5 +133,109 @@ describe("confirming an action", () => {
     expect(button).toBeDisabled();
     fireEvent.click(button);
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  // The release blocker this file did not catch, now written down.
+  //
+  // The dialog used to run its action by submitting a `<form>` of its own.
+  // That works everywhere it was first used — beside a page heading, with
+  // no form in sight — and fails silently the moment it is placed inside
+  // one, which the clinic settings did. Nested forms are invalid HTML, the
+  // browser flattens them, and the currency setting saved nothing at all:
+  // no error, no toast, the dialog just sitting there.
+  //
+  // The assertion is structural, and that is not a shortcut — it is the
+  // only honest version. jsdom does not reproduce the flattening: React
+  // builds the tree node by node rather than through the HTML parser, so a
+  // nested form here renders and works, and a behavioural test of "it
+  // still fires inside a form" passes with the bug fully present. Checked:
+  // putting the old `<form>` back leaves that test green. What can be
+  // stated truthfully is that the component contributes no form of its
+  // own, which is exactly the property that was missing.
+  it("renders no form of its own, so it is safe inside one", () => {
+    const { container } = withIntl(
+      <ConfirmDialog
+        title="Kaydedilsin mi?"
+        confirmLabel="Kaydet"
+        cancelLabel="Vazgeç"
+        tone="default"
+        action={noop}
+      >
+        {(open) => (
+          <button type="button" onClick={open}>
+            Aç
+          </button>
+        )}
+      </ConfirmDialog>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Aç" }));
+
+    expect(container.querySelector("form")).toBeNull();
+  });
+
+  it("runs its action from inside another form", async () => {
+    // The behaviour, for what it is worth here: the action is called
+    // directly rather than submitted, so nothing about the surroundings can
+    // stop it. See above for why this alone would not have caught the bug.
+    const action = vi.fn(async () => undefined);
+
+    withIntl(
+      <form>
+        <ConfirmDialog
+          title="Kaydedilsin mi?"
+          confirmLabel="Kaydet"
+          cancelLabel="Vazgeç"
+          tone="default"
+          action={action}
+        >
+          {(open) => (
+            <button type="button" onClick={open}>
+              Aç
+            </button>
+          )}
+        </ConfirmDialog>
+      </form>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Aç" }));
+    fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
+
+    await vi.waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+  });
+
+  it("cannot be confirmed twice while it is still running", async () => {
+    // A confirmation nobody can click twice is the cheapest place to stop a
+    // double submit, and this app has already paid once for not having it.
+    let release: () => void = () => {};
+    const action = vi.fn(
+      () => new Promise<void>((resolve) => (release = () => resolve())),
+    );
+
+    withIntl(
+      <ConfirmDialog
+        title="Silinsin mi?"
+        confirmLabel="Sil"
+        cancelLabel="Vazgeç"
+        tone="destructive"
+        action={action}
+      >
+        {(open) => (
+          <button type="button" onClick={open}>
+            Aç
+          </button>
+        )}
+      </ConfirmDialog>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Aç" }));
+    const confirm = screen.getByRole("button", { name: "Sil" });
+    fireEvent.click(confirm);
+
+    await vi.waitFor(() => expect(confirm).toBeDisabled());
+    fireEvent.click(confirm);
+    expect(action).toHaveBeenCalledTimes(1);
+
+    release();
   });
 });

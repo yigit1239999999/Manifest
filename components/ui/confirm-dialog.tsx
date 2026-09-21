@@ -56,6 +56,19 @@ export function ConfirmDialog({
 
   const open = React.useCallback(() => ref.current?.showModal(), []);
   const close = React.useCallback(() => ref.current?.close(), []);
+  const [pending, startTransition] = React.useTransition();
+
+  // The dialog closes once the action has finished rather than on click:
+  // closing first would take the pending state off screen with it, and a
+  // redirecting action leaves the page anyway. An action that returns an
+  // error state is not handled here — the three call sites that can fail
+  // report through the page they return to.
+  const confirm = React.useCallback(() => {
+    startTransition(async () => {
+      await action(new FormData());
+      ref.current?.close();
+    });
+  }, [action]);
 
   return (
     <>
@@ -94,17 +107,30 @@ export function ConfirmDialog({
             <Button type="button" variant="ghost" onClick={close} autoFocus>
               {cancelLabel}
             </Button>
-            <form action={action as (formData: FormData) => Promise<void>}>
-              <button
-                type="submit"
-                className={buttonVariants({
-                  variant: tone === "destructive" ? "destructive" : "primary",
-                  size: "md",
-                })}
-              >
-                {confirmLabel}
-              </button>
-            </form>
+            {/* A button, not a form, and the difference was a release
+                blocker. This used to submit its own `<form action=…>`,
+                which works only while the dialog is outside every other
+                form — and the clinic settings put it inside one. Nested
+                forms are invalid HTML: the browser flattens them, the
+                inner action never runs, and the currency setting silently
+                did nothing at all. Calling the action directly has no such
+                condition attached.
+
+                Disabled while it runs, because a confirmation nobody can
+                click twice is the cheapest place to stop a double submit
+                (see `createAppointment`, which had to solve the same thing
+                after the fact). */}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={confirm}
+              className={buttonVariants({
+                variant: tone === "destructive" ? "destructive" : "primary",
+                size: "md",
+              })}
+            >
+              {confirmLabel}
+            </button>
           </div>
         </div>
       </dialog>
