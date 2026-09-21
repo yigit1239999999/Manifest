@@ -2,14 +2,32 @@
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function ListSkeleton({ rows = 6 }: { rows?: number }) {
+/**
+ * The shape of a list route while it loads.
+ *
+ * `action` and `filter` exist because a skeleton that shows a search box and
+ * a "New" button on a route that has neither is not a hint, it is a wrong
+ * answer — the page then settles into a different layout and the eye has to
+ * start over. `/audit` and `/prescriptions` have neither; `/staff` has the
+ * button but no filter. Both default to what every earlier caller has, so
+ * this stays a two-word change at the call sites that differ.
+ */
+export function ListSkeleton({
+  rows = 6,
+  action = true,
+  filter = true,
+}: {
+  rows?: number;
+  action?: boolean;
+  filter?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
         <Skeleton className="h-7 w-40" />
-        <Skeleton className="h-9 w-28" />
+        {action && <Skeleton className="h-9 w-28" />}
       </div>
-      <Skeleton className="h-10 w-full max-w-sm" />
+      {filter && <Skeleton className="h-10 w-full max-w-sm" />}
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="border-b border-border px-4 py-3">
           <Skeleton className="h-3 w-24" />
@@ -27,6 +45,46 @@ export function ListSkeleton({ rows = 6 }: { rows?: number }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * One card-shaped block: a title, an optional description line, and `lines`
+ * rows of content. `/settings` and `/reminders` are built from these rather
+ * than from a table, so the list skeleton would settle into the wrong shape.
+ */
+export function CardSkeleton({
+  lines = 3,
+  description = true,
+}: {
+  lines?: number;
+  description?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-40" />
+        {description && <Skeleton className="h-3 w-64 max-w-full" />}
+      </div>
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: lines }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-full" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The title and subtitle every route opens with (`PageHeader`). */
+export function HeaderSkeleton({ action = false }: { action?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-7 w-40" />
+        <Skeleton className="h-3 w-56 max-w-full" />
+      </div>
+      {action && <Skeleton className="h-9 w-28" />}
     </div>
   );
 }

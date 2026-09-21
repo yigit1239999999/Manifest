@@ -640,6 +640,14 @@
     "notFound": "{entity} not found.",
     "validationFailed": "Please check the form and try again.",
     "forbidden": "You don't have permission for this.",
+    "pageNotFound": {
+      "title": "Page not found",
+      "description": "There is no such address in the app. It may be mistyped, or the page may have been removed."
+    },
+    "recordNotFound": {
+      "title": "Record not found",
+      "description": "This record may have been deleted, or it may belong to another clinic. Go back to the list and search again."
+    },
     "tryAgain": "Try again",
     "goHome": "Go home",
     "entity": {

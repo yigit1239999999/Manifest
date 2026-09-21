@@ -341,7 +341,7 @@
       "previewReminder": "Hatırlatma mesajı",
       "saved": "Bildirim ayarları kaydedildi.",
       "save": "Kaydet",
-      "enabledHint": "Zamanlanmış mesajları — randevu onayları ve hatırlatmaları — klinik genelinde açar veya kapatır. Randevu sayfasından elle tek tıkla gönderim her durumda çalışmaya devam eder."
+      "enabledHint": "Zamanlanmış mesajları (randevu onayları ve hatırlatmaları) klinik genelinde açar veya kapatır. Randevu sayfasından elle tek tıkla gönderim her durumda çalışmaya devam eder."
     }
   },
   "vaccination": {
@@ -435,7 +435,7 @@
     "dueAt": "Tarih",
     "acknowledge": "Tamam",
     "dismiss": "Kapat",
-    "emptyHint": "Oluşturduğunuz hatırlatmalar — aşı zamanı, kontrol, takip — gönderilene kadar burada listelenir."
+    "emptyHint": "Oluşturduğunuz hatırlatmalar (aşı zamanı, kontrol, takip) gönderilene kadar burada listelenir."
   },
   "invoice": {
     "title": "Faturalar",
@@ -484,7 +484,7 @@
       "invoice": "Fatura"
     },
     "nextDue": "sonraki",
-    "emptyHint": "Bu hayvan için eklenen kayıtlar — vizitler, aşılar, tedaviler ve notlar — burada görünür."
+    "emptyHint": "Bu hayvan için eklenen kayıtlar (vizitler, aşılar, tedaviler ve notlar) burada görünür."
   },
   "audit": {
     "title": "İşlem geçmişi",
@@ -494,7 +494,7 @@
     "action": "İşlem",
     "entity": "Nesne",
     "when": "Zaman",
-    "emptyHint": "Ekibin yaptığı tüm değişiklikler — oluşturulan, düzenlenen veya arşivlenen kayıtlar — burada listelenir."
+    "emptyHint": "Ekibin yaptığı tüm değişiklikler (oluşturulan, düzenlenen veya arşivlenen kayıtlar) burada listelenir."
   },
   "enum": {
     "species": {
@@ -640,6 +640,14 @@
     "notFound": "{entity} bulunamadı.",
     "validationFailed": "Lütfen formu kontrol edin.",
     "forbidden": "Bu işlem için yetkiniz yok.",
+    "pageNotFound": {
+      "title": "Sayfa bulunamadı",
+      "description": "Aradığınız adres uygulamada yok. Adres yanlış yazılmış ya da sayfa kaldırılmış olabilir."
+    },
+    "recordNotFound": {
+      "title": "Kayıt bulunamadı",
+      "description": "Bu kayıt silinmiş olabilir ya da bu kliniğe ait olmayabilir. Listeye dönüp yeniden arayabilirsiniz."
+    },
     "tryAgain": "Tekrar deneyin",
     "goHome": "Ana sayfa",
     "entity": {
