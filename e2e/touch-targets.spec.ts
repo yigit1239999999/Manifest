@@ -41,8 +41,29 @@ test.describe("Tap targets", () => {
     const offenders: string[] = [];
     let measured = 0;
 
-    for (const route of ["/clients/new", "/pets/new", "/settings"]) {
+    // Per route, and with a floor each, because a single global floor
+    // hid a real failure. `/settings` reported 23 targets on one run
+    // and 0 on the next; the run that saw none passed, because the two
+    // on `/clients/new` satisfied the total on their own. A scan that
+    // can silently measure nothing is worth less than no scan, since
+    // it reports the same green either way.
+    //
+    // `/pets/new` is 0 on purpose: its only tick sits behind a
+    // disclosure and is not laid out until it is opened. Written as a
+    // number rather than left out, so the day it grows one this says
+    // the expectation moved.
+    const ROUTES = [
+      { path: "/clients/new", least: 2 },
+      { path: "/pets/new", least: 0 },
+      { path: "/settings", least: 4 },
+    ];
+
+    for (const { path: route, least } of ROUTES) {
       await page.goto(route);
+      // The reason for the flake: `goto` resolves before the client
+      // components have laid out, so the scan sometimes ran against a
+      // page that had not finished arriving.
+      await page.waitForLoadState("networkidle");
       // The phone is where this matters and where pm measured it.
       await page.setViewportSize({ width: 390, height: 844 });
 
@@ -64,6 +85,11 @@ test.describe("Tap targets", () => {
         return out.filter(() => true).map((r) => ({ ...r, under: r.h < min }));
       }, MIN);
 
+      expect(
+        found.length,
+        `${route} reported no targets — the scan saw a page that was not there`,
+      ).toBeGreaterThanOrEqual(least);
+
       for (const row of found) {
         measured++;
         if (row.under) {
@@ -72,11 +98,8 @@ test.describe("Tap targets", () => {
       }
     }
 
-    // A scan that found nothing must not read as "nothing was wrong".
-    // The floor is low because most of these controls live behind a
-    // disclosure or a tab and are not laid out until it is opened —
-    // three routes yield two visible targets today. It is here to
-    // catch the selector going stale, not to count controls.
+    // The totals are held per route above; this only catches the
+    // selector disappearing entirely.
     expect(measured).toBeGreaterThan(1);
     expect(offenders).toEqual([]);
   });

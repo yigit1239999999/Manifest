@@ -190,7 +190,11 @@ export function NotificationSettingsForm({
       <fieldset className="flex flex-col gap-3 rounded-control border border-border p-3">
         <legend className="px-1 text-sm font-medium text-foreground">{t("remindersTitle")}</legend>
         <p className="text-xs text-muted-foreground">{t("remindersHint")}</p>
-        <label className="flex items-start gap-3 text-sm">
+        {/* `min-h-6 py-1`: one line of text, so the clickable label was
+            exactly the line box. The sweep measured it at 218x20 and
+            it is the last of the four on this page — the other rows
+            here wrap to two lines and clear 24 on their own. */}
+        <label className="flex min-h-6 items-start gap-3 py-1 text-sm">
           <input
             type="checkbox"
             name="remindersEnabled"
