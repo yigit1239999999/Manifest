@@ -104,6 +104,36 @@ bir karar değildir; her madde kendi sınıfıyla yazılır.**
 *(value'nun kararı: alan klinik yetkisi olan rollerle sınırlanır, ve
 arayüzün süzdüğü ölçüt ile sunucunun kabul ettiği ölçüt aynı olur.)*
 
+## ÜRETİM DERLEMESİ ARTIK SELF-SERVİS (21 Eylül 2026, kullanıcı kararı)
+
+Kullanıcının cümlesi: *"Çalıştır sen diğerlerini, ekibin koordinasyonu ve
+kültürüne bak sadece. Seni çalıştırmasınlar, daha çok ekip lideri gibisin."*
+
+**Ana oturum bir derleme düğmesi değildir.** Bugün on iki kez *"tazeler
+misin"* istendi ve on ikisini de ana oturum koştu — bu, lideri sıraya
+sokan bir bağımlılıktı.
+
+> **Ölçüm yapan, zemini KENDİSİ tazeler:**
+> ```
+> /Users/yigitsonbahar/Manifest-prod/refresh-prod.sh [hash:ad ...]
+> ```
+> Argümanlar isteğe bağlı: beklediğin commit'leri `hash:kısa-ad` diye ver,
+> `SERVED_COMMIT.txt`'in `içeriyor:` bölümünde EVET/HAYIR olarak çıkarlar.
+
+Betik `checkout` → **kendi şemasından** `prisma generate` → derleme →
+sunucu → `SERVED_COMMIT.txt` zincirini tek çağrıda koşar, ve **derleme
+başarısızsa sunucuya ve dosyaya HİÇ dokunmaz.** Yani bugün beş kez
+ödediğimiz *"derleme patladı ama dosya yine derlendi dedi"* hatası
+yapısal olarak imkânsız.
+
+**Tek kısıt koordinasyon:** aynı anda iki kişi koşmasın — koşmadan önce
+ekibe tek satır yaz. (`3000`'deki dev sunucusu hâlâ ana oturumda;
+ölmüşse haber verin.)
+
+**Ve bu, "kural değil yer" kalıbının rol tarafındaki hâli:** *"lider
+tazelesin"* bir kuraldı ve her seferinde bir tur yiyordu; **betik onu
+gereksiz kılıyor.**
+
 ## SIRALAMA ÖLÇÜTÜ — geri alınabilirlik, şiddetten önce gelir
 
 ux formüle etti, value *"bütün oturumun uyguladığı şeyin özeti"* diye
