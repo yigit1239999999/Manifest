@@ -81,6 +81,38 @@ export async function getInvoiceById(clinicId: string, id: string) {
   });
 }
 
+/**
+ * The invoice already raised for this visit, if there is one.
+ *
+ * Asked before offering to raise one. A visit billed twice is not a
+ * display problem -- it is two demands for the same money, and the
+ * clinic finds out when the client does. So the action on the visit
+ * page either offers to bill or points at the bill, and this is the
+ * question that decides which.
+ *
+ * Found through the line rather than the invoice, because that is
+ * where a visit is recorded: an invoice can gather several visits, and
+ * nothing on the invoice itself names one. `invoice_lines.visitId` got
+ * an index for this (20260921210000); it had none, so this was a
+ * sequential scan over every line in the database on a page opened all
+ * day.
+ *
+ * Scoped by clinic on the invoice, not the line -- a line has no
+ * clinic of its own and reaches one only through its invoice.
+ */
+export async function getInvoiceForVisit(clinicId: string, visitId: string) {
+  const line = await prisma.invoiceLine.findFirst({
+    where: { visitId, invoice: { clinicId } },
+    orderBy: { createdAt: "asc" },
+    select: {
+      invoice: {
+        select: { id: true, number: true, status: true, totalCents: true, currency: true },
+      },
+    },
+  });
+  return line?.invoice ?? null;
+}
+
 export async function outstandingInvoicesCount(clinicId: string) {
   return prisma.invoice.count({
     where: {

@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Edit3, Plus } from "lucide-react";
+import { Edit3, Plus, ReceiptText } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
+import { getInvoiceForVisit } from "@/modules/invoices/queries";
 import { vaccinationIntervalSuggestions } from "@/modules/vaccinations/queries";
 import {
   archiveVisitAction,
@@ -86,6 +87,18 @@ export default async function VisitPage({
   // reading them is allowed and a row that disappears reads as data loss
   // (TEAM.md #16c).
   const canAddVaccination = can(session.user.role, "vaccinations.write");
+  // Either offer to bill this visit or point at the bill it already
+  // has, never both and never neither. Two invoices for one visit are
+  // two demands for the same money, and the clinic hears about it from
+  // the client; `/invoices/new` asks the same question again, because a
+  // link can be bookmarked or opened in a second tab after the first
+  // one billed.
+  //
+  // No `invoices.read` guard around this: every role has that
+  // permission, so the condition could never be false and would read
+  // as a rule that exists (`app/route-states.test.ts` refuses one, and
+  // it caught this one being written).
+  const billedAs = await getInvoiceForVisit(clinicId, visit.id);
   const canAddPrescription = can(session.user.role, "prescriptions.write");
   const canAddTreatment = can(session.user.role, "treatments.write");
   const canAddDiagnostic = can(session.user.role, "diagnostics.write");
@@ -114,6 +127,29 @@ export default async function VisitPage({
             <Edit3 />
             {tCommon("edit")}
           </Link>
+        )}
+        {billedAs ? (
+          <Link
+            href={`/invoices/${billedAs.id}`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <ReceiptText />
+            {t("invoicedAs", { number: billedAs.number })}
+          </Link>
+        ) : (
+          // Not offered on an archived visit: it is out of the working
+          // record, and raising money against it is not a thing the
+          // page should suggest.
+          can(session.user.role, "invoices.write") &&
+          !visit.archivedAt && (
+            <Link
+              href={`/invoices/new?visitId=${visit.id}`}
+              className={buttonVariants({ variant: "secondary" })}
+            >
+              <ReceiptText />
+              {t("createInvoice")}
+            </Link>
+          )
         )}
         {canArchive && !visit.archivedAt && (
           <DeleteButton

@@ -161,3 +161,58 @@ describe("a species the clinic switched off", () => {
     expect(screen.getByText(/bu klinikte kapalı/)).toBeTruthy();
   });
 });
+
+// Opening the invoice form from a visit fills the first line in — and
+// the part that cannot be seen is the part that matters. The link
+// between a visit and the line that bills it is what stops the same
+// visit being billed twice, and it travels in a hidden input: held
+// only in React state it would never reach the FormData, and the
+// invoice would be raised with nothing pointing back at the visit.
+// Everything downstream (`schema.ts`, `service.ts`) already accepts it.
+describe("an invoice opened for a visit", () => {
+  const prefilled = {
+    description: "Aşı · 14 Eyl 2026",
+    quantity: "1",
+    unitPrice: "450,00",
+    petId: "p-1",
+    visitId: "v-1",
+  };
+
+  const hidden = (container: HTMLElement, name: string) =>
+    container.querySelector<HTMLInputElement>(
+      `input[type="hidden"][name="${name}"]`,
+    )?.value;
+
+  it("submits what the visit was, not just what it says on screen", () => {
+    const { container } = wrap(
+      <InvoiceForm
+        clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]}
+        defaultClientId="c-1"
+        prefilledLine={prefilled}
+      />,
+    );
+
+    expect(hidden(container, "lines[0].visitId")).toBe("v-1");
+    expect(hidden(container, "lines[0].petId")).toBe("p-1");
+    expect(
+      container.querySelector<HTMLInputElement>('input[name="lines[0].description"]')
+        ?.value,
+    ).toBe("Aşı · 14 Eyl 2026");
+    expect(
+      container.querySelector<HTMLInputElement>('input[name="lines[0].unitPrice"]')
+        ?.value,
+    ).toBe("450,00");
+  });
+
+  it("sends nothing at all when the form was not opened from a visit", () => {
+    // An empty hidden input submits an empty string, which the server
+    // would read as "this line is about nothing" rather than "nothing
+    // was said". Absent is the only honest shape.
+    const { container } = wrap(
+      <InvoiceForm clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]} />,
+    );
+
+    expect(hidden(container, "lines[0].visitId")).toBeUndefined();
+    expect(hidden(container, "lines[0].petId")).toBeUndefined();
+  });
+});

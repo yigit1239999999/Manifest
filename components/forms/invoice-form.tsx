@@ -21,6 +21,17 @@ interface Line {
   description: string;
   quantity: string;
   unitPrice: string;
+  /**
+   * What this line is for, when it came from somewhere.
+   *
+   * Carried as hidden inputs rather than held only in React state: the
+   * link between a visit and the line that bills it is the thing that
+   * stops the same visit being billed twice, and a value that never
+   * reaches the FormData is a link that silently is not made. The
+   * server already accepts both (`modules/invoices/schema.ts`).
+   */
+  petId?: string;
+  visitId?: string;
 }
 
 const emptyLine: Line = { description: "", quantity: "1", unitPrice: "" };
@@ -49,6 +60,16 @@ interface Props {
    */
   defaultClientLabel?: string;
   defaultNumber?: string;
+  /**
+   * The first line, already filled in — today, a visit being billed.
+   *
+   * The visit page offers to bill a visit and this is what it hands
+   * over. It opens the form rather than creating the invoice, which is
+   * value's call and the right one: an invoice is a demand for money,
+   * and a screen that raises one without the vet reading the amount is
+   * the most expensive version of "it did something you did not see".
+   */
+  prefilledLine?: Line;
 }
 
 export function InvoiceForm({
@@ -57,6 +78,7 @@ export function InvoiceForm({
   defaultClientId,
   defaultClientLabel,
   defaultNumber,
+  prefilledLine,
 }: Props) {
   const t = useTranslations("invoice");
   const locale = useLocale();
@@ -69,7 +91,9 @@ export function InvoiceForm({
   });
   const tStatus = useTranslations("enum.invoiceStatus");
   const tClient = useTranslations("client");
-  const [lines, setLines] = useState<Line[]>([{ ...emptyLine }]);
+  const [lines, setLines] = useState<Line[]>([
+    { ...emptyLine, ...prefilledLine },
+  ]);
   const clientOptions = useMemo(
     () =>
       clients.map((c) => ({
@@ -172,6 +196,19 @@ export function InvoiceForm({
               onChange={(e) => updateLine(i, { unitPrice: e.target.value })}
               required={i === 0}
             />
+            {/* Not rendered when absent: an empty hidden input submits
+                an empty string, and the server would read that as "this
+                line is about nothing" rather than "nothing was said". */}
+            {line.petId && (
+              <input type="hidden" name={`lines[${i}].petId`} value={line.petId} />
+            )}
+            {line.visitId && (
+              <input
+                type="hidden"
+                name={`lines[${i}].visitId`}
+                value={line.visitId}
+              />
+            )}
             {lines.length > 1 && (
               <Button
                 type="button"

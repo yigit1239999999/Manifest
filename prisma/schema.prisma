@@ -680,6 +680,12 @@ model InvoiceLine {
   createdAt      DateTime @default(now())
 
   @@index([invoiceId])
+  /// Both foreign keys, both unindexed until now, and the second one is
+  /// about to be read on every visit page: "does this visit already have
+  /// an invoice". Postgres does not index a foreign key for you, so that
+  /// question was a sequential scan over every line in the database.
+  @@index([visitId])
+  @@index([petId])
   @@map("invoice_lines")
 }
 

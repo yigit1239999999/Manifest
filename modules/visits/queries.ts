@@ -110,6 +110,37 @@ export async function getVisitById(clinicId: string, id: string) {
   });
 }
 
+/**
+ * Just what an invoice needs to be opened for a visit.
+ *
+ * A narrow read on purpose: `getVisitById` pulls the whole record and
+ * four lists of clinical rows to draw the visit page, and none of that
+ * belongs in a redirect. This is asked in order to decide what to put
+ * in a form.
+ *
+ * `currency` comes along because `totalCents` is meaningless without
+ * it. A visit stores the currency it was priced in
+ * (20260921170000), and carrying the number without it into an
+ * invoice is how a clinic that changed currency would silently re-price
+ * its own history -- the defect that column was added to prevent,
+ * repeated one table over.
+ */
+export async function getVisitForInvoice(clinicId: string, id: string) {
+  return prisma.visit.findFirst({
+    where: { id, clinicId },
+    select: {
+      id: true,
+      type: true,
+      visitedAt: true,
+      totalCents: true,
+      currency: true,
+      clientId: true,
+      petId: true,
+      client: { select: { firstName: true, lastName: true } },
+    },
+  });
+}
+
 export async function countVisits(clinicId: string) {
   return prisma.visit.count({
     where: {
