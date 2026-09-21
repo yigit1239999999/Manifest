@@ -127,6 +127,17 @@ test.describe("First run", () => {
     // The form is gone rather than disabled: a picker that opens on
     // nothing is the thing being removed, not decorated.
     await expect(main.getByRole("combobox")).toHaveCount(0);
+
+    // The errand, checked rather than deduced. This screen's entry in
+    // ALLOWED_PATHS arrived separately from the `next` it enables, and
+    // `safeNext` drops an unlisted destination SILENTLY -- so a binding
+    // made against a build without the entry renders a button that
+    // works, goes to the right form, and quietly forgets where it came
+    // from. Nothing about that looks broken, which is exactly why it
+    // needs an assertion rather than a reading of the whitelist.
+    await expect(
+      main.getByRole("link", { name: /new client|yeni müşteri/i }),
+    ).toHaveAttribute("href", "/clients/new?next=%2Freminders");
   });
 
   // No `/prescriptions/new` route exists: a prescription is written inside
