@@ -28,6 +28,22 @@ import { surface } from "@/components/ui/card";
  * from a screen reader. What a reader is told instead is the one
  * sentence above this panel.
  *
+ * NOTHING HERE MAY BE READ AS DATA, and that is three rules working
+ * together rather than one (ux, from a vet who left a product after
+ * seeing 11 on screen and 4 in the drawer -- "what made me leave was
+ * not that the number was wrong, it was learning that a number COULD
+ * be wrong"). No digits anywhere, placeholder or not. No chart
+ * silhouettes -- six bars of differing heights under "revenue, last
+ * six months" is a claim about revenue whether or not a figure sits
+ * beneath them, which is exactly where an instinct to "make it look
+ * more real" leads. And a dashed frame, because real data in this
+ * product is never drawn in one.
+ *
+ * Any one of the three alone fails the screenshot test; the three
+ * together pass it. This is also why the shape stays exactly the
+ * skeleton's four list-shaped cards and is not "improved" into
+ * something that resembles the real panel more closely.
+ *
  * Held back with a dashed border and no shadow rather than with
  * opacity. In the dark theme card and page are already close (#161c18
  * against #0f1411) and opacity dissolves what little separation there
@@ -58,8 +74,20 @@ export async function PreviewPanel() {
         {Array.from({ length: 7 }).map((_, i) => (
           <div
             key={i}
-            className={cn(surface, "h-24 border-dashed shadow-none")}
-          />
+            className={cn(
+              surface,
+              "flex h-24 flex-col justify-between border-dashed p-4 shadow-none",
+            )}
+          >
+            {/* Two bars where a label and a figure will be, and every
+                tile gets the SAME two. A digit here would be a claim --
+                even as a placeholder -- and identical bars cannot be
+                read as one tile having more of something than another.
+                Empty tiles were the other failure: a grid of blank
+                boxes says less than the zeroes it replaced. */}
+            <div className="h-2.5 w-20 rounded bg-border" />
+            <div className="h-5 w-10 rounded bg-border" />
+          </div>
         ))}
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
