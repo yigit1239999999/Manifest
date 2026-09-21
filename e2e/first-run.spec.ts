@@ -218,6 +218,10 @@ test.describe("First run", () => {
     await page.goto("/clients/new");
     await page.getByLabel(/first name|^ad$/i).fill("Devrim");
     await page.getByLabel(/last name|soyad/i).fill("Aksoy");
+    // Required since the counter's two fields swapped places: the
+    // surname is politeness, the number is the only handle the clinic
+    // keeps on the animal afterwards.
+    await page.getByLabel(/phone|telefon/i).first().fill("0532 111 22 33");
     await page
       .getByRole("button", { name: /create client|müşteri oluştur/i })
       .click();
@@ -328,6 +332,7 @@ test.describe("First run", () => {
 
     await page.getByLabel(/first name|^ad$/i).fill("Selin");
     await page.getByLabel(/last name|soyad/i).fill("Kaya");
+    await page.getByLabel(/phone|telefon/i).first().fill("0532 222 33 44");
     await page
       .getByRole("button", { name: /create client|müşteri oluştur/i })
       .click();
@@ -358,9 +363,14 @@ test.describe("First run", () => {
 
     // Two links deep from a list, so the list has to survive being
     // nested inside another errand and not just being the first one.
-    await main.getByRole("link", { name: /new client|yeni müşteri/i }).click();
-    await page.getByLabel(/first name|^ad$/i).fill("Kerem");
-    await page.getByLabel(/last name|soyad/i).fill("Doğan");
+    // The second step is a picker row rather than a door now, and the
+    // name typed into it travels: see the walk above.
+    await main
+      .getByRole("combobox", { name: /^owner$|^sahibi$/i })
+      .fill("Kerem Doğan");
+    await main.getByRole("option", { name: /Kerem Doğan/ }).last().click();
+    await expect(page).toHaveURL(/\/clients\/new\?.*name=Kerem\+Do/);
+    await page.getByLabel(/phone|telefon/i).first().fill("0532 333 44 55");
     await page
       .getByRole("button", { name: /create client|müşteri oluştur/i })
       .click();
