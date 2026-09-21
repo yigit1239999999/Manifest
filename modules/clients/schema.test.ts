@@ -50,11 +50,37 @@ describe("the client the counter can actually record", () => {
     expect(parsed.lastName).toBe("Yılmaz");
   });
 
-  it("refuses a client with no telephone", () => {
+  // Required, this field produced the number the counter made up --
+  // the same defect the surname above is about, one field along. It is
+  // still the field this form argues hardest for; what changed is that
+  // there is now a way past it, and the way past is a sentence rather
+  // than an empty box.
+  it("refuses a client with no telephone and nothing said about it", () => {
     const parsed = clientSchema.safeParse({ ...filled, phone: "" });
 
     expect(parsed.success).toBe(false);
     expect(parsed.error?.issues[0]?.path).toEqual(["phone"]);
+  });
+
+  it("takes a client whose number will be asked for later", () => {
+    const parsed = clientSchema.safeParse({
+      ...filled,
+      phone: "",
+      phoneLater: "on",
+    });
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.phone).toBeNull();
+    // `createClient` spreads its input into Prisma, and there is no
+    // such column: this field exists to be read and thrown away.
+    expect(parsed.data).not.toHaveProperty("phoneLater");
+  });
+
+  // The tick is a statement about the minute; the number is the fact.
+  it("keeps a number that was given even when the box is ticked", () => {
+    const parsed = clientSchema.parse({ ...filled, phoneLater: "on" });
+
+    expect(parsed.phone).toBe("0532 111 22 33");
   });
 
   // Loose on format, strict on presence: the counter types what the

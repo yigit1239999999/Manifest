@@ -120,6 +120,57 @@ describe("a visit that brings its animal, as the form sends it", () => {
     expect(Object.keys(namedErrors(parsed.error!))).toEqual(["newOwner[phone]"]);
   });
 
+  // The number is what the clinic finds the animal by afterwards, and
+  // on the examination table it is the thing the vet is least likely
+  // to have -- the animal is in front of them, the owner is a name.
+  // Required, it produced a made-up number; absent with nothing said,
+  // it is indistinguishable from a field somebody has not reached yet.
+  // So: one or the other, and the tick is the "other".
+  it("takes an owner whose number will be asked for later", () => {
+    const fd = base();
+    fd.set("newPet[intent]", "1");
+    fd.set("newPet[name]", "Limon");
+    fd.set("newPet[species]", "CAT");
+    fd.set("newOwner[firstName]", "Ayşe");
+    fd.set("newOwner[phoneLater]", "on");
+
+    const parsed = parse(fd);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.newPet?.owner?.phone).toBeNull();
+    // Never a column, and never on its way to one.
+    expect(parsed.data?.newPet?.owner).not.toHaveProperty("phoneLater");
+  });
+
+  it("refuses an owner with neither a number nor a word about it", () => {
+    const fd = base();
+    fd.set("newPet[intent]", "1");
+    fd.set("newPet[name]", "Limon");
+    fd.set("newPet[species]", "CAT");
+    fd.set("newOwner[firstName]", "Ayşe");
+
+    const parsed = parse(fd);
+
+    expect(parsed.success).toBe(false);
+    expect(Object.keys(namedErrors(parsed.error!))).toEqual(["newOwner[phone]"]);
+  });
+
+  // A number that was read out wins over a box that says there is none:
+  // the tick is a statement about the minute, the number is the fact.
+  it("keeps a number that was given even when the box is ticked", () => {
+    const fd = base();
+    fd.set("newPet[intent]", "1");
+    fd.set("newPet[name]", "Limon");
+    fd.set("newPet[species]", "CAT");
+    fd.set("newOwner[firstName]", "Ayşe");
+    fd.set("newOwner[phone]", "0532 111 22 33");
+    fd.set("newOwner[phoneLater]", "on");
+
+    const parsed = parse(fd);
+
+    expect(parsed.data?.newPet?.owner?.phone).toBe("0532 111 22 33");
+  });
+
   it("puts a nameless animal under the animal's name box", () => {
     const fd = base();
     fd.set("newPet[intent]", "1");

@@ -223,7 +223,8 @@
     },
     "one": "Müşteri",
     "lastNameHint": "Bilmiyorsanız boş bırakın.",
-    "phoneHint": "Telefonsuz müşteriye hatırlatma gönderilemez."
+    "phoneHint": "Telefonsuz müşteriye hatırlatma gönderilemez.",
+    "phoneLater": "Şimdi yok, sonra sorulur"
   },
   "pet": {
     "createNamed": "+ \"{name}\" adıyla yeni hayvan aç",
@@ -921,6 +922,7 @@
       "invalidChoice": "Geçersiz seçim.",
       "email": "Geçerli bir e-posta adresi giriniz.",
       "phone": "Geçerli bir telefon numarası giriniz.",
+      "phoneOrLater": "Telefon giriniz veya \"şimdi yok\" işaretleyiniz.",
       "emailTooLong": "E-posta adresi çok uzun.",
       "passwordMin": "Şifre en az {min} karakter olmalı.",
       "date": "Geçerli bir tarih giriniz.",

@@ -198,6 +198,13 @@ describe("the consequence is announced, not only printed", () => {
  * her number I will never find that animal again. Force the surname and
  * I will type a full stop, and the record is rubbish."
  *
+ * The phone then moved a second time, and only half way. It is still
+ * the field the form argues hardest for, but there is now a way past
+ * it -- a box that says there is no number to take -- so the browser
+ * cannot be the one holding the line: `required` blocks a submit that
+ * the server would accept. The rule became conditional, and a
+ * conditional rule belongs where the condition can be read.
+ *
  * Asserted on the rendered form because the browser is what stops the
  * reader, and a `required` marker that disagrees with
  * `modules/clients/schema.ts` fails in the worse direction either way:
@@ -205,14 +212,38 @@ describe("the consequence is announced, not only printed", () => {
  * blocks on a field the server would have accepted.
  */
 describe("what the counter has to fill in", () => {
-  it("insists on the name and the number, and on nothing else", () => {
+  it("insists on the name in the browser, and on nothing else", () => {
     const { container } = renderForm();
 
     const required = [...container.querySelectorAll("[required]")]
       .map((el) => el.getAttribute("name"))
       .filter((n): n is string => Boolean(n));
 
-    expect(new Set(required)).toEqual(new Set(["firstName", "phone"]));
+    expect(new Set(required)).toEqual(new Set(["firstName"]));
+  });
+
+  // The other half of the same rule, and the reason the marker could
+  // come off: the number is still insisted on, by the only party that
+  // can see whether the way past it was taken.
+  it("still refuses a client with no number and nothing said about it", () => {
+    const parsed = clientSchema.safeParse({ firstName: "Ayşe", phone: "" });
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.issues[0]?.path).toEqual(["phone"]);
+  });
+
+  it("lets the form through once the counter says there is no number", () => {
+    const { container } = renderForm();
+    const box = container.querySelector<HTMLInputElement>(
+      'input[name="phoneLater"]',
+    );
+
+    expect(box).not.toBeNull();
+    expect(box).not.toHaveAttribute("required");
+    expect(
+      clientSchema.safeParse({ firstName: "Ayşe", phone: "", phoneLater: "on" })
+        .success,
+    ).toBe(true);
   });
 
   it("does not insist on the consent answer", () => {

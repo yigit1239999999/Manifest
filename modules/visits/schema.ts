@@ -1,15 +1,16 @@
 import { z } from "zod";
 import {
+  checkbox,
   msg,
   optionalDateTime,
   optionalFloat,
   optionalInt,
   optionalMoney,
+  optionalPhone,
   optionalText,
   requiredDateTime,
   requiredEnum,
   requiredId,
-  requiredPhone,
   requiredText,
   tristate,
 } from "@/lib/forms";
@@ -58,25 +59,50 @@ export type VisitInput = z.infer<ReturnType<typeof visitSchema>>;
  * absent for that reason, not by oversight, and adding one here is a
  * decision about the vet's hands rather than about the schema.
  */
-export const newOwnerSchema = z.object({
-  firstName: requiredText(1, 80, "client.firstName"),
-  // Absent is a fact, not an omission: the counter is not allowed to
-  // ask the lady who brings the street cat (`Client.lastName`).
-  lastName: optionalText(80),
-  // The clinic's only handle on the animal afterwards, and what every
-  // reminder is sent to.
-  phone: requiredPhone(40),
-  // Three states and nothing pre-selected. "Do not ask now" writes
-  // NOTHING -- `null`, the same value a client born unasked carries --
-  // because "I asked and got no answer" and "I never asked" change
-  // neither what the product sends nor what it has to ask again.
-  //
-  // Named for the question rather than for the column: the screen is
-  // not allowed to say "notification permission" anywhere, so a form
-  // field carrying that word would move retired jargon to a fresh
-  // surface. `Client.notificationsOptIn` keeps its name.
-  consent: tristate,
-});
+export const newOwnerSchema = z
+  .object({
+    firstName: requiredText(1, 80, "client.firstName"),
+    // Absent is a fact, not an omission: the counter is not allowed to
+    // ask the lady who brings the street cat (`Client.lastName`).
+    lastName: optionalText(80),
+    // The clinic's only handle on the animal afterwards, and what every
+    // reminder is sent to -- and, since the animal is on the table while
+    // this is being typed, the one the counter is least likely to have.
+    // Required unless `phoneLater` says out loud that there is none.
+    phone: optionalPhone(40),
+    // Says "there is no number to take", and writes nothing anywhere.
+    // The same reasoning as `clientSchema.phoneLater`, which is the
+    // sibling of this field on the form that has a screen of its own.
+    phoneLater: checkbox,
+    // Three states and nothing pre-selected. "Do not ask now" writes
+    // NOTHING -- `null`, the same value a client born unasked carries --
+    // because "I asked and got no answer" and "I never asked" change
+    // neither what the product sends nor what it has to ask again.
+    //
+    // Named for the question rather than for the column: the screen is
+    // not allowed to say "notification permission" anywhere, so a form
+    // field carrying that word would move retired jargon to a fresh
+    // surface. `Client.notificationsOptIn` keeps its name.
+    consent: tristate,
+  })
+  // Under `phone`, which reaches the form as `newOwner[phone]`
+  // (`namedErrors`) -- the box the reader is looking at, not the tick
+  // that lets them past it.
+  .superRefine((value, ctx) => {
+    if (!value.phone && !value.phoneLater) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["phone"],
+        message: msg("error.form.phoneOrLater"),
+      });
+    }
+  })
+  // Dropped here rather than in the service, so that the one place
+  // that knows this field is not a column is the one place that
+  // describes it. `createVisitWithIntake` writes the owner's row from
+  // named fields, but its audit entry redacts the whole object.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- named so it can be dropped
+  .transform(({ phoneLater, ...rest }) => rest);
 
 export const newPetSchema = z.object({
   name: requiredText(1, 80, "pet.name"),

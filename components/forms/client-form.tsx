@@ -159,16 +159,42 @@ export function ClientForm({
           label={t("phone")}
           error={state.fieldErrors?.phone}
           hint={t("phoneHint")}
-          required
         >
           <Input
             name="phone"
             type="tel"
             defaultValue={client?.phone ?? ""}
             autoComplete="tel"
-            required
           />
         </Field>
+        {/* The way past the number, and the only one.
+
+            Required was the wrong shape for this field rather than the
+            wrong priority: the counter is sometimes handed an animal by
+            somebody who will not give a number, and a form that cannot
+            be finished without one is finished with a made-up one. That
+            is the surname's defect wearing a telephone -- `lastName`
+            and `notificationsOptIn` are the two the product already
+            learned it on, and this is the third.
+
+            A tick rather than simply letting the box be empty, because
+            an empty box is ambiguous between "there is none" and "I have
+            not got there yet", and the second one is a mistake worth
+            catching. Nothing is written for it (`clientSchema`): the
+            empty column is the record.
+
+            No `min-h-6` gymnastics here -- `py-1` makes the label 28px
+            tall, which is what WCAG 2.5.8 asked of the consent radios
+            just below and is the same tap target. */}
+        <label className="flex w-fit items-center gap-2 py-1 text-sm text-foreground">
+          <input
+            type="checkbox"
+            name="phoneLater"
+            defaultChecked={Boolean(client) && !client?.phone}
+            className="size-4"
+          />
+          {t("phoneLater")}
+        </label>
       </FormSection>
 
     {/* Under the phone and above the fold, which is the order of the
@@ -331,9 +357,12 @@ export function ClientForm({
 
       <div className="flex items-center justify-end gap-3">
         <span className="text-xs text-muted-foreground">
-          {tCommon("requiredFields", {
-            fields: [t("firstName"), t("phone")].join(", "),
-          })}
+          {/* The phone left this list when it stopped being a wall.
+              It is still the field this form argues hardest for, and
+              the box under it is the only way past -- but a subtitle
+              that calls it required while a tick lets the form through
+              is describing a different form. */}
+          {tCommon("requiredFields", { fields: t("firstName") })}
         </span>
         <SubmitButton>{client ? t("update") : t("create")}</SubmitButton>
       </div>

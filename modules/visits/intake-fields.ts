@@ -46,6 +46,9 @@ export function intakeFrom(formData: FormData) {
             firstName,
             lastName: get("newOwner[lastName]"),
             phone: get("newOwner[phone]"),
+            // An unticked box submits nothing, so this arrives as "".
+            // `checkbox` reads that as off, which is what it is.
+            phoneLater: get("newOwner[phoneLater]"),
             consent: get("newOwner[consent]"),
           }
         : undefined,
