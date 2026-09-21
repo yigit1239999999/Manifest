@@ -319,6 +319,8 @@
     "today": "Today",
     "previousDay": "Previous day",
     "nextDay": "Next day",
+    "resultMissing": "no result recorded",
+    "stillOpen": "{open} of {total} appointments are still open.",
     "allDates": "All dates",
     "dayPlan": "Day plan",
     "petClient": "Pet · Client",

@@ -31,6 +31,23 @@ import {
 // when the date filter is off.
 const PER_DAY = 100;
 
+/**
+ * Still waiting for an outcome, and its hour has gone.
+ *
+ * Both halves matter and the second is why the mark still says
+ * something on a past day: a closed appointment carries no mark, so
+ * even on a list where every hour has passed, the marked rows are the
+ * ones with work left. ux withdrew an earlier decision to suppress the
+ * mark on past days after re-reading that — the mark is conditioned on
+ * *open*, so it never fits every row unless every row really is open,
+ * and then it is telling the truth.
+ */
+const OPEN_STATUSES = ["SCHEDULED", "CONFIRMED", "ARRIVED", "IN_PROGRESS"];
+
+function isOpenAndPast(a: { startsAt: Date; status: string }) {
+  return OPEN_STATUSES.includes(a.status) && a.startsAt.getTime() < Date.now();
+}
+
 export default async function AppointmentsPage({
   searchParams,
 }: {
@@ -161,6 +178,22 @@ export default async function AppointmentsPage({
         )
       ) : (
         <>
+          {/* How many, once the row marks have said which.
+              Only in single-day mode, and the reason is the one that
+              killed the total row on `/visits`: "all dates" is
+              paginated at 25, so a count there would not say what it
+              counted — this page, or every page. A number whose scope
+              is undefined is worse than none. A single day is not
+              paginated, so there is no ambiguity to have. */}
+          {!showAllDates &&
+            (() => {
+              const open = result.items.filter(isOpenAndPast).length;
+              return open > 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t("stillOpen", { total: result.items.length, open })}
+                </p>
+              ) : null;
+            })()}
           <DataTable
             rows={result.items}
             rowKey={(a) => a.id}
@@ -179,6 +212,33 @@ export default async function AppointmentsPage({
                         ? `${formatDate(fmt, a.startsAt)} ${formatTime(fmt, a.startsAt)}`
                         : formatTime(fmt, a.startsAt)}
                     </Link>
+                    {/* An hour that has passed with nothing recorded.
+                        In the time cell because the claim is about
+                        time, so the eye does not have to travel to a
+                        second column to assemble it — and ux's answer
+                        to "can a hundred rows be scanned": text
+                        aligned in one column can be, coloured marks
+                        scattered across rows cannot.
+
+                        Text, not a pill. The row already carries a
+                        `StatusBadge`, and a second coloured pill would
+                        have to be learnt. Not an icon either: an icon
+                        needs a legend, and nobody looks one up while
+                        working.
+
+                        `text-foreground` rather than muted: this is a
+                        thing to do, not an aside. Not `destructive`
+                        either — an unrecorded result is missing, not
+                        wrong.
+
+                        Nothing extra for a screen reader. The words
+                        are already in the accessibility tree, and the
+                        one channel is the shared one. */}
+                    {isOpenAndPast(a) && (
+                      <span className="ms-1 text-sm font-medium text-foreground">
+                        · {t("resultMissing")}
+                      </span>
+                    )}
                     {a.durationMinutes != null && (
                       <div className="text-xs text-muted-foreground">
                         {formatDuration(fmt, a.durationMinutes)}

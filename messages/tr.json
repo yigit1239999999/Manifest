@@ -319,6 +319,8 @@
     "today": "Bugün",
     "previousDay": "Önceki gün",
     "nextDay": "Sonraki gün",
+    "resultMissing": "sonuç girilmedi",
+    "stillOpen": "{total} randevudan {open}'ü hâlâ açık.",
     "allDates": "Tüm tarihler",
     "dayPlan": "Gün planı",
     "petClient": "Hayvan · Müşteri",

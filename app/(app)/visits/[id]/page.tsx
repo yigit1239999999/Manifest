@@ -22,6 +22,7 @@ import { PrescriptionForm } from "@/components/forms/prescription-form";
 import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Callout } from "@/components/ui/callout";
 import { DescriptionList } from "@/components/ui/description-list";
@@ -58,6 +59,7 @@ export default async function VisitPage({
     tTreatment,
     tDiag,
     tPet,
+    tInvoiceStatus,
     currency,
   ] = await Promise.all([
     getVisitById(clinicId, id),
@@ -69,6 +71,7 @@ export default async function VisitPage({
     getTranslations("treatment"),
     getTranslations("diagnostic"),
     getTranslations("pet"),
+    getTranslations("enum.invoiceStatus"),
     getClinicCurrency(clinicId),
   ]);
 
@@ -135,6 +138,17 @@ export default async function VisitPage({
           >
             <ReceiptText />
             {t("invoicedAs", { number: billedAs.number })}
+            {/* The status, and it is not decoration. "Invoiced as
+                INV-2026-001" reads as "this is settled", and the
+                invoice may be a draft — raised on screen, never sent,
+                never collected. The point of the money chain is "who
+                has not paid", so showing a draft as finished is the
+                silent wrong answer it exists to remove. */}
+            <StatusBadge
+              kind="invoice"
+              status={billedAs.status}
+              label={tInvoiceStatus(billedAs.status as never)}
+            />
           </Link>
         ) : (
           // Not offered on an archived visit: it is out of the working
