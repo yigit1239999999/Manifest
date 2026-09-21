@@ -112,7 +112,9 @@ export default async function ClientPage({
         </Callout>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* See `/invoices/[id]`: a grid item will not shrink below its own
+          content, and these four pages share this line. */}
+      <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>{t("details")}</CardTitle>

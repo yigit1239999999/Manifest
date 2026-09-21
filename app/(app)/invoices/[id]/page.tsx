@@ -75,7 +75,13 @@ export default async function InvoicePage({
         )}
       </PageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* `[&>*]:min-w-0` on the children, not decoration. A grid item
+          refuses by default to be narrower than its own content, so a card
+          holding something wide — the invoice line table — grew past the
+          screen and took the page sideways with it at 390px. A scroll
+          container inside is only as good as the chain above it, which is
+          why the one already on the table did not help (TEAM.md #27). */}
+      <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>{t("lines")}</CardTitle>
