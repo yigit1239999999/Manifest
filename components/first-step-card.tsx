@@ -102,11 +102,29 @@ const STEPS = {
 //   OTHER CONTENT. On the first-run screen this card is the only
 //   content, and silence there reads as a product that is broken.
 //
-// The sentence says who can act rather than refusing or apologising:
-// naming the clinic administrator is the one fact a technician needs,
-// and it is said in the words `reminder.delivery.askAdmin` already
-// uses, so the same situation is not described twice in two
-// vocabularies. It promises no button, because there is none for them.
+// The two lines divide the work the same way the other three do, and
+// each carries a rule that the other one broke on its own:
+//
+//   title -- states what the reader's work waits on, and states it
+//   POSITIVELY. This screen may not open with a negation; "there is
+//   nothing here" is the whole of what an empty product already says,
+//   and saying it in words as well is the apology the first-run screen
+//   exists to avoid.
+//
+//   hint -- names WHO can act. Without it the reader is correctly
+//   informed and still stuck, which is the omission TEAM.md #21 is
+//   about. It says the clinic administrator in the words
+//   `reminder.delivery.askAdmin` already uses, so one situation is not
+//   described in two vocabularies, and it stays in the indicative:
+//   "your administrator can add them" is a fact about the product,
+//   "ask your administrator" is a job handed to somebody who did not
+//   come here for one.
+//
+// Both rules held all along; the pair went through a version that met
+// one at the cost of the other, in each direction, before anybody
+// noticed that the sentence being dropped to make room was saying the
+// title's fact a second time. It promises no button, because there is
+// none for them.
 const WAITING = "waiting";
 
 export async function FirstStepCard({ need }: { need: keyof typeof STEPS }) {

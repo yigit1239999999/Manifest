@@ -147,7 +147,7 @@
         "hint": "Vizit, aşı ve reçete kaydı ona bağlanır."
       },
       "waiting": {
-        "title": "Bu klinikte henüz kayıt yok.",
+        "title": "İşiniz ilk kayıtlarla başlar.",
         "hint": "İlk müşteri ve hayvan kaydını klinik yöneticiniz açabilir."
       }
     },

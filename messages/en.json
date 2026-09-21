@@ -147,7 +147,7 @@
         "hint": "Its visits, vaccinations and prescriptions hang off that record."
       },
       "waiting": {
-        "title": "There is nothing on file yet.",
+        "title": "Your work starts with the first records.",
         "hint": "Your clinic administrator can add the first client and animal."
       }
     },
