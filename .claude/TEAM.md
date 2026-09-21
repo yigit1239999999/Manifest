@@ -1654,6 +1654,11 @@ satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzel
    `content-visibility: hidden` altında eski geometri döndürür, `next-intl`
    bütün kataloğu HTML'e gömer. *"DOM'da var" ile "ekranda var" ayrı
    iddialardır.*
+   **Ve ux'in altıncı araç hatasından gelen ekleme: HANGİ geometriden?**
+   Kart üstü bir düğmede `outlineColor` okuyup **1,09** gibi anlamsız bir
+   kontrast elde ettiler — o düğmede `outline-style: none`, işaret
+   `box-shadow`. **Ölçülen özellik, işaretin gerçekten taşındığı özellik
+   olmalı**; yoksa ölçüm doğru çalışır ve **var olmayan bir şeyi** ölçer.
 7. **Veri, o hâli üretebiliyor mu?** value'nun genelleştirmesi:
    **bir hâlin doğrulanması, o hâli üretebilen veri gerektirir — veri hâli
    üretemiyorsa ölçüm "temiz" demez, "ÖLÇÜLEMEDİ" der.**
@@ -2117,3 +2122,32 @@ girdinin zaten kenarlığı var, odakta işaret o kenarlık, halka ikincil.
 olarak okur** — ve o istisnayı yazan kişi bile, aradan zaman geçince aynı
 taramayı yapar. Yani bir istisnanın gerekçesi, istisnanın **kendisinin
 parçasıdır**; onsuz istisna değil, **kusur** olarak yaşar.
+
+### İki DOĞRU kararın kesişimi — sayma hatası gibi görünen sınıf
+
+dev-ui'nin `Combobox` teşhisi, ve bu artık ikinci vakası:
+
+`handleKeyDown` *"kapalıysa aç, açıksa ilerle"* diyor ve **kendi okumasına
+göre doğru.** Girdi `onFocus={openList}` taşıyor ve **o da doğru.** Ama
+klavye kullanıcısı odaklandığında liste **zaten açılmış** oluyor, yani ilk
+`ArrowDown` "aç" dalını hiç görmüyor ve doğrudan ilerliyor — **belirdiğini
+zar zor gördüğü bir vurgunun üstünden atlayarak.**
+
+> **Kusur iki parçanın hiçbirinde değil, kesişimlerinde.** Her parçayı tek
+> başına okuyan kimse bulamaz; ikisinin **aynı anda** ne yaptığını soran
+> bulur.
+
+**Birinci vakası `/appointments`'tı:** ikincil satırın eşiği (`sm`) ve
+telefon sütununun eşiği (`md`) — ikisi de kendi başına savunulabilir, arada
+kalan bant kimsenin değil. **Aynı şekil.**
+
+**Ve teşhis çözümü belirledi:** dev-ui "sayma hatası" varsayıp `+1`
+oynatmadı; **kesişimi** düzeltti (ilk basış açılışın koyduğu yerde oturur,
+ikincisi ilerler) ve **takası açıkça yazdı** — zaten seçili bir seçenekle
+açılıp Down'a basınca bir basış duruyor; katı APG ilerletirdi, çünkü orada
+açılış **kasıtlı bir eylem**, bizde **odağın yan etkisi.**
+
+**Test de şekli yakalıyor, doğruluğu değil:** *"tek basışta ilk seçenek
+seçilebiliyor"* — çünkü kusurun hâli "Down sonra Up"tı, yani soru
+*"doğru mu"* değil **"kaç tuş"**du. Kusur bir **maliyet** ise testi de
+maliyeti ölçer.
