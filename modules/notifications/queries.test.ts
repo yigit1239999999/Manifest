@@ -117,6 +117,34 @@ describe("blockedReminders", () => {
     expect(await blockedReminders("clinic-1")).toEqual({ items: [], total: 0 });
   });
 
+  // The class this guards is narrower than "not blocked", and value
+  // named it: `EXPIRED` looks like an obstacle and is not one. It is
+  // unknowing -- the operator stopped telling us, which is not the
+  // same as the message failing. Somebody reasoning "no report means
+  // it never arrived" would add it to BLOCKED_STATES, the whole
+  // EXPIRED distinction would collapse, and the only symptom would be
+  // a number growing in production.
+  it("keeps a closed retry window out of the count, and a held-back twin", async () => {
+    const accepted = (deliveryStatus: string, status = "SENT") => [
+      {
+        status,
+        createdAt: new Date("2026-09-20T06:00:00.000Z"),
+        error: null,
+        channel: "SMS",
+        deliveryStatus,
+      },
+    ];
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+      reminder({ id: "r-expired", messages: accepted("EXPIRED") }),
+      // Suppressed is the same shape of mistake from the other side:
+      // it says "not sent", which reads like an obstacle, but nothing
+      // is stuck -- the owner got those words from its twin.
+      reminder({ id: "r-twin", messages: accepted("UNKNOWN", "SUPPRESSED") }),
+    ] as never);
+
+    expect(await blockedReminders("clinic-1")).toEqual({ items: [], total: 0 });
+  });
+
   it("asks only for the days the sweep can act on", async () => {
     vi.mocked(prisma.reminder.findMany).mockResolvedValue([] as never);
 
