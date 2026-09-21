@@ -6108,3 +6108,33 @@ tahmin kayıt gibi okunur.
 
 *"Varsayımını yaz"* kuralı duruyor — ama **ölçüm tükendikten
 sonra** başlıyor.
+
+### İki yol bir soruyu cevaplıyorsa, hangisinin yanlış olduğunu yalnız karşılaştırma söyler
+
+dev günün sonunda üç kusurunu yan yana koyup ortak şekli adlandırdı:
+
+| soru | iki cevap |
+|---|---|
+| bu hatırlatma tükendi mi? | süpürgenin bütçesi · `reminderDeliveryState` |
+| bu müşteri listede mi? | süpürgenin aday sorgusu süzüyordu · `blockedReminders` süzmüyordu |
+| bu numara aranabilir mi? | `telHref` · yanındaki ham alan |
+
+Üçünde de **her cevap kendi durduğu yerde doğru görünüyordu.** Hiçbiri
+tek başına okunarak bulunamazdı; kusur **aralarındaki farkta**
+yaşıyordu.
+
+Ve dev'in asıl tespiti bunun **nasıl bulunduğu**:
+
+> Üçünde de karşılaştırmayı **dışarıdan bir şey zorladı** — bir
+> şart, bir okuma, bir itiraz. **Hiçbiri yazarın tekrar bakmasıyla
+> bulunmadı.**
+
+**Kural:** bir olguyu iki kod yolu üretiyorsa, o iki yol **birbirini
+gözden geçiremez** — ikisini de aynı kişi yazdıysa ikisi de aynı
+varsayımı taşır. Bulunmasının tek yolu **karşılaştırmayı zorlayan
+dışarıdan bir kısıt**: *"ikinci bir tanım yazma"*, *"aynı `where`'i
+kullan"*, *"tek fonksiyondan türesin"*. Bu kısıtlar tekrarı
+önlemek için değil, **ayrışmayı görünür kılmak** için yazılır.
+
+Dolayısıyla bir brief'te *"ikinci bir X yazma"* cümlesi bir üslup
+tercihi değil, **bir arama emri.**
