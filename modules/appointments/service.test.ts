@@ -4,6 +4,7 @@ vi.mock("@/lib/prisma", () => {
   const prismaMock = {
     appointment: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
     pet: { findFirst: vi.fn() },
+    user: { findFirst: vi.fn() },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(),
   };
@@ -261,5 +262,31 @@ describe("createAppointment, asked twice for the same slot", () => {
     );
 
     expect(discarded).toBe(false);
+  });
+
+  // Same rule as a visit's vet, same reason one level along: an
+  // appointment's vet is who is expected to see the animal, so a
+  // receptionist saved there sends the day's plan to the wrong person.
+  it("refuses a vet the clinic does not recognise", async () => {
+    vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
+
+    await expect(
+      createAppointment({ ...validInput, vetId: "reception-1" }, ctx),
+    ).rejects.toMatchObject({
+      details: { fieldErrors: { vetId: ["error.validation.vetRequired"] } },
+    });
+    expect(prisma.appointment.create).not.toHaveBeenCalled();
+  });
+
+  it("records one it does", async () => {
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({ id: "vet-1" } as never);
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.appointment.create).mockResolvedValue({ id: "a-2" } as never);
+
+    await createAppointment({ ...validInput, vetId: "vet-1" }, ctx);
+
+    expect(prisma.appointment.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ vetId: "vet-1" }),
+    });
   });
 });

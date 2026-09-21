@@ -4,6 +4,7 @@ import { redact, withAudited } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { VisitInput } from "./schema";
+import { isClinician } from "@/modules/staff/queries";
 
 async function resolvePetAndOwner(petId: string, clinicId: string) {
   const pet = await prisma.pet.findFirst({
@@ -14,10 +15,39 @@ async function resolvePetAndOwner(petId: string, clinicId: string) {
   return pet;
 }
 
+/**
+ * The vet a visit or appointment is recorded against, checked rather than
+ * trusted.
+ *
+ * The screens offer only clinicians (`listClinicians`), and a screen's
+ * filter is not a rule — a stale tab, a replayed submit or the next screen
+ * someone writes will all get past it. What is at stake is not access:
+ * this field says who treated the animal, and nobody goes back to correct
+ * it, so a receptionist saved here is wrong in the record for good.
+ *
+ * Empty is allowed and means "not recorded". That is a real answer, and a
+ * better one than a name nobody chose.
+ */
+async function resolveVet(
+  vetId: string | null | undefined,
+  clinicId: string,
+): Promise<string | null> {
+  const id = vetId?.trim();
+  if (!id) return null;
+  if (!(await isClinician(clinicId, id)))
+    throw validationFailed({ vetId: ["error.validation.vetRequired"] });
+  return id;
+}
+
 export async function createVisit(input: VisitInput, ctx: ActionContext) {
   requirePermission(ctx.userRole, "visits.write");
   const pet = await resolvePetAndOwner(input.petId, ctx.clinicId);
   const { petId, vetId, total, ...rest } = input;
+  // Was `vetId || ctx.userId`: leaving the field blank made whoever filled
+  // the form in the vet on the record, so a receptionist writing up a
+  // visit became the clinician who performed it. Unrecorded is the honest
+  // answer, and the person who typed it is in the audit trail either way.
+  const vet = await resolveVet(vetId, ctx.clinicId);
 
   return withAudited(
     {
@@ -35,7 +65,7 @@ export async function createVisit(input: VisitInput, ctx: ActionContext) {
           clinicId: ctx.clinicId,
           petId,
           clientId: pet.ownerId,
-          vetId: vetId || ctx.userId,
+          vetId: vet,
         },
       }),
   );
@@ -55,6 +85,7 @@ export async function updateVisit(
 
   const pet = await resolvePetAndOwner(input.petId, ctx.clinicId);
   const { petId, vetId, total, ...rest } = input;
+  const vet = await resolveVet(vetId, ctx.clinicId);
 
   return withAudited(
     {
@@ -73,7 +104,7 @@ export async function updateVisit(
           totalCents: total,
           petId,
           clientId: pet.ownerId,
-          vetId: vetId || null,
+          vetId: vet,
         },
       }),
   );

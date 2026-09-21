@@ -8,6 +8,7 @@ vi.mock("@/lib/prisma", () => {
       update: vi.fn(),
     },
     pet: { findFirst: vi.fn() },
+    user: { findFirst: vi.fn() },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(),
   };
@@ -66,7 +67,12 @@ describe("createVisit", () => {
     expect(prisma.visit.create).not.toHaveBeenCalled();
   });
 
-  it("derives clientId from the pet's owner and uses the active vet", async () => {
+  it("derives clientId from the pet's owner, and leaves the vet unrecorded", async () => {
+    // This used to fall back to `ctx.userId`, so leaving the field blank
+    // made whoever typed the visit up its clinician — a receptionist
+    // writing up yesterday's work became the vet who performed it, in a
+    // field nobody ever goes back to correct. Unrecorded is the honest
+    // answer; who entered it is in the audit trail regardless.
     vi.mocked(prisma.pet.findFirst).mockResolvedValue({
       id: "pet-1",
       ownerId: "owner-1",
@@ -80,9 +86,45 @@ describe("createVisit", () => {
         clinicId: "clinic-1",
         petId: "pet-1",
         clientId: "owner-1",
-        vetId: "user-1",
+        vetId: null,
       }),
     });
+  });
+
+  // The screens offer only clinicians, and a screen's filter is not a
+  // rule: a stale tab, a replayed submit or the next screen someone writes
+  // all get past it. What this field says is who treated the animal.
+  it("records a vet the clinic recognises", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      ownerId: "owner-1",
+    } as never);
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({ id: "vet-1" } as never);
+    vi.mocked(prisma.visit.create).mockResolvedValue({ id: "v-1" } as never);
+
+    await createVisit({ ...validInput, vetId: "vet-1" }, ctx);
+
+    expect(prisma.visit.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ vetId: "vet-1" }),
+    });
+  });
+
+  it("refuses one it does not", async () => {
+    // `findFirst` returns null for a receptionist, a vet tech, a
+    // deactivated user, or someone from another clinic — the query asks
+    // all four questions at once.
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      ownerId: "owner-1",
+    } as never);
+    vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
+
+    await expect(
+      createVisit({ ...validInput, vetId: "reception-1" }, ctx),
+    ).rejects.toMatchObject({
+      details: { fieldErrors: { vetId: ["error.validation.vetRequired"] } },
+    });
+    expect(prisma.visit.create).not.toHaveBeenCalled();
   });
 });
 

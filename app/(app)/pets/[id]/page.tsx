@@ -26,7 +26,7 @@ import { VaccinationForm } from "@/components/forms/vaccination-form";
 import { PrescriptionForm } from "@/components/forms/prescription-form";
 import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
-import { listStaff } from "@/modules/staff/queries";
+import { listClinicians } from "@/modules/staff/queries";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DescriptionList } from "@/components/ui/description-list";
@@ -74,7 +74,7 @@ export default async function PetPage({
     prescriptions,
     treatments,
     diagnostics,
-    staff,
+    vets,
   ] = await Promise.all([
     getPetById(clinicId, id),
     getTranslations("pet"),
@@ -93,7 +93,7 @@ export default async function PetPage({
     listPrescriptionsForPet(clinicId, id, 20),
     listTreatmentsForPet(clinicId, id, 20),
     listDiagnosticsForPet(clinicId, id, 20),
-    listStaff(clinicId),
+    listClinicians(clinicId),
   ]);
 
   if (!pet) notFound();
@@ -128,10 +128,6 @@ export default async function PetPage({
   // No `canAddNote`. Every role holds `notes.write`, so the guard I wrote
   // here could never have refused anyone — it only told the next reader
   // that some role is turned away, which is not true (TEAM.md #30).
-
-  const vets = staff
-    .filter((m) => m.active && (m.role === "VETERINARIAN" || m.role === "ADMIN"))
-    .map((m) => ({ id: m.id, name: m.name }));
 
   return (
     <div className="flex flex-col gap-6">

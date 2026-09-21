@@ -1,9 +1,9 @@
 import { getTranslations } from "next-intl/server";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
+import { listClinicians } from "@/modules/staff/queries";
 import { can } from "@/lib/permissions";
 import { listPets } from "@/modules/pets/queries";
-import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
@@ -21,11 +21,7 @@ export default async function NewAppointmentPage({
     getTranslations("appointment"),
     getTranslations("common"),
     listPets({ clinicId: session.user.clinicId }),
-    prisma.user.findMany({
-      where: { clinicId: session.user.clinicId, active: true },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+    listClinicians(session.user.clinicId),
   ]);
 
   return (

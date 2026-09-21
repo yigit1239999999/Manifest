@@ -766,6 +766,7 @@
       "petNotInClinic": "Bu hayvan bu klinikte bulunamadı.",
       "clientRequired": "Müşteri bulunamadı.",
       "petRequired": "Hayvan bulunamadı.",
+    "vetRequired": "Seçilen kişi bu kliniğin veterineri olarak kaydedilemez.",
     "petSilenced": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için onun adına hatırlatma oluşturulamaz.",
     "clientArchived": "Bu müşteri arşivlenmiş olduğu için hatırlatma oluşturulamaz. Önce müşteriyi arşivden çıkarabilirsiniz.",
       "speciesUnknown": "Geçersiz tür.",

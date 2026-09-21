@@ -2,10 +2,10 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
+import { listClinicians } from "@/modules/staff/queries";
 import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
 import { listPets } from "@/modules/pets/queries";
-import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
@@ -22,11 +22,7 @@ export default async function EditVisitPage({
   const [visit, pets, vets, t, tCommon] = await Promise.all([
     getVisitById(session.user.clinicId, id),
     listPets({ clinicId: session.user.clinicId }),
-    prisma.user.findMany({
-      where: { clinicId: session.user.clinicId, active: true },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+    listClinicians(session.user.clinicId),
     getTranslations("visit"),
     getTranslations("common"),
   ]);

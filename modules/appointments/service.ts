@@ -5,6 +5,24 @@ import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { AppointmentInput } from "./schema";
 import { notifyAppointmentBooked } from "@/modules/notifications/service";
+import { isClinician } from "@/modules/staff/queries";
+
+/**
+ * See `modules/visits/service.ts`: the screens offer only clinicians, and
+ * a screen's filter is not a rule. An appointment's vet is who is expected
+ * to see the animal, and a receptionist saved there sends the day's plan
+ * to the wrong person.
+ */
+async function resolveVet(
+  vetId: string | null | undefined,
+  clinicId: string,
+): Promise<string | null> {
+  const id = vetId?.trim();
+  if (!id) return null;
+  if (!(await isClinician(clinicId, id)))
+    throw validationFailed({ vetId: ["error.validation.vetRequired"] });
+  return id;
+}
 
 async function resolvePet(petId: string, clinicId: string) {
   const pet = await prisma.pet.findFirst({
@@ -86,6 +104,7 @@ export async function createAppointment(
 ) {
   requirePermission(ctx.userRole, "appointments.write");
   const pet = await resolvePet(input.petId, ctx.clinicId);
+  const vet = await resolveVet(input.vetId, ctx.clinicId);
   const clash = duplicateOf(input, pet.id, ctx.clinicId);
 
   // Booking the same animal into the same instant twice returns the first
@@ -117,7 +136,7 @@ export async function createAppointment(
             clinicId: ctx.clinicId,
             petId: pet.id,
             clientId: pet.ownerId,
-            vetId: input.vetId || null,
+            vetId: vet,
             startsAt: input.startsAt,
             durationMinutes: input.durationMinutes ?? 30,
             type: input.type,
@@ -190,6 +209,7 @@ export async function updateAppointment(
   if (!existing) throw notFound("appointment", id);
 
   const pet = await resolvePet(input.petId, ctx.clinicId);
+  const vet = await resolveVet(input.vetId, ctx.clinicId);
 
   return withAudited(
     {
@@ -206,7 +226,7 @@ export async function updateAppointment(
         data: {
           petId: pet.id,
           clientId: pet.ownerId,
-          vetId: input.vetId || null,
+          vetId: vet,
           startsAt: input.startsAt,
           durationMinutes: input.durationMinutes ?? 30,
           type: input.type,
