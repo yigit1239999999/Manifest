@@ -2033,6 +2033,34 @@ talimat gelmeyince düşer.) Üretim derlemesinin kimliği
    bir olgudur, kırmızı gördüm değildir. Ve doğrulama **paylaşılan ağaçta
    değil** kopyada yapılır.
 
+9. **Kaç hâlden kaçını gördün?** `pm`'in kendi hatasından çıkardığı soru,
+   ve listedeki ötekilerin hiçbiri onu sormuyordu: bir ekranın **iki**
+   hâlini görüp *"doğru çalışıyor"* diye okudu — ekran **dört** hâl
+   taşıyordu ve gördüğü ikisinde gerçekten doğru çalışıyordu.
+   *"Eksik olanın **hangi soruyu sormadığını** görmemiştim."*
+
+   Yani ölçüm doğru, sonuç yanlış olabiliyor — ve bu, **yokluğu**
+   ölçerken en tehlikeli hâline geliyor: görmediğin hâl, görmediğin için
+   yok sayılıyor. **Kümeyi say, sonra kaçını gördüğünü yaz.**
+
+   Kardeş kural, koda bakan taraftan: *"bu ekran komşusunun bildiği bir
+   şeyi bilmiyor mu?"* (satır ~2132). İkisi aynı kusurun iki ucu.
+
+**Ve bir ayrım daha, `pm`'den, ve gerileme riskini o taşıyor:**
+
+- **Bir şeyin YOKLUĞUNU ölçmekle VARLIĞINI ölçmek farklı iş görür.**
+  *Vaka:* yakın adlı hayvan çiftinde bir şeyin **yokluğu** belgelendi
+  (*"Pamık" listede hiç yok*) — kazanç, onun görünür olması. Ortak
+  telefonlu müşteri çiftinde ise **varlık** belgelendi (*ikisi de
+  sessizce kaydedildi*) — ve orada **kaydın kaydedilmeye devam etmesi
+  korunması gereken davranış.**
+
+  > **"Bugün çalışan bir şeyi bozmak, çalışmayan bir şeyi eklememekten
+  > daha pahalı."**
+
+  Yani her *"öncesi"* ölçümünün yanına şu yazılır: **bu ölçüm neyin
+  kazanılacağını mı, neyin korunacağını mı gösteriyor.**
+
 **Ve sonucu yazarken iki ayrım korunur:**
 
 - **Ölçüm / teşhis / önerilen sınıf** ayrı yazılır. Bu oturumda üç kez ölçüm
