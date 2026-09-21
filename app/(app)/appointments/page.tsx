@@ -12,6 +12,7 @@ import { FilterTabs } from "@/components/filter-tabs";
 import { DayNav } from "@/components/day-nav";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import {
   dayKey,
@@ -147,88 +148,98 @@ export default async function AppointmentsPage({
         )
       ) : (
         <>
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t("startsAt")}</th>
-                  <th className="px-4 py-3 font-medium">{t("petClient")}</th>
-                  <th className="hidden px-4 py-3 font-medium sm:table-cell">
-                    {t("type")}
-                  </th>
-                  <th className="px-4 py-3 font-medium">{t("status")}</th>
-                  <th className="hidden px-4 py-3 font-medium md:table-cell">
-                    {t("vet")}
-                  </th>
-                  <th className="hidden px-4 py-3 font-medium md:table-cell">
-                    {t("phone")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {result.items.map((a) => (
-                  <tr key={a.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 align-top">
-                      <Link
-                        href={`/appointments/${a.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {showAllDates
-                          ? `${formatDate(fmt, a.startsAt)} ${formatTime(fmt, a.startsAt)}`
-                          : formatTime(fmt, a.startsAt)}
-                      </Link>
-                      {a.durationMinutes != null && (
-                        <div className="text-xs text-muted-foreground">
-                          {formatDuration(fmt, a.durationMinutes)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <div className="font-medium text-foreground">{a.pet.name}</div>
+          <DataTable
+            rows={result.items}
+            rowKey={(a) => a.id}
+            caption={t("title")}
+            columns={[
+              {
+                key: "startsAt",
+                header: t("startsAt"),
+                cell: (a) => (
+                  <>
+                    <Link
+                      href={`/appointments/${a.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {showAllDates
+                        ? `${formatDate(fmt, a.startsAt)} ${formatTime(fmt, a.startsAt)}`
+                        : formatTime(fmt, a.startsAt)}
+                    </Link>
+                    {a.durationMinutes != null && (
                       <div className="text-xs text-muted-foreground">
-                        {a.client.firstName} {a.client.lastName}
+                        {formatDuration(fmt, a.durationMinutes)}
                       </div>
-                      {/* The columns hidden on a phone still matter, so the
-                          essentials ride along in this cell. */}
-                      <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground sm:hidden">
-                        <span>{tType(a.type as never)}</span>
-                        {a.client.phone && (
-                          <a href={`tel:${a.client.phone}`} className="hover:underline">
-                            {a.client.phone}
-                          </a>
-                        )}
-                      </div>
-                    </td>
-                    <td className="hidden px-4 py-3 align-top sm:table-cell">
-                      <Badge variant="secondary">{tType(a.type as never)}</Badge>
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <StatusBadge
-                        kind="appointment"
-                        status={a.status}
-                        label={tStatus(a.status as never)}
-                      />
-                    </td>
-                    <td className="hidden px-4 py-3 align-top text-muted-foreground md:table-cell">
-                      {a.vet?.name ?? "-"}
-                    </td>
-                    <td className="hidden px-4 py-3 align-top md:table-cell">
-                      {a.client.phone ? (
-                        <a
-                          href={`tel:${a.client.phone}`}
-                          className="text-muted-foreground hover:underline"
-                        >
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: "petClient",
+                header: t("petClient"),
+                cell: (a) => (
+                  <>
+                    <div className="font-medium text-foreground">{a.pet.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {a.client.firstName} {a.client.lastName}
+                    </div>
+                    {/* The columns hidden on a phone still matter, so the
+                        essentials ride along in this cell. */}
+                    <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground sm:hidden">
+                      <span>{tType(a.type as never)}</span>
+                      {a.client.phone && (
+                        <a href={`tel:${a.client.phone}`} className="hover:underline">
                           {a.client.phone}
                         </a>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </>
+                ),
+              },
+              {
+                key: "type",
+                header: t("type"),
+                hideBelow: "sm",
+                cell: (a) => (
+                  <Badge variant="secondary">{tType(a.type as never)}</Badge>
+                ),
+              },
+              {
+                key: "status",
+                header: t("status"),
+                cell: (a) => (
+                  <StatusBadge
+                    kind="appointment"
+                    status={a.status}
+                    label={tStatus(a.status as never)}
+                  />
+                ),
+              },
+              {
+                key: "vet",
+                header: t("vet"),
+                hideBelow: "md",
+                cellClassName: "text-muted-foreground",
+                cell: (a) => a.vet?.name ?? "-",
+              },
+              {
+                key: "phone",
+                header: t("phone"),
+                hideBelow: "md",
+                cell: (a) =>
+                  a.client.phone ? (
+                    <a
+                      href={`tel:${a.client.phone}`}
+                      className="text-muted-foreground hover:underline"
+                    >
+                      {a.client.phone}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  ),
+              },
+            ]}
+          />
           {showAllDates && (
             <Pagination
               basePath="/appointments"

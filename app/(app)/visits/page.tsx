@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
 import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 
@@ -22,10 +23,11 @@ export default async function VisitsPage({
   const session = await requireSession();
   const { page: pageParam, type } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
-  const [t, tCommon, tVisitType, result] = await Promise.all([
+  const [t, tCommon, tVisitType, tPet, result] = await Promise.all([
     getTranslations("visit"),
     getTranslations("common"),
     getTranslations("enum.visitType"),
+    getTranslations("pet"),
     listVisitsPage({
       clinicId: session.user.clinicId,
       type: type ?? null,
@@ -85,43 +87,43 @@ export default async function VisitsPage({
         )
       ) : (
         <>
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t("visitedAt")}</th>
-                  <th className="px-4 py-3 font-medium">{t("type")}</th>
-                  <th className="px-4 py-3 font-medium">Pet</th>
-                  <th className="px-4 py-3 font-medium">{t("vet")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {result.items.map((v) => (
-                  <tr key={v.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/visits/${v.id}`}
-                        className="hover:underline"
-                      >
-                        {formatDateTime(fmt, v.visitedAt)}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="secondary">
-                        {tVisitType(v.type as never)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {v.pet.name} · {v.client.firstName} {v.client.lastName}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {v.vet?.name ?? "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            rows={result.items}
+            rowKey={(v) => v.id}
+            caption={t("title")}
+            columns={[
+              {
+                key: "visitedAt",
+                header: t("visitedAt"),
+                cell: (v) => (
+                  <Link href={`/visits/${v.id}`} className="hover:underline">
+                    {formatDateTime(fmt, v.visitedAt)}
+                  </Link>
+                ),
+              },
+              {
+                key: "type",
+                header: t("type"),
+                cell: (v) => (
+                  <Badge variant="secondary">{tVisitType(v.type as never)}</Badge>
+                ),
+              },
+              {
+                key: "pet",
+                // Was the hardcoded English string "Pet".
+                header: tPet("one"),
+                cellClassName: "text-muted-foreground",
+                cell: (v) =>
+                  `${v.pet.name} · ${v.client.firstName} ${v.client.lastName}`,
+              },
+              {
+                key: "vet",
+                header: t("vet"),
+                cellClassName: "text-muted-foreground",
+                cell: (v) => v.vet?.name ?? "-",
+              },
+            ]}
+          />
           <Pagination
             basePath="/visits"
             total={result.total}

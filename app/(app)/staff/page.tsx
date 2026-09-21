@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { StaffStatusButton } from "@/components/staff-status-button";
+import { DataTable } from "@/components/ui/data-table";
 
 export default async function StaffPage() {
   const session = await requireSession();
@@ -18,9 +19,10 @@ export default async function StaffPage() {
     redirect("/");
   }
 
-  const [t, tRole, staff] = await Promise.all([
+  const [t, tRole, tCommon, staff] = await Promise.all([
     getTranslations("staff"),
     getTranslations("enum.role"),
+    getTranslations("common"),
     listStaff(session.user.clinicId),
   ]);
 
@@ -40,67 +42,73 @@ export default async function StaffPage() {
           description={t("emptyHint")}
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 font-medium">{t("name")}</th>
-                <th className="px-4 py-3 font-medium">{t("email")}</th>
-                <th className="px-4 py-3 font-medium">{t("role")}</th>
-                <th className="px-4 py-3 font-medium">{t("status")}</th>
-                <th className="px-4 py-3 text-right font-medium" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {staff.map((member) => {
-                const isSelf = member.id === session.user.id;
-                return (
-                  <tr key={member.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium text-foreground">
-                      {member.name}
-                      {isSelf && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          ({t("you")})
-                        </span>
+        <DataTable
+          rows={staff}
+          rowKey={(member) => member.id}
+          caption={t("title")}
+          columns={[
+            {
+              key: "name",
+              header: t("name"),
+              cellClassName: "font-medium text-foreground",
+              cell: (member) => (
+                <>
+                  {member.name}
+                  {member.id === session.user.id && (
+                    <span className="ms-2 text-xs text-muted-foreground">
+                      ({t("you")})
+                    </span>
+                  )}
+                </>
+              ),
+            },
+            {
+              key: "email",
+              header: t("email"),
+              cellClassName: "text-muted-foreground",
+              cell: (member) => member.email,
+            },
+            {
+              key: "role",
+              header: t("role"),
+              cellClassName: "text-muted-foreground",
+              cell: (member) => tRole(member.role),
+            },
+            {
+              key: "status",
+              header: t("status"),
+              cell: (member) => (
+                <Badge variant={member.active ? "primary" : "outline"}>
+                  {member.active ? t("active") : t("inactive")}
+                </Badge>
+              ),
+            },
+            {
+              key: "actions",
+              // Was an empty `<th />`, which left these cells nameless.
+              header: tCommon("details"),
+              headerHidden: true,
+              align: "end",
+              cell: (member) =>
+                member.id === session.user.id ? null : (
+                  <div className="flex justify-end">
+                    <StaffStatusButton
+                      action={setStaffActiveAction.bind(
+                        null,
+                        member.id,
+                        !member.active,
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {member.email}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {tRole(member.role)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={member.active ? "primary" : "outline"}>
-                        {member.active ? t("active") : t("inactive")}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {!isSelf && (
-                        <div className="flex justify-end">
-                          <StaffStatusButton
-                            action={setStaffActiveAction.bind(
-                              null,
-                              member.id,
-                              !member.active,
-                            )}
-                            active={member.active}
-                            label={
-                              member.active ? t("deactivate") : t("activate")
-                            }
-                            confirmText={
-                              member.active ? t("deactivateConfirm") : undefined
-                            }
-                          />
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      active={member.active}
+                      label={member.active ? t("deactivate") : t("activate")}
+                      confirmText={
+                        member.active ? t("deactivateConfirm") : undefined
+                      }
+                    />
+                  </div>
+                ),
+            },
+          ]}
+        />
       )}
     </div>
   );

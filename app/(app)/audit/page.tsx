@@ -6,6 +6,7 @@ import { listAuditEntries } from "@/modules/audit/queries";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/ui/data-table";
 import { formatDateTime } from "@/lib/format";
 import { PAGE_SIZES } from "@/lib/pagination";
 
@@ -32,39 +33,44 @@ export default async function AuditPage() {
           description={t("emptyHint")}
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 font-medium">{t("when")}</th>
-                <th className="px-4 py-3 font-medium">{t("actor")}</th>
-                <th className="px-4 py-3 font-medium">{t("action")}</th>
-                <th className="px-4 py-3 font-medium">{t("entity")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {entries.map((e) => (
-                <tr key={e.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatDateTime(fmt, e.createdAt)}
-                  </td>
-                  <td className="px-4 py-3">{e.actor?.name ?? "-"}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="secondary">
-                      {tAction(e.action as never)}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {e.entityType}
-                    <span className="ml-2 text-xs text-muted-foreground/70">
-                      {e.entityId.slice(0, 6)}…
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          rows={entries}
+          rowKey={(e) => e.id}
+          caption={t("title")}
+          columns={[
+            {
+              key: "when",
+              header: t("when"),
+              cellClassName: "text-muted-foreground",
+              cell: (e) => formatDateTime(fmt, e.createdAt),
+            },
+            {
+              key: "actor",
+              header: t("actor"),
+              cell: (e) => e.actor?.name ?? "-",
+            },
+            {
+              key: "action",
+              header: t("action"),
+              cell: (e) => (
+                <Badge variant="secondary">{tAction(e.action as never)}</Badge>
+              ),
+            },
+            {
+              key: "entity",
+              header: t("entity"),
+              cellClassName: "text-muted-foreground",
+              cell: (e) => (
+                <>
+                  {e.entityType}
+                  <span className="ms-2 text-xs text-muted-foreground/70">
+                    {e.entityId.slice(0, 6)}…
+                  </span>
+                </>
+              ),
+            },
+          ]}
+        />
       )}
     </div>
   );

@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDate, formatMoney } from "@/lib/format";
 
@@ -23,10 +24,11 @@ export default async function InvoicesPage({
   const session = await requireSession();
   const { page: pageParam, status } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
-  const [t, tCommon, tStatus, result, currency] = await Promise.all([
+  const [t, tCommon, tStatus, tClient, result, currency] = await Promise.all([
     getTranslations("invoice"),
     getTranslations("common"),
     getTranslations("enum.invoiceStatus"),
+    getTranslations("client"),
     listInvoicesPage({
       clinicId: session.user.clinicId,
       statuses: status ? [status] : null,
@@ -86,51 +88,54 @@ export default async function InvoicesPage({
         )
       ) : (
         <>
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t("number")}</th>
-                  <th className="px-4 py-3 font-medium">Client</th>
-                  <th className="px-4 py-3 font-medium">{t("issuedAt")}</th>
-                  <th className="px-4 py-3 text-right font-medium">
-                    {t("total")}
-                  </th>
-                  <th className="px-4 py-3 font-medium">{t("status")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {result.items.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium">
-                      <Link
-                        href={`/invoices/${inv.id}`}
-                        className="hover:underline"
-                      >
-                        #{inv.number}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {inv.client.firstName} {inv.client.lastName}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {formatDate(fmt, inv.issuedAt)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium">
-                      {formatMoney(fmt, inv.totalCents, currency)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge
-                        kind="invoice"
-                        status={inv.status}
-                        label={tStatus(inv.status as never)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            rows={result.items}
+            rowKey={(inv) => inv.id}
+            caption={t("title")}
+            columns={[
+              {
+                key: "number",
+                header: t("number"),
+                cellClassName: "font-medium",
+                cell: (inv) => (
+                  <Link href={`/invoices/${inv.id}`} className="hover:underline">
+                    #{inv.number}
+                  </Link>
+                ),
+              },
+              {
+                key: "client",
+                // Was the hardcoded English string "Client".
+                header: tClient("one"),
+                cellClassName: "text-muted-foreground",
+                cell: (inv) => `${inv.client.firstName} ${inv.client.lastName}`,
+              },
+              {
+                key: "issuedAt",
+                header: t("issuedAt"),
+                cellClassName: "text-muted-foreground",
+                cell: (inv) => formatDate(fmt, inv.issuedAt),
+              },
+              {
+                key: "total",
+                header: t("total"),
+                align: "end",
+                cellClassName: "font-medium",
+                cell: (inv) => formatMoney(fmt, inv.totalCents, currency),
+              },
+              {
+                key: "status",
+                header: t("status"),
+                cell: (inv) => (
+                  <StatusBadge
+                    kind="invoice"
+                    status={inv.status}
+                    label={tStatus(inv.status as never)}
+                  />
+                ),
+              },
+            ]}
+          />
           <Pagination
             basePath="/invoices"
             total={result.total}
