@@ -136,7 +136,7 @@
     "firstStep": {
       "visit": {
         "title": "Bugün baktığınız bir hayvanın vizitini yazınız.",
-        "hint": "Kayıtlı değilse hayvanı ve sahibini açmaya gider, kaldığınız yere dönersiniz."
+        "hint": "Önce sahibini ve hayvanı açacaksınız; yazdıklarınız taşınır."
       },
       "client": {
         "title": "Bugün gelen bir hayvan sahibini ekleyiniz.",

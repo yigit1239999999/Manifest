@@ -136,7 +136,7 @@
     "firstStep": {
       "visit": {
         "title": "Write up a visit for an animal you saw today.",
-        "hint": "If they are not on file, you leave to add the animal and its owner, then return to where you left off."
+        "hint": "You will add the owner and the animal first, and what you have typed comes with you."
       },
       "client": {
         "title": "Add an owner who came in today.",
