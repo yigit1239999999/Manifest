@@ -298,6 +298,16 @@ export const STATES = [
     covers:
       "one whose next date has gone by: whether the 'upcoming' card silently drops the animals most overdue, which nothing today can confirm or refute",
   },
+  // The card that starts the sending had no animal filter at all, while
+  // the same rule already sat in the sweep's two queries and in the
+  // animal picker. This record is what makes the difference measurable:
+  // before the fix the dashboard offered it, after the fix it does not,
+  // and that is one row rather than an argument.
+  {
+    id: "vaccination.pet.deceased",
+    covers:
+      "a vaccination falling due for an animal that has died: whether the dashboard hands out work whose far end the sweep will refuse, and which a vet phoning the owner would carry out anyway",
+  },
   {
     id: "vaccination.nextDue.none",
     covers:
@@ -808,6 +818,18 @@ export async function buildStateClinic(db) {
     );
     made(stateId);
   }
+
+  // The fourth, and the only one not on the living animal. Hung on the
+  // deceased one deliberately: the three above answer "what does the
+  // next-due field do", this one answers "does the card check whether
+  // the animal is still alive", and one record cannot ask both.
+  await db.query(
+    `INSERT INTO vaccinations (id, "clinicId", "petId", "administeredById", name,
+                               "administeredAt", "nextDueAt", "updatedAt")
+     VALUES ($6, $1, $2, $3, 'Kuduz aşısı', $4, $5, now())`,
+    [clinic.id, dead.id, vet.id, ago(340), ahead(14), halId("vaccination", "deceased")],
+  );
+  made("vaccination.pet.deceased");
 
   // The invoice number already names the state ("HAL-PAID-USD"), so the
   // address comes from it rather than from a second list that could

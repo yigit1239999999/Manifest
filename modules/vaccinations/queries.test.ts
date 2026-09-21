@@ -6,7 +6,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { intervalOf } from "@/lib/vaccination-interval";
-import { vaccinationIntervalSuggestions } from "./queries";
+import { upcomingVaccinations, vaccinationIntervalSuggestions } from "./queries";
 
 // Backlog 20. The suggestion behind the next-due field is the one place the
 // app comes closest to making a medical claim, so the rules about when it
@@ -32,6 +32,25 @@ const suggest = async (rows: unknown[]) => {
   vi.mocked(prisma.vaccination.findMany).mockResolvedValue(rows as never);
   return vaccinationIntervalSuggestions("clinic-1", "DOG");
 };
+
+// The card is where sending starts. A vet reads it, writes a reminder,
+// and only the far end of the chain catches a dead animal -- the sweep
+// refuses and the row says why. Nothing catches a vet who picks up the
+// phone instead, which is the worse of the two.
+describe("upcomingVaccinations", () => {
+  it("never offers work for an animal that died or was archived", async () => {
+    vi.mocked(prisma.vaccination.findMany).mockResolvedValue([] as never);
+
+    await upcomingVaccinations("clinic-1");
+
+    const where = vi.mocked(prisma.vaccination.findMany).mock.calls[0][0]
+      ?.where as Record<string, unknown>;
+    // In the query, for the same reason the sweep keeps it in its own:
+    // a filter applied after the read is one a later caller can skip.
+    expect(where.pet).toEqual({ deceased: false, archivedAt: null });
+    expect(where.clinicId).toBe("clinic-1");
+  });
+});
 
 describe("intervalOf", () => {
   it("speaks in the unit a vet would say out loud", () => {

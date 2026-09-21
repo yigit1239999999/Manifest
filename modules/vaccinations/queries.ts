@@ -14,11 +14,27 @@ export async function listVaccinationsForPet(
   });
 }
 
+/**
+ * What the dashboard offers as work to do next.
+ *
+ * The animal filter is the point of this comment. Without it the card
+ * listed vaccinations for animals that had died or been archived, and
+ * the card is where the sending starts: a vet reads "Fındık's booster
+ * is due", writes a reminder, and the far end of the chain is the only
+ * thing that catches it -- the sweep refuses to send and the row says
+ * why. That is the chain working from the middle onwards while its
+ * first link hands out wrong work. Worse, nothing in the chain catches
+ * a vet who picks up the phone instead.
+ *
+ * The same rule already lives in the reminder sweep's two queries and
+ * in the animal picker. It was missing here, not weaker here.
+ */
 export async function upcomingVaccinations(clinicId: string, take = 10) {
   return prisma.vaccination.findMany({
     where: {
       clinicId,
       nextDueAt: { not: null, gte: new Date() },
+      pet: { deceased: false, archivedAt: null },
     },
     orderBy: { nextDueAt: "asc" },
     take,
