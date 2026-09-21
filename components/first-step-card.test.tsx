@@ -50,16 +50,42 @@ describe("the first step card", () => {
     expect(screen.getByRole("link")).toHaveAttribute("href", "/pets/new");
   });
 
-  // Absent rather than button-less, which is the opposite of what
-  // `MissingLink` does and the difference is the surface. There, the
-  // sentence is the whole screen and explains why it is empty. Here it is
-  // a row above six metric cards on a page with other things to read, and
-  // "somebody should add a client" to a technician who cannot is a
-  // standing instruction addressed to nobody in the room.
-  it("stays away from a reader who cannot act on it", async () => {
+  // Speaks to a reader who cannot act, but never asks them to. Until
+  // pm opened the dashboard as a technician this branch rendered
+  // nothing at all, and the screen answered "what am I meant to do
+  // here" with silence -- which is the right fact, since every
+  // permission a technician holds writes onto an animal and there is no
+  // animal yet, but it leaves them unable to tell an empty product from
+  // a broken one.
+  //
+  // The button is what must not be there. "Somebody should add a
+  // client", said to a technician who cannot, is a standing instruction
+  // addressed to nobody in the room, and a link the server would refuse
+  // is worse than no link.
+  it("tells a reader who cannot act what their work waits on", async () => {
     const container = await renderAs("VET_TECH", "client");
 
-    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.getByText(tr.dashboard.firstStep.waiting.title),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(tr.dashboard.firstStep.waiting.hint),
+    ).toBeInTheDocument();
+    expect(container.querySelector("a")).toBeNull();
+  });
+
+  // The sentence is the one place in this card that may not carry an
+  // ask, so it is checked for one rather than trusted to stay calm: a
+  // later edit that made it say "ask your vet to add a client" would
+  // turn a statement of fact into an errand handed to someone who
+  // cannot run it.
+  it("does not hand the waiting reader an errand", async () => {
+    await renderAs("VET_TECH", "client");
+
+    const said =
+      tr.dashboard.firstStep.waiting.title + tr.dashboard.firstStep.waiting.hint;
+
+    expect(said).not.toMatch(/yetki|izin|yönetici|rica|isteyiniz|söyleyiniz/i);
   });
 });
 

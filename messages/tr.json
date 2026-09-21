@@ -145,6 +145,10 @@
       "pet": {
         "title": "Bugün baktığınız bir hayvanı sahibine ekleyiniz.",
         "hint": "Vizit, aşı ve reçete kaydı ona bağlanır."
+      },
+      "waiting": {
+        "title": "İşiniz ilk kayıtlarla başlar.",
+        "hint": "Aşı, tahlil ve tedavi kayıtları bir hayvanın dosyasına bağlanır."
       }
     },
     "unreachedRemindersCount": "{count, plural, one {1 tanesi ulaşmadı} other {# tanesi ulaşmadı}}",

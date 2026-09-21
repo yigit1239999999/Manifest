@@ -25,8 +25,10 @@ import { PreviewPanel } from "@/components/preview-panel";
  * anywhere, the seven tiles having two identical bars each, the shape
  * agreeing with the loading state, the money and volume cards staying
  * out, and the tile order matching the real panel. `first-step-card.test`
- * holds the card drawing one link at a time and the branch that falls
- * back for a reader who cannot write a visit; `pet-picker-owner.test`
+ * holds the card drawing one link at a time, the branch that falls back
+ * for a reader who cannot write a visit, and the waiting sentence
+ * shown to a reader who can reach neither -- both that it appears and
+ * that it carries no button and no errand; `pet-picker-owner.test`
  * holds the picker naming an owner.
  *
  * Not held anywhere, and a violation of one ships silently: "no negative
