@@ -35,9 +35,16 @@ test.describe("First run", () => {
       const main = page.getByRole("main");
       await expect(main.getByText(guard.says)).toBeVisible();
       // The way out, and no form to guess at behind it.
+      //
+      // The whole address, `next` included, because which route the
+      // button comes back to is the half worth measuring: a link that
+      // goes to `/clients/new` and forgets where it came from still
+      // leaves the vet to find their way back, which is the defect the
+      // errand exists to remove. Matching a prefix would pass either
+      // way and tell us nothing.
       await expect(main.getByRole("link").last()).toHaveAttribute(
         "href",
-        guard.to,
+        `${guard.to}?next=${encodeURIComponent(guard.path)}`,
       );
       await expect(main.getByRole("combobox")).toHaveCount(0);
     }
@@ -81,7 +88,14 @@ test.describe("First run", () => {
       // could not see it, because the href it checked was the right one.
       const ways = main.getByRole("link", { name: /^(new|yeni) /i });
       await expect(ways).toHaveCount(1);
-      await expect(ways).toHaveAttribute("href", list.to);
+      // The whole address, errand included: which list the button comes
+      // back to is the half worth measuring, and a vet sent from
+      // /appointments belongs back on /appointments rather than on the
+      // new record's own page. Matching a prefix would pass either way.
+      await expect(ways).toHaveAttribute(
+        "href",
+        `${list.to}?next=${encodeURIComponent(list.path)}`,
+      );
     }
 
     await page.goto("/clients");
@@ -107,19 +121,27 @@ test.describe("First run", () => {
     await expect(main.getByRole("link")).toHaveCount(0);
   });
 
-  // One line at the top, naming one link, and it has to be the one that is
-  // actually missing — not a checklist that stays on screen after the work
-  // is done. The second half of this test is the half that matters: the
-  // card is gone for good the moment the chain is complete.
-  test("the dashboard names one missing link, then stops", async ({ page }) => {
+  // One line at the top, asking for one thing, and it has to be the right
+  // thing for the clinic reading it — not a checklist that stays on screen
+  // after the work is done.
+  //
+  // A clinic with nothing at all is asked for the work rather than for a
+  // record: the vet said they sit down to see a patient, not to do data
+  // entry, and the chain makes the owner and the animal on the way there.
+  // A clinic that is part-way has already answered that question, so it is
+  // asked for the link it is actually missing. Both are one line and one
+  // button; what changes is which.
+  test("the dashboard asks for the work, then for what is missing", async ({
+    page,
+  }) => {
     await signUp(page, Date.now());
 
     const main = page.getByRole("main");
     const firstStep = main.getByRole("link", {
-      name: /new client|yeni müşteri|new pet|yeni hayvan/i,
+      name: /^(new|yeni) /i,
     });
 
-    await expect(firstStep).toHaveAttribute("href", "/clients/new");
+    await expect(firstStep).toHaveAttribute("href", "/visits/new");
 
     await page.goto("/clients/new");
     await page.getByLabel(/first name|^ad$/i).fill("Devrim");
@@ -129,9 +151,12 @@ test.describe("First run", () => {
       .click();
     await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
 
-    // The chain moved on by exactly one link, and no further: no third
-    // card about staff, species or notification settings.
+    // One client in, and the ask moves to the animal -- one line still,
+    // and no second card appearing beside it about staff, species or
+    // notification settings. That bound is the design: a card that can
+    // name a third thing is a setup checklist.
     await page.goto("/");
+    await expect(firstStep).toHaveCount(1);
     await expect(firstStep).toHaveAttribute("href", "/pets/new");
   });
 
@@ -274,8 +299,18 @@ test.describe("First run", () => {
     await expect(
       main.getByText(/a pet comes first|önce hayvan gerekir/i),
     ).toHaveCount(0);
-    await expect(
-      main.getByRole("link", { name: /new appointment|yeni randevu/i }),
-    ).toHaveCount(1);
+
+    // The list is still empty -- an animal is not an appointment -- so
+    // the screen is back to its ordinary empty state, with the header's
+    // button and the empty state's own. Two ways forward, which is
+    // allowed; what is not allowed is their disagreeing about where
+    // they go, so both are checked rather than counted.
+    const onward = main.getByRole("link", {
+      name: /new appointment|yeni randevu/i,
+    });
+    await expect(onward).toHaveCount(2);
+    for (const link of await onward.all()) {
+      await expect(link).toHaveAttribute("href", "/appointments/new");
+    }
   });
 });
