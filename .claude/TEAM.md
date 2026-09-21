@@ -1580,6 +1580,31 @@ Geçerli ölçü:
 
 İkisi de gözlenmiş arıza modudur: kabul boşluğu ve taşınan P0.
 
+## SÜRÜMÜ value BELİRLER, ux'e DANIŞARAK — ve "es" ATLANMAZ (21 Eylül 2026, kullanıcı kararı)
+
+Kullanıcının cümlesi: *"es geçmemeyi value dikkate alsın, sürümü o
+belirlesin, ne çıkacaksa ux lead'iyle konuşup."*
+
+**Üç bağlayıcı madde:**
+
+1. **Sürümün içeriğine value karar verir.** Paketin neyi taşıdığı, neyin
+   kaldığı ve kesim şartı value'nundur. Ana oturum kesimi **uygular**,
+   kapsamı belirlemez.
+2. **Kararı ux ile konuşarak verir.** Sürüm içeriği tasarım lideriyle
+   **birlikte** belirlenir; value tek başına liste yapmaz. Gerekçesi bu
+   ekipte kanıtlı: ux'in sınıf ayrımı bu oturumda **iki kez** value'nun
+   paketleme kararını değiştirdi (bilgi mimarisi ≠ eksik bağ; ve son vizit
+   satırının evi).
+3. **"Es" atlanmaz.** Sürümler arasında **duraklama** vardır — bu bir
+   formalite değil, kullanıcının koyduğu ritmin kendisi: *"arada bir sürüm
+   çıkalım, maine çok fazla değişiklik almayalım bir anda, es verip sürüm
+   geçişlerimiz olsun."*
+
+**Bu oturumda üç kez "es" mesajı kesimle çakıştı** (v0.2.0, v0.4.0, v0.6.0)
+— sebebi ana oturumun kesimi value'nun onayından **önce** yapmasıydı.
+**Bir daha olmaz:** kesim, value'nun "es"ini **bekler**; value da "es"i
+ux'e danıştıktan sonra verir.
+
 ## ÖLÇÜM YÖNTEMİ — ölçmeden önce okunur
 
 Bu oturumda ölçüm **sekiz kez** yanılttı ve yedi ayrı kural doğurdu. Dağınık
