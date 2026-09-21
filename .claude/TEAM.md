@@ -2836,10 +2836,32 @@ fazlasına mal olurdu.
 kullanmadığı bir komutu yasaklıyor ve gerçek iki mekanizmayı
 **kapsamıyor** — yani **koruma görüntüsü veren, korumayan** bir kural."*
 
-> **Bugün bu şekle ÜÇÜNCÜ kez isim takıldı:** `outline-ring`'in dizgi
-> testi (sınıf yazılıydı, CSS üretmiyordu) · filtrelenen `tsc` kapısı
-> (yeşil, yeşil olmadığının bile kanıtı değil) · ve bu yasak. **Üçü de
-> bakmayı durduruyor ve hiçbiri korumuyor.**
+> **Bugün bu şekilden ALTI vaka çıktı** — üçü kod tarafında, üçü stil
+> tarafında, yani **sınıf bir alana özgü değil:**
+>
+> | vaka | görüntü | gerçek |
+> |---|---|---|
+> | `outline-ring`'in dizgi testi | sınıf yazılı, test yeşil | CSS hiç üretilmiyor |
+> | filtrelenen `tsc` kapısı | yeşil | yeşil **olmadığının** bile kanıtı değil |
+> | `git add -A` yasağı | kural var | iki mekanizmayı da kapsamıyor |
+> | girdilerin `ring-2 ring-ring/30`'u | halka yazılı | birleşik kontrast **1,03** |
+> | onay kutularının `rounded`+`border-border` | kenarlık + yarıçap yazılı | `border-width: 0` |
+> | atlama bağlantısının `focus:ring-2` | odak halkası yazılı | tek opak katman, kart gölgesi |
+>
+> **Altısında da eksik olanın yerinde BİR ŞEY VAR.**
+
+**Ve value altı vakadan adlandırmaktan kullanışlı bir KONTROL çıkardı:**
+
+> **Bu şeyin var olması neyi durduruyor? Durdurduğu şeyi BİR KEZ YAP.**
+
+Dizgi testi *rengi ölçmeyi* durduruyordu → rengi bir kez ölç. Kapı
+*testleri okumayı* → filtresiz bir kez koş. Kural *commit'e bakmayı* →
+bir kez `--cached --name-only`. Halka sınıfı *kontrast ölçmeyi* → bir kez
+ölç. **Altısında da kusur, durdurulan kontrolün hiç yapılmamış olması.**
+
+**Bu, "yeni kural yaz" refleksinin panzehiri:** yeni kural **yedinci**
+rahatlatıcıyı üretir; kontrol, **var olanın işini yapıp yapmadığını**
+sorar.
 
 Ve value'nun kendi teşhisi: *"mekanizmayı **ölçmeden adlandırdım** — bu
 turda ux'e, pm'e ve dev'e tam bunu üç kez söyledim, dördüncüsünü kendim
