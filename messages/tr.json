@@ -128,7 +128,6 @@
     },
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
     "overdueVaccinationsDismiss": "Kapat",
-    "overdueVaccinationsDismissName": "{pet} · {vaccine} satırını kapat",
     "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
     "overdueVaccinationsUndo": "Geri al"
   },
@@ -552,7 +551,7 @@
       "sent": "Gönderildi: {at} · {channel}",
       "delivered": "Ulaştı: {at} · {channel}",
       "awaitingReport": "Gönderildi: {at} · {channel}. Teslim bilgisi bekleniyor.",
-      "undelivered": "Ulaşmadı: {at} · {channel}. Numaraya erişilemedi.",
+      "undelivered": "Ulaşmadı: {at} · {channel}",
       "reportExpired": "Teslim raporu gelmedi: {at} · {channel}",
       "testModeNote": "Test kipi, mesaj dışarı çıkmadı.",
       "failedRetrying": "Gönderilemedi: {at} · {attempts, plural, one {1 deneme} other {# deneme}}. Tekrar denenecek.",
@@ -838,7 +837,8 @@
       "appointmentPast": "Randevu saati geçtiği için bu mesaj artık doğru değil.",
       "petSilenced": "Bu hayvan için mesaj gönderilmez.",
       "remindersDisabled": "Hatırlatma mesajları klinik ayarlarında kapalı.",
-      "alreadySent": "Bu hatırlatma için mesaj zaten gönderildi."
+      "alreadySent": "Bu hatırlatma için mesaj zaten gönderildi.",
+      "duplicateWindow": "Aynı mesaj bu numaraya son bir saat içinde gönderildi. Operatör tekrarı engeller; bir saat sonra yeniden deneyebilirsiniz."
     },
     "validation": {
       "ownerNotInClinic": "Bu sahip bu klinikte bulunamadı.",

@@ -37,8 +37,9 @@ import {
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const [t, tSpecies, tVisitType, insights, currency, fmt] = await Promise.all([
+  const [t, tCommon, tSpecies, tVisitType, insights, currency, fmt] = await Promise.all([
     getTranslations("dashboard"),
+    getTranslations("common"),
     getTranslations("enum.species"),
     getTranslations("enum.visitType"),
     dashboardInsights(session.user.clinicId),
@@ -399,9 +400,22 @@ export default async function DashboardPage() {
                       <VaccinationDueDismissButton
                         action={setVaccinationDueDismissedAction.bind(null, v.id)}
                         label={t("overdueVaccinationsDismiss")}
-                        name={t("overdueVaccinationsDismissName", {
-                          pet: v.pet.name,
-                          vaccine: v.name,
+                        // `actionFor`, the same pattern every named row
+                        // action on `/reminders` uses -- "Close: Zeytin ·
+                        // Karma aşı". Ten rows carry ten buttons reading
+                        // "Close", and by voice they are one button ten
+                        // times over unless the row is in the name.
+                        //
+                        // It replaces a key of its own, which had put the
+                        // word "aşı" after a vaccine name that already
+                        // ended in it. Building the sentence out of the
+                        // shared pattern instead of writing a new one
+                        // also means no new place for a Turkish suffix to
+                        // go wrong: `actionFor` joins with a colon and
+                        // inflects nothing.
+                        name={tCommon("actionFor", {
+                          action: t("overdueVaccinationsDismiss"),
+                          subject: `${v.pet.name} · ${v.name}`,
                         })}
                         undoLabel={t("overdueVaccinationsUndo")}
                         undoneLabel={t("overdueVaccinationsDismissed")}

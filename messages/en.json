@@ -128,7 +128,6 @@
     },
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
     "overdueVaccinationsDismiss": "Close",
-    "overdueVaccinationsDismissName": "Close the {vaccine} row for {pet}",
     "overdueVaccinationsDismissed": "Vaccination row closed.",
     "overdueVaccinationsUndo": "Undo"
   },
@@ -552,7 +551,7 @@
       "sent": "Sent: {at} · {channel}",
       "delivered": "Delivered: {at} · {channel}",
       "awaitingReport": "Sent: {at} · {channel}. Awaiting the report.",
-      "undelivered": "Not received: {at} · {channel}. The number is unreachable.",
+      "undelivered": "Not received: {at} · {channel}",
       "reportExpired": "No delivery report came back: {at} · {channel}",
       "testModeNote": "Test mode: nothing left the app.",
       "failedRetrying": "Could not be sent: {at} · {attempts, plural, one {1 try} other {# tries}}. Will retry.",
@@ -838,7 +837,8 @@
       "appointmentPast": "The appointment time has passed, so this message is no longer true.",
       "petSilenced": "No message is sent for this animal.",
       "remindersDisabled": "Reminder messages are switched off in the clinic settings.",
-      "alreadySent": "A message for this reminder has already been sent."
+      "alreadySent": "A message for this reminder has already been sent.",
+      "duplicateWindow": "The same message went to this number within the last hour. The operator blocks repeats; you can try again in an hour."
     },
     "validation": {
       "ownerNotInClinic": "This owner isn't in your clinic.",

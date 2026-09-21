@@ -372,10 +372,27 @@ describe("the five things that can have happened to an accepted message", () => 
     expect(text).not.toMatch(/Ulaştı/);
   });
 
-  it("says a message did not arrive, and why it is worth a phone call", async () => {
+  /**
+   * It says the message did not arrive and stops there.
+   *
+   * It used to add "the number is unreachable", which is a claim about
+   * a CAUSE and is true for one of the codes that land in this bucket.
+   * pm read the provider's table: `3` really is a bad number, but `13`
+   * is our own duplicate filter catching us, `14` is spent credit,
+   * `15` is a blacklist, `16`/`17` are consent registry rules -- and in
+   * every one of those the number is fine. A vet reading that sentence
+   * phones an owner to check a number that was never the problem, and
+   * a list that sends you to the wrong job once does not get believed
+   * again.
+   *
+   * Naming the real cause is worth doing and needs the code mapped to
+   * words; two of the codes are still unclassified. Until then the row
+   * says what is known.
+   */
+  it("says a message did not arrive, and invents no reason for it", async () => {
     const text = await drawn("undelivered");
     expect(text).toMatch(/Ulaşmadı/);
-    expect(text).toMatch(/erişilemedi/);
+    expect(text).not.toMatch(/numara|erişil/i);
   });
 
   // Neither outcome: we stopped hearing. Both words are refused here,
