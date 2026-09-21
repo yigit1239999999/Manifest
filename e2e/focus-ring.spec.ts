@@ -107,7 +107,18 @@ test.describe("Focus ring", () => {
       // because a button inside a closed dialog cannot take focus, and
       // focusing it would measure an unfocused element — `currentColor`
       // again, arriving by a third road.
-      const buttons = page.locator("button:not([disabled]):visible");
+      //
+      // Ticks and radios are in the net because they were not, and ux
+      // found the sixth group this missed: nine hand-written inputs
+      // with no focus class, falling through to Chromium's own ring at
+      // 2.89 against the dark card. A sweep is only as wide as its
+      // selector, and the next hole will be in whatever this still
+      // does not name.
+      const buttons = page.locator(
+        "button:not([disabled]):visible, " +
+          "input[type=checkbox]:not([disabled]):visible, " +
+          "input[type=radio]:not([disabled]):visible",
+      );
       const count = await buttons.count();
 
       for (const theme of ["light", "dark"] as const) {
@@ -153,12 +164,23 @@ test.describe("Focus ring", () => {
             offenders.push(`${where}: outline ${settled.width}, want 2px`);
           }
           // The offset is deliberately not asserted, and this is a
-          // judgement rather than an omission. A standalone button takes
-          // 2px so the mark sits on the surface behind it instead of on
-          // its own fill; a segment inside a bordered group takes 0, or
-          // the mark crosses its neighbour. One number for both would be
-          // wrong somewhere, and the thing that has to be the same
-          // everywhere is the colour, which is what this checks.
+          // judgement rather than an omission. There are two shapes and
+          // the rule for choosing between them is:
+          //
+          //   A control standing on its own takes `outline-offset: 2px`,
+          //   so the mark sits on the surface behind it rather than on
+          //   its own fill.
+          //
+          //   Segments sitting side by side inside a bordered group take
+          //   `outline-offset: 0`. An outset mark crosses the neighbour
+          //   and the group's own border, and the gap was not carrying
+          //   the contrast anyway — against the active segment's
+          //   `bg-accent` the ring measures 4.58 light, 5.69 dark.
+          //
+          // The rule lives here rather than only in the two call sites
+          // because the third segmented group is the one that will get
+          // it wrong. What the test can check is the part that must be
+          // identical everywhere, which is the colour.
           //
           // The old `ring-offset-background` cannot come back unnoticed
           // even so: `app/theme-tokens.test.ts` fails on the string.

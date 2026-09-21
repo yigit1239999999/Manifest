@@ -138,12 +138,11 @@ export function ClientForm({ client }: Props) {
                     value={answer}
                     checked={consent === answer}
                     onChange={() => setConsent(answer)}
-                    // The focus mark the buttons carry. A native radio
-                    // falls through to Chromium's own ring otherwise,
-                    // which is the one blue in the product — the same
-                    // defect `e2e/focus-ring.spec.ts` found on five
-                    // controls in the topbar.
-                    className="size-4 accent-[var(--color-primary)] focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2"
+                    // No focus class and no `accent-color`: both come
+                    // from the rules in `app/globals.css` that cover
+                    // every tick and radio in the product. A tenth copy
+                    // here would be the one that drifts.
+                    className="size-4"
                   />
                   {t(answer === "true" ? "consent.granted" : "consent.declined")}
                 </label>

@@ -162,6 +162,34 @@
     border-radius: var(--radius-control);
   }
 
+  /* Ticks and radios reach the same mark by the same road, and they are
+     here rather than in a component because there is no component: nine
+     call sites write the input by hand and not one of them carries a
+     focus class. ux measured what they fall through to — Chromium's own
+     1px `rgb(0, 95, 204)` at 2.89 against the dark card, under the 3:1
+     floor for a non-text mark. One of the nine is the consent tick in
+     `client-form.tsx`, which is the control the clinic records a legal
+     answer with.
+
+     A rule rather than a tenth copy of a class string: it fixes the
+     nine at once and makes the tenth impossible to forget. A
+     `components/ui/checkbox.tsx` is still owed — `mt-0.5 size-4 rounded
+     border-border` is written out nine times — but that is tidiness and
+     this is a floor.
+
+     No `border-radius`, and its absence is a decision rather than an
+     oversight (TEAM.md 30b). The rule above gives links a radius
+     because an outline round a run of text has no shape of its own. A
+     radio does: it is a circle, and `--radius-control` would draw a
+     rounded square around it. Left unset, the outline follows whatever
+     the control already is — the tick's `rounded`, the radio's
+     circle. */
+  input[type="checkbox"]:focus-visible,
+  input[type="radio"]:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
   /* Browser autofill paints a pale yellow/blue box that clashes with the
      theme (very visible in dark mode). Keep the field's own colors. */
   input:-webkit-autofill,

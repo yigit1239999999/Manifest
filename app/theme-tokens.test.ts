@@ -650,6 +650,30 @@ describe("every focusable thing has a focus mark of ours", () => {
     expect(rule).toContain("[tabindex]:focus-visible");
   });
 
+  it("marks a tick and a radio the same way, without rounding them", () => {
+    // Nine hand-written call sites and not one focus class between
+    // them, so these fell through to Chromium's 1px rgb(0, 95, 204):
+    // 2.89 against the dark card, under the 3:1 floor. One of the nine
+    // is the consent tick, which is where a clinic records a legal
+    // answer.
+    const rule =
+      css.match(
+        /input\[type="checkbox"\]:focus-visible[^{]*\{[^}]*\}/,
+      )?.[0] ?? null;
+    expect(rule).not.toBeNull();
+    expect(rule).toContain('input[type="radio"]:focus-visible');
+    expect(rule).toContain("var(--color-ring)");
+    expect(rule).toMatch(/outline-offset/);
+    expect(rule).not.toMatch(/#[0-9a-f]{3,8}|rgb\(/i);
+
+    // The absence of a radius is the decision, so it is asserted rather
+    // than left to be restored by the next person tidying up. Links get
+    // `--radius-control` because an outline round a run of text has no
+    // shape of its own; a radio has one, and a rounded square drawn
+    // around a circle is the tidying that breaks it.
+    expect(rule).not.toMatch(/border-radius/);
+  });
+
   it("marks a button the same way, on any surface", () => {
     // These started as two drawings of one idea — a ring on buttons, an
     // outline on links — until ux measured the ring on a card: its gap
