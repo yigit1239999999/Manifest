@@ -3509,3 +3509,70 @@ değildi; iki kişiyi beklemekten kurtardı.
 **Zemin dosyası yalnızca "ölç/ölçme" demiyor — kimin neyi ne zaman
 tazelediğini de görünür kılıyor. Tazelemeden önce başkasının
 tazeleyip tazelemediğine bak.**
+
+### "Kuralı gereksiz kılan bir yer bul" kalıbının arıza biçimi
+
+Bugün bu kalıbı dokuz-on kez uyguladık ve **ilk arızası** bu turda
+geldi — üstelik onu en çok savunan kişiden, value'dan.
+
+**Olgu:** value'nun prettier kararının üçüncü gerekçesi *"bağımlılıktan
+çıkınca koşturulamaz"*dı. dev-ui çürüttü, value doğruladı, lead
+üçüncü kez baktı — üçü de aynı çıktıyı gördü:
+
+```
+grep -c prettier package.json package-lock.json   → 0, 0
+ls node_modules/prettier                          → No such file
+```
+
+**Prettier zaten bağımlılık değildi.** Bugün iki kişinin çalıştırdığı
+`npx prettier` paketi kayıttan indirip koştu; **`npx` bağımlılığa
+bakmaz.** Yani kaldırılacak bir şey yoktu ve kaldırma hiçbir şeyi
+önlemezdi.
+
+> **Her sorunun, kuralı gereksiz kılan bir yeri yoktur. Olmayan bir
+> yeri varsaymak İKİ korumayı birden kaybettirir:** olmayan yapısal
+> garanti, **ve** "zaten yapı hallediyor" diye yazılmayan kural.
+
+value'nun kendi teşhisi: *bir kaldırma işlemi hayal ettim ve o hayal
+yüzünden **yazılı olmayı kararın yarısı sandım** — oysa tamamıydı.*
+
+**Şart, ölçüm kuralının çare tarafı:** *yeri bulduğunu iddia etmeden
+önce, yerin gerçekten orada olduğunu doğrula* — `grep`'le, dosyayla,
+çıktıyla. Ölçüm için söylediğimiz "hangi zemin, hangi popülasyon"un
+aynısı, bu kez çözüm tarafında.
+
+**Ve bir ek, kalıbı tamamen gömmemek için:** bu vakada bir yer
+**vardı**, sadece hayal edilen yer değildi. `CLAUDE.md` tek satırdan
+ibaret — `@AGENTS.md` — yani `AGENTS.md` **her ajanın bağlamına
+yükleniyor**. Paragraf "biri okursa" değil, **okunması garanti bir
+yerde** duruyor. Ama yalnızca ajanlar için: terminaldeki bir insan
+için hâlâ sadece bir paragraf. **Yerin kapsamı da doğrulanır** —
+"bir yer var" ile "herkesi kapsayan bir yer var" aynı şey değil.
+
+### Kararı doğru yapan gerekçe, kararı verenin gerekçesi olmayabilir
+
+prettier kararını taşıyan üç gerekçeden biri çürüdü, ikisi ayakta
+(biçim tartışması hiç yaşanmadı; `git blame` bugün dört kez iş
+gördü). Ama **kararı doğru yapan asıl gerekçe dev-ui'nindi** —
+yazılmamış durumun kendisi. value bunu açıkça yazdı.
+
+**Bir kararın sahibi olmak, gerekçelerinin de sahibi olmak
+değildir.** Çürüyen gerekçeyi kararı savunmak için tutmak, kararı
+bir sonraki sefer savunulamaz hâle getirir.
+
+### Kasıtlı çirkinlik dedektör olarak çalıştı
+
+Hata özeti, ad bulamadığında **ham `name` değerini** yazıyordu
+(`ownerId:`, `species:`) — kasıtlı olarak çirkin bırakılmış bir geri
+düşüş. ux o çirkinliği görüp **kolay sonuca atlamadı** ("demek
+etiketsizler"); denetledi ve ikisinin de etiketli olduğunu buldu.
+Arama `name`'i taşıyan öğeye soruyordu; combobox ve çip grubunda o
+öğe **gizli bir input**, etiket yanındaki görünür denetimde başka bir
+id altında duruyor.
+
+ux'in gerekçesi: *"çirkin satır olmasaydı bu eşleme boşluğunu kimse
+görmezdi."* dev-ui geri düşüşü **kaldırmadı**, anlamını daralttı:
+artık *"hiçbir yerde ad yok"* demek, *"ad başka öğede"* değil.
+
+**Görünür bir geri düşüş, sessiz bir varsayılandan iyidir — ve bir
+kusuru görünür kılan çirkinlik, kusurla birlikte silinmez.**
