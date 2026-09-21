@@ -544,6 +544,43 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    ve **koşullu sırayla** gider: birincinin cevabı bir dalı kapatıyorsa
    ikincisi hiç sorulmaz.
 
+14. **Yanlış yerde duran doğru bilgi.** Bugün **üç ayrı yerde** aynı
+   cümleyle tarif edildi, dördüncüsünde adı kondu — `value`'nun sözü:
+
+   > **Bilginin sistemde olması ile kararın verildiği yerde olması ayrı
+   > şeylerdir.**
+
+   *Vakalar:* mükerrer sahip notu **müşteri** sayfasındaydı, oysa hekim
+   **hayvanın** geçmişine bakıyordu (üç vizit görüyor, ötekinde sekiz
+   vizit ve bir **alerji kaydı** var) · `/reminders` mesajlaşmanın kapalı
+   olduğunu söylüyordu, randevu kartı aynı klinik için **uyarısız "SMS
+   gönder"** sunuyordu · ve panel *"Yaklaşan aşı yok"* derken **45 gün
+   gecikmiş** bir aşı duruyordu.
+
+   Üçünde de **eksik olan veri değil**: ürün bunu biliyordu. Eksik olan
+   şey, bilginin **kararın verildiği ekranda** olması.
+
+   **Sorulacak soru:** bu bilgiyi kim, **hangi ekranda** kullanacak — ve
+   o ekran onu görüyor mu?
+
+15. **Küçük değişiklikler ucuz göründüğü için çakışır.**
+   `dev-ui`'nin kendi kuralı, bugün **üçüncü** çakışmasından sonra:
+
+   > **Karşı tarafın son mesajına cevap vermeden kod indirme — özellikle
+   > tek dizelik işlerde**, çünkü orada indirmek beklemekten **ucuz
+   > görünüyor** ve tam o yüzden çakışıyor.
+
+   *Vakalar (hepsi aynı gün, ikisi aynı çift arasında):* önizleme
+   dolgusu · tire kararı · kart cümlesi. Her seferinde **ikisi de
+   karşısındakinin bir ÖNCEKİ mesajına** cevap veriyor, ve öteki taraf
+   çoktan geçtiği bir kararı buluyor.
+
+   Kart cümlesinde sonuç bir **yanlış varsayıma** dönüştü: biri *"inen
+   cümle kalsın"* dedi, ama o sırada inen **öbürününkiydi.** Düzelten
+   kişi üçüncü kez aynı dizeyi taşıdı ve savunmadı — sebebini yazdı:
+   *"bir hafta boyunca ikimizin **farklı bir cümlenin canlı olduğunu
+   sanması** daha pahalıya gelirdi."*
+
 **Ve bir ölçüm kuralı, aynı gün beş kez lazım oldu:**
 
 > **İki sabiti çarpmak ölçüm değildir.** Ölçülmemiş bir sayı, ölçülmüş gibi
