@@ -5540,3 +5540,32 @@ value bunu **"iyileştirme" değil "şart"** diye yazdı ve haklı: önce
 formun önizleme/uyarısı, sonra şablon. **Bedeli yalnızca bir sıra;
 karşılığı bildiğimiz bir zarar.** Bir işi bölerken hangisinin önce
 geleceğini söylemek, bölmenin kendisi kadar iş.
+
+### Tohum derlemeden yeniyse, ölçtüğün ekran değil
+
+pm dört teslim hâlini ölçtü ve *"ekranda yapısal olarak görülemiyor,
+bu bir karar gerektiriyor"* diye üç seçenekle geldi. Karar gerekmedi:
+**seçenek zaten sevk edilmişti**, pm onu taşımayan bir derlemede
+ölçmüştü.
+
+Damgalar bunu **söylüyordu** ve pm ikisini de okumuştu:
+
+```
+SERVED_COMMIT  692ae18
+SEEDED         847e569   ← dört commit ileride
+```
+
+Hatta raporuna *"bu sefer tohum derlemeden **yeni**"* diye kendi
+eliyle yazmıştı. Okundu, sonucu çıkarılmadı.
+
+Bugüne kadar iki damganın eşleşmemesi *"veri eksik olabilir"*
+demekti — tohum **geriden** gelirse fikstür ekranda yoktur. Bu onun
+**aynası**: tohum **önden** gelirse **kod** eskidir, ve eksik olan
+şey veri değil, **düzeltmenin kendisi.**
+
+**Kural:** iki damga eşleşmiyorsa ölçüm geçersiz — **hangi yöne
+kaymış olursa olsun.** Eşleşmeyi gördüğün an tazele, ölçme.
+
+Aynı ailenin kod tarafı zaten yazılı: bir commit hakkında konuşurken
+`cat` değil `git show <commit>:<file>`. Bu, onun **çalışan uygulama**
+tarafı.
