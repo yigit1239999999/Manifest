@@ -107,6 +107,28 @@ test.describe("First run", () => {
     ).toHaveAttribute("href", "/clients/new");
   });
 
+  // The fifth screen, and the one that hid behind a different shape.
+  // /reminders has no /new route: it puts the form on the page, inside a
+  // card, so the sweep that walked the four /new routes never reached it
+  // and the sweep that walked the empty lists saw a screen that was not
+  // empty. A reminder needs a client, so on a fresh clinic the required
+  // picker answered "no results" and the screen offered nowhere to go --
+  // the pattern the other four closed this morning, still open (pm).
+  test("the screen that shows its form inline is guarded too", async ({
+    page,
+  }) => {
+    await signUp(page, Date.now());
+
+    await page.goto("/reminders");
+    const main = page.getByRole("main");
+    await expect(
+      main.getByText(/a client comes first|önce müşteri gerekir/i),
+    ).toBeVisible();
+    // The form is gone rather than disabled: a picker that opens on
+    // nothing is the thing being removed, not decorated.
+    await expect(main.getByRole("combobox")).toHaveCount(0);
+  });
+
   // No `/prescriptions/new` route exists: a prescription is written inside
   // a visit or on an animal's page. A button here would be the same fault
   // the four above were built to remove, so the screen keeps its sentence

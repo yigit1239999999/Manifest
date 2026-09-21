@@ -30,14 +30,23 @@ describe("the first step card", () => {
   it("names the missing link and sends the reader to the form that fills it", async () => {
     await renderAs("ADMIN", "client");
 
-    expect(screen.getByText(tr.dashboard.firstStep.client)).toBeInTheDocument();
+    expect(
+      screen.getByText(tr.dashboard.firstStep.client.title),
+    ).toBeInTheDocument();
+    // The second line carries the promise, so it is checked rather than
+    // assumed: without it the first line is an instruction with no
+    // reassurance under it (ux).
+    expect(
+      screen.getByText(tr.dashboard.firstStep.client.hint),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link")).toHaveAttribute("href", "/clients/new");
   });
 
   it("moves to the second link once the first is filled", async () => {
     await renderAs("ADMIN", "pet");
 
-    expect(screen.getByText(tr.dashboard.firstStep.pet)).toBeInTheDocument();
+    expect(screen.getByText(tr.dashboard.firstStep.pet.title)).toBeInTheDocument();
+    expect(screen.getByText(tr.dashboard.firstStep.pet.hint)).toBeInTheDocument();
     expect(screen.getByRole("link")).toHaveAttribute("href", "/pets/new");
   });
 
@@ -67,7 +76,8 @@ describe("the first ask of an empty clinic", () => {
   it("asks for a visit, and promises the chain the product now keeps", async () => {
     const container = await renderAs("VETERINARIAN", "visit");
 
-    expect(container.textContent).toContain(tr.dashboard.firstStep.visit);
+    expect(container.textContent).toContain(tr.dashboard.firstStep.visit.title);
+    expect(container.textContent).toContain(tr.dashboard.firstStep.visit.hint);
     expect(container.querySelector("a")).toHaveAttribute("href", "/visits/new");
   });
 
@@ -77,7 +87,8 @@ describe("the first ask of an empty clinic", () => {
   it("falls back to the client ask for someone who cannot write a visit", async () => {
     const container = await renderAs("RECEPTIONIST", "visit");
 
-    expect(container.textContent).toContain(tr.dashboard.firstStep.client);
+    expect(container.textContent).toContain(tr.dashboard.firstStep.client.title);
+    expect(container.textContent).toContain(tr.dashboard.firstStep.client.hint);
     expect(container.querySelector("a")).toHaveAttribute("href", "/clients/new");
   });
 });

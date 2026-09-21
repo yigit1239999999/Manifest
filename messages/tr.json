@@ -134,9 +134,18 @@
       "vaccinations": "Yaklaşan aşı yok."
     },
     "firstStep": {
-      "visit": "Bugün baktığınız bir hastayı yazın. Kayıtlı olmayan hayvanı ve sahibini yol üstünde açarsınız.",
-      "client": "Bugün gelen bir hayvan sahibini kaydedin. Hayvanı, viziti ve faturası ona bağlanır.",
-      "pet": "Bugün baktığınız bir hayvanı sahibine kaydedin. Vizit, aşı ve reçete kaydı ona bağlanır."
+      "visit": {
+        "title": "Bugün baktığınız bir hastayı yazın.",
+        "hint": "Kayıtlı olmayan hayvanı ve sahibini yol üstünde açarsınız."
+      },
+      "client": {
+        "title": "Bugün gelen bir hayvan sahibini kaydedin.",
+        "hint": "Hayvanı, viziti ve faturası ona bağlanır."
+      },
+      "pet": {
+        "title": "Bugün baktığınız bir hayvanı sahibine kaydedin.",
+        "hint": "Vizit, aşı ve reçete kaydı ona bağlanır."
+      }
     },
     "unreachedRemindersCount": "{count, plural, one {1 tanesi ulaşmadı} other {# tanesi ulaşmadı}}",
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",

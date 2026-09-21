@@ -32,6 +32,7 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterTabs } from "@/components/filter-tabs";
 import { ReminderForm } from "@/components/forms/reminder-form";
+import { MissingLink } from "@/components/missing-link";
 import { ReminderCloseButtons } from "@/components/reminder-close-buttons";
 import {
   ReminderDeliveryLine,
@@ -331,6 +332,23 @@ export default async function RemindersPage({
         )
       )}
 
+      {/* The fifth instance of a pattern the other four closed this
+          morning, and the only one that shows its form inline rather
+          than behind a `/new` route -- which is exactly why it was
+          missed. A reminder is raised against a client (`clientId` is
+          required in `modules/reminders/schema.ts`; the animal is
+          optional), so on a clinic with none this card opened a form
+          whose required picker answered "no results" and offered
+          nowhere to go. pm found it by walking the list screens in the
+          dark theme.
+          
+          No errand attached yet: `/reminders` is not in `ALLOWED_PATHS`
+          (`lib/next-param.ts`), and `safeNext` drops an unlisted
+          destination silently, so passing one would look like it worked
+          and quietly not. Asked for; it goes in when the path does. */}
+      {clients.items.length === 0 ? (
+        <MissingLink need="client" />
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle>{t("new")}</CardTitle>
@@ -365,6 +383,7 @@ export default async function RemindersPage({
           />
         </CardContent>
       </Card>
+      )}
 
       {/* Closing without a way to see what was closed is a list that eats
           rows: the user marks one done, it vanishes, and nothing confirms

@@ -103,9 +103,22 @@ export async function FirstStepCard({ need }: { need: keyof typeof STEPS }) {
 
   return (
     <Card className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-      {/* `min-w-0` so the longer of the two catalogues wraps inside the
+      {/* Two lines and not one paragraph, and the reason is weight
+          rather than length (ux). The first says what to do; the second
+          says what will happen on the way. Run together they are read at
+          the same weight, and a vet is made to take in two sentences of
+          instruction before doing anything. Split, the first is an
+          invitation and the second is a reassurance -- which is the pair
+          `EmptyState` already draws with `title`/`description` and
+          `Field` with its hint. Not a new shape; that shape applied
+          here.
+
+          `min-w-0` so the longer of the two catalogues wraps inside the
           card instead of pushing the button off a 390px screen. */}
-      <p className="min-w-0 text-sm text-foreground">{t(resolved)}</p>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <p className="text-sm text-foreground">{t(`${resolved}.title`)}</p>
+        <p className="text-sm text-muted-foreground">{t(`${resolved}.hint`)}</p>
+      </div>
       <Link href={href} className={cn(buttonVariants(), "shrink-0")}>
         {label}
       </Link>

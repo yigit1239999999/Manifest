@@ -134,9 +134,18 @@
       "vaccinations": "No vaccinations due soon."
     },
     "firstStep": {
-      "visit": "Write up a patient you saw today. You can add an unregistered animal and its owner along the way.",
-      "client": "Register an owner who came in today. Their animal, its visits and its invoices all hang off that record.",
-      "pet": "Register an animal you saw today to its owner. Its visits, vaccinations and prescriptions all hang off that record."
+      "visit": {
+        "title": "Write up a patient you saw today.",
+        "hint": "You can add an unregistered animal and its owner along the way."
+      },
+      "client": {
+        "title": "Register an owner who came in today.",
+        "hint": "Their animal, its visits and its invoices all hang off that record."
+      },
+      "pet": {
+        "title": "Register an animal you saw today to its owner.",
+        "hint": "Its visits, vaccinations and prescriptions all hang off that record."
+      }
     },
     "unreachedRemindersCount": "{count, plural, one {1 did not arrive} other {# did not arrive}}",
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
