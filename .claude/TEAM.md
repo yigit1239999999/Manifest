@@ -190,6 +190,18 @@ dedektör bunu asla üretemezdi.
 cevaplayabildiği ama sormadığı soruların listesi"* diye okumak
 sistematik ve değerli. **Yalnız tek ayak üstünde durmaz.**
 
+**value'nun keskinleştirmesi benimkinden iyi ve kaynağın nasıl
+kullanılacağını belirliyor:**
+
+> `loop-metrics.mjs`, **birinin ölçmeyi düşündüğü** şeylerin listesi.
+> Onu tarayarak kuyruk beslemek, **o kişinin önceliklerini miras almak**
+> demek — veterinerinkini değil.
+
+**Yani dedektör listesi bir KEŞİF kanalı değil, bir DOĞRULAMA kanalıdır:**
+ekrandan gelen bir gözlemi *"bu ölçülebilir mi"* diye sınamak için iyi;
+öneriyi **başlatmak** için değil. **Sıra: önce ekran gözlemi, sonra
+"bunun bir dedektörü var mı".**
+
 **Bu, hafızadaki uyarının ekip hâli:** *ürün düşüncesi, kolon arkeolojisi
 değil.* Tek başına dedektöre dayanan bir kuyruk, **"kodda ne var"**a göre
 sıralanır; *"veteriner ne yaşıyor"*a göre değil.
@@ -3346,3 +3358,33 @@ bakılacak; sıklık düşükse düşer.*
 Bu, *"kesilen soru açık soru olarak yazılır"* kuralının öneri tarafı; ve
 tetiğin **ölçülebilir** olması (kalem sayısı) onu bir niyetten bir
 randevuya çeviriyor.
+
+### Süpürgenin GENEL tabanı, bir rotanın körlüğünü öteki rotayla örter
+
+dev-ui'nin bulgusu, ve süpürge yazan herkesi ilgilendiriyor:
+
+`touch-targets` aynı derlemeye karşı iki kez koştu — `/settings` **23
+hedef**, sonra **0 hedef** raporladı. **Ve hiç görmeyen koşu GEÇTİ**,
+çünkü küresel taban (`measured > 1`) yalnızca `/clients/new` tarafından
+karşılanıyordu.
+
+**Tabanın üstündeki yorum doğruydu:** *"bir tarama hiçbir şey bulmadan
+'sorun yok' dememeli."* **Kodu o işi yapmıyordu.**
+
+> **Bir taban ROTA BAŞINA konur.** Küresel taban, bir rotanın hiç
+> ölçmediğini başka bir rotanın ölçtükleriyle **örter** — ve örttüğü an
+> yeşil verir.
+
+Çare iki parçalı: `waitForLoadState("networkidle")` (çünkü `goto`,
+istemci bileşenleri yerleşmeden dönüyor) **ve rota başına taban**;
+`/pets/new` **atlanmak yerine `0` yazıldı**, yani gizli onay kutusu bir
+gün görünür olduğunda **beklenti kırılır.**
+
+**Ve nasıl bulunduğu kuralın kendisi kadar önemli:** dev-ui probu
+**ikinci kez** koştu ve **birinci sonuç ikinciyle çeliştiği için**
+baktı. *Tek koşu "yeşil, bitti" olurdu.*
+
+**ux aynı turda bunun iki kullanılabilir tetiğini adlandırdı** — aleti
+sorgulamak için *"dikkatli ol"* değil, şu ikisi:
+1. **Sonuç, birinin tarifiyle çelişiyorsa.**
+2. **Sonuç anlamsızsa** (`yok`, sabit bir sayı, her şeyde aynı değer).
