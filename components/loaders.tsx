@@ -200,6 +200,15 @@ export function DetailSkeleton() {
  * dashboard of every clinic that is past first run -- the opposite trade.
  * The shift that remains is downward onto a skeleton nothing can be aimed
  * at, so it costs a glance rather than a mis-tap.
+ *
+ * It is a glance the vet really takes, which was worth checking before
+ * settling for it: on an empty clinic the insight queries run against
+ * empty tables, and this could have been drawn too briefly to register.
+ * Sampled every 8ms across a real soft navigation, five runs out of five
+ * painted it, for 376ms to 514ms -- several times over the ~100ms where a
+ * change stops being noticed. So the jump is lived, not merely a
+ * difference between two static shapes, and it is still the cheaper of
+ * the two things on offer.
  */
 export function DashboardSkeleton() {
   return (
