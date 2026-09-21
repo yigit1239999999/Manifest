@@ -125,7 +125,9 @@ export default async function PetPage({
   const canAddPrescription = can(session.user.role, "prescriptions.write");
   const canAddTreatment = can(session.user.role, "treatments.write");
   const canAddDiagnostic = can(session.user.role, "diagnostics.write");
-  const canAddNote = can(session.user.role, "notes.write");
+  // No `canAddNote`. Every role holds `notes.write`, so the guard I wrote
+  // here could never have refused anyone — it only told the next reader
+  // that some role is turned away, which is not true (TEAM.md #30).
 
   const vets = staff
     .filter((m) => m.active && (m.role === "VETERINARIAN" || m.role === "ADMIN"))
@@ -486,21 +488,16 @@ export default async function PetPage({
         </div>
       </div>
 
-      {/* The whole card, not just the form: `NoteForm` is its only content
-          and the heading reads "New note", so hiding one and keeping the
-          other would leave a titled empty box. */}
-      {canAddNote && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {(await getTranslations("note"))("new")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <NoteForm petId={pet.id} />
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {(await getTranslations("note"))("new")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <NoteForm petId={pet.id} />
+        </CardContent>
+      </Card>
 
       <div>
         <h2 className="mb-3 text-base font-semibold text-foreground">

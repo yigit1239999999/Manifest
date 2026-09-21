@@ -409,3 +409,48 @@ describe("the forms inside a record's page", () => {
     }
   });
 });
+
+describe("guards that cannot ever refuse anyone", () => {
+  // The checks above find a missing guard. This one finds a guard that can
+  // never be false, and the two are not the same kind of wrong.
+  //
+  // A missing guard leaves a hole: it is a fault, and when someone trips
+  // over it the fault is fixed. A superfluous guard reads to the next
+  // person as though there is a case here — a role that would be turned
+  // away — when there is not. It is wrong in the direction nobody checks,
+  // so nobody ever looks for it (TEAM.md #30c, applied to guards).
+  //
+  // It kept happening for one reason: the page beside this one has a guard,
+  // so this page gets one too. Copy the pattern, do not measure the matrix.
+  // Four instances in a single session, written by three different people
+  // including the one writing this test, which is why it is a test and not
+  // another message. Two permissions in the matrix are held by every role
+  // today — `notes.write` and `reminders.write` — and both had collected a
+  // guard.
+  const PERMISSION_GUARD = /can\(\s*session\.user\.role\s*,\s*"([^"]+)"\s*\)/g;
+
+  it("no page asks a question every role answers yes to", () => {
+    const offenders = pages.flatMap((file) => {
+      const source = readFileSync(file, "utf8");
+      return [...source.matchAll(PERMISSION_GUARD)]
+        .map((m) => m[1] as Permission)
+        .filter((permission) => ROLES.every((role) => can(role, permission)))
+        .map((permission) => `${routeOf(file)} guards on ${permission}`);
+    });
+
+    expect([...new Set(offenders)]).toEqual([]);
+  });
+
+  it("finds the guards at all, so a changed spelling cannot pass", () => {
+    const guards = pages.flatMap((file) => [
+      ...readFileSync(file, "utf8").matchAll(PERMISSION_GUARD),
+    ]);
+
+    expect(guards.length).toBeGreaterThan(10);
+  });
+
+  // Not checked, and worth saying: this reads guards on pages. A component
+  // deciding the same thing internally, or a service's own
+  // `requirePermission`, is outside it — the service check is never
+  // superfluous, because it is the one that actually refuses.
+});
