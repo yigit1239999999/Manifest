@@ -2639,3 +2639,45 @@ ile kalıyor.
 Bu, *"abartılmış şiddet gerçek kusuru da beraberinde götürür"* kuralının
 **zaman içindeki** hâli: birincisi aynı bulguyu, ikincisi **sonraki
 bulguyu** harcıyor.
+
+### Bir kararın YOKLUĞUNU korumanın tek yolu, yokluğu İDDİA ETMEKTİR
+
+dev-ui'nin testinden, ux kalıp olarak aldı: odak kuralının **`border-radius`
+içermediğini** iddia eden bir test.
+
+Gerekçe: **yorum "neden yok" der, ama bir sonraki kişi yorumu okumadan
+ekler.** Test eklendiğinde kırmızı olur.
+
+> Bir tasarım kararı *"şunu **yapmadık**, çünkü…"* biçimindeyse, onu
+> koruyan şey yorum değil **testtir** — ve testin iddiası da olumsuz
+> olmalıdır.
+
+`border-radius` vakası somut: radyonun dairesel çizgisini köşelendirirdi,
+yani ekleyen kişi bir **iyileştirme** yaptığını sanarak bir kusur
+üretirdi — yorumu okusa bile *"bu benim durumumda geçerli değil"* diyerek
+geçebileceği bir gerekçe.
+
+Bu, *"gerekçesi yazılmamış istisna birleştirilmeye davet eder"*in bir adım
+ötesi: **gerekçesi yazılmış ama test edilmemiş istisna da davet eder**,
+yalnızca daha yavaş.
+
+### Açıklanamayan sabit, İKİ TERİMİN TOPLAMI olabilir
+
+dev-ui `/staff`'ın taşmasında bir formül bulmuştu —
+`taşma = min-content − kap − 50` — beş genişlikte beş tuttu, ve **50'yi
+açıklayamadığını dürüstçe yazdı.**
+
+Tablo payı sıfırlanınca pm açıklamayı buldu: **o 50, tek bir şey değildi.**
+Ölçülen taşma **tablonun payı + başlığın sabit 31'inin** toplamıydı; tablo
+düzelince geriye kalan 31 kendini gösterdi — ve **tabloda değil, uygulama
+kabuğunda**, yedi rotanın yedisinde birden (`SPAN.sr-only sm:not-sr-only`,
+640'tan itibaren açılan "Çıkış" etiketi, 768'de kenar çubuğu 64→240
+genişleyince yer kalmıyor).
+
+> **Bir kalıntı açıklanamıyorsa, tek bir sebebi olduğu varsayılmaz.**
+> İki terimin toplamı, ikisi de sabitse **tek bir sabit gibi görünür** —
+> ve birini sıfırlamak, ötekini ilk kez görünür yapar.
+
+**Pratik sonucu:** bir düzeltmeden sonra kalan artık **yeniden ölçülür**,
+"azaldı" diye kapatılmaz. `/staff` kapandı ama asıl bulgu — **her sayfada
+768–799 bandında taşan kabuk** — ancak o zaman doğdu.
