@@ -4436,3 +4436,119 @@ karşı koşulur.* Ve o worktree'de **önce `npx prisma generate`** —
 Bugün bu sıranın ikinci ihlali. Birincisinde (`6714de5`) kapı
 kapanmamış bir `fieldset` yakalamıştı ve commit'ten **sonra**
 koşmuştu; bu sefer kapı hiç konuşmadı.
+
+### Bir yama, kesildiği ağacın FOTOĞRAFINI taşır
+
+`e333e24`, dev'in `fb71b66`'da indirdiği **dört sunucu dosyasını geri
+aldı** — `service.ts` (−195), `service.test.ts` (−193), `actions.ts`
+(−15), `reminders/queries.ts` (−22), artı iki hata anahtarı.
+
+Sebep kötü niyet değil **zamanlama**: dev-ui, dev'in commit'inden
+**önceki ağaca göre kesilmiş** bir yamayı indekse uyguladı. Yama
+yalnız kendi değişikliğini değil, **kesildiği andaki dosyanın
+tamamını** taşıyor.
+
+Çalışma ağacı kodu hiç kaybetmedi; **tarih kaybetti.** `ae01ca8`
+birebir geri koydu.
+
+> **`git diff --cached --name-only` hangi dosyaya dokunulduğunu
+> söyler, dosyanın NE İÇERDİĞİNİ söylemez.** Bugünkü koruma
+> kuralımızın eksik yarısı buydu.
+
+**Tam hâli:** paylaşımlı indekste yamayı **kesmeden hemen önce**
+`git read-tree HEAD`, ve commit'ten **sonra** `git show
+HEAD:<dosya>` ile beklenen satırın orada olduğunu doğrula.
+
+### Bir karar NİYET olarak inip UYGULAMADA düşebilir
+
+Lead iki kapsam kararı verdi: sayfa başı uyarı görünürken satır aynı
+şeyi tekrar etmesin, ve klinik geneli sebepler sayfa başına toplansın.
+dev-ui raporunda *"Callout görünürken satır bastırılıyor"* yazdı.
+
+**ux koda baktı: `app/(app)/reminders/page.tsx`'te `Callout` hiç
+geçmiyor**, ve `disabled` hâli her satırda tam hâliyle, Ayarlar
+bağlantısıyla çiziliyor.
+
+Sonucu tam olarak kaçınılmak istenen şey: anahtar varsayılan kapalı
+olduğu için **taze bir klinikte 100 satırın 100'ü aynı cümleyi ve
+aynı bağlantıyı tekrarlıyor.**
+
+> **Raporda duran bir karar, kodda durduğunun kanıtı değildir.**
+> Kararı veren, indiğini **kodda** doğrular — ya da doğrulayacak
+> birine söyler.
+
+Burada doğrulayan ux oldu, ve bulma yöntemi kayda değer: **raporu
+değil kodu okudu.**
+
+### İlk gerçek koşu, kendi fikstürünü denetler
+
+Süpürgenin ilk koşusu mesajı geri okudu:
+> *"Sayın Hâl Sahibi, Zeytin için **yarın 05:47** randevunuz
+> bulunmaktadır."*
+
+**Doğruydu** — gönderilebilir, biçimi düzgün, sayaçlar tutuyor. Ve
+**hiçbir kliniğin açık olmadığı bir saatti**, çünkü fikstürün *"şimdi
++ 12 saat"*i **tohumun koştuğu saati** taşıyor.
+
+Bunu bulan şey bir sayı değil, **cümlenin kendisi**. Hiçbir sayaç
+bunu yakalayamazdı; `sent: 1` sonuna kadar doğruydu.
+
+> **Göreli zamanla kurulan bir fikstür, kurulduğu anın saatini
+> miras alır.** Ve bir boru hattının ilk gerçek koşusu, ürettiği
+> **metni okumakla** denetlenir.
+
+### Şartnamedeki bir premis yanlış olabilir — etrafından dolaşma, düzelt
+
+Lead'in kapsam şartnamesinde iki premis vardı ve **ikisi de
+tutmuyordu:**
+
+- *"Kapsam kod tablosundan türetilir, şema yok"* — **türetilemiyordu.**
+  `TransportError`'ın `super(message ?? code)`'u sağlayıcının
+  cümlesini `message` yapıyor, `deliver` da onu saklıyordu; yani
+  `MessageLog.error` `sender_title_not_registered` değil, Netgsm'in
+  serbest metnini tutuyordu.
+- *"`listClients`'ın `select`'ine ekle"* — o sorgu `select` değil
+  **`include`** kullanıyor, Prisma bütün skalerleri zaten döndürüyor.
+
+dev ikisini de **düzeltti**, etrafından dolaşmadı: catch artık kararlı
+**kodu** saklıyor, sağlayıcının cümlesi log satırına gidiyor (bir
+insan okur, hiçbir kod ona bağlı değil). Ve **ham metni regex'lemeyi
+reddetti** — dev-ui'nin adlandırdığı *tel tuzağı*.
+
+> Bir şartnamenin premisi yanlışsa, **şartnameyi yazan yanılmıştır**;
+> uygulayanın işi o yanlışın etrafından dolaşmak değil, **adını koyup
+> düzeltmek.**
+
+### Yapılandırma ile belge çeliştiğinde, ikisi de yanlış olabilir
+
+```
+vercel.json    "0 * * * *"              saatlik
+DEPLOY.md:102  "günde bir (05:00 UTC)"  günlük, "Hobby günlüğe izin verir"
+```
+
+pm ikisini yan yana koydu. Ve altında **kimsenin yapmadığı bir hesap**
+vardı: günlük cron **05:00 UTC = 08:00 İstanbul**, hatırlatma
+varsayılanı **09:00**. Yani günlük zamanlayıcı *"zamanı gelmedi"*
+deyip geçiyor, bir sonraki koşu 24 saat sonra — **sabah gönderimi
+yapısal olarak bir gün geç.**
+
+> İki kaynak çeliştiğinde refleks *"hangisi doğru"* olur. Bazen
+> cevap **ikisi de değil** — ve bunu ancak **sayıyı kendin
+> hesaplayınca** görürsün.
+
+Yerelde ise zamanlayıcı **hiç yoktu**; süpürge yalnız pm elle
+çağırdığı için koştu. **Bir ürünün otomatik vaadi, onu tetikleyen
+şey kadar gerçektir.**
+
+### Kelimenin garantisi, taşıyıcıdan büyük olamaz
+
+`SMS_PROVIDER=log` iken hiçbir mesaj dışarı çıkmıyor. Ayarlar ekranı
+**dürüst** (*"SMS bağlantısı aktif (log)"*), ama hatırlatma satırı ve
+randevu geçmişi kayıtsız şartsız **"Gönderildi"** diyor.
+
+Deniz'in kuralı bir kademe daha derinleşiyor: *"Gönderildi"* en
+azından **operatöre verildi** demek. Log kipinde operatöre **bile**
+verilmedi — bir günlük dosyasına yazıldı.
+
+> **Bir sözcük, arkasındaki taşıyıcının verebileceğinden fazlasını
+> ima edemez.** Taşıyıcı değiştiğinde sözcük de değişir.
