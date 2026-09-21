@@ -2552,6 +2552,21 @@ kuralının aynısı, başka bir işlemde.
 düşen bir dosyayı ağaçta bıraktı** (araçları tur ortasında kapandı).
 İkincisi hatırlatıyor: **bir kopyayı durdurmak da bedelsiz değil.**
 
+**VE KURALIN EKSİK YARISI — durdurulan bir ajana MESAJ GÖNDERMEK ONU
+YENİDEN BAŞLATIR.** Üç kopyayı durdurdum, sonra ikisine *"şu karar
+düştü"* diye yazdım — ve **üçü de geri döndü.** SendMessage bir ajanı
+transkriptinden **devam ettirir**; durdurulmuş olması onu korumuyor.
+
+> **Durdurduğun ajana yazma.** Söyleyeceğin şey değerliyse **aslına**
+> yaz; kopyaya yazmak durdurma kararını geri alır, ve bunu ancak
+> `ListAgents`'ta sayarak fark edersin.
+
+Bunu value yakaladı, ada bakarak değil **kaynağa** bakarak: *"bana `ux-3`
+adıyla biri rapor veriyor; işini reddetmiyorum ama kaç ux olduğunu bilmem
+gerek."* — **Kopyanın işi kötü değildi; sorun aynı kuyruğun iki kez
+görülmesi.** value'nun cümlesi: *aynı bulguyu iki kez almak, iki farklı
+sürüm kararı almaktan ucuz ama bedava değil.*
+
 ### Sunulan derlemenin commit'i DALDA DURUYOR MU?
 
 Yeni bir zemin tuzağı, bu turda yaşandı: 3001 `2fdaa13`'ü sunuyordu ve
@@ -2681,3 +2696,37 @@ genişleyince yer kalmıyor).
 **Pratik sonucu:** bir düzeltmeden sonra kalan artık **yeniden ölçülür**,
 "azaldı" diye kapatılmaz. `/staff` kapandı ama asıl bulgu — **her sayfada
 768–799 bandında taşan kabuk** — ancak o zaman doğdu.
+
+### Geçiş tuzağı bir kusuru İCAT edebildiği gibi GİZLEYEBİLİR de
+
+Bu oturumun en pahalı hatası *"odak konturu görünmez"* diye bildirilip
+geri alınan ölçümdü: `transition-colors` `outline-color`'ı da
+animasyonluyor, `.focus()`'tan hemen sonra okunan değer **geçişin ilk
+karesi.** Hikâye *"tuzak olmayan bir kusur icat etti"* diye yerleşti.
+
+**Yarısı eksikti.** Yerleşmeli yöntemle beş öğe ailesi ölçüldü:
+
+| ilk kare | yerleşmiş |
+|---|---|
+| **1,09** birincil gönder düğmesi | 7,62 |
+| **6,90** kenar çubuğu bağlantıları | 8,20 |
+| **12,32** | 7,62 |
+| **15,05** tür çipleri | 7,62 |
+
+**Dördünde ilk kare yerleşmiş değerden YÜKSEK.** Düşük okuyan tek aile,
+metin rengi kart rengine yakın düştüğü için birincil düğmeydi.
+
+> **Yön sabit değil.** `t0`'da okuyan bir süpürge her şeyi **geçirirdi** —
+> gerçekten bozuk bir yüzeyi de. `1,09`'u yakalamamız **şans**: tuzak
+> kendini yalnızca o yüzden gösterdi.
+
+**Ve tuzak seçici:** yalnızca işaret `outline-color`'a biniyorsa **ve**
+öğe `transition-colors` taşıyorsa ateşleniyor. Taşımayanlarda
+(`<summary>`, marka bağlantısı, "Yeni tür") ilk kare = yerleşmiş, yani
+**daha önce alınmış sayılar geçerli, yeniden ölçmeye gerek yok** —
+şüphenin sınırı yine ölçüldü.
+
+**Genel hâli:** bir ölçüm hatası bulunduğunda *"hangi yöne saptırıyor"*
+sorusu **ölçülmeden cevaplanmaz. Yanlış yöne saptığını varsaymak,
+hatanın yalnızca yakalandığı vakasını görmek demektir** — ve yakalanan
+vaka, tanımı gereği alarm verendir.
