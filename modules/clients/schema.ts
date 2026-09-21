@@ -4,6 +4,7 @@ import {
   optionalEnum,
   optionalPhone,
   optionalText,
+  requiredPhone,
   requiredText,
   tristate,
 } from "@/lib/forms";
@@ -13,9 +14,17 @@ export const LANGUAGES = ["tr", "en"] as const;
 
 export const clientSchema = z.object({
   firstName: requiredText(1, 80, "client.firstName"),
-  lastName: requiredText(1, 80, "client.lastName"),
+  // Optional, and null rather than "" when it is left out: the counter
+  // is not allowed to ask the lady who brings the street cat for her
+  // surname, and a required field would have produced a full stop.
+  // `optionalText` is what turns the empty box into an absence, which
+  // is what the column now stores.
+  lastName: optionalText(80),
   email: optionalEmail,
-  phone: optionalPhone(40),
+  // The one contact detail the record cannot do without -- the clinic's
+  // only handle on the animal afterwards, and what every reminder is
+  // sent to. It changed places with the surname above.
+  phone: requiredPhone(40),
   secondaryPhone: optionalPhone(40),
   address: optionalText(200),
   city: optionalText(80),

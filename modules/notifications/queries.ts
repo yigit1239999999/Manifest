@@ -112,7 +112,7 @@ export interface BlockedReminder {
    * Formatting it here would be the fourth copy of a rule that already
    * has one home.
    */
-  client: { id: string; firstName: string; lastName: string; phone: string | null };
+  client: { id: string; firstName: string; lastName: string | null; phone: string | null };
   pet: { id: string; name: string } | null;
 }
 

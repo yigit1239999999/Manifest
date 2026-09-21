@@ -39,7 +39,9 @@ const validInput = {
   firstName: "Jamie",
   lastName: "Rivera",
   email: "jamie@example.com",
-  phone: null,
+  // The record's only handle on the animal afterwards, so the form
+  // asks for it and the type says so.
+  phone: "0532 111 22 33",
   secondaryPhone: null,
   address: null,
   city: null,
@@ -186,6 +188,10 @@ describe("consent that was never given and never refused", () => {
     const fd = new FormData();
     fd.set("firstName", "Jamie");
     fd.set("lastName", "Rivera");
+    // Required since the counter's two fields swapped places: the
+    // surname is politeness, the number is the only handle the clinic
+    // keeps on the animal.
+    fd.set("phone", "0532 111 22 33");
     for (const [k, v] of Object.entries(entries)) fd.set(k, v);
     // The one line `lib/action.ts` `parse()` performs on every
     // submission. Imported directly it drags next-auth into a unit test;

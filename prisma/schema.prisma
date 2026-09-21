@@ -135,7 +135,21 @@ model Client {
   clinicId           String
   clinic             Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   firstName          String
-  lastName           String
+  /// Null when nobody asked, and that is not the same as empty.
+  ///
+  /// The counter meets a client who is standing there with an animal:
+  /// "I do not know the surname of the lady who brings the street cat,
+  /// and asking would be rude -- if you force it I will type a full
+  /// stop and the record becomes rubbish" (vet, measured). So the form
+  /// stopped demanding it, and this column had to stop demanding it
+  /// too: an empty string would be an answer where there is none, it
+  /// sorts and searches as a real value, and six months from now
+  /// "how many clients are missing a surname" would have no answer.
+  /// The same distinction `notificationsOptIn` keeps, one column up.
+  ///
+  /// `searchKey` already coalesces it, so full-name search is
+  /// unaffected by the null.
+  lastName           String?
   email              String?
   phone              String?
   secondaryPhone     String?

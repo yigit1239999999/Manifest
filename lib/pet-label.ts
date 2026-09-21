@@ -43,10 +43,20 @@ export function petLabel(pet: { name: string; ownerName: string }): string {
   return `${pet.name} · ${pet.ownerName}`;
 }
 
-/** The owner's name as the label above spells it, from a loaded row. */
+/**
+ * The owner's name as the label above spells it, from a loaded row.
+ *
+ * The surname may be absent, and absent is not empty: the counter is
+ * not allowed to ask the lady who brings the street cat for hers
+ * (`Client.lastName`). So the parts are joined rather than
+ * concatenated -- `${first} ${last}` left a trailing space, and a
+ * picker row reading "Limon · Ayşe " looks like a record with
+ * something missing off the end of it rather than a client with one
+ * name.
+ */
 export function ownerLabel(owner: {
   firstName: string;
-  lastName: string;
+  lastName: string | null;
 }): string {
-  return `${owner.firstName} ${owner.lastName}`;
+  return [owner.firstName, owner.lastName].filter(Boolean).join(" ");
 }
