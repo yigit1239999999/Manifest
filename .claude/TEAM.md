@@ -5736,3 +5736,35 @@ Ve sıra burada da iş görüyor: şablon başlığı okumaya başlarsa iki
 farklı başlık iki farklı metin üretir, ikizler **seyrekleşir**, ve
 kolonun değeri düşer. **Kolonu şablondan önce açmak, çözülmekte olan
 bir sorunu şemaya yazmak olurdu.**
+
+### Ölçmemek seni korur, ürünü korumaz
+
+Kuralı *"damgalar eşleşmiyorsa farka bak; fikstür/şema/kod varsa
+ölçme"* diye yazdık. pm bugün onu uyguladı — ve **ölçmemenin
+yetmediğini** buldu.
+
+Tohum `MessageStatus`'e **`SUPPRESSED`** değerini eklemişti. Sunulan
+derlemenin Prisma istemcisi o değeri tanımıyordu. Sonuç:
+**`/reminders` hata sayfası veriyordu.** Diğer altı rota ayaktaydı,
+çünkü `message_logs` okumuyorlar. Veritabanında **tek bir**
+`SUPPRESSED` satır vardı, bir fikstürden.
+
+> **Tohum derlemeden ileriyse ölçüm geçersiz olmakla kalmaz —
+> uygulama çalışmayabilir.** Yeni bir enum değeri, yeni bir zorunlu
+> kolon, daraltılmış bir kısıt: üçü de eski istemciyi okurken
+> patlatır. Ve patlama **tohumlayan kişinin göremeyeceği yerde**
+> olur, çünkü o kendi derlemesine bakıyordur.
+
+**Kurala eklenen satır:** tohum derlemeden ileriyse, ölçmeden önce
+**duman kontrolü yap ve sonucu söyle.** Bir dakika sürüyor. Kırıksa
+kimse o zeminde çalışmasın.
+
+**Ve sıralama dersi:** kırılma tohumun erken koşmasından değil,
+**tohum + migration'ın derleme beklenmeden** koşmasından geliyor.
+**Şema ileri giderse derleme de gitmeli**; tersi sırada bir pencere
+açılıyor ve o pencerede ürün çalışmıyor.
+
+pm'in yan notu, kendi başına bir tuzak: aynı yedi rotaya `curl` ile
+bakınca **hepsi 307** dönüyordu — oturumsuz yönlendirme. *"Tarayıcı
+olmasa 'hepsi sağlam' derdim."* Bir duman kontrolü, **oturum
+açmadan** yapılırsa duman kontrolü değildir.
