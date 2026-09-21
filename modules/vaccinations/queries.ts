@@ -28,13 +28,19 @@ export async function listVaccinationsForPet(
  *
  * The same rule already lives in the reminder sweep's two queries and
  * in the animal picker. It was missing here, not weaker here.
+ *
+ * Two layers, not one, and the dashboard's own counts query was already
+ * written that way: an archived owner is one the clinic no longer
+ * serves, and their animal is not archived by that alone. Offering
+ * their booster sends a vet to somebody they should not be calling --
+ * the dead-animal case one level up.
  */
 export async function upcomingVaccinations(clinicId: string, take = 10) {
   return prisma.vaccination.findMany({
     where: {
       clinicId,
       nextDueAt: { not: null, gte: new Date() },
-      pet: { deceased: false, archivedAt: null },
+      pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
     },
     orderBy: { nextDueAt: "asc" },
     take,

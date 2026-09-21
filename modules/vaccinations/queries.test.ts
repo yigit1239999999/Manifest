@@ -47,7 +47,14 @@ describe("upcomingVaccinations", () => {
       ?.where as Record<string, unknown>;
     // In the query, for the same reason the sweep keeps it in its own:
     // a filter applied after the read is one a later caller can skip.
-    expect(where.pet).toEqual({ deceased: false, archivedAt: null });
+    // Both layers, because the dashboard's own counts query has both:
+    // an archived owner is one the clinic no longer serves, and that
+    // does not archive their animal.
+    expect(where.pet).toEqual({
+      deceased: false,
+      archivedAt: null,
+      owner: { archivedAt: null },
+    });
     expect(where.clinicId).toBe("clinic-1");
   });
 });
