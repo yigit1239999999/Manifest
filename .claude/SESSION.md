@@ -3,6 +3,24 @@
 Bu dosya, PetTrack ajan ekibiyle çalışmaya nereden devam edileceğini anlatır.
 Plan `.claude/BACKLOG.md`'de, çalışma ilkeleri `.claude/TEAM.md`'de.
 
+> ## ⚠ ZAMAN DAMGASI TUZAĞI — bu oturumda üç kişi düştü
+>
+> Bu veritabanındaki `createdAt` sütunları **saat dilimi taşımıyor**
+> (`timestamp without time zone`). `node-pg` onları **yerel saat** diye
+> ayrıştırıp sonuna `Z` ekliyor — yani yazdırdığı damga gerçek değerden
+> **üç saat geri.** `07:54:03Z` görünen şey aslında `10:54:03Z`, yani
+> **13:54 yerel.**
+>
+> **Ana oturum bunu bir kez daha çevirip toplam altı saatlik kayma
+> üretti** ve buradan yanlış bir sonuç çıkardı. ux de aynı tuzağa düşüp
+> neredeyse bir P0 açıyordu. pm üç bağımsız çapa ile çözdü (ekranda
+> görülen saat ile karşılaştırarak).
+>
+> **KURAL: `audit_logs` ya da `message_logs`'tan okunan bir saat, ekranda
+> görülen saatle karşılaştırılmadan KANIT SAYILMAZ.**
+> Aynı desen `scripts/loop-metrics.mjs`'te de var — kesim tarihli ölçüm
+> **sınır günlerde** kayabilir.
+
 ---
 
 ## Ekibi yeniden kurma
@@ -65,8 +83,17 @@ ekip birlikte düşünür. Ölçüt `.claude/TEAM.md`'de yazılı: kullanıcın�
 
 ## DURUM — tartışmasız hâl (21 Eylül 2026)
 
-**`v0.4.0` KESİLDİ, ETİKETLENDİ VE PUSH EDİLDİ** — etiket **`3b83620`**'da,
-main orada. Kapılar etiketlenen hash'te temiz checkout'ta koşuldu:
+**`v0.6.0` KESİLDİ, ETİKETLENDİ VE PUSH EDİLDİ** — etiket **`d8ff96d`**,
+main **`ddb43be`** (araya başka bir oturumun e2e düzeltmesi `82b8366`
+girdiği için birleştirildi). Kapılar: **tsc 0 · 513 test / 51 dosya ·
+eslint 0.**
+**`/staff`'ın 362px taşması pakete GİRMEDİ**, etikete **açık eksik #1**
+olarak yazıldı. **Bundan sonraki her commit v0.7.0'a aittir.**
+
+**Sırasıyla çıkanlar:** v0.1.0 · v0.2.0 · v0.3.0 · v0.4.0 (`3b83620`) ·
+v0.5.0 (`b1c4923`) · **v0.6.0 (`d8ff96d`)**.
+
+~~**`v0.4.0` KESİLDİ**~~ — etiket **`3b83620`**'da. Kapılar etiketlenen hash'te temiz checkout'ta koşuldu:
 **tsc 0 · 474 test / 49 dosya · eslint 0 hata.** Etiket bu kez `HEAD`'e
 değil, **kapıların koşulduğu commit'e** vuruldu (v0.3.0'ın hatası
 tekrarlanmadı).
@@ -75,7 +102,7 @@ tekrarlanmadı).
 
 value bunu "kullanıcıya taşınacak madde" olarak işaretlemişti; gerek
 kalmadı. **`npm run build` başarılı**, `/appointments/[id]` dahil **her
-rota derleniyor.** Üretim sunucusu **`http://localhost:3001`**'de
+rota derleniyor.** Üretim sunucusu **`http://127.0.0.1:3001`**'de
 (`PORT=3001 npm run start`); **geliştirme sunucusu 3000'de duruyor**,
 ikisi bir arada.
 
@@ -117,6 +144,74 @@ düzeltmiş.**
 **dev-ui ikinci kez tahminle denemedi** — pm'den `/invoices/[id]` için
 verdiğinin **birebir aynısı bir element zinciri** istedi. Bu turun "okumak
 hipotez, koşturmak kanıt" dersinin doğru uygulaması.
+
+## Ölçek paketi — "Büyük bir klinikte ne oluyor" (v0.7.0'DAN HEMEN SONRA)
+
+**value'nun taahhüdü: bir sürüm daha kaymaz** (16b — indeks işi "bugün
+bedava, sonra pahalı" sınıfından). **Sıralama gerekçesi:** *v0.7.0 bugünkü
+kullanıcının **bugün** yaşadığı kırığı kapatıyor; ölçek, **henüz kimsenin
+yaşamadığı** bir kırık.*
+
+### `DROPDOWN: 500` — kaybolanlar RASTGELE DEĞİL, SİSTEMATİK (dev doğruladı)
+
+`PAGE_SIZES.DROPDOWN = 500`, üç sorgu (`clients`, `pets`, `appointments`),
+**dokuz sayfa**; `Combobox` filtrelemeyi **gelen listenin üstünde,
+istemcide** yapıyor — yani **501'inci kayıt hiçbir seçicide yok ve arama
+kurtarmıyor.**
+
+**dev'in keskinleştirmesi, ve asıl ağırlık burada:**
+- `listClients` **`lastName` artan** sıralı → 600 müşterili klinikte
+  kaybolan **alfabenin sonu**: *"Yılmaz" hiçbir faturaya eklenemezken
+  "Acar" hepsine eklenebiliyor.*
+- `listPets` **`createdAt` azalan** → kaybolan **en eski hayvanlar.**
+- **Kullanıcının okuyacağı şey "arama bozuk" değil, "o müşteri kayıtlı
+  değil" — sonucu MÜKERRER KAYIT.** Yani bu ölçek kusuru, az önce
+  kapattığımız mükerrer sınıfını **arka kapıdan geri getiriyor.**
+
+**Ve maliyetin yanlış yarısı ölçülmüştü (dev düzeltti):** filtreleme
+gerçekten ucuz (tuş başına **0,66 ms**), pahalı olan **taşıma** —
+**500 müşteri ≈ 63 KB, 500 hayvan ≈ 78 KB**, ve **`/reminders` ikisini
+birden yüklüyor, kullanıcı seçiciye dokunmasa bile.**
+
+**Sözleşme hazır, iki aşama (dev yazdı, başlamadı):**
+1. **`take + 1` → `{ items, hasMore }`** — kusuru değil **sessizliği**
+   bitirir. Ucuz.
+2. **Seçici yazdıkça sunucuya sorar** — ve **sunucu tarafı zaten yazılmış:**
+   `quickSearchClients`/`quickSearchPets` komut paleti için var,
+   parametreleştirip bir aksiyonla açmak yetiyor. dev-ui'ye imza verildi:
+   `searchX(term) → ComboOption[]`.
+
+**value'nun bekleyen iki kararı:** aşama 1 tek başına bir pakete girer mi ·
+`DROPDOWN: 500` sabiti arama inince **50**'ye düşsün mü (payload yirmide
+bire iner **ama ancak aramayla birlikte güvenli**).
+**Aynı ailedeki üçüncü karar:** `/pets` listesinin `createdAt` indeksi.
+
+## ✅ v0.7.0'IN KABUL KAPISI AÇILDI (pm, 21 Eylül)
+
+**`REMINDER_STATE`: `ACKNOWLEDGED` 1 · `DISMISSED` 1** — ikisi de gerçek,
+uçtan uca. **Üç sürümdür boş olan sütun artık dolu.** "Kapatılanlar"
+sekmesinde rozetleriyle duruyorlar ve **"Geri aç" ile geri alınabiliyorlar.**
+value'nun veri temelli eşiği buydu ve karşılandı.
+
+**ux'in "satırda sıfır etkileşimli öğe" iddiası artık BAYAT** (`f3d3cdc`).
+Satır bugün: tür rozeti · başlık · tarih · müşteri adı (bağlı) · hayvan adı
+· **telefon (`tel:+90…`, yani cila maddesi bu çağrı yerinde hiç doğmamış)**
+· durum rozeti · iki eylem.
+
+### `/staff`'ın gerçek sebebi bulundu — ve iki bulgu TEK DESEN çıktı
+
+HEAD'de temiz yükleme, iki kez: `scrollWidth` **590**, taşma **200**
+(önce 379), `scrollX` **200** — sayfa hâlâ kayıyor. `2749c48` işe yaramış
+(e-posta sütunu 244→72 px) ama tablo 525'te kalmış.
+**Kalan sebep: `/staff` satırında e-posta İKİ KEZ var** — ad hücresi zaten
+adın altında gösteriyor, yanında ayrıca bir "E-posta" sütunu duruyor.
+`525 − 72 = 453`, temiz ölçülen `/invoices`'ın **479**'unun altında.
+
+> **DESEN (pm):** dar ekran taşmasının sebebi **iki liste rotasında da bir
+> KOPYA SÜTUN** çıktı — `/clients`'ta "Aç →", `/staff`'ta e-posta.
+> **Kusur "tablo sığmıyor" değil: "listelere kopya sütun ekleniyor ve bunu
+> ancak dar ekran gösteriyor."** Dar ekran burada bir kısıt değil,
+> **teşhis aracı.**
 
 ## v0.7.0 — "Hatırlatma satırı bir iş birimidir." (value)
 
@@ -222,7 +317,25 @@ bu **üç sürümdür sıfırdı.**
 fatura kendi para biriminde kaldı** ($111,11 · $250,00 · $10.000,00 ·
 $1.234,56), ayardan sonraki yeni fatura **₺222,22** olarak kesildi.
 `cd407e9`'un ana iddiası tuttu.
-**Denetim kaydı çelişkisi ÇÖZÜLDÜ (value buldu, ana oturum doğruladı):**
+**PARA BİRİMİ GİZEMİ TAMAMEN KAPANDI (ux taradı):** **ikinci bir yol YOK.**
+`currency` alanına yazan tek yer `modules/clinics/service.ts:33`, onu
+çağıran tek yer ayarlar aksiyonu; tüm `modules/`, `app/`, `lib/` tarandı.
+**Denetim kaydının açıklaması saat hizalamasında:** üç kayıt da **07:54 ve
+08:00 UTC = 10:54 / 11:00 yerel**, para birimi özelliğinin commit'i
+(`cd407e9`) ise **11:04 yerel.** Yani kayıtlar **özelliğin commit'inden on
+dakika önce**, dev'in çalışma ağacındaki **ara hâl** geliştirme sunucusunda
+koşarken oluşmuş. **İkinci bir kapı değil, commit öncesi ara hâl.**
+**Ve sınıf yapısal olarak kapalı:** `confirm-dialog.tsx:121-125` artık
+kendi `<form>`'unu render etmiyor, dört çağrı yerinin hiçbirinde tekrar
+edemez. **Açılacak iş yok.**
+
+**ux'in eklediği nüans (30b), en iyi hâliyle:** *"para birimi hiç
+kaydedilemiyordu"* cümlesi yanlış; kusur yalnızca `changed &&
+invoiceCount > 0` dalındaydı. **Ve seçilim en kötüsüydü: uygulamayı
+gerçekten kullanan klinikler sessizce başarısız oluyordu, yeni klinikler
+çalışıyordu.**
+
+~~**Denetim kaydı çelişkisi ÇÖZÜLDÜ (value buldu, ana oturum doğruladı):**
 düzeltme öncesi kod `{changed && invoiceCount > 0 ? <ConfirmDialog…> :
 <SubmitButton>}` diyordu — **onay dialogu yalnızca faturası olan klinikte**
 render ediliyordu. Faturasız klinik düz `SubmitButton` yolundan gidiyor ve
@@ -1024,3 +1137,30 @@ rota 0,4 sn ile 81 sn arasında değişiyor (Turbopack yeniden derlemesi).
 - Hayvan Kartı — https://claude.ai/artifact/JSqT8N3pr5UF84b4QnQwK2
 
 İkisi de karar bekleyen öneri; iş olarak açılmadı.
+
+### DÜZELTME — yukarıdaki "kopya sütun DESENİ" yanlıştı, ve `/staff` açıklanmadan kapandı
+
+Yukarıdaki (satır ~201) *"dar ekran taşmasının sebebi iki liste rotasında da
+bir KOPYA SÜTUN"* deseni **çürütüldü.** Bırakıldı ki hatanın izi kalsın; ama
+bugün geçerli olan bu paragraftır.
+
+**1. `/staff`'ın e-posta sütunu kopya değildi.** dev-ui gösterdi: ad
+hücresindeki satır `sm:hidden`, ayrı sütun `hidden sm:table-cell` —
+**ikisi hiçbir genişlikte birlikte görünmüyor.** Sütun silinseydi ≥640px'te
+adres kaybolacaktı. Yani önerilen düzeltme bir kusuru kapatmayacak, yeni bir
+kusur açacaktı. Çerçeveyi ben kurmuştum: *ölçüm başkasının, çerçeveleme
+benim, doğrulamadan ilettim.*
+
+**2. `/staff` kapandı ama NEDEN kapandığını bilmiyoruz.** Taşma 413px→6px
+(dev-ui), 390px'te `scrollX` 0 (pm). dev-ui'ın dürüst notu: **"açıklanmadan
+küçüldü — semptom gitti, mekanizma bilinmiyor."** Eşik **480 civarında**:
+tablonun doğal genişliği o bandın altına indiği için sığıyor. Pratik sonucu:
+**525px'i aşan bir tablo çıkarsa taşma geri gelir** ve bunu yine yalnızca dar
+ekran gösterir. Bu satır, o gün "daha önce çözmüştük" denmesin diye burada.
+
+**3. Aynı işte erişilebilirlik geriledi, dev-ui kendi yakaladı:**
+*"49px kazanırken adı tek kanala indirdim ve görmedim."* Genişlik kazancı ile
+üç kanal kuralı (TEAM.md 26) aynı diff'te karşı karşıya geldi; kazanan
+genişlik oldu ve kimse fark etmedi. Ölçülen şey (px) ölçülmeyen şeyi
+(erişilebilir ad) yedi — TEAM.md "bir şeyin var olması bakmayı durdurur"
+başlığının ölçüm tarafındaki yüzü.

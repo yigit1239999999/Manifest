@@ -44,6 +44,60 @@ ve gerekçesi yazılır. Performans bir UX konusudur zaten — bekleyen bir ekra
 kötü bir ekrandır — ama *"hızlandıralım"* diye bir akışın anlaşılırlığından
 vazgeçilmez.
 
+> ## ÖLÇÜM GEÇERLİLİĞİ — üç ölçüm hatası tek aile (value, 21 Eylül 2026)
+>
+> **Bir ölçüm, üç şey gösterilmeden kaydedilmez: NEYİ ölçtüğü, HANGİ OLAYI
+> ölçtüğü, HANGİ ZEMİNDE ölçtüğü.** Üçünden biri yazılmamışsa **sayı bir
+> iddiadır, ölçüm değil.**
+>
+> Bu oturumda ölçüm **üç kez** geçersiz çıktı ve üçü de farklı yerden:
+> 1. **35 — ölçülen NESNE yanlıştı:** test hata sayfasını ölçüp *"182 ms"*
+>    dedi.
+> 2. **Rota süreleri — ölçülen OLAY yanlıştı:** oturumsuz 307
+>    yönlendirmeleri ölçülüp rota süresi diye kaydedildi.
+> 3. **3001 — ölçülen ZEMİN kirliydi:** doğru nesne, doğru olay, ama
+>    `next dev` ile `next start` aynı `.next`'i paylaşıyordu.
+>
+> **Üçüncüsü en sinsisi**, çünkü ilk ikisi gibi "yanlış sayı" üretmiyor:
+> **doğru yöntemle alınmış, birbirini doğrulayan, kullanılamaz** sayılar
+> üretiyor.
+>
+> > **TUTARLILIK GEÇERLİLİK KANITI DEĞİLDİR** — kirli bir zemin, **tutarlı
+> > biçimde bozuk** sayılar üretir. pm'in 473/451/450'si value'yu tam da
+> > tutarlı oldukları için ikna etmişti.
+>
+> **Üçünü ayrı madde yapmak dördüncü varyantı kaçırır; bu yüzden tek
+> başlık.**
+
+> **BÜTÇE YENİDEN DONDURULDU (21 Eylül, ikinci kez).** İki tur önce 800 ms
+> bağlanmıştı; karar **kirli zeminde alınmış sayılara** dayanıyordu.
+> **Bağlama şartı:** `.next-prod` zemininde, oturum içinde, **panel
+> dahil**, **en az iki tur.** `189–2405 ms` oynaklığı orada da sürerse
+> **uygulamanın kendisidir** ve bütçe ona göre konur; sürmezse pm'in
+> sayıları tekrarlanabilir hâle gelir ve 800 bağlanır.
+
+> **BÜTÇE (dondurulmadan önceki karar): 800 ms, TEK SAYI** — rota başına değil.
+> pm'in dağılım argümanı belirleyici oldu: **3,1 kat fark var ama nitelik
+> ayrışması yok**, ve rota başına bütçe **bugün var olmayan bir ayrımı
+> kurumsallaştırırdı.**
+> **value'nun şartı:** bütçe kırmızıya dönerse **önce araştırılır,
+> YÜKSELTİLMEZ** — *ilk kırmızıda yükseltilen bütçe, bütçe değildir.*
+> Adı hâlâ aynı: **gerileme koruması, ölçek testi değil** (aşağıya bak).
+
+**Bir maddeyi "cila" diye ADLANDIRMAK, ağırlığını da öyle okutuyor.**
+(21 Eylül 2026 — value bir "cila listesi" maddesini listeden çıkarmak
+zorunda kaldı.) pm *"Veteriner listesi resepsiyonistleri içeriyor"*
+maddesini **"cilanın üst sınırında"** diye işaretlemişti. **Daha
+yukarıdaydı:** bu bir görünüm kusuru değil, **YANLIŞ KLİNİK KAYIT.**
+**45'e benziyor ama ondan ağır:** 45'te eylem **reddediliyordu**; burada
+**kayıt başarıyla oluşuyor** ve vizitin veterineri **kalıcı olarak yanlış
+kişi** yazılıyor.
+**Ders:** bir bulguyu bir listeye koyarken **listenin adı bulgunun
+sınıflandırması olur** ve sonraki okuyucu onu o ağırlıkta okur. **Liste adı
+bir karar değildir; her madde kendi sınıfıyla yazılır.**
+*(value'nun kararı: alan klinik yetkisi olan rollerle sınırlanır, ve
+arayüzün süzdüğü ölçüt ile sunucunun kabul ettiği ölçüt aynı olur.)*
+
 ## Nasıl bir ekibiz
 
 **Hedefimiz mütevazı değil: PetTrack dünyadaki en iyi veteriner klinik
@@ -180,6 +234,42 @@ sorudan doğar.
 hatırlatması gönderen bir sistem, o klinikte bir daha hiç açılmaz. Doğruluk
 her zaman yeni yeteneğin önündedir.
 
+**12b. Bir DURUMU DEĞİŞTİREN eylem eklemeden önce, o duruma TEPKİ VEREN
+otomatik mekanizmalar aranır.** *Eylemin maliyeti arayüzde görünür;
+**bedeli o durumu izleyen makinede durur.*** (21 Eylül 2026, value — ve
+**bu oturumda dört kez çarptığımız şeyin ilk kez KUSUR OLUŞMADAN
+yakalanmış hâli.**)
+**Vakası:** ux "Geri aç" düğmesini pakete alırken value'nun **sormadığı**
+riski de kontrol etti — *geri açmak mükerrer mesaj göndertir mi?*
+`automaticSendBlocked` (`notifications/service.ts:450-454`) o hatırlatmaya
+ait `SENT`/`MANUAL` kayıt varsa süpürmeyi atlatıyor, yani koruma zaten
+yerinde. **Bu kontrol olmasaydı "Geri aç" sessizce ikinci bir SMS
+attırabilirdi** — sürümün vaadini bozan sınıfın ta kendisi.
+
+**12c. Kesme çizgisi "hangi parça düşer" diye değil, "DÜŞTÜKTEN SONRA
+KALAN HÂLÂ TUTARLI MI" diye kurulur** — 17b'nin bir adım ilerisi.
+**Vakası:** "Geri aç" kesilebilir **ama "Vazgeç"le birlikte** kesilir;
+öyle olunca geriye yalnızca "Tamamlandı" kalır ve kabul kriteri (*hiçbir
+metin geri alınabilirliği ima etmez*) **her senaryoda** sağlanır.
+
+**12d. EMSAL EN ZAYIF GEREKÇEDİR.** (value, dev'in kendi gerekçesini
+düzeltirken.) dev "Veteriner" listesine `ADMIN`'i almayı *"üç yerde zaten
+böyle"* diye gerekçelendirdi. **Doğru gerekçe olgudan gelir: rol TEK
+DEĞERLİ** — tek veterinerli bir klinikte sahip-veteriner `ADMIN` taşır ve
+`VETERINARIAN`'ı **taşıyamaz**; ADMIN dışarıda bırakılırsa o klinikte
+**seçilebilecek hiçbir veteriner kalmaz.**
+**Emsalle yazılsaydı** biri yarın *"tutarlılık"* diye üç çağrı yerini
+değiştirip **solo kliniği kilitlerdi.**
+
+**12e. Yarı düzelten bir süzgeç, düzeltilmiş SANILIR — ve en kötü sonuç
+budur.** dev `visits.write` ölçütünü **reddetti**: o izin
+`RECEPTIONIST`'te yok **ama `VET_TECH`'te var**, yani resepsiyonisti eler,
+vet tech'i elemez. *"Vakayı kapat, sınıfı bırak"* hatasının **izin
+tarafındaki hâli.**
+**Ve kapatılmayan boşluk açıkça yazıldı (30c):** *"resepsiyonist ve vet
+tech elendi, **klinisyen olmayan ADMIN elenmedi**"* — "kapandı" değil.
+Gerçek çaresi çok rollülük ve o bu paketin kırk katı.
+
 **13. Doldurulmayan girdi üzerine kurulan özellik, yapılmamış özellikten
 kötüdür** — çünkü yapılmış sanılır ve çalışmadığı fark edilmez. Bir akışın
 dayandığı alan pratikte boş kalıyorsa, asıl iş o alanın dolmasıdır.
@@ -228,6 +318,23 @@ parçalarının hangisinin önce korunacağı da yazılır.
 adla, aynı görünümde. Yeni desen icat etmeden önce var olanı ara — çoğu zaman
 zaten yazılmıştır.
 
+**19-öncesi. HER KABUL LİSTESİNİN İLK MADDESİ, SAYFANIN AÇILDIĞIDIR.**
+(21 Eylül 2026, value — **bu oturumun en geniş bulgusu, ve bir çökme
+değil: kabul listelerimizin yazılmamış varsayımı.**)
+TR/EN, tema, genişlik, klavye — **hepsi render edilmiş bir sayfayı
+varsayar.** Yazılmazsa, listeyi **eksiksiz** uygulayan biri bile **çökmüş
+bir rotayı "kontrol edildi" diye işaretler.**
+
+**Kazanıldığı olay, ux'in kendi cümlesiyle:** *"Bu kusur `tsc`, `eslint`
+ve **527 testten** geçti, ve **benim kendi kabul kriterlerim de
+yakalamazdı** — TR/EN × açık/koyu × 390px listesi sayfanın **açıldığını
+varsayıyor.**"*
+**"Yeşil test takımı ekranın çalıştığının kanıtı değildir" dersinin
+kardeşi:** orada **araç** yetersizdi, burada **ÖLÇÜT.**
+**Ve kusurun kaynağının ux'in kendi şartnamesi olması bunu
+zayıflatmıyor** — *şartname yazarken sunucu/istemci sınırı görünmüyor, ve
+görünmeyen bir sınırı kabul kriteri yakalayamaz.*
+
 **19. Her ekranın beş hali vardır:** boş, yükleniyor, dolu, hata, yetkisiz.
 Yalnızca "dolu" halini tasarlamak işi yarım bırakmaktır. Boş arama sonucu boş
 listeden farklıdır; yetkisizlik hata değildir.
@@ -235,6 +342,113 @@ listeden farklıdır; yetkisizlik hata değildir.
 **20. Doğru bilgi doğru anda görünmeli.** Bir bilgi ihtiyaç duyulan ekranda
 değilse yok demektir. Alerji uyarısı hayvan detayında durup vizit ekranında
 görünmüyorsa, o bilgi yoktur.
+
+**20b. Bir grafiğe eklenen her DOĞRULUK İŞARETİ üç kanalda birden olur:
+görsel · metin · `aria-label`.** Yoksa ekran okuyucu kullanan veteriner
+düzeltmeyi **hiç duymaz** ve grafik onun için hâlâ yalan söyler.
+**İkinci kez aynı yerde aynı şey:** 11'de `partialLast` için şart
+koşulmuştu (soluk dolgu + alt yazı **+ `aria-label` özeti**), şimdi para
+birimi eksikliği bildirimi için. **Kural artık genel.**
+
+**20f. Dar ekran taşması görünce ilk soru "NEYİ DARALTABİLİRİM" değil,
+"BU SÜTUNLARDAN HANGİSİ ZATEN SATIRDA VAR" olmalı.** (pm'in çerçevesi,
+value aldı.)
+**Kusur her zaman *"tablo dar ekrana sığmıyor"* değildir; bazen "listeye
+KOPYA SÜTUN eklenmiş ve bunu ancak dar ekran gösteriyor."**
+
+> **DÜZELTME — "iki örnek" iddiası yanlıştı, örnek BİR.** (value'nun kendi
+> düzeltmesi; ana oturum da bu satırı yanlış yazdı.) `/clients`'ta "Aç →"
+> **gerçekten** satırdaki adın kopyasıydı. Ama `/staff`'ta e-posta
+> **kopya değildi:** sütun `hidden sm:table-cell`, ikincil satır
+> `sm:hidden` — **hiçbir genişlikte ikisi birden görünmüyor.** Teşhisi
+> üreten şey, DOM dökümünün `display:none` hücrelerin metnini de
+> vermesiydi.
+> **Silinseydi 640px+'ta adres hiçbir yerde kalmayacaktı.** dev-ui
+> reddetti ve kanıtını koydu; maliyeti bu yüzden oluşmadı.
+> **value'nun kendi payı:** *"ölçüm başkasının, çerçeveleme benim,
+> doğrulamadan ilettim — bu oturumdaki üçüncü aynı hatam."* (32y)
+> `/staff`'ı gerçekten çözen şey **dar ekranda iki sütunu düşürüp
+> içeriklerini satıra taşımak** oldu.
+**İki sorunun götürdüğü yer farklı ve ölçüldü:** ilk soru
+`wrap-anywhere`'e götürdü ve ux onu **daha kötü** ölçtü (adres 26 satır);
+ikinci soru **tek satırlık bir silmeye** götürüyor.
+**Dar ekran burada bir kısıt değil, TEŞHİS ARACI.**
+
+> **AMA BU KURAL KÖRLEMESİNE UYGULANMAZ — sınırını dev-ui buldu, kural
+> yazıldıktan dakikalar sonra.** `/staff`'ın "Detaylar" sütunu
+> `/clients`'takine **benziyor** ama aynı şey değil: orada **kopya bir
+> bağlantıydı**, burada **satırın tek eylemi olan gerçek bir düğme.**
+> Silseydi eylemi kaldıracaktı.
+> **"Zaten satırda var mı" sorusu, sütunun ADINA değil İŞLEVİNE
+> sorulur** — aynı başlık iki listede iki farklı şey olabilir.
+
+> **YERİNDE TAKLİT DOĞRU YÖNÜ GÖSTERİR, BÜYÜKLÜĞÜ TUTTURMAZ.** (ux,
+> kendi ölçümüne düştüğü not.) `/staff` için simülasyonu **49 px** demişti,
+> gerçek ölçüm **6 px** çıktı — yön doğruydu, ölçek değil. **Bir
+> simülasyon "düzelir mi" sorusunu cevaplar, "ne kadar düzelir" sorusunu
+> cevaplamaz**; kabul eşiğine simülasyon konmaz.
+
+> **VE İKİ ÖLÇÜM BİRBİRİYLE ÇELİŞİYORSA TAHMİNLE İLERLENMEZ.** dev-ui
+> pm'in `/staff` raporunda bir çelişki buldu: hücre dökümü bir commit'i
+> görüyor, sütun genişlikleri **görmüyor** — *"ikisi aynı anda doğru
+> olamaz."* Üç olasılıktan biri (`hideBelow`'un 390px'te çalışmaması)
+> **`DataTable`'da gerçek bir kusur** olurdu ve başka rotaları da
+> etkilerdi. **Tahmin etmek yerine tek bir hesaplanmış değer istedi.**
+> Bu, 32ab'nin ("ölçümün tarihi de bilgidir") çelişki tarafındaki hâli.
+
+**20g. Bir düzeltmenin TEMİZ SAYFAYI BOZMADIĞINI göstermek de ölçümün
+işidir.** pm bunu **kimse istemeden** yaptı: `462af2e`'nin dokunduğu dört
+detay sayfası + iki liste, hepsi 390px'te **taşma 0**. Bir düzeltme
+raporu yalnızca *"hedef düzeldi"* derse, yanındaki sayfaların ne olduğu
+bir sonraki kişinin sorunu olur.
+
+**20h. Bulgular ÖLÇÜM / TEŞHİS / ÖNERİLEN SINIF diye gelir; SINIFI value
+kesinleştirir.** (pm önerdi, value kabul etti — **bu oturumda üç kez
+yaşanan "ölçüm sağlam, teşhis zayıf" durumunun yapısal çözümü**:
+`/clients`'ın gizli sütunu, `/staff`'ın zinciri, `/invoices`'ın kartı.)
+
+**20e. Bir BİLEŞEN prop'u, alıcının sunucu mu istemci mi olduğuna göre
+SESSİZCE çalışır ya da PATLAR — ve çağrı yerinde bu görünmez.**
+**dev-ui'nin dersi:** ***derleyicinin geçirdiği şey çalışacağının kanıtı
+değildir*** — kusur `tsc`'yi, `eslint`'i ve **527 testi** geçti.
+*Bütün kapılarımız kodun **iyi biçimli** olup olmadığını soruyor; bu ise
+**nerede çalıştığını** soruyor.* **Tek panzehiri sayfayı açmak.**
+Yeni tarama: **hiçbir sunucu bileşeni bir istemci bileşenine büyük harfli
+tanımlayıcı geçiremez** — ve dev-ui bunu **scratchpad kopyasında**
+mutasyonla doğruladı, paylaşılan ağaçta değil.
+(21 Eylül 2026, ux; `tsc` ve `eslint` geçti, **hiçbir test düşmedi**,
+dört detay rotası çöktü.)
+`icon={Archive}` sunucu sayfasından `"use client"` bir `DeleteButton`'a
+geçiyordu. **Çare tipi kapatmaktır:** bileşen yerine **birleşim** —
+`mark?: "delete" | "archive" | "cancel"`, eşleme istemci tarafında.
+**Yan fayda:** ikon kümesi kapanınca *"aynı eylem her ekranda aynı
+görünür"* kuralı **tip düzeyinde zorunlu** hâle gelir.
+
+**Ve kapsamı ÖLÇMEK işi 18 çağrı yerinden 4'e indirdi:** `app/(app)`
+altında 18 yer bileşeni `icon={...}` olarak geçiriyor ve **çoğu tamamen
+sağlam** — `EmptyState`, `Callout`, `RestoreButton` **sunucu** bileşeni,
+sınır hiç geçilmiyor. Çöken tek yüzey `DeleteButton` ve onun dört çağrı
+yeri. **Aşırı düzeltme, ölçülmeden açılan işin kendisidir.**
+
+**Teşhis DOĞAL DENEYLE doğrulandı:** `/appointments/[id]` `icon` prop'u
+almadan önce açılıyordu (ux ölçmüştü); `58f7e2b` ile `icon={CalendarX}`
+eklendi ve **aynı hata referansıyla çöktü.**
+
+**20c. Bir işaret, GİDECEK YERİ YOKSA yön göstermez — olguyu söyler.**
+Panelin *"+2 para birimi"* eki *"tamamı `/invoices`'ta okunur"* anlamına
+geliyordu; **`/invoices`'ta toplam satırı yok**, yani o cümle bugün yalan
+olurdu. Alternatif (`/invoices`'a toplam eklemek) paketi büyütür ve
+**yanlış pakete koyardı.**
+**Çözüm: işaret bir eksiklik bildirimi olur, bir yön değil** — hiçbir şey
+vaat etmiyor, **bugün doğru**, ve `/invoices` yarın toplam kazanınca da
+**doğru kalıyor.**
+
+**20d. Bir tarama ölçütü LİSTE değil DESEN olarak verilir.** İki çağrı yeri
+vermek **listeyi tamamlanmış gösterir.** Para birimi P0'ında ölçüt şöyle
+yazıldı: *`SUM(` / `reduce` / `+=` ile para toplayıp sonucu tek bir para
+birimiyle basan **her yer**.* (ux kendi taramasının panelden başladığını ve
+**sistematik olmadığını** söylediği için değişti — 30c'nin tarama
+tarafındaki hâli.)
 
 **21. Yedek metin bozukluğu maskeler.** Değer yoksa uydurma bir metin değil,
 hiçbir şey göster. "Your clinic" bir güvenlik ağı değil, bozuk durumu
@@ -371,6 +585,32 @@ başka bir ifadeyle yazılmış münhasırlık iddiasını yakalamaz.*
 yorumu bu yüzden neyi koruduğunu yazar: *metni on çağrı yeri paylaşıyor,
 bölümün kime ait olduğuna dair iddia taşıyamaz.*
 
+**30g-öncesi — SIRALAMA HİYERARŞİSİ (value, 21 Eylül 2026).** Paketin
+cümlesi tek ölçüt değil; dört katman var ve **yukarıdaki aşağıdakini
+ezer:**
+
+> **1. Kalite kapısı  >  2. Açık borç  >  3. P0 sessiz yanlış  >
+> 4. Paketin cümlesi**
+
+**3. katmanın eklenme sebebi:** panel farklı para birimlerini toplayıp tek
+sembol basıyordu — *"Eyl: ₺11.595,67"* yazan kart aslında
+`$111,11 + $250,00 + $10.000,00 + $1.234,56` toplamıydı. **Aynı sayı,
+farklı sembol.** value cümleye uymadığı hâlde pakete aldı:
+**"sessiz yanlış + para, cümle kuralının önündedir"** — *bir sürüm
+bekletmek, süreç kuralını kullanıcının parasının önüne koymak olurdu.*
+
+**Ve bu vaka 30b'nin en pahalı örneği:** `cd407e9`'un cümlesi (*"her
+fatura kesildiği para birimini taşır"*) **doğruydu ama yarımdı** — fatura
+taşıyor, **toplamlar taşımıyor.** Gerekçe geçerli, **kapsam eksik**, ve
+eksik kapsam **para okuyor.** Alacak toplamı da aynı kusuru taşıyor ama
+bugün 0 olduğu için **gizli** duruyor.
+
+**Çözümün şekli de kural:** **kur icat edilmez** (*kur icat etmek tıbbi
+takvim icat etmekle aynı sınıf*, madde 14'ün para tarafı), ve dışarıda
+kalanın **sayısı değil TUTARI** yazılır — *"4 fatura başka para biriminde"*
+eksikliğin büyüklüğünü söylemez; bugünkü vakada dışarıda kalan, kartın
+gösterdiği sayının **tamamıdır.**
+
 **30f. Paylaşılan bir metin ancak EN KESİN çağrı yerinde de doğruysa
 doğrudur.** Sınıfın kökü paylaşım değil **kesinlik.** `recordNotFound`
 bilmediğimiz bir şeyi **bilmediğimizi söyleyerek** yazıldığı için altı çağrı
@@ -486,6 +726,43 @@ düğme korumasızdı. Zararı bu kez oluşmadı (iş yine de yapıldı), ama
 **"açık iş yok" cümlesi aramayı durduran cinstendir** (30c).
 **Yöntem aynı:** `git show <ref>:<dosya>` — iki hâli say, ağaca bakma.
 
+> ### ORTAK BAŞLIK: GERÇEK NEREDE DURUYOR? (value, 21 Eylül 2026)
+>
+> - **Bir KARAR yalnızca mesajda yaşıyorsa, mesajı almayan onu yeniden
+>   verir.**
+> - **Bir DURUM yalnızca çalışma ağacında yaşıyorsa, dala bakan onu
+>   görmez.**
+>
+> İkisi de "gerçeğin nerede durduğu" hakkında ve **ayrı yazılırsa ikisi de
+> yarım kalır.** value ikisini de bu oturumda kendisi yaptı: onayladığı
+> bir kararı **mesajda bıraktı** ve karar başka bir ajandan geri geldi;
+> bir karşılaştırmayı **kaynağına bakmadan** taşıdı.
+> **Çare aynı:** karar **koda/teste**, durum **commit'e.**
+
+**DÖRDÜNCÜ YÜZ: "bekliyorum" derken beklenecek şey dosyanın İÇERİĞİ
+değil, COMMIT'tir.** (dev, kendi hatası — ve *"başkalarına aynı uyarıyı
+yazan kişi"* olduğunu kendi yazdı.) dev bir testi indirdi ve dal kırmızı
+oldu: dev-ui'nin kapıyı kaldırmasını beklerken **çalışma ağacını izledi,
+dalı değil** — ağaçta kaldırılır kaldırılmaz commit etti, oysa kaldırma
+henüz commit'lenmemişti.
+
+**BEŞİNCİ YÜZ, ve en sinsisi: çalışma ağacı yalnızca YARIM değil, KASITLI
+OLARAK BOZUK olabilir — ve okuyan bunu bilemez.** (dev-ui, ux'in
+`aria-label` sorusunun cevabı.) ux bir dosyayı iki kez okudu ve arasında
+değişti; sebep dev-ui'nin **mutasyon testiydi** — kuralın tuttuğunu
+göstermek için etiketleri **bilerek silip geri koyuyordu** (32e'nin
+istediği şey). ux doğru davrandı, *"kusur"* demeyip **soru** olarak sordu.
+**Kural:** mutasyon kontrolleri **scratchpad kopyasında** yapılır; ağaçta
+yapmak gerekiyorsa **önce haber verilir.** Kısa hâli:
+**ölçüm için bozulan ağaç, bozulduğu söylenmeden bozulmaz.**
+
+> **VE BU ÜÇÜNCÜ VARYANT, İLK İKİSİNİN ÇARESİNİ ÇÜRÜTÜYOR** (value'nun
+> tespiti, ailenin en sinsi üyesi olmasının sebebi): *"emin değilsen
+> ağaca bak"* tavsiyesi **tam o anda yanlış cevap veriyor.** ux
+> `aria-label`'ların silindiğini sandı ve **haklıydı** — o saniye
+> gerçekten silinmişlerdi. Yani yanılan okuyucu değil, **ağacın kendisi
+> geçici olarak yalan söylüyordu.**
+
 **Dersin dersi: bir kez yazılması yetmedi.** Aynı hata aynı gün, ters yönden,
 **iki kişi tarafından** tekrarlandı. Bir şeyin **kalktığını** söylemek için de
 **iki hâlin sayılması** gerekir — `git grep -c <şey> <ref>` iki ref için,
@@ -572,6 +849,211 @@ de birlikte; ux ölçtü, value ve ana oturum doğruladı). Bu bir tasarım kara
 mı, kimsenin fark etmediği bir boşluk mu? **Bugünkü cevap: "kararlı
 görünüyor."** Soru kapanmadan kaybolmasın diye buradadır.
 
+**32w. İKİ AYRI KURAL — ve sentezleri REDDEDİLDİ.**
+~~"Kusur sınırın kendisi değil, görünmezliğidir."~~ Bu cümleyi ana oturum
+yazdı, dev-ui'nin *"aynı şeklin iki yüzü"* sentezinden. **value reddetti ve
+haklı — ikisi farklı sınıf:**
+
+- **32w-a — İLETİŞİM kusuru (dev-ui):** *"Sınır koymak yetmiyor, sınırın
+  **söylenmesi** gerekiyor."* Liste kesiliyor ve **söylenmiyor**: 501'inci
+  müşteri yokmuş gibi görünüyor, kullanıcı **ikinci bir kayıt açıyor.**
+  Madde 2'nin (sessiz yanlış) sınır tarafındaki hâli.
+- **32w-b — MEKANİK kusur (dev):** *"`LIMIT` koymak yetmiyor — sıralama
+  indeksten gelmiyorsa limit **sonucu kırpıyor**, işi sınırlamıyor."*
+  **Kullanıcıya söylense bile sorun durur:** veritabanı kliniğin tüm
+  geçmişini sıralamaya devam eder.
+
+**Sentezin neden tehlikeli olduğu, value'nun cümlesiyle:** *tek cümlede
+toplanırsa birini okuyan diğerini yaptığını sanır.* Yani 32w-a'yı
+uygulayan biri "sınırı söyledim, kural tamam" der ve 32w-b'deki sıralama
+maliyeti olduğu yerde kalır.
+
+> **DÜZGÜN DURAN BİR SENTEZ, YANLIŞSA DAĞINIK DURAN İKİ DOĞRUDAN
+> KÖTÜDÜR.** (value, 21 Eylül 2026.) Bu turda **üç kez** fazla geniş
+> iddia yüzünden geri adım atıldı: *"para birimi hiç kaydedilemiyor"*,
+> *"denetim kaydı düzeltmeden önce"*, ve bu sentez. **Üçü de düzgün
+> duruyordu.**
+
+**32ae. Bir YASAĞI METİNDE ARAYAN test, yasağı AÇIKLAYAN metni de
+cezalandırır — ve aradığını bulamaz.** (dev, bir testi **yazıp silerek**.)
+*"Hiçbir yerde dönüşüm yok"* grep'i, **dönüşüm yapmama gerekçesini
+anlatan yorumda** patladı; ve `× 34.2` diye yazılmış gerçek bir dönüşüm
+zaten yanından geçerdi.
+**`ForbiddenState`'te kelime listesini reddettiğimiz gerekçenin ikinci
+bağımsız örneği** (30e) — ve dev ne test etmediğini yazdı: test edilen
+şey **her toplamın para birimini adlandırdığı**, filtreyi kaldırınca
+düşüyor.
+
+**32ac. OLMAYAN bir süreç kusuru için önlem almak, GERÇEK olanları
+gizler.** (dev, 21 Eylül 2026 — bir süreç düzeltmesini **reddederek**.)
+value *"bir iş atlandı, sıra kaydı"* diye bir önlem alacaktı; dev gösterdi
+ki **atlanmış iş yoktu** — `reopenReminderAction` ve fazla-kapı testi
+P0 mesajından **önce** bitmişti, **iki tarafın ölçüm anı farklıydı.**
+Süreç kuralları da bir maliyet taşır: uydurma bir kusura yazılan kural,
+listeyi uzatır ve **gerçek kuralların okunma olasılığını düşürür.**
+**value'nun eklemesi:** *var olmayan bir kusuru kaydetmek, o kayıtların
+hepsinin değerini düşürür* — **sahte pozitif, kural listesinde de test
+listesinde olduğu kadar zararlıdır.**
+**Ve dev'in çerçevesi value'nunkini tamamlıyor:** bir durum yalnızca
+çalışma ağacında yaşıyorsa dala bakan görmez; **tersi de doğru — dal
+ilerlerken elindeki gözlem eskiyor.**
+
+**32ad. YOKLUK İDDİASI EN KOLAY BAYATLAYAN İDDİADIR.** (dev-ui; dev kabul
+etti ve kendi vakasını yazdı.) *"Şu yok"*, *"kapı kaldırılmamış"*,
+*"aksiyonun çağrı yeri yok"* — hepsi **bir andaki yokluğu** bildirir ve
+hızlı bir ağaçta **en çabuk yanlışa dönen** iddia türüdür. dev "dal
+kırmızı" dedi, `58f7e2b` onun commit'inden sonra inmiş ve düzeltmeyi
+**içinde taşıyormuş.**
+**Çare 32ab ile aynı:** yokluk iddiası **hangi ref'te** ölçüldüğü
+yazılmadan kaydedilmez.
+
+**32ab. Bir iddia `dosya:satır` ile geliyorsa, o satırın HEAD'de HÂLÂ O
+OLDUĞU kontrol edilir.** Hızlı hareket eden bir ağaçta **ölçümün TARİHİ,
+ölçümün kendisi kadar bilgidir** — bulgular **hangi commit'te ölçüldüğünü**
+yazsın. (21 Eylül 2026; **bu oturumda üçüncü kez oldu ve ikisi value'nundu.**)
+**Vakası:** *"`/reminders` satırı eylemsiz, `acknowledge`/`dismiss` sıfır
+çağrı yeri"* — **dün doğruydu, bugün değil.** `2f597d6` indi ve iki aksiyon
+bağlandı; verilen satır aralığı **eski dosyanındı.**
+
+**32y. BAŞKASININ KARŞILAŞTIRMASI DA BİR İDDİADIR — aktarılmadan önce
+kaynağına bakılır.** (21 Eylül 2026, value'nun kendi hatası.)
+dev-ui iki raporu karşılaştırıp *"dört sayı da aynı"* dedi; value **kaynak
+raporlara bakmadan** bunu pm'e "tuhaflık" diye aktardı. pm baktı: ikinci
+tur gerçekten **769/704/785/379** demiş — karşılaştırmada birinci turun
+satırı **iki kez okunmuş.** value'nun kendi notu: *"Bu oturumdaki ikinci
+aynı hatam — önce pm'in tek gözleminden kapsam genelledim, şimdi
+başkasının karşılaştırmasını doğrulamadan taşıdım."*
+**Ve yanılgı kazanca döndü:** pm sebebini buldu — iki ölçüm arasında iki
+personel hesabı açılmış, en uzun kırılmayan e-posta **bir karakter**
+uzamış, **üç ölçüye de birebir 17px** yansımış. **Tesadüfen kusurun
+mekanizmasının kanıtı oldu: tablo genişliği VERİYLE büyüyor ve sayfayı
+yanında sürüklüyor.**
+
+**32z. Bulgular ÖLÇÜM ve TEŞHİS diye AYRI yazılır — ikisi bağımsız
+çürütülebilsin diye.** (value'nun yöntem notu, pm'in geri çekilmesinden
+çıktı.) **Ölçen kişi teşhisi de koyuyor ve teşhis ölçümden zayıf
+kalabiliyor.**
+**Vakası:** pm `/clients` 390px'te *"satırı açmanın görünür yolu
+kalmıyor"* dedi. **Ölçümü sağlamdı** (62px taşma, 81px sütun);
+**teşhisi yanlıştı** — ad hücresi zaten aynı adrese bağlıydı. Bulgu
+"gizlenen eylem"den "yedi listeden birinde olan gereksiz sütun"a indi.
+Ölçüm ve teşhis tek paragrafta olsaydı, teşhis çürüdüğünde ölçüm de
+birlikte gidecekti.
+
+**32aa. Bir şeyi YAPMAMAYA karar vermenin kanıtı ÖLÇÜMDÜR** — çünkü
+*"gerek yok"* iddiası *"olsa iyi olur"*dan **güçlüdür**, ve yanılırsa
+**boşluk sessiz kalır.** (dev, value'nun kanıt standardını kendinden
+keskin kullandı: value eksen olarak **eklemeli/yeniden-yazım** kurmuştu,
+dev **eklemek/kaldırmak** eksenini ekledi.) Uygulaması: dev
+`reminders.write` kapısını yazmamaya karar verdi ve **ölçtü** — dört rolün
+dördü de izni taşıyor, kapı hiçbir zaman false olamaz.
+
+**32v. Bir ölçümün TEKRARLANDIĞI, sayıların aynı olmasından anlaşılmaz —
+tersine, birebir aynı sayı TAŞINMIŞ olabilir.** (21 Eylül 2026, dev-ui'nin
+yakalayışı. **Not: bu vakada sayılar aslında hareket etmişti** — 32y'ye
+bak; şüphe yöntemsel olarak doğruydu ama bu örnekte sebep taşınma değil,
+karşılaştırmada satır kayması ve gerçek bir 17px büyümeydi.)
+dev-ui `/staff`'ı **kapattığını söylemeyi reddetti** ve gerekçesi yöntem:
+pm'in **iki turundaki dört sayı da birebir aynıydı** (752/390/687/768),
+**oysa aynı turda `/invoices/[id]` 25'ten 76'ya hareket etmişti.** Bazı
+sayılar değişmiş, `/staff`'ınkiler hiç — bu, o satırın **yeniden ölçülmek
+yerine önceki turdan taşınmış** olmasıyla tutarlı.
+**Yanında yapı kanıtı:** zincirde genişleyebilecek halka yok ve
+`/invoices` listesi **aynı zincirle temiz.**
+**Doğru davranış:** "kapandı" demek yerine **otuz saniyelik iki sayı**
+istemek (`document.scrollWidth` + sarmalayıcının
+`clientWidth`/`scrollWidth`'i). value bunu **suçlama değil tutarsızlık**
+olarak pm'e iletti.
+
+**Ve aynı turdan bir adlandırma dersi:** dev-ui e-posta sütununa
+`wrap-anywhere` verip **"hafifletme, kapatma değil"** dedi — 244px'lik bir
+sütunu kırılabilir yapmak **ölçülmüş sebebi küçültür, mekanizmayı
+doğrulamaz.** Bir düzeltmenin ne olduğunu doğru adlandırmak, düzeltmenin
+kendisi kadar kayda değer.
+
+**32u. Bir kusur bildirmeden önce ARACINI kontrol et — ölçüm aracının
+kendisi kusur üretebilir.** (21 Eylül 2026, ux'in yakın kaçışı ve
+**bildirmediği için** kural oldu.)
+
+ux hatırlatma tarihlerinde **üç saatlik bir kayma** gördü ve
+*"hatırlatmalar bir gün erken gidiyor"* diye **P0 açmak üzereydi.**
+Kontrol etti: **hata kendi betiğindeydi.** Kolonlar `timestamp without time
+zone`; ham değer `2026-09-27 21:00:00`, yani İstanbul'da **28 Eylül gece
+yarısı — doğru.** Kaymayı üreten şey, `pg` istemcisinin naif damgayı
+**makinenin yerel saatiyle** `Date`'e çevirmesiydi. Zincir baştan sona
+tutarlı çıktı.
+
+**Ve asıl değerli kısmı, ux'in kendi aracından kod tabanına genellemesi:**
+`scripts/loop-metrics.mjs` **aynı istemciyi aynı şekilde** kullanıyor.
+Naif damgaları `NOW()` ile karşılaştıran ölçüler **oturum saat diliminden
+kayabilir** — gün hassasiyetinde önemsiz, ama **sınır günlerde bir kayıt
+yanlış kovaya düşebilir.** İş açılmadı, kayıt olarak duruyor.
+**Bu, 32p'nin ("ölçtüğün şeyin istenen şey olduğunu göster") ölçüm aracı
+tarafındaki hâli.**
+
+**32t. "Burayı ölçtüm, sorun değil" bir YÜZEYİ kapatmaz — yalnızca
+ÖLÇÜLEN EKSENİ kapatır.** Hangi eksenin ölçüldüğü yazılmazsa, **ölçülmemiş
+eksen "ölçüldü" sanılır.** (21 Eylül 2026, value — 32q'nun ikizi ve onun
+**30c'ye bağlanan** hâli: **ölçümün de kapsam notu vardır.**)
+
+**Kazanıldığı olay, ve ikisi de doğru ölçmüştü:** dev-ui `Combobox`'ta
+**filtrelemeyi** ölçtü — tuş başına **0,66 ms**, sorun değil, ve haklıydı.
+dev **taşımayı** ölçtü — **≈63 KB + 78 KB**, `/reminders`'ta **her
+açılışta**, kullanıcı seçiciye **hiç dokunmasa bile.** İkisi maliyetin
+**farklı yarısıydı**; ilki tek başına yazılsaydı yüzey "ölçüldü, temiz"
+diye kapanacaktı.
+
+**32s. KANIT STANDARDI İŞE GÖRE DEĞİŞİR: bir İNDEKS AÇIĞININ kanıtı PLAN
+ŞEKLİDİR, süre değil; bir YENİDEN YAZIMIN kanıtı SÜREDİR.**
+(21 Eylül 2026, value — aynı gün dev-ui'ye "önce ölç" derken dev'e
+"ölçmene gerek yok" demek zorunda kaldığı için ayrımı yazmak zorundaydı.)
+
+- **İndeks açığı:** `Sort` düğümünün varlığı ve `LIMIT`'in sıralamadan
+  **sonra** uygulanması **veri boyutundan bağımsız olgulardır** — üç
+  kayıtla da doğrudur. dev'in cümlesi ayrımın kendisi: *"en yoğun klinikte
+  üç aşı kaydı var, hiçbir süre ölçümü bunu gösteremezdi."*
+- **Yeniden yazım:** kazancı **ölçekle değişir** ve **riski vardır**, o
+  yüzden kanıtı süredir.
+
+**Ayrımın dayanağı maliyet–risk asimetrisi:** eklemeli tek satırlık bir
+indeksin **yanılma bedeli sıfıra yakın**; bir bileşeni yeniden yazmanın
+bedeli **gerçek.**
+
+**Ve indeksin VAR OLMASI kullanıldığı anlamına gelmez:** dev
+`enable_sort = off` ile planner'ın indeksi gerçekten aldığını doğruladı.
+
+**32q. YANLIŞ YERİ OPTİMİZE ETMEK, HİÇ OPTİMİZE ETMEMEKTEN KÖTÜDÜR** —
+sorunu çözmediği gibi **çözülmüş sanılmasını** sağlar.
+**Bir performans düzeltmesi, düzeltilecek şeyin maliyeti SAYIYLA ölçülmeden
+açılmaz; ölçülüp "sorun değil" çıkan yer de SAYISIYLA kaydedilir**, yoksa
+bir sonraki kişi aynı yeri yeniden optimize etmeye kalkar.
+(21 Eylül 2026 — **çıktısı bir düzeltme değil, bir düzeltmeyi yapmamak
+olduğu için bu oturumun en iyi işlerinden biri.**)
+
+**Kazanıldığı olay:** dev-ui "bariz bir optimizasyon" gördü (`Combobox` her
+tuşta tüm seçenekleri filtreliyor, `useMemo` yok) ve **düzeltmeden önce
+ölçtü: 500 seçenekte tuş başına 0,66 ms.** Dokunmadı. Kendi cümlesi:
+*"Ölçmeseydim, hiçbir şey kazandırmayan bir değişiklik indirip 'performans
+iyileştirmesi' diye yazacaktım — ve gerçek maliyet gözden kaçacaktı, çünkü
+'burası zaten optimize edildi' denmiş olacaktı."*
+
+**Ve ölçüt kendisine geri uygulandı (value):** dev-ui ikinci bulgusu için
+(500 seçenek → 507 DOM düğümü) iş açılmasını istedi — **düğüm saymış, süre
+ölçmemişti.** value açmadı: *filtreleme için "bariz" olanı ölçüp çürüttü,
+render için "bariz" olanı ölçmeden iş istiyor.* Önce açılma ve tuş başına
+render süresi. **Bir kuralı kendine uygulamak, onu koymaktan zordur.**
+
+**Bağlam da kuralın parçası:** en büyük klinikte **31 hayvan / 33 müşteri**;
+500 seçenekli bir `Combobox` **bugün hiçbir yerde yok.**
+
+**32p'nin kardeşi bir dev dersi, aynı turdan:** `LIMIT`, sıralama
+**indeksten gelmiyorsa** işi sınırlamaz — **yalnızca sonucu kırpar.**
+dev 20'nin öneri sorgusuna `take` koymuştu (sınırsız sorgu tuzağına
+düşmedi) ama sıralamanın indekslenmediğini düşünmedi; `EXPLAIN` taramanın
+üstünde bir `Sort` gösterdi, **kliniğin tüm geçmişi üzerinde**, `LIMIT`
+ondan sonra. **Kanıt ölçüm değil PLAN ŞEKLİYDİ** — en yoğun klinikte üç
+kayıt var, hiçbir süre bunu göstermezdi (`a20d9c2`).
+
 **32p. Bir SÜRE ÖLÇÜMÜ, ölçtüğü şeyin gerçekten istenen sayfa olduğu
 gösterilmeden kaydedilmez.** **Durum kodu ve oturum durumu ölçümün
 parçasıdır;** 200 olmayan ya da oturumsuz bir yanıt **ölçüm değildir.**
@@ -651,6 +1133,18 @@ eşleşmesiydi — **tarama yorumları yakalıyorsa taramayı düzeltmek gerekir
 listeyi kirletmek değil.** (On iki değil, on bir.)
 **Bu bir SÜPÜRME DEĞİLDİR:** on bir kullanım yerinde kalıyor; TEAM.md 31
 toplu çevirmeyi zaten ayrı iş sayıyor.
+
+**32r. Bir kaydırma kabı, ancak ÜSTÜNDEKİ ZİNCİR kadar iyidir.**
+*"Bu sayfayı yana kaydırıyor" kusurunun çaresi nadiren kayan öğenin
+kendisindedir.* (Bu turda iki kez işe yaradı.) `/invoices/[id]`'de taşan
+şey `overflow-x-auto` sarmalayıcısı değil **kartın kendisiydi**; ızgara
+öğesi de, flex öğesi gibi, **kendi içeriğinden dar olmayı reddediyor.**
+Tablo, 76px fazla geniş bir kabın içinde rahatça kaydırılıyordu.
+
+**Yanına, 30c'nin DÜZELTME tarafındaki hâli (dev-ui'nin kendi uygulaması):**
+*"pm bir sayfa ölçtü, ben dört sayfa değiştirdim"* diye **açıkça yazmak.**
+Ölçülmemiş yerlere yapılan düzeltme **doğru olabilir** ama **ölçülmediği
+söylenmezse**, sonraki okuyan dördünün de doğrulandığını sanır.
 
 **32m. Bir paketi büyüten şey yeni bir FİKİR değil de aynı SINIFIN yeni bir
 yüzüyse, paket büyümeli.** (21 Eylül 2026, v0.4.0'ın ölçüsü — 32d'nin
@@ -987,6 +1481,13 @@ kapısı; bugüne kadar bir kez bile kapatılmadı).
 **Bunun doğal sonucu:** *"içeriği tamamen tek bir kişiye bağlı bir paket
 kesilemez."* value bir paketi "esasen pm'in paketi" diye tanımlamıştı ve
 geri aldı: bekletmeyeceğini söylediği şeyi paketin kendisi yapmak olurdu.
+
+**Kesim öncesi `git fetch` REFLEKSTİR — paylaşımlı dal artık tek ekibin
+değil.** (21 Eylül 2026.) `v0.6.0` kesilirken push **reddedildi**: başka
+bir oturum main'e `82b8366`'yı atmıştı (Playwright paketi her push'ta
+düşüyormuş). Birleştirildi, kapılar yeniden koşuldu, sonra push edildi.
+**Ders: kesimden önce `git fetch`, ve kapılar birleştirilmiş hâlde
+koşulur** — yoksa etiket, main'in içermediği bir ağacı gösterir.
 
 **Etiket `HEAD`'e vurulmaz, kapıların koşulduğu COMMIT'e vurulur.**
 (21 Eylül 2026, v0.3.0'ın hatası.) Ajanlar es sırasında bile commit atmaya

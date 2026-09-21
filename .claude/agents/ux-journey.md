@@ -11,7 +11,17 @@ yığınıyla değil, ORIGIN ve SEKME ile** kuruluyor — ve bu çoğu çakışm
 gerçekten kaldırıyor:
 
 **1. Farklı port = farklı origin = AYRI OTURUM.** Sen
-`http://localhost:3001` (üretim derlemesi), pm `http://localhost:3000`
+`http://127.0.0.1:3001` (üretim derlemesi), pm `http://localhost:3000`
+
+> **ÇEREZ UYARISI — ux ölçtü, ana oturumun hipotezi çürüdü:**
+> *"Farklı port = ayrı oturum"* **YANLIŞ.** Origin (fetch/CORS için) porta
+> bağlıdır ama **ÇEREZLER değildir** — çerez kapsamı **host**'tur, **port
+> yok sayılır** (RFC 6265). `localhost:3000` ile `localhost:3001` **aynı
+> çerez kavanozunu** paylaşır: pm çıkış yapınca senin sekmen de düşer, ve
+> **senin girişin pm'in kabul testini bozar.**
+> **Bu yüzden adres `127.0.0.1:3001`** — farklı **host adı**, gerçekten
+> ayrı kavanoz. Ölçüldü, çalıştı. **`localhost:3001` yazılı kalırsa bir
+> sonraki ajan aynı tuzağa düşer.**
 (geliştirme). Tarayıcı çerezleri ve `localStorage`'ı **origin başına**
 tutar, yani **senin girişin pm'in oturumunu bozmaz, onunki seninkini
 bozmaz.** Asıl korkulan çakışma buydu ve port ayrımı onu kapatıyor.
