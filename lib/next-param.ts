@@ -14,9 +14,9 @@
 // wrong at the fourth.
 //
 // A whitelist of exact paths rather than a pattern. The question is not
-// "does this look like our URL" but "is it one of the four places the
-// chain can lead" -- a pattern admits `/settings`, tomorrow's route, and
-// every clever encoding of a host.
+// "does this look like our URL" but "is it one of the places the chain
+// can lead" -- a pattern admits `/settings`, tomorrow's route, and every
+// clever encoding of a host.
 
 /**
  * The only destinations a chain may resume at.
@@ -48,6 +48,12 @@ const ALLOWED_PATHS = new Set([
   "/appointments",
   "/invoices",
   "/pets",
+  // A list like the four above, and a dead end for the same reason: on
+  // an empty clinic the reminder form has no client to pick. It is
+  // here rather than in the group above because there is no
+  // `/reminders/new` -- the form sits inside the page, which is how
+  // this screen escaped both sweeps that found the other four.
+  "/reminders",
 ]);
 
 /**
