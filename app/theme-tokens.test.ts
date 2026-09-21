@@ -624,16 +624,30 @@ describe("every focusable thing has a focus mark of ours", () => {
     "utf8",
   );
 
+  /** The one rule, however many selectors have joined it. */
+  const focusRule = () =>
+    css.match(/(?:^|\n)\s*a:focus-visible[^{]*\{[^}]*\}/)?.[0] ?? null;
+
   it("gives links a focus outline, in the ring colour", () => {
-    const rule = css.match(/a:focus-visible\s*\{[^}]*\}/);
+    const rule = focusRule();
     expect(rule).not.toBeNull();
     // From the token, so switching theme switches the mark. A literal
     // colour here is how the browser's fixed blue got to be a problem in
     // the first place.
-    expect(rule![0]).toContain("var(--color-ring)");
-    expect(rule![0]).toMatch(/outline-offset/);
+    expect(rule).toContain("var(--color-ring)");
+    expect(rule).toMatch(/outline-offset/);
     // No hex, rgb() or palette name in the rule.
-    expect(rule![0]).not.toMatch(/#[0-9a-f]{3,8}|rgb\(/i);
+    expect(rule).not.toMatch(/#[0-9a-f]{3,8}|rgb\(/i);
+  });
+
+  it("covers the other things a keyboard lands on", () => {
+    // `<summary>` measured worst of all at 2.89 against a dark card —
+    // under the 3:1 floor, where the links' old browser default at
+    // least scraped over it. And a `<summary>` here is the door to a
+    // clinical form: vaccination, prescription, treatment, diagnostic.
+    const rule = focusRule();
+    expect(rule).toContain("summary:focus-visible");
+    expect(rule).toContain("[tabindex]:focus-visible");
   });
 
   it("marks a button the same way, on any surface", () => {
@@ -655,6 +669,6 @@ describe("every focusable thing has a focus mark of ours", () => {
     // to clear the browser's mark before drawing it.
     expect(button).not.toMatch(/focus-visible:ring-offset/);
     expect(button).not.toMatch(/focus-visible:outline-none/);
-    expect(css.match(/a:focus-visible\s*\{[^}]*\}/)![0]).toContain("--color-ring");
+    expect(focusRule()).toContain("--color-ring");
   });
 });

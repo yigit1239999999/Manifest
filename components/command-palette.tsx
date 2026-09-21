@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { surface } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
@@ -46,13 +46,31 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults>(EMPTY);
   const [pending, setPending] = useState(false);
+  // Whatever had focus when the palette opened, so Escape can give it
+  // back. `ConfirmDialog` gets this free from the native `<dialog>`; this
+  // one is a Radix dialog and has to do it by hand, and until now it did
+  // not — cancelling out of the palette dropped the user on `<body>` and
+  // the next Tab started again from "Skip to content".
+  //
+  // The element rather than the trigger button, because ⌘K opens this
+  // from wherever the user already was.
+  const opener = useRef<HTMLElement | null>(null);
+
+  function openFrom(element: EventTarget | null) {
+    opener.current =
+      element instanceof HTMLElement ? element : (document.activeElement as HTMLElement | null);
+    setOpen(true);
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((o) => !o);
+        setOpen((wasOpen) => {
+          if (!wasOpen) opener.current = document.activeElement as HTMLElement | null;
+          return !wasOpen;
+        });
       }
     }
     window.addEventListener("keydown", onKey);
@@ -81,10 +99,19 @@ export function CommandPalette() {
     if (!next) {
       setQuery("");
       setResults(EMPTY);
+      // Only if it is still on the page: a result that navigated away
+      // took its opener with it, and `go` clears this first anyway.
+      const element = opener.current;
+      opener.current = null;
+      if (element?.isConnected) element.focus();
     }
   }
 
   function go(href: string) {
+    // Not restored on the way out: the page is about to change, and
+    // putting focus back on a control that is leaving is worse than
+    // letting the new page start clean.
+    opener.current = null;
     handleOpenChange(false);
     router.push(href);
   }
@@ -107,7 +134,7 @@ export function CommandPalette() {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={(e) => openFrom(e.currentTarget)}
         className="hidden h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:bg-muted sm:inline-flex"
         aria-label={tCommon("search")}
       >
