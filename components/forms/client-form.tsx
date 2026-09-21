@@ -130,7 +130,15 @@ export function ClientForm({ client }: Props) {
               {(["true", "false"] as const).map((answer) => (
                 <label
                   key={answer}
-                  className="flex items-center gap-2 text-sm text-foreground"
+                  // `py-1` is not padding for looks. The label is the
+                  // clickable target — bigger than the 16px box, which
+                  // is the point — but at `text-sm` its height was the
+                  // line box, 20px, and WCAG 2.5.8 asks for 24. pm
+                  // measured it: 81×20 and 101×20 in Turkish, 111×20
+                  // and 80×20 in English. Width was never the problem;
+                  // height was, on the two controls a phone user taps
+                  // to answer a consent question. This makes it 28.
+                  className="flex min-h-6 items-center gap-2 py-1 text-sm text-foreground"
                 >
                   <input
                     type="radio"
