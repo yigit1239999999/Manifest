@@ -2,8 +2,10 @@ import { History } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { listAuditEntries } from "@/modules/audit/queries";
 import { PageHeader } from "@/components/page-header";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
@@ -13,6 +15,8 @@ import { PAGE_SIZES } from "@/lib/pagination";
 export default async function AuditPage() {
   const fmt = await getFormatContext();
   const session = await requireSession();
+  if (!can(session.user.role, "audit.read")) return <ForbiddenState />;
+
   const [t, tAction, entries] = await Promise.all([
     getTranslations("audit"),
     getTranslations("enum.auditAction"),
