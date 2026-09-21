@@ -194,7 +194,18 @@ interface ActionFormProps extends Omit<React.ComponentProps<"form">, "action"> {
    *
    * Opt-in, because most forms are opened deliberately by someone who
    * is already looking at them, and a page that grabs focus on load
-   * moves the screen and opens a keyboard for no reason.
+   * moves the screen and opens a keyboard for no reason. `ReminderForm`
+   * and `TreatmentForm` take a prefill and deliberately do NOT pass
+   * this: they sit inside a page somebody is reading, so the cursor
+   * would drag the screen away from what they were reading.
+   *
+   * FOR WHOEVER ADDS THE NEXT PREFILLABLE `/new` ROUTE: pass it, and
+   * add a case to `action-form.test.tsx` naming the field it lands on.
+   * Leaving it off is silent -- the form simply behaves the way it did
+   * before this existed, no error, nothing red -- so nothing will tell
+   * you, which is why the note is here rather than in the conversation
+   * that produced it. Same failure mode as `ALLOWED_PATHS` in
+   * `lib/next-param.ts`, for the same reason.
    */
   focusFirstEmpty?: boolean;
 }
