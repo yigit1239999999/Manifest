@@ -15,25 +15,21 @@ describe("safeNext", () => {
   // A vet who hit the dead end while reading a list had begun nothing.
   // Sending them to `/appointments/new` after they add an animal would
   // assume they meant to book one; they go back to the list.
-  it("keeps the lists those forms are reached from", () => {
+  it("keeps the four lists those forms are reached from", () => {
     expect(safeNext("/visits")).toBe("/visits");
     expect(safeNext("/appointments")).toBe("/appointments");
     expect(safeNext("/invoices")).toBe("/invoices");
     expect(safeNext("/pets")).toBe("/pets");
-    // No `/reminders/new`: that screen carries its form inline, which
-    // is why it was the fifth dead end and the last one found.
-    expect(safeNext("/reminders")).toBe("/reminders");
   });
 
   it("hands a list no id, because a list has nowhere to put one", () => {
     expect(withCreated("/appointments", "pet", "p-1")).toBe("/appointments");
     expect(withCreated("/pets", "client", "c-1")).toBe("/pets");
-    expect(withCreated("/reminders", "client", "c-1")).toBe("/reminders");
   });
 
   it("refuses anywhere else in our own product", () => {
     // A whitelist, not a pattern: the question is not whether it looks
-    // like our URL but whether it is one of the listed few.
+    // like our URL but whether it is one of the four.
     expect(safeNext("/settings")).toBeNull();
     expect(safeNext("/clients/abc")).toBeNull();
     expect(safeNext("/visits/new/../../settings")).toBeNull();

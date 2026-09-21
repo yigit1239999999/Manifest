@@ -105,8 +105,7 @@ export async function dashboardInsights(
   // here costs nothing the page was not already paying.
   const currency = await getClinicCurrency(clinicId);
   const now = new Date();
-  const since12Weeks = new Date(now);
-  since12Weeks.setDate(since12Weeks.getDate() - 84);
+  const since12Weeks = firstWeekBucketStart(now, 12);
   const since6Months = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
   // 1) Eight counts + the outstanding-balance aggregate in a single
@@ -330,6 +329,39 @@ export async function dashboardInsights(
       (a, b) => b.cents - a.cents,
     ),
   };
+}
+
+/**
+ * Where a series of `count` weekly buckets has to start for the last of
+ * them to be the week we are in.
+ *
+ * This was `now - 84 days`, which is exactly twelve weeks and is the
+ * reading that feels right: twelve weeks of history. It is off by one
+ * bucket. Snapped to the start of its week it lands on the Sunday twelve
+ * weeks back, and counting twelve forward from there ends on the week
+ * that finished yesterday -- the range is -12..-1, and the week we are
+ * actually in never appears.
+ *
+ * On a busy clinic that reads as a chart that is merely a few days
+ * stale. On a new one it reads as the product being broken, and that is
+ * how it was found: a vet records their first visit, the counter says
+ * one, the recent-visits list shows it, the panel next to them says
+ * "no visits yet". Three answers to one question on one screen.
+ *
+ * The monthly series never had the bug, because it was written the other
+ * way round -- `now.getMonth() - 5` counts back `count - 1` and keeps the
+ * current month. The two sat side by side under the same footnote, one
+ * of them saying "the last column is the period in progress" about a
+ * period that had ended.
+ *
+ * So: back `count - 1` weeks, not `count`. Exported and tested rather
+ * than inlined, because the wrong version was also the plausible one and
+ * nothing on screen distinguishes them except the label on one column.
+ */
+export function firstWeekBucketStart(now: Date, count: number): Date {
+  const start = startOfBucket(now, "week");
+  start.setDate(start.getDate() - 7 * (count - 1));
+  return start;
 }
 
 /** Build a contiguous series so empty buckets render as zero bars. */
