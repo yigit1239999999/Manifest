@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronDown } from "lucide-react";
 import type { Client, Pet } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { FormSection } from "@/components/ui/form-section";
+import { OptionalDetails } from "@/components/ui/optional-details";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -242,23 +242,11 @@ export function PetForm({
         </div>
       </FormSection>
 
-      <details
-        open={hasOptionalData}
-        className="group rounded-surface border border-border bg-muted/20 open:bg-transparent"
+      <OptionalDetails
+        title={t("optionalDetails")}
+        hint={t("optionalDetailsHint")}
+        defaultOpen={hasOptionalData}
       >
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
-          <span className="flex flex-col">
-            <span className="font-semibold text-foreground">
-              {t("optionalDetails")}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {t("optionalDetailsHint")}
-            </span>
-          </span>
-          <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-        </summary>
-
-        <div className="flex flex-col gap-8 px-4 pb-5 pt-2">
           <FormSection
             title={t("sections.physical")}
             description={t("sections.physicalHint")}
@@ -348,8 +336,7 @@ export function PetForm({
               <Textarea name="notes" rows={4} defaultValue={pet?.notes ?? ""} />
             </Field>
           </FormSection>
-        </div>
-      </details>
+      </OptionalDetails>
 
       <div className="flex items-center justify-end gap-3">
         <span className="text-xs text-muted-foreground">
