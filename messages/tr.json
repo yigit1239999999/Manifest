@@ -268,7 +268,8 @@
       "messageSent": "{channel} gönderildi.",
       "optedOut": "Bu müşteri için bildirim mesajları pasif. Otomatik mesaj gönderilmez; gerekirse mesajı WhatsApp'ta açarak elle iletebilirsiniz.",
       "cancelledNotice": "Bu randevu iptal edildiği için onay ve hatırlatma mesajları artık sunulmuyor. Müşteri bilgilendirilmediyse lütfen kendiniz haber veriniz.",
-      "completedNotice": "Bu randevu tamamlandığı için onay ve hatırlatma mesajları artık sunulmuyor."
+      "completedNotice": "Bu randevu tamamlandığı için onay ve hatırlatma mesajları artık sunulmuyor.",
+      "petSilencedNotice": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için mesaj gönderilmiyor."
     },
     "today": "Bugün",
     "previousDay": "Önceki gün",
@@ -687,7 +688,8 @@
       "notConfigured": "Mesaj kanalı bağlantısı yapılandırılmamış.",
       "optedOut": "Bu müşteri için bildirim mesajları pasif.",
       "sendFailed": "Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin.",
-      "appointmentClosed": "Bu randevu kapandığı için mesaj gönderilemez."
+      "appointmentClosed": "Bu randevu kapandığı için mesaj gönderilemez.",
+      "petSilenced": "Bu hayvan için mesaj gönderilmez."
     },
     "validation": {
       "ownerNotInClinic": "Bu sahip bu klinikte bulunamadı.",

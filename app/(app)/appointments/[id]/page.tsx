@@ -57,6 +57,9 @@ export default async function AppointmentPage({
   // The service decides what "closed" means; the screen only reflects it,
   // so the card cannot offer a send the server would refuse.
   const closed = preview?.closed ?? isAppointmentClosed(appointment.status);
+  // A dead or archived animal is never written about, so the card offers
+  // nothing rather than a button the server would refuse.
+  const petSilenced = preview?.petSilenced ?? false;
 
   return (
     <div className="flex flex-col gap-6">
@@ -130,7 +133,11 @@ export default async function AppointmentPage({
               {t("notifications.notConfigured", { channel: tChannel(preview.channel) })}
             </p>
           )}
-          {closed ? (
+          {petSilenced ? (
+            <p className="text-sm text-muted-foreground">
+              {t("notifications.petSilencedNotice")}
+            </p>
+          ) : closed ? (
             // A cancelled, missed or finished appointment must not offer to
             // confirm it or to remind the client to come — there is no
             // message here that is true any more.

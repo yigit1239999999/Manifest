@@ -26,6 +26,7 @@ import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
 import {
   automaticSendBlocked,
+  runReminderSweep,
   logManualMessage,
   sendAppointmentMessage,
 } from "./service";
@@ -51,7 +52,7 @@ function appointment(overrides: Record<string, unknown> = {}) {
     startsAt: new Date("2026-09-20T11:30:00.000Z"),
     durationMinutes: 30,
     type: "VACCINATION",
-    pet: { name: "Sarı" },
+    pet: { name: "Sarı", deceased: false, archivedAt: null },
     client: {
       id: "c-1",
       firstName: "Ayşe",
@@ -154,6 +155,28 @@ describe("sendAppointmentMessage", () => {
     expect(prisma.messageLog.create).not.toHaveBeenCalled();
   });
 
+  // The one message that ends a clinic's trust in the whole system.
+  it("refuses to write to the owner of an animal that died", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      appointment({ pet: { name: "Sarı", deceased: true, archivedAt: null } }) as never,
+    );
+    await expect(
+      sendAppointmentMessage("a-1", "APPOINTMENT_REMINDER", ctx),
+    ).rejects.toMatchObject({ messageKey: "error.notifications.petSilenced" });
+    expect(transport.send).not.toHaveBeenCalled();
+  });
+
+  it("refuses for an archived animal too", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      appointment({
+        pet: { name: "Sarı", deceased: false, archivedAt: new Date("2026-09-01") },
+      }) as never,
+    );
+    await expect(
+      sendAppointmentMessage("a-1", "APPOINTMENT_CONFIRMATION", ctx),
+    ).rejects.toMatchObject({ messageKey: "error.notifications.petSilenced" });
+  });
+
   it("is admin/staff only", async () => {
     await expect(
       sendAppointmentMessage("a-1", "APPOINTMENT_CONFIRMATION", { ...ctx, userRole: "VET_TECH" }),
@@ -194,6 +217,36 @@ describe("automaticSendBlocked", () => {
     expect(automaticSendBlocked([failedAt(40), failedAt(30), failedAt(20)], now)).toBe(
       true,
     );
+  });
+});
+
+describe("runReminderSweep", () => {
+  beforeEach(() => {
+    vi.mocked(prisma.clinic.findMany).mockResolvedValue([clinicRow] as never);
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([] as never);
+  });
+
+  // The automatic path is the one that actually reaches an owner unasked,
+  // so the exclusion has to be in the query, not in a later check someone
+  // can forget to call.
+  it("never picks up an appointment for a dead or archived animal", async () => {
+    await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
+
+    const where = vi.mocked(prisma.appointment.findMany).mock.calls[0][0]
+      ?.where as Record<string, unknown>;
+    expect(where.pet).toEqual({ deceased: false, archivedAt: null });
+  });
+
+  it("keeps a reminder that names no animal, drops one whose animal is gone", async () => {
+    await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
+
+    const where = vi.mocked(prisma.reminder.findMany).mock.calls[0][0]
+      ?.where as Record<string, unknown>;
+    expect(where.OR).toEqual([
+      { petId: null },
+      { pet: { deceased: false, archivedAt: null } },
+    ]);
   });
 });
 

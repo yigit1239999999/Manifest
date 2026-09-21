@@ -97,7 +97,7 @@ const CLIENT_SELECT = {
 } as const;
 
 const APPOINTMENT_INCLUDE = {
-  pet: { select: { name: true } },
+  pet: { select: { name: true, deceased: true, archivedAt: true } },
   client: { select: CLIENT_SELECT },
   vet: { select: { name: true } },
 } as const;
@@ -125,6 +125,17 @@ export const CLOSED_APPOINTMENT_STATUSES = [
 
 export function isAppointmentClosed(status: string): boolean {
   return (CLOSED_APPOINTMENT_STATUSES as readonly string[]).includes(status);
+}
+
+/**
+ * An animal we must not write to its owner about. A reminder for a pet that
+ * died is the one message that ends a clinic's trust in the whole system,
+ * and an archived record is one the clinic has deliberately put away.
+ */
+export function isPetSilenced(
+  pet: { deceased: boolean; archivedAt: Date | null } | null | undefined,
+): boolean {
+  return pet != null && (pet.deceased || pet.archivedAt != null);
 }
 
 export interface ComposedMessage {
@@ -187,6 +198,7 @@ export async function previewAppointmentMessages(clinicId: string, appointmentId
     // what the screen offers and what the server accepts cannot drift.
     closed: isAppointmentClosed(appointment.status),
     status: appointment.status,
+    petSilenced: isPetSilenced(appointment.pet),
     optedIn: appointment.client.notificationsOptIn,
     confirmation: composeFor(appointment, "APPOINTMENT_CONFIRMATION", clinic),
     reminder: composeFor(appointment, "APPOINTMENT_REMINDER", clinic),
@@ -298,6 +310,8 @@ export async function sendAppointmentMessage(
   if (!appointment || !clinic) throw notFound("appointment", appointmentId);
   if (isAppointmentClosed(appointment.status))
     throw new AppError("VALIDATION_FAILED", "error.notifications.appointmentClosed");
+  if (isPetSilenced(appointment.pet))
+    throw new AppError("VALIDATION_FAILED", "error.notifications.petSilenced");
   if (!appointment.client.notificationsOptIn)
     throw new AppError("VALIDATION_FAILED", "error.notifications.optedOut");
   return deliver(clinic, appointmentTarget(appointment, kind, clinic), ctx.userId);
@@ -319,6 +333,8 @@ export async function logManualMessage(
   // be possible to record one the app itself would refuse to send.
   if (isAppointmentClosed(appointment.status))
     throw new AppError("VALIDATION_FAILED", "error.notifications.appointmentClosed");
+  if (isPetSilenced(appointment.pet))
+    throw new AppError("VALIDATION_FAILED", "error.notifications.petSilenced");
   const composed = composeFor(appointment, kind, clinic, "WHATSAPP");
   if (!composed.recipient) throw new AppError("VALIDATION_FAILED", "error.notifications.noPhone");
   return prisma.messageLog.create({
@@ -348,6 +364,7 @@ export async function notifyAppointmentBooked(appointmentId: string, ctx: Action
     if (!isChannelConfigured(clinic.notifications.channel)) return;
     const appointment = await loadAppointment(ctx.clinicId, appointmentId);
     if (!appointment?.client.phone || !appointment.client.notificationsOptIn) return;
+    if (isPetSilenced(appointment.pet)) return;
     await deliver(
       clinic,
       appointmentTarget(appointment, "APPOINTMENT_CONFIRMATION", clinic),
@@ -440,6 +457,9 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           status: { in: ["SCHEDULED", "CONFIRMED"] },
           startsAt: { gt: now, lte: horizon },
           client: { archivedAt: null, phone: { not: null }, notificationsOptIn: true },
+          // A dead or archived animal is never written about, however the
+          // appointment was left behind.
+          pet: { deceased: false, archivedAt: null },
         },
         include: {
           ...APPOINTMENT_INCLUDE,
@@ -475,6 +495,9 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           status: "PENDING",
           dueAt: { gte: new Date(now.getTime() - 86_400_000), lte: reminderHorizon },
           client: { archivedAt: null, phone: { not: null }, notificationsOptIn: true },
+          // Reminders can stand on their own, but one that names an animal
+          // follows that animal: if it died or was archived, nothing goes out.
+          OR: [{ petId: null }, { pet: { deceased: false, archivedAt: null } }],
         },
         include: {
           pet: { select: { name: true } },
