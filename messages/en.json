@@ -22,8 +22,6 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
-    "cancelConfirm": "Cancel this appointment?",
-    "cancelUndoHint": "The appointment stays on the list with its status set to cancelled. You can schedule it again from the edit screen.",
     "nevermind": "Cancel",
     "edit": "Edit",
     "delete": "Delete",
@@ -307,8 +305,8 @@
       "optedOut": "Notification messages are disabled for this client. Nothing is sent automatically; if needed you can copy the message and send it by hand.",
       "cancelledNotice": "This appointment is cancelled, so the confirmation and reminder messages are no longer offered. Tell the client yourself if they have not been informed.",
       "completedNotice": "This appointment is complete, so confirmation and reminder messages are no longer offered.",
-    "pastNotice": "The appointment time has passed, so confirmation and reminder messages are no longer offered. This appointment's outcome has not been recorded yet.",
-    "recordOutcome": "Record the outcome",
+      "pastNotice": "The appointment time has passed, so confirmation and reminder messages are no longer offered. This appointment's outcome has not been recorded yet.",
+      "recordOutcome": "Record the outcome",
       "petSilencedNotice": "This animal has died or been archived, so no message is sent about it."
     },
     "today": "Today",
@@ -320,7 +318,9 @@
     "phone": "Phone",
     "emptyDay": "No appointments on {date}.",
     "emptyDayHint": "Use the arrows to look at another day, or book an appointment.",
-    "emptyHint": "Appointments you book appear here, the nearest first."
+    "emptyHint": "Appointments you book appear here, the nearest first.",
+    "cancelConfirm": "Cancel this appointment?",
+    "cancelUndoHint": "The appointment stays on the list with its status set to cancelled. You can schedule it again from the edit screen."
   },
   "staff": {
     "title": "Team",
@@ -770,7 +770,7 @@
       "optedOut": "Notification messages are disabled for this client.",
       "sendFailed": "The message could not be sent. Please try again later.",
       "appointmentClosed": "This appointment is closed, so no message can be sent for it.",
-    "appointmentPast": "The appointment time has passed, so this message is no longer true.",
+      "appointmentPast": "The appointment time has passed, so this message is no longer true.",
       "petSilenced": "No message is sent for this animal."
     },
     "validation": {
@@ -778,9 +778,9 @@
       "petNotInClinic": "This pet isn't in your clinic.",
       "clientRequired": "Client not found.",
       "petRequired": "Pet not found.",
-    "vetRequired": "The person selected cannot be recorded as this clinic\u0027s vet.",
-    "petSilenced": "This animal has died or been archived, so no reminder can be created for it.",
-    "clientArchived": "This client is archived, so no reminder can be created. You can restore the client first.",
+      "vetRequired": "The person selected cannot be recorded as this clinic\u0027s vet.",
+      "petSilenced": "This animal has died or been archived, so no reminder can be created for it.",
+      "clientArchived": "This client is archived, so no reminder can be created. You can restore the client first.",
       "speciesUnknown": "Unknown species.",
       "speciesInUse": "This species is in use and can't be deleted.",
       "speciesNoneEnabled": "Select at least one species.",

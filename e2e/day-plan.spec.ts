@@ -83,8 +83,10 @@ test.describe("Appointments day plan", () => {
     await page.reload();
     await expect(page.getByText(/\b(14:00|2:00 PM)\b/)).toBeVisible();
 
-    // A day with nothing on it says so.
+    // A day with nothing on it says so. The URL first, so a failure here
+    // says whether the day moved at all or moved and rendered wrongly.
     await page.getByRole("link", { name: /next day/i }).click();
+    await expect(page).toHaveURL(new RegExp(`date=${dayKey(2)}`));
     await expect(page.getByText(/no appointments on|randevu bulunmuyor/i)).toBeVisible();
 
     // Back to today.

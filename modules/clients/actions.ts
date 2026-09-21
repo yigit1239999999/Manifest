@@ -67,8 +67,6 @@ export const restoreClientAction = action(
   "client.restore",
   async (ctx, id: string): Promise<void> => {
     await restoreClient(id, ctx);
-    revalidatePath("/clients");
-    revalidatePath(`/clients/${id}`);
   },
 );
 

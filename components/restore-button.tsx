@@ -1,5 +1,8 @@
+"use client";
+
 import { ArchiveRestore } from "lucide-react";
 import { SubmitButton } from "@/components/submit-button";
+import { useRefreshAction } from "@/components/forms/use-refresh-action";
 
 /**
  * Takes a record back out of the archive.
@@ -10,8 +13,10 @@ import { SubmitButton } from "@/components/submit-button";
  * "undo" charges the user twice for someone else's slip (TEAM.md #25 — the
  * look of an action matches its consequence, and this one is harmless).
  *
- * A plain form rather than a dialog for the same reason, which also keeps it
- * working without JavaScript.
+ * A plain form rather than a dialog for the same reason.
+ *
+ * The page is loaded again once the action has answered (see
+ * `useRefreshAction` for why nothing lighter was reliable here).
  */
 export function RestoreButton({
   action,
@@ -20,8 +25,9 @@ export function RestoreButton({
   action: (formData: FormData) => Promise<unknown>;
   label: string;
 }) {
+  const formAction = useRefreshAction(action);
   return (
-    <form action={action as (formData: FormData) => Promise<void>}>
+    <form action={formAction}>
       <SubmitButton variant="secondary" size="sm">
         <ArchiveRestore />
         {label}

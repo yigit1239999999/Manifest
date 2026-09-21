@@ -70,11 +70,7 @@ export const archivePetAction = action(
 export const restorePetAction = action(
   "pet.restore",
   async (ctx, id: string): Promise<void> => {
-    const { ownerId } = await restorePet(id, ctx);
-    revalidatePath("/pets");
-    revalidatePath(`/pets/${id}`);
-    revalidatePath(`/clients/${ownerId}`);
-    revalidatePath("/");
+    await restorePet(id, ctx);
   },
 );
 

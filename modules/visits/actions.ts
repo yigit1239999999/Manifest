@@ -68,10 +68,6 @@ export const archiveVisitAction = action(
 export const restoreVisitAction = action(
   "visit.restore",
   async (ctx, id: string): Promise<void> => {
-    const { petId } = await restoreVisit(id, ctx);
-    revalidatePath("/visits");
-    revalidatePath(`/visits/${id}`);
-    revalidatePath(`/pets/${petId}`);
-    revalidatePath("/");
+    await restoreVisit(id, ctx);
   },
 );

@@ -171,5 +171,25 @@ test.describe("Saving without leaving the page", () => {
 
     await expect(page.getByText("Rabies booster due")).toBeVisible();
     await expect(page.getByText(/no reminders/i)).toHaveCount(0);
+
+    // Closing and reopening keep the list in step as well. A closed row
+    // leaves the open list and is found under "Closed"; reopened, it comes
+    // back. Each step is a server action followed by a client refresh
+    // (components/forms/use-refresh-action.ts).
+    const done = page.getByRole("button", {
+      name: /^(mark done|tamam)\b.*rabies booster due/i,
+    });
+    const reopen = page.getByRole("button", {
+      name: /^(reopen|geri aç)\b.*rabies booster due/i,
+    });
+    await done.click();
+    await expect(done).toBeHidden();
+
+    await page.goto("/reminders?status=closed");
+    await reopen.click();
+    await expect(reopen).toBeHidden();
+
+    await page.goto("/reminders");
+    await expect(done).toBeVisible();
   });
 });
