@@ -454,6 +454,26 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    sorulabilir, yani kendi kendini doğruluyor), **ad değiştirilemez**
    (yanlışsa hiçbir yerden anlaşılmıyor).
 
+11. **Vaadi geri çekmek tutulmamış söz üretir; genişletmek üretmez.**
+   Asimetri gerçek ve **kontrol edilebilir** — bu yüzden bir üslup
+   tavsiyesi değil, bir kural. (`dev-ui`'nin sözü; ana oturumun ilk
+   taslağı *"eksik vaat et, sonra genişlet"* diye yazılmıştı ve o hâli
+   yalnız bir tavsiyeydi.)
+
+   **Pratik sonucu:** bir cümle ne kadar vaat edeceğine karar verirken,
+   **bugün tutabildiğin kadarını** söyle. Yarın daha fazlasını
+   yapabiliyorsan cümle büyür ve kimse bir şey kaybetmez. Bugün
+   tutamadığın bir şeyi söylersen, onu geri aldığın gün kullanıcı
+   **kaybettiğini** görür — ve bir daha o ekranın cümlelerine inanmaz.
+
+   *Vaka:* ilk çalıştırma kartı *"hayvanı ve sahibini **yol üstünde**
+   açarsınız"* diyordu ve ekran bunu yapmıyordu. **İki hekim de bunu
+   yalan diye işaretledi**, biri kendi ağzıyla: *"beni yalancı
+   çıkarmayın."* Ara çözüm cümlesi bilerek **daha az** vaat ediyor
+   (*"önce sahibini ve hayvanı açacaksınız; yazdıklarınız taşınır"*),
+   çünkü tek ekran indiğinde cümle **büyüyecek** — ve o yönde büyümenin
+   bedeli yok.
+
 **Ve bir ölçüm kuralı, aynı gün beş kez lazım oldu:**
 
 > **İki sabiti çarpmak ölçüm değildir.** Ölçülmemiş bir sayı, ölçülmüş gibi
