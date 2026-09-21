@@ -507,17 +507,29 @@ export function Combobox({
               rows that are not clickable -- the hint above and the note
               below -- follow for evenness rather than for reach.
 
-              It does NOT remove the scrollbar, and the arithmetic is
-              here so nobody re-derives it hopefully: `max-h-64` is
-              256px, `p-1` spends 8 of them, so 248 remain and eight
-              32px rows need 256. It was 40px over and is now 8. Closing
-              that last gap means moving the cap or the inset, which
-              changes how the list looks rather than how big it is, and
-              that is a separate decision. */}
+              The cap is 264px and not `max-h-64`, because `p-1` spends
+              8 of whatever it is given: 264 - 8 leaves 256, which is
+              exactly eight 32px rows. `max-h-64` left 248 and the list
+              scrolled by eight pixels -- the worst amount to be over
+              by, since the scrollbar appears for it and nobody can
+              perceive the near-miss that caused it.
+
+              Growing the panel by 8px to remove a scrollbar sounds
+              like the wrong direction for a complaint about size, and
+              it is not: nobody tells 264 from 256, and everybody sees
+              a scrollbar. The scrollbar IS the visible claim that the
+              list did not fit (team-lead, correcting me).
+
+              Bounded, and worth knowing: this fits EIGHT rows. A
+              picker holding more still scrolls, so the win is however
+              often a list is short -- measured by ux, not derived
+              here. The padding cannot move to the wrapper instead: the
+              note below the list is its sibling and its top border
+              would come away from the edges. */}
           <ul
             id={listId}
             role="listbox"
-            className="max-h-64 overflow-y-auto p-1"
+            className="max-h-[16.5rem] overflow-y-auto p-1"
           >
             {/* Three states, not two, and the first is not an empty one.
               "Type two more letters" is an instruction; dressing it as
