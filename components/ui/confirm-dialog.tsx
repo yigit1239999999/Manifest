@@ -1,20 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 // Built on the native <dialog> so the platform provides the modal behaviour
 // that is easy to get subtly wrong by hand: focus is trapped while open,
 // Escape closes it, the backdrop sits in the top layer above every stacking
 // context, and focus returns to the trigger on close.
 
-const panelVariants = cva(
-  "w-full max-w-sm rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-lg backdrop:bg-black/40",
-);
+// A plain string, not a `cva`: there is one panel and there are no
+// variants of it. Wrapping a constant in a variant builder reads as though
+// a second look is coming.
+const panelClassName =
+  "w-full max-w-sm rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-lg backdrop:bg-black/40";
 
-export interface ConfirmDialogProps {
+interface ConfirmDialogProps {
   /** The question, written as a full sentence. */
   title: string;
   /** Optional detail: what exactly happens, and whether it can be undone. */
@@ -63,7 +63,7 @@ export function ConfirmDialog({
         ref={ref}
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className={cn(panelVariants())}
+        className={panelClassName}
         // Clicking the backdrop is the same intent as pressing Escape. The
         // dialog element itself fills the backdrop area, so a click landing on
         // the element rather than on its contents came from outside the panel.
@@ -105,6 +105,3 @@ export function ConfirmDialog({
     </>
   );
 }
-
-export type ConfirmDialogTone = VariantProps<typeof panelVariants> &
-  Pick<ConfirmDialogProps, "tone">;

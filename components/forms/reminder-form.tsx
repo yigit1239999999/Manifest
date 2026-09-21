@@ -95,6 +95,7 @@ export function ReminderForm({
         <DateTimeInput
           name="dueAt"
           defaultValue={defaultDue}
+          granularity="day"
           required
         />
       </Field>

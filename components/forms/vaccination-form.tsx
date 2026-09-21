@@ -71,7 +71,7 @@ export function VaccinationForm({
         <Input name="lotNumber" />
       </Field>
       <Field label={t("nextDueAt")} error={state.fieldErrors?.nextDueAt}>
-        <DateTimeInput name="nextDueAt" />
+        <DateTimeInput name="nextDueAt" granularity="day" />
       </Field>
       <Field label={t("site")} error={state.fieldErrors?.site}>
         <Input name="site" />

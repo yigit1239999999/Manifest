@@ -23,7 +23,7 @@ import type { LucideIcon } from "lucide-react";
 // each of those a compile error rather than a convention; a rule a caller
 // cannot read is a rule that lasts until the next caller (TEAM.md #6, #30).
 
-export type EmptyStateProps =
+type EmptyStateProps =
   | {
       size?: "page";
       icon: LucideIcon;

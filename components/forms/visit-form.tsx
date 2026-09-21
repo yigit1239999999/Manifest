@@ -187,6 +187,7 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
           <DateTimeInput
             name="followupAt"
             defaultValue={visit?.followupAt}
+            granularity="day"
           />
         </Field>
         <Field label={t("totalCost")} error={state.fieldErrors?.total}>

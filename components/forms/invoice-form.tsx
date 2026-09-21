@@ -88,7 +88,7 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
           </Select>
         </Field>
         <Field label={t("dueAt")} error={state.fieldErrors?.dueAt}>
-          <DateTimeInput name="dueAt" />
+          <DateTimeInput name="dueAt" granularity="day" />
         </Field>
       </div>
 
