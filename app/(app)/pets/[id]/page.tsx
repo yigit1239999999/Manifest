@@ -427,7 +427,7 @@ export default async function PetPage({
                           {tr.durationMinutes != null && ` · ${tr.durationMinutes} dk`}
                         </p>
                         {tr.notes && (
-                          <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">
+                          <p className="mt-1 max-w-prose whitespace-pre-wrap text-xs text-muted-foreground">
                             {tr.notes}
                           </p>
                         )}
@@ -487,12 +487,12 @@ export default async function PetPage({
                         </Badge>
                       </div>
                       {d.result && (
-                        <p className="mt-2 whitespace-pre-wrap text-xs">
+                        <p className="mt-2 max-w-prose whitespace-pre-wrap text-xs">
                           {d.result}
                         </p>
                       )}
                       {d.interpretation && (
-                        <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">
+                        <p className="mt-1 max-w-prose whitespace-pre-wrap text-xs text-muted-foreground">
                           <span className="font-medium text-foreground">
                             {tDiag("interpretation")}:{" "}
                           </span>

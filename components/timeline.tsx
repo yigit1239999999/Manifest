@@ -153,8 +153,11 @@ export async function Timeline({ events }: { events: TimelineEvent[] }) {
                         ? ` · ${formatMoney(fmt, event.totalCents, event.currency)}`
                         : ""}
                     </p>
+                    {/* Capped to a reading measure: a visit note is
+                        prose, and prose does not get wider than it can
+                        be read. */}
                     {event.summary && (
-                      <p className="whitespace-pre-wrap text-sm text-foreground/80">
+                      <p className="max-w-prose whitespace-pre-wrap text-sm text-foreground/80">
                         {event.summary}
                       </p>
                     )}

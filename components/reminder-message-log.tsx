@@ -94,7 +94,7 @@ export async function ReminderMessageLog({
             </div>
             {/* `whitespace-pre-wrap`: the template has line breaks in it
                 and the owner read them, so the record shows them too. */}
-            <p className="whitespace-pre-wrap rounded-control bg-muted/40 p-2 text-foreground">
+            <p className="max-w-prose whitespace-pre-wrap rounded-control bg-muted/40 p-2 text-foreground">
               {m.body}
             </p>
             {/* `+` and nothing else. `MessageLog.recipient` is stored

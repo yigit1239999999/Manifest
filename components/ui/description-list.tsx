@@ -155,7 +155,11 @@ export function DescriptionList({
             {isEmpty(item.value) ? (
               EMPTY
             ) : item.multiline ? (
-              <p className="whitespace-pre-wrap">{item.value}</p>
+              // `max-w-prose`: a free-text value read across a wide
+              // window is a line the eye loses its place in. The cap is
+              // a reading measure, not a layout one -- it is the same
+              // 65ch wherever the column happens to be.
+              <p className="max-w-prose whitespace-pre-wrap">{item.value}</p>
             ) : (
               item.value
             )}

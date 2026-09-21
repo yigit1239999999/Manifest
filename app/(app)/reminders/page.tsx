@@ -437,18 +437,34 @@ export default async function RemindersPage({
                       means a clinic with the switch off sees every row
                       without a reason line -- which is correct, and is
                       why the banner is the thing explaining them. */}
-                  {b.reason !== "disabled" && (
-                    <ReminderDeliveryLine
-                      {...(b.reason === "notConfigured"
-                        ? {
-                            state: "notConfigured" as const,
-                            channel: tChannel(
-                              clinic?.notifications.channel ?? "SMS",
-                            ),
-                          }
-                        : { state: b.reason })}
-                    />
-                  )}
+                  {/* `disabled` renders nothing, exactly as in the main
+                      list: it is one fact about the clinic and the
+                      banner above already carries it.
+
+                      `undelivered` and `failedExhausted` render nothing
+                      YET, and that is a gap rather than a decision.
+                      Their sentences need the time, the channel and
+                      the attempt count, and a blocked row does not
+                      carry them -- so the alternatives were a silent
+                      row or an invented timestamp, and a wrong time on
+                      a record is worse than a missing one. The fields
+                      are asked for; when they land these join the
+                      others rather than growing a second, shorter set
+                      of sentences beside them. */}
+                  {b.reason !== "disabled" &&
+                    b.reason !== "undelivered" &&
+                    b.reason !== "failedExhausted" && (
+                      <ReminderDeliveryLine
+                        {...(b.reason === "notConfigured"
+                          ? {
+                              state: "notConfigured" as const,
+                              channel: tChannel(
+                                clinic?.notifications.channel ?? "SMS",
+                              ),
+                            }
+                          : { state: b.reason })}
+                      />
+                    )}
                 </li>
               );
             })}

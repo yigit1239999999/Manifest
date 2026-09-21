@@ -22,6 +22,7 @@ import { Callout } from "@/components/ui/callout";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import type { FormState } from "@/lib/action";
+import { cn } from "@/lib/utils";
 
 const EMPTY: readonly string[] = [];
 const EMPTY_SUMMARY: { name: string; label: string; message: string }[] = [];
@@ -163,9 +164,27 @@ export function useActionForm(
 
 interface ActionFormProps extends Omit<React.ComponentProps<"form">, "action"> {
   form: ActionFormApi;
+  /**
+   * Opt out of the width cap, for a form that is not a column of
+   * fields.
+   *
+   * There is one, and it is named here so a second has to argue for
+   * itself: the invoice line editor is a grid that behaves like a
+   * table, and capping it squeezes columns that want the room. Every
+   * other form in `components/forms/` is a stack of labelled fields,
+   * where a value far from its label is not a pair.
+   */
+  wide?: boolean;
 }
 
-export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps) {
+export function ActionForm({
+  form,
+  onInput,
+  onClick,
+  wide,
+  className,
+  ...props
+}: ActionFormProps) {
   const {
     state,
     formAction,
@@ -399,6 +418,16 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
   return (
     <form
       {...rest}
+      // Left-aligned, not centred: the fields share a left edge with
+      // the card's own title and hints, and a centred block would put
+      // the first label somewhere the heading above it is not.
+      //
+      // Here rather than on eleven routes, because not every form is a
+      // route -- the "new reminder" card and the vaccination, treatment
+      // and diagnosis forms all live inside a page. All nineteen forms
+      // in `components/forms/` go through this component, so the
+      // twentieth is right on its first day.
+      className={cn(!wide && "max-w-form", className)}
       ref={ref}
       action={formAction}
       onInput={(e) => {

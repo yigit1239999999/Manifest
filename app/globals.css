@@ -40,6 +40,28 @@
      A fifth value (6px, for things nested one level deeper) was measured
      and dropped: what separates a combobox option from the input above it
      is that the option has no border, not two pixels of curvature. */
+  /* How wide a form of fields may grow, whatever the window does.
+   *
+   * A label on the left and its value 1600px away is not a pair, and no
+   * measurement is needed to say so -- this is the half of the width
+   * question that does not depend on anybody's screen.
+   *
+   * 48rem is the narrowest that carries the two-column pattern seven
+   * forms here already use: 768 - 16 of gap leaves 376px a column,
+   * about fifty characters at `text-sm`. 896 would buy air and no more
+   * information; 640 leaves 312 and combobox labels start to clip. The
+   * point of a cap is to find the narrowest that still fits.
+   *
+   * Three-column rows (`client-form.tsx`, `appointment-form.tsx`) get
+   * ~245px each here. If a label wraps or a picker clips, this becomes
+   * 56rem -- one line, and the reason to change it is visible rather
+   * than argued.
+   *
+   * `--container-*` and not `--width-*`: `max-w-*` reads the container
+   * scale, and `--width-form` would have produced `w-form` instead.
+   */
+  --container-form: 48rem;
+
   --radius-control: 0.5rem;
   --radius-tile: 0.75rem;
   --radius-surface: 1rem;

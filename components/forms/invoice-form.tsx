@@ -112,7 +112,10 @@ export function InvoiceForm({
     setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
 
   return (
-    <ActionForm form={form} className="flex flex-col gap-6">
+    // `wide`: the line editor below is a grid that behaves like a
+    // table, not a column of labelled fields, and the form cap squeezes
+    // columns that need the room. The only opt-out in the app.
+    <ActionForm form={form} wide className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={tClient("one")} error={state.fieldErrors?.clientId} required>
           {/* Searchable only once the list is actually short of the whole
