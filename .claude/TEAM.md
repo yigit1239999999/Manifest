@@ -6042,3 +6042,36 @@ bir alt kümesi.** Yerine: aynı fonksiyondan türer, ve **panel
 sayısına tıklanınca sekme o alt kümeye süzülmüş açılır.** Orijinal
 korku (*panel 3 der, liste 5 gösterir*) böylece daralmaya rağmen
 kapanıyor: **sayı neyi sayıyorsa, tıklayınca onu gösteriyor.**
+
+### Hipotezi sınayan ölçüm, hipotezden geniş kurulur
+
+Kullanıcı *"bildirimler çokluyor, kaydedildi kaydedildi"* dedi. Ben
+pm'e bir hipotez verdim: `notification-settings-form.tsx:44`, efektin
+bağımlılığında `t` var. **Mekanizma olarak doğruydu.**
+
+pm ölçümü hipoteze göre değil, **yüzeye göre** kurdu — Ayarlar'daki
+**üç kartı da** denedi. Sonuç:
+
+```
+notification-settings-form  [state.success, t]              ÇİFT
+clinic-settings-form        [state.success, t]              ÇİFT   ← hipotezde yoktu
+species-settings-form       [state.success, savedMessage]   TEK    ← kontrol grubu
+```
+
+**İki kazanç, ikisi de hipotezin dışından geldi:**
+
+1. **İkinci kusur.** Hipoteze göre ölçülseydi `clinic-settings-form`
+   düzeltilmeden kalırdı ve kullanıcı *"hâlâ çokluyor"* derdi.
+2. **Kontrol grubu.** Çiftlemeyen kart, sebebin `t`'nin **fonksiyon**
+   olması olduğunu **kanıtladı** — çünkü tek fark oydu. Yalnız
+   çiftleyeni ölçen biri sebebi **tahmin** ederdi.
+
+**Kural:** bir hipotezi sınarken ölçümü hipotezin **kapsamından
+geniş** kur. Aynı kalıbı taşıyan komşuları da dene — **biri
+hipotezin kaçırdığı vakayı, biri de kontrol grubunu** verir. pm bugün
+*"dar sorgu hipotezi yanlışlıkla çürütür"* dedi; bu onun aynası:
+**dar ölçüm, hipotezi eksik doğrular.**
+
+Ve kusurun **kendi çözümü zaten depodaydı** — çiftlemeyen form doğru
+deseni uyguluyordu. Bu, bugün üçüncü kez: çare icat edilmedi,
+**yanındaki dosyada duruyordu.**
