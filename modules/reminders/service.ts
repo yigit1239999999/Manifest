@@ -54,6 +54,20 @@ export async function createReminder(input: ReminderInput, ctx: ActionContext) {
   return reminder;
 }
 
+/**
+ * Moves a reminder between open and closed, in either direction.
+ *
+ * Reopening is the same call with `PENDING`, and it has to exist because
+ * closing is a one-click action on a list: the click next to the one
+ * intended closes the wrong row, and without a way back the clinic loses a
+ * piece of work it never decided to drop. Archiving taught this the
+ * expensive way (backlog 39) — the service could already restore, nothing
+ * on screen could, and it read as irreversible.
+ *
+ * Reopening a reminder that has already gone out does not send it again:
+ * `automaticSendBlocked` skips any reminder with a `SENT` or `MANUAL` row
+ * against it, so only one that never went out can still go.
+ */
 export async function markReminderStatus(
   id: string,
   status: "PENDING" | "SENT" | "ACKNOWLEDGED" | "DISMISSED",

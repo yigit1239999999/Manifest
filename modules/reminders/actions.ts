@@ -33,3 +33,12 @@ export const dismissReminderAction = action(
     revalidatePath("/");
   },
 );
+
+export const reopenReminderAction = action(
+  "reminder.reopen",
+  async (ctx, id: string): Promise<void> => {
+    await markReminderStatus(id, "PENDING", ctx);
+    revalidatePath("/reminders");
+    revalidatePath("/");
+  },
+);

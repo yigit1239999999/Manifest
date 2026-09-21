@@ -141,4 +141,33 @@ describe("markReminderStatus", () => {
       data: { status: "ACKNOWLEDGED", sentAt: undefined },
     });
   });
+
+  // Closing a reminder is one click on a list of rows, so the click next to
+  // the intended one closes the wrong record. Reopening is the way back, and
+  // it is the same call: the status column already has the state to return
+  // to. Archiving taught this the expensive way — the service could restore
+  // all along and nothing on screen could, which read as irreversible
+  // (backlog 39).
+  it("reopens a closed reminder without re-stamping when it was sent", async () => {
+    vi.mocked(prisma.reminder.findFirst).mockResolvedValue({ id: "rem-1" } as never);
+    vi.mocked(prisma.reminder.update).mockResolvedValue({} as never);
+
+    await markReminderStatus("rem-1", "PENDING", ctx);
+
+    expect(prisma.reminder.update).toHaveBeenCalledWith({
+      where: { id: "rem-1" },
+      // `sentAt` is left alone: it records that a message went out, which
+      // reopening does not undo. Clearing it would make the reminder look
+      // as though it had never been sent, and the sweep decides whether to
+      // send by looking at the message log either way.
+      data: { status: "PENDING", sentAt: undefined },
+    });
+  });
+
+  it("is refused for a role without reminders.write", async () => {
+    await expect(
+      markReminderStatus("rem-1", "PENDING", { ...ctx, userRole: "NOBODY" }),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.reminder.update).not.toHaveBeenCalled();
+  });
 });
