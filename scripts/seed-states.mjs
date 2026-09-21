@@ -384,6 +384,19 @@ export const STATES = [
   { id: "clinical.prescription", covers: "a prescription on an animal" },
   { id: "clinical.treatment", covers: "a treatment" },
   { id: "clinical.diagnostic", covers: "a diagnostic test" },
+  // "The result arrived" and "the vet read it" were one fact until
+  // today. The pair is the fixture: a count nobody can see a zero and
+  // a one of cannot be checked.
+  {
+    id: "diagnostic.unread",
+    covers:
+      "a result entered on an earlier day that nobody has marked as seen: the dashboard's count, and the three days a histopathology report can sit in a file while everyone does their job",
+  },
+  {
+    id: "diagnostic.read",
+    covers:
+      "one the vet has seen, carrying who and when: it leaves the count, and the record says whose desk it reached rather than merely that it arrived",
+  },
 ];
 
 /**
@@ -869,6 +882,61 @@ export async function buildStateClinic(db) {
     [clinic.id, active.id, visit.id, ago(7), halId("diagnostic")],
   );
   made("clinical.diagnostic");
+
+  // Read and unread, as a pair.
+  //
+  // `createdAt` is set explicitly and that is the whole point: the
+  // count asks what was ENTERED before today, so a row created at
+  // seed time is invisible to it however old its `performedAt` says
+  // the sample is. An external lab's report is typed in days after
+  // the sample was taken, which is exactly the case this state is
+  // about.
+  //
+  // With a result in it, because a test with nothing recorded is not
+  // an unread result -- there is nothing to read.
+  for (const [key, type, name, result, createdAt, readAt, stateId] of [
+    [
+      "unread",
+      "CYTOLOGY",
+      "Histopatoloji",
+      "Mast hücreli tümör, Grade II. Cerrahi sınırlar yetersiz.",
+      ago(2),
+      null,
+      "diagnostic.unread",
+    ],
+    [
+      "read",
+      "BLOOD",
+      "Tam kan sayımı",
+      "Tüm değerler referans aralığında.",
+      ago(3),
+      ago(2),
+      "diagnostic.read",
+    ],
+  ]) {
+    await db.query(
+      `INSERT INTO diagnostics (id, "clinicId", "petId", "visitId", type, name,
+                                "performedAt", result, "createdAt", "readAt", "readById",
+                                "updatedAt")
+       VALUES ($5, $1, $2, $3, $11::"DiagnosticType", $6, $4, $7, $8, $9, $10, now())`,
+      [
+        clinic.id,
+        active.id,
+        visit.id,
+        ago(4),
+        halId("diagnostic", key),
+        name,
+        result,
+        createdAt,
+        readAt,
+        // Who saw it, not just that somebody did. The vet row, because
+        // the marker exists to say it reached a person who can act.
+        readAt ? vet.id : null,
+        type,
+      ],
+    );
+    made(stateId);
+  }
 
   // The three states of the one field the return loop rests on.
   //

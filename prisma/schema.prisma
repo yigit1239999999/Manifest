@@ -86,6 +86,7 @@ model User {
   prescriptionsBy   Prescription[] @relation("PrescribedBy")
   treatmentsBy      Treatment[]    @relation("TreatmentBy")
   vaccinationsBy    Vaccination[]  @relation("VaccinationBy")
+  diagnosticsRead   Diagnostic[]   @relation("DiagnosticReadBy")
   notesBy           Note[]         @relation("NoteAuthor")
   documentsBy       Document[]     @relation("DocumentUploadedBy")
   auditLogs         AuditLog[]     @relation("AuditActor")
@@ -552,10 +553,29 @@ model Diagnostic {
   resultData     Json?
   interpretation String?
   notes          String?
+  /// When the person who decides saw this result, and who they were.
+  ///
+  /// "The result arrived" and "the vet read it" were the same fact,
+  /// and they are not: one is the result reaching the clinic, the
+  /// other is it reaching whoever acts on it. A histopathology report
+  /// sat in a file for three days with everyone doing their job
+  /// correctly, because nobody was asked whether the vet had seen it.
+  ///
+  /// Deliberately "saw", not "interpreted": a result that needs no
+  /// comment would otherwise stay unread for ever, and a count that
+  /// cannot reach zero stops being read. Writing `interpretation`
+  /// sets this too -- writing a comment is reading.
+  readAt         DateTime?
+  readById       String?
+  readBy         User?          @relation("DiagnosticReadBy", fields: [readById], references: [id], onDelete: SetNull)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   @@index([clinicId, petId, performedAt])
+  /// The unread count's own query: results in a clinic that nobody has
+  /// marked, oldest first. Without it that is a scan of every
+  /// diagnostic the clinic has ever recorded, on every dashboard load.
+  @@index([clinicId, readAt, createdAt])
   @@map("diagnostics")
 }
 
