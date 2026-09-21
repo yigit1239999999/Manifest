@@ -147,6 +147,13 @@ export function FormSkeleton({
   );
 }
 
+// 18px of chrome (`py-2` and the border) plus a 20px line per row.
+const TEXTAREA_HEIGHT = {
+  2: "h-[3.625rem]",
+  3: "h-[4.875rem]",
+  4: "h-[6.125rem]",
+} as const;
+
 /**
  * One `Field`: its label line, its control, and the hint when the real
  * field has one.
@@ -171,13 +178,6 @@ export function FieldSkeleton({
     </div>
   );
 }
-
-// 18px of chrome (`py-2` and the border) plus a 20px line per row.
-const TEXTAREA_HEIGHT = {
-  2: "h-[3.625rem]",
-  3: "h-[4.875rem]",
-  4: "h-[6.125rem]",
-} as const;
 
 /** A `FormSection`: its heading block, its rule, and its fields. */
 export function FormSectionSkeleton({
@@ -238,9 +238,12 @@ export function FoldSkeleton() {
   return (
     <div className="rounded-surface border border-border bg-muted/20">
       <div className="flex items-center justify-between gap-3 px-4 py-3">
+        {/* Flush, no gap: the real summary stacks a `text-sm` title
+            straight on a `text-xs` hint, so 20px and 16px and nothing
+            between them. */}
         <div className="flex flex-col">
           <Skeleton className="h-5 w-40" />
-          <Skeleton className="mt-0.5 h-4 w-56 max-w-full" />
+          <Skeleton className="h-4 w-56 max-w-full" />
         </div>
         <Skeleton className="size-4 shrink-0" />
       </div>
