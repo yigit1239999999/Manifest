@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { VisitInput } from "./schema";
 import { isClinician } from "@/modules/staff/queries";
+import { getClinicCurrency } from "@/modules/clinics/queries";
 
 async function resolvePetAndOwner(petId: string, clinicId: string) {
   const pet = await prisma.pet.findFirst({
@@ -28,6 +29,26 @@ async function resolvePetAndOwner(petId: string, clinicId: string) {
  * Empty is allowed and means "not recorded". That is a real answer, and a
  * better one than a name nobody chose.
  */
+/**
+ * The currency a visit's total is recorded in, stamped at the time rather
+ * than read back later.
+ *
+ * Same rule as an invoice's, and it was missing here for the same reason
+ * it was missing there: the total looked like a plain number. It is not —
+ * printed against the clinic's *current* setting, every visit ever
+ * recorded is silently restated the first time a clinic switches.
+ *
+ * Null when there is no total. The two travel together: a currency with
+ * no amount says nothing, and an amount with no currency is the defect.
+ */
+async function stampCurrency(
+  total: number | null | undefined,
+  clinicId: string,
+): Promise<string | null> {
+  if (total == null) return null;
+  return getClinicCurrency(clinicId);
+}
+
 async function resolveVet(
   vetId: string | null | undefined,
   clinicId: string,
@@ -48,6 +69,7 @@ export async function createVisit(input: VisitInput, ctx: ActionContext) {
   // visit became the clinician who performed it. Unrecorded is the honest
   // answer, and the person who typed it is in the audit trail either way.
   const vet = await resolveVet(vetId, ctx.clinicId);
+  const currency = await stampCurrency(total, ctx.clinicId);
 
   return withAudited(
     {
@@ -62,6 +84,7 @@ export async function createVisit(input: VisitInput, ctx: ActionContext) {
         data: {
           ...rest,
           totalCents: total,
+          currency,
           clinicId: ctx.clinicId,
           petId,
           clientId: pet.ownerId,
@@ -86,6 +109,7 @@ export async function updateVisit(
   const pet = await resolvePetAndOwner(input.petId, ctx.clinicId);
   const { petId, vetId, total, ...rest } = input;
   const vet = await resolveVet(vetId, ctx.clinicId);
+  const currency = await stampCurrency(total, ctx.clinicId);
 
   return withAudited(
     {
@@ -102,6 +126,7 @@ export async function updateVisit(
         data: {
           ...rest,
           totalCents: total,
+          currency,
           petId,
           clientId: pet.ownerId,
           vetId: vet,

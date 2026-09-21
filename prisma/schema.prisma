@@ -339,6 +339,10 @@ model Visit {
   respiratoryRateBpm Int?
   followupAt         DateTime?
   totalCents         Int?
+  /// Set whenever `totalCents` is. See the visit service: a total without
+  /// the currency it was recorded in is a number the clinic's next
+  /// settings change silently restates.
+  currency           String?
   archivedAt         DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt

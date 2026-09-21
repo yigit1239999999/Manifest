@@ -235,7 +235,12 @@ export default async function VisitPage({
                   label: t("totalCost"),
                   value:
                     visit.totalCents != null
-                      ? formatMoney(fmt, visit.totalCents, currency)
+                      ? // The visit's own currency, not the clinic's
+                        // current setting — the same rule invoices follow.
+                        // The fallback covers rows recorded before the
+                        // column existed and backfilled to the clinic's
+                        // value of that day.
+                        formatMoney(fmt, visit.totalCents, visit.currency ?? currency)
                       : null,
                   numeric: true,
                 },

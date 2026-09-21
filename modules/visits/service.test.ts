@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", () => {
     },
     pet: { findFirst: vi.fn() },
     user: { findFirst: vi.fn() },
+    clinic: { findUnique: vi.fn() },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(),
   };
@@ -54,6 +55,9 @@ const validInput = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(prisma.clinic.findUnique).mockResolvedValue({
+    currency: "TRY",
+  } as never);
   vi.mocked(prisma.$transaction).mockImplementation(
     async (cb: (tx: typeof prisma) => Promise<unknown>) => cb(prisma),
   );
@@ -186,5 +190,40 @@ describe("restoreVisit", () => {
 
     await expect(restoreVisit("v-x", ctx)).rejects.toBeInstanceOf(AppError);
     expect(prisma.visit.update).not.toHaveBeenCalled();
+  });
+
+  // A visit's total was printed against the clinic's *current* currency,
+  // so the first clinic to switch from dollars to lira restated every
+  // visit it had ever recorded. Invoices were given their own currency for
+  // this reason; the visit total looked like a plain number and was
+  // missed, because the scan at the time was for money being *summed*.
+  it("stamps the currency the total was recorded in", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      ownerId: "owner-1",
+    } as never);
+    vi.mocked(prisma.visit.create).mockResolvedValue({ id: "v-1" } as never);
+
+    await createVisit({ ...validInput, total: 25_000 }, ctx);
+
+    expect(prisma.visit.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ totalCents: 25_000, currency: "TRY" }),
+    });
+  });
+
+  it("records no currency when there is no total", async () => {
+    // The pair is the point: a currency with no amount says nothing, and
+    // an amount with no currency is the defect itself.
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      ownerId: "owner-1",
+    } as never);
+    vi.mocked(prisma.visit.create).mockResolvedValue({ id: "v-1" } as never);
+
+    await createVisit({ ...validInput, total: null }, ctx);
+
+    expect(prisma.visit.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ totalCents: null, currency: null }),
+    });
   });
 });
