@@ -2561,6 +2561,15 @@ transkriptinden **devam ettirir**; durdurulmuş olması onu korumuyor.
 > yaz; kopyaya yazmak durdurma kararını geri alır, ve bunu ancak
 > `ListAgents`'ta sayarak fark edersin.
 
+**Ve durdurulan bir ajan bir süre daha MESAJ GÖNDERMEYE devam eder.**
+`dev-ui-2` durdurulduktan sonra da rapor yazdı — cevaplamak onu yeniden
+başlatırdı. **Gelen mesaj, gönderenin çalıştığının kanıtı değildir;**
+`ListAgents` kanıttır. Kopyadan gelen içerik değerliyse **asla kopyaya
+cevap verme, aslına ilet** — ve iletirken içeriğin **bayat olabileceğini**
+hesaba kat: durdurulan ajan zemindeki ilerlemeyi görmüyor
+(`dev-ui-2` `3089ec2`'yi güncel zemin sanıyordu, 3001 çoktan beş commit
+ilerideydi).
+
 Bunu value yakaladı, ada bakarak değil **kaynağa** bakarak: *"bana `ux-3`
 adıyla biri rapor veriyor; işini reddetmiyorum ama kaç ux olduğunu bilmem
 gerek."* — **Kopyanın işi kötü değildi; sorun aynı kuyruğun iki kez
