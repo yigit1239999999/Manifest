@@ -126,6 +126,17 @@ export const STATES = [
     covers: "an owner nobody has asked: the form shows neither answer chosen",
   },
 
+  // The one visible thing the whole scale package produces, and it could
+  // not be produced. `/reminders` has 33 clients, the cap is 50, so
+  // `hasMore` is false and the note is never rendered -- ux opened the
+  // dropdown, counted 33 options and no note, and was looking at correct
+  // behaviour. A cut list is a state like any other.
+  {
+    id: "client.list.capped",
+    covers:
+      "more owners than a picker shows: the hint under the list, the two search sentences, and whether onSearch is wired at all past the cap",
+  },
+
   { id: "clinical.prescription", covers: "a prescription on an animal" },
   { id: "clinical.treatment", covers: "a treatment" },
   { id: "clinical.diagnostic", covers: "a diagnostic test" },
@@ -197,6 +208,27 @@ export async function buildStateClinic(db) {
   // rather than by inheritance.
   await owner("Sorulmamış", "Sahip", "0532 000 00 02", null);
   made("client.consent.unasked");
+
+  // Enough owners to overflow a picker. PAGE_SIZES.DROPDOWN is 50, and
+  // 60 rather than 51: at the boundary `hasMore` flips but the part that
+  // was cut off is one row, which shows nothing about a vet failing to
+  // find somebody. Ten missing rows is a list that visibly stops.
+  //
+  // Surnames sort after "Sahip" on purpose. The picker orders by surname
+  // and the three consent owners above are the ones somebody will come
+  // here to look at; put the bulk first and the cap would hide exactly
+  // the rows this clinic was extended for last time.
+  await db.query(
+    `INSERT INTO clients (id, "clinicId", "firstName", "lastName", phone,
+                          "notificationsOptIn", "updatedAt")
+     SELECT gen_random_uuid()::text, $1, 'Müşteri',
+            'Yığın ' || to_char(n, 'FM00'),
+            '0533 ' || to_char(n, 'FM000') || ' 00 00',
+            NULL, now()
+       FROM generate_series(1, 60) AS n`,
+    [clinic.id],
+  );
+  made("client.list.capped");
 
   const pet = async (name, species, extra = "", params = []) =>
     one(
