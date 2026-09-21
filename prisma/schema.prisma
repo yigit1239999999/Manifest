@@ -382,6 +382,12 @@ model Vaccination {
 
   @@index([clinicId, petId, administeredAt])
   @@index([clinicId, nextDueAt])
+  // A third index is not written here: (clinicId, administeredAt DESC)
+  // WHERE "nextDueAt" IS NOT NULL, added in
+  // `20260921150000_vaccination_suggestion_index` for the next-due
+  // suggestion, which reads this table newest-first on two of the busiest
+  // screens. Prisma cannot express a partial index, so it lives in the
+  // migration; noted here so nobody adds a fourth one for the same query.
   @@map("vaccinations")
 }
 
