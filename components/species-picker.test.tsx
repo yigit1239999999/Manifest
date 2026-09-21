@@ -109,3 +109,160 @@ describe("choosing a species by keyboard", () => {
     );
   });
 });
+
+// Turning a species off says what the picker offers, not what exists.
+//
+// The clinic switches "Kedi" off, the chip goes, and the next vet with a
+// cat on the table types "Kedi" into "+ New species". The picker searched
+// only what it was showing, so it minted a second concept with the same
+// name and filed the animal under `OTHER`. That cat then fell out of
+// every list and count that groups by `CAT` — silently, and for good.
+describe("typing the name of a species the clinic turned off", () => {
+  const HIDDEN = [
+    {
+      value: "CAT",
+      label: "Kedi",
+      names: ["Kedi", "Cat"],
+      note: "Kedi yerleşik bir tür. Bu klinikte kapalı, ama bu hayvan için kullanıldı.",
+    },
+    {
+      value: "DOG",
+      label: "Köpek",
+      names: ["Köpek", "Dog"],
+      note: "Köpek yerleşik bir tür.",
+    },
+  ];
+
+  function pickerWithHidden(extra: Record<string, unknown> = {}) {
+    return render(
+      <SpeciesPicker
+        name="species"
+        label="Tür"
+        options={[{ value: "BIRD", label: "Kuş", icon: "BIRD" }]}
+        newLabel="+ Yeni tür"
+        newHint="hint"
+        newPlaceholder="placeholder"
+        addLabel="Ekle"
+        hiddenBuiltIns={HIDDEN}
+        hiddenQualifier="bu klinikte kapalı"
+        {...extra}
+      />,
+    );
+  }
+
+  function type(text: string) {
+    fireEvent.click(screen.getByRole("button", { name: /Yeni tür/ }));
+    fireEvent.change(screen.getByPlaceholderText("placeholder"), {
+      target: { value: text },
+    });
+  }
+
+  it("offers the built-in instead of the button that would duplicate it", () => {
+    pickerWithHidden();
+    type("Kedi");
+
+    expect(screen.queryByRole("button", { name: "Ekle" })).toBeNull();
+    const chip = screen.getByRole("button", { name: /Kedi/ });
+    expect(chip).toHaveTextContent("bu klinikte kapalı");
+  });
+
+  // Both languages and both kinds of folding. Someone typing a species
+  // name without a Turkish keyboard is exactly who this is for, and the
+  // dotted and dotless i are the pair that catches a naive lowercase.
+  it.each([
+    ["kedi", "CAT"],
+    ["Kedi", "CAT"],
+    ["KEDİ", "CAT"],
+    ["cat", "CAT"],
+    ["Cat", "CAT"],
+    ["Kopek", "DOG"],
+    ["Köpek", "DOG"],
+    ["dog", "DOG"],
+  ])("reads %s as the built-in %s", (typed, key) => {
+    const { container } = pickerWithHidden();
+    type(typed);
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(HIDDEN.find((h) => h.value === key)!.label) }));
+
+    expect(
+      (container.querySelector('input[type="hidden"]') as HTMLInputElement)
+        .value,
+    ).toBe(key);
+  });
+
+  it("submits the enum key, not the words that were typed", () => {
+    const { container } = pickerWithHidden();
+    type("cat");
+    fireEvent.keyDown(screen.getByPlaceholderText("placeholder"), {
+      key: "Enter",
+    });
+
+    const hidden = container.querySelector(
+      'input[type="hidden"]',
+    ) as HTMLInputElement;
+    expect(hidden.value).toBe("CAT");
+    // The chip reads in the user's language even though what was typed
+    // was English, because the value and the label are different things.
+    expect(screen.getByRole("button", { name: /Kedi/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("says the setting has not changed, without saying it has", () => {
+    pickerWithHidden();
+    type("Kedi");
+    fireEvent.click(screen.getByRole("button", { name: /Kedi/ }));
+
+    const note = screen.getByText(/yerleşik bir tür/);
+    expect(note).toHaveTextContent("Bu klinikte kapalı");
+    // The words that would be a lie. The animal got a species; the
+    // clinic's setting is exactly where it was.
+    expect(note.textContent).not.toMatch(/açıldı|etkinleştir/i);
+  });
+
+  it("keeps the new chip inside the one tab stop", () => {
+    pickerWithHidden();
+    type("Kedi");
+    fireEvent.click(screen.getByRole("button", { name: /Kedi/ }));
+
+    // The roving tabindex is the thing most likely to be broken by
+    // adding a chip from a new direction: one stop for the group, and
+    // it sits on the chosen answer.
+    expect(stops()).toHaveLength(1);
+    expect(stops()[0]).toHaveAttribute("aria-pressed", "true");
+    expect(stops()[0]).toHaveTextContent("Kedi");
+  });
+
+  it("offers no way out of the form when the reader may not change settings", () => {
+    pickerWithHidden();
+    type("Kedi");
+    fireEvent.click(screen.getByRole("button", { name: /Kedi/ }));
+
+    expect(screen.queryByRole("link", { name: /Ayarlarda aç/ })).toBeNull();
+  });
+
+  it("opens the setting in a new tab for the reader who may", () => {
+    // The animal is on the table and the form is unsaved. A link that
+    // navigates away costs more than the setting is worth.
+    pickerWithHidden({
+      enableHref: "/settings/species",
+      enableLabel: "Ayarlarda aç",
+    });
+    type("Kedi");
+    fireEvent.click(screen.getByRole("button", { name: /Kedi/ }));
+
+    const link = screen.getByRole("link", { name: "Ayarlarda aç" });
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  it("still makes a custom species out of a name nothing matches", () => {
+    const { container } = pickerWithHidden();
+    type("Alpaka");
+    fireEvent.click(screen.getByRole("button", { name: "Ekle" }));
+
+    expect(
+      (container.querySelector('input[type="hidden"]') as HTMLInputElement)
+        .value,
+    ).toBe("Alpaka");
+  });
+});
