@@ -4,6 +4,7 @@ import {
   firstName,
   formatDate,
   formatDuration,
+  formatMoney,
   formatTime,
   relativeTime,
   initials,
@@ -196,5 +197,18 @@ describe("wallTimeToInstant", () => {
   it("returns null for anything that is not a wall-clock time", () => {
     expect(wallTimeToInstant("", "UTC")).toBeNull();
     expect(wallTimeToInstant("tomorrow", "UTC")).toBeNull();
+  });
+});
+
+describe("formatMoney", () => {
+  it("shows the decimals the currency actually has", () => {
+    expect(formatMoney("tr", 123_456, "TRY")).toBe("₺1.234,56");
+    expect(formatMoney("en", 123_456, "USD")).toBe("$1,234.56");
+    // Yen has no minor unit; a forced "¥1.234,00" is not money anyone writes.
+    expect(formatMoney("en", 123_400, "JPY")).toBe("¥1,234");
+  });
+
+  it("treats a missing amount as zero rather than printing nothing", () => {
+    expect(formatMoney("en", null, "USD")).toBe("$0.00");
   });
 });

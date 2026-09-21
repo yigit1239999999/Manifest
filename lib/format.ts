@@ -395,6 +395,14 @@ export function relativeTime(
   }).format((inFuture ? 1 : -1) * Math.round(value), unit);
 }
 
+/**
+ * Money for the screen. Amounts are stored as hundredths of the currency's
+ * unit (see lib/money.ts, which is the only place text becomes that number).
+ *
+ * How many decimals to show is the currency's business, not ours: forcing
+ * two printed "¥1.000,00" for a currency that has no minor unit at all.
+ * `Intl` knows the right count for each one.
+ */
 export function formatMoney(
   target: FormatTarget,
   cents: number | null | undefined,
@@ -404,6 +412,5 @@ export function formatMoney(
   return new Intl.NumberFormat(intlLocale(localeOf(target)), {
     style: "currency",
     currency,
-    minimumFractionDigits: 2,
   }).format(amount);
 }
