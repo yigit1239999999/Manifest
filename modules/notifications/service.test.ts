@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    clinic: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
+    clinic: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn(), count: vi.fn() },
     appointment: { findFirst: vi.fn(), findMany: vi.fn() },
     reminder: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
     messageLog: { create: vi.fn() },
@@ -375,9 +375,23 @@ describe("notifyAppointmentBooked", () => {
 describe("runReminderSweep", () => {
   beforeEach(() => {
     vi.mocked(prisma.clinic.findMany).mockResolvedValue([clinicRow] as never);
+    vi.mocked(prisma.clinic.count).mockResolvedValue(1 as never);
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.reminder.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.$queryRaw).mockResolvedValue([] as never);
+  });
+
+  // Ninety-six sweeps a day once the scheduler is on, and the subject of
+  // each is the handful of clinics with messaging on -- not the table.
+  it("asks the database for the clinics that could send, not for all of them", async () => {
+    await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
+
+    const where = vi.mocked(prisma.clinic.findMany).mock.calls[0][0]
+      ?.where as Record<string, unknown>;
+    expect(where.settings).toEqual({
+      path: ["notifications", "whatsapp", "enabled"],
+      equals: true,
+    });
   });
 
   // The automatic path is the one that actually reaches an owner unasked,
@@ -460,10 +474,10 @@ describe("runReminderSweep", () => {
   // A clinic that swept nothing because it is switched off is not a
   // clinic with nothing to send, and the count of clinics said neither.
   it("says how many clinics it actually swept and why it skipped the rest", async () => {
-    vi.mocked(prisma.clinic.findMany).mockResolvedValue([
-      clinicRow,
-      { ...clinicRow, id: "clinic-2", settings: { notifications: { whatsapp: { enabled: false } } } },
-    ] as never);
+    // Two clinics exist; only one comes back from the filtered read, and
+    // the difference is what "messaging is off" has to be counted from.
+    vi.mocked(prisma.clinic.count).mockResolvedValue(2 as never);
+    vi.mocked(prisma.clinic.findMany).mockResolvedValue([clinicRow] as never);
 
     const summary = await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
 

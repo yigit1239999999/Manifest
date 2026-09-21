@@ -99,9 +99,37 @@ ve `WHATSAPP_PHONE_NUMBER_ID`. Meta, işletmenin başlattığı sohbetlerde onay
 hazır mesajı WhatsApp'ta açar (elle gönderim), bu her zaman çalışır.
 
 ### Zamanlayıcı
-`vercel.json` günde bir (05:00 UTC) `/api/cron/reminders` çağırır (Hobby planı
-günlük cron'a izin verir). "Randevudan X saat önce" modunu kullanacaksanız daha
-sık tetikleyin: Vercel Pro'da `*/15 * * * *`, ya da cron-job.org gibi ücretsiz
-bir servisten 15 dakikada bir `Authorization: Bearer <CRON_SECRET>` başlığıyla
-aynı adrese GET isteği. Gönderimler tekrarlanmaz; başarısız olanlar en fazla 3
-kez yeniden denenir.
+
+**Hiçbir şey süpürgeyi çağırmıyorsa hiçbir hatırlatma gitmez.** Kayıtlar
+birikir, ekran doğru görünür, tek eksik olan çağrıdır. Bu bölüm o çağrının
+nasıl kurulacağını anlatır.
+
+**Birincil yol: dış zamanlayıcı, 15 dakikada bir.** cron-job.org gibi
+ücretsiz bir servisten, `Authorization: Bearer <CRON_SECRET>` başlığıyla
+`https://<alan-adiniz>/api/cron/reminders` adresine GET. Onbeş dakika,
+"randevudan X saat önce" modunun da "sabah saat 9'da" modunun da fark
+edilir bir gecikmeye uğramaması için yeterli sıklıktır.
+
+**Yedek yol: `vercel.json`, günde bir, 06:15 UTC.** Hobby planı yalnız
+günlük cron'a izin verir, ve bu satır dış servis sustuğunda hatırlatmaların
+tamamen durmasın diye vardır — birincil yol değildir.
+
+**Saat seçiminin sebebi, ve dikkat edilecek tuzak:** hatırlatma varsayılanı
+klinik saatiyle **09:00**'dur, İstanbul'da bu **06:00 UTC**'ye denk gelir.
+Günlük cron bundan **önce** koşarsa ("05:00 UTC = 08:00 İstanbul" gibi)
+süpürge her seferinde "saati gelmemiş" deyip geçer, bir sonraki koşu 24 saat
+sonradır, ve sabah 09:00 gönderimi **yapısal olarak bir gün geç** olur —
+hiçbir hata kaydı bırakmadan. 06:15 UTC, gönderim saatinden hemen sonradır.
+Klinik başka bir saat dilimindeyse ya da `morningHour` değiştirildiyse bu
+hesabı yeniden yapın; yedek cron tek bir saat dilimini kollayabilir, dış
+zamanlayıcı hepsini kollar.
+
+**Yerelde:** `npm run sweep` süpürgeyi bir kez çalıştırır ve ne yaptığını
+insan okunur biçimde yazar (kaç aday vardı, kaçı hangi sebeple elendi, kaç
+mesaj yazıldı). `npm run sweep:watch` aynı şeyi 15 dakikada bir yapar ve
+terminalde durur; Ctrl-C ile biter. Geliştirme sırasında zamanlayıcı yerine
+bu geçer — arka planda bir şey kurmaz, çalıştığı ekranda görünür.
+
+Gönderimler tekrarlanmaz; başarısız olanlar en fazla 3 kez, aralarında en az
+6 saat bırakılarak yeniden denenir. Bu yüzden 15 dakikada bir çağırmak
+mükerrer mesaj üretmez.

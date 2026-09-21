@@ -20,6 +20,7 @@
     "db:migrate:reset": "prisma migrate reset",
     "db:seed": "node --env-file=.env scripts/seed-states.mjs",
     "sweep": "node --env-file=.env scripts/run-sweep.mjs",
+    "sweep:watch": "node --env-file=.env scripts/run-sweep.mjs --every 15",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },

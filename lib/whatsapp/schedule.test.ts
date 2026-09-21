@@ -75,11 +75,22 @@ describe("the cron cadence the schedule needs", () => {
     expect(caught.map((d) => d.getUTCHours())).toEqual([6, 7, 8, 9, 10, 11]);
   });
 
-  it("vercel.json runs the sweep hourly", async () => {
+  // `vercel.json` is the backstop now, not the scheduler: the Hobby plan
+  // allows nothing finer than daily, so the fifteen-minute caller is an
+  // external service (DEPLOY.md). A once-a-day run has exactly one
+  // chance to catch the morning reminder, which is why the hour is
+  // checked against the due instant rather than against a string --
+  // move it earlier and this fails with the reason, the way the two
+  // tests above describe the failure it would cause.
+  it("the daily backstop fires after the morning send, not before it", async () => {
     const { crons } = (await import("../../vercel.json")).default as {
       crons: { path: string; schedule: string }[];
     };
     const sweep = crons.find((c) => c.path === "/api/cron/reminders");
-    expect(sweep?.schedule).toBe("0 * * * *");
+    expect(sweep?.schedule).toMatch(/^\d+ \d+ \* \* \*$/);
+
+    const [minute, hour] = (sweep?.schedule ?? "").split(" ").map(Number);
+    const backstop = new Date(Date.UTC(2026, 8, 20, hour, minute));
+    expect(isReminderDue(startsAt, backstop, cfg, TZ)).toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 // Runs the reminder sweep and says what it did.
 //
-//   npm run sweep
+//   npm run sweep          -- once
+//   npm run sweep:watch    -- every 15 minutes, until Ctrl-C
 //
 // The sweep is the thing that actually reaches an owner, and until now
 // the only way to run it was to curl the cron endpoint with the shared
@@ -97,31 +98,72 @@ function printKind(title, window, kind) {
   }
 }
 
-const startedAt = Date.now();
-const summary = await runReminderSweep();
-const ms = Date.now() - startedAt;
+async function sweepOnce() {
+  const startedAt = Date.now();
+  const summary = await runReminderSweep();
+  const ms = Date.now() - startedAt;
 
-console.log(`SÜPÜRGE  ${localStamp(new Date())}  ·  ${ms} ms`);
-console.log(
-  `KANAL    SMS ${isChannelConfigured("SMS") ? `kurulu (${process.env.SMS_PROVIDER})` : "kurulu değil"}` +
-    ` · WhatsApp ${isChannelConfigured("WHATSAPP") ? "kurulu" : "kurulu değil"}`,
-);
-if (process.env.SMS_PROVIDER === "log") {
-  console.log(`         log taşıyıcısı: mesaj dışarı ÇIKMAZ, yalnız kayıt yazılır`);
-}
-console.log(
-  `KLİNİK   toplam ${summary.clinics.total}` +
-    ` · süpürülen ${summary.clinics.swept}` +
-    ` · mesajlaşma kapalı ${summary.clinics.messagingOff}` +
-    ` · kanal kurulu değil ${summary.clinics.channelNotConfigured}`,
-);
-if (!summary.configured) {
-  // The one zero that is not about the data at all, and the one somebody
-  // reading "0 gönderildi" is most likely to misread as a defect.
-  console.log(`         hiçbir klinik süpürülmedi: gönderilecek aday aranmadı bile`);
+  console.log(`SÜPÜRGE  ${localStamp(new Date())}  ·  ${ms} ms`);
+  console.log(
+    `KANAL    SMS ${isChannelConfigured("SMS") ? `kurulu (${process.env.SMS_PROVIDER})` : "kurulu değil"}` +
+      ` · WhatsApp ${isChannelConfigured("WHATSAPP") ? "kurulu" : "kurulu değil"}`,
+  );
+  if (process.env.SMS_PROVIDER === "log") {
+    console.log(`         log taşıyıcısı: mesaj dışarı ÇIKMAZ, yalnız kayıt yazılır`);
+  }
+  console.log(
+    `KLİNİK   toplam ${summary.clinics.total}` +
+      ` · süpürülen ${summary.clinics.swept}` +
+      ` · mesajlaşma kapalı ${summary.clinics.messagingOff}` +
+      ` · kanal kurulu değil ${summary.clinics.channelNotConfigured}`,
+  );
+  if (!summary.configured) {
+    // The one zero that is not about the data at all, and the one somebody
+    // reading "0 gönderildi" is most likely to misread as a defect.
+    console.log(`         hiçbir klinik süpürülmedi: gönderilecek aday aranmadı bile`);
+  }
+
+  printKind("RANDEVU HATIRLATMASI", "şimdi → +8 gün", summary.appointments);
+  printKind("HATIRLATMA BİLDİRİMİ", "dün → +gün sayısı", summary.reminders);
 }
 
-printKind("RANDEVU HATIRLATMASI", "şimdi → +8 gün", summary.appointments);
-printKind("HATIRLATMA BİLDİRİMİ", "dün → +gün sayısı", summary.reminders);
+/**
+ * `--every <dakika>`: the local stand-in for the scheduler.
+ *
+ * In production a free external service calls the cron endpoint every
+ * fifteen minutes (see DEPLOY.md). Nothing calls it on a laptop, which
+ * is how "the reminder never went out" gets discovered in production
+ * instead of here -- the exact defect this whole round was about.
+ *
+ * Deliberately in the foreground, one process, printing each run. A
+ * background daemon would reproduce the original problem in a new
+ * place: something that is either running or not and no way to tell by
+ * looking. This one is visible while it runs and gone when it stops.
+ */
+const everyIndex = process.argv.indexOf("--every");
+const everyMinutes = everyIndex === -1 ? null : Number(process.argv[everyIndex + 1]);
+if (everyIndex !== -1 && !(everyMinutes > 0)) {
+  console.error("run-sweep: --every <dakika> pozitif bir sayı olmalı");
+  process.exit(1);
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+if (everyMinutes === null) {
+  await sweepOnce();
+} else {
+  console.log(
+    `SÜPÜRGE DÖNGÜSÜ  her ${everyMinutes} dakikada bir · durdurmak için Ctrl-C\n`,
+  );
+  // No catch that swallows: a sweep that starts throwing every run must
+  // stop the loop and say so, not scroll past in a terminal nobody is
+  // reading. The scheduler in production has the same property -- a 500
+  // is visible where a caught error is not.
+  for (;;) {
+    await sweepOnce();
+    console.log("");
+    await sleep(everyMinutes * 60_000);
+  }
+}
 
 await prisma.$disconnect();

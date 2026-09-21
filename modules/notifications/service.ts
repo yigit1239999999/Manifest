@@ -632,24 +632,53 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
     reminders: emptyKindSummary(),
   };
 
-  const clinics = await prisma.clinic.findMany({
-    select: {
-      id: true,
-      name: true,
-      phone: true,
-      address: true,
-      city: true,
-      country: true,
-      timezone: true,
-      settings: true,
-    },
-  });
+  // Only the clinics that could send anything, chosen in the database.
+  //
+  // This runs every fifteen minutes -- ninety-six times a day once the
+  // external scheduler is on (DEPLOY.md) -- and it used to read every
+  // clinic row, settings JSON and all, to discard all but three of them
+  // in JavaScript. That is work proportional to the whole clinics table
+  // on a job whose actual subject is the handful with messaging on, and
+  // it grows in the one direction the table is certain to grow.
+  //
+  // The count stays, because "180 clinics have this switched off" is
+  // exactly the kind of zero this summary exists to name, and losing it
+  // would make "nothing was sent" unreadable again.
+  //
+  // Still a sequential scan -- 0.085 ms over 183 rows, measured -- and
+  // deliberately left as one: a partial expression index on this JSON
+  // path cannot be written in the schema (Prisma), so it would live in
+  // a migration alone, and it does not earn that until clinics number
+  // in the tens of thousands. The number is here so the next person
+  // does not have to measure it again to decide.
+  const [total, clinics] = await Promise.all([
+    prisma.clinic.count(),
+    prisma.clinic.findMany({
+      where: {
+        settings: { path: ["notifications", "whatsapp", "enabled"], equals: true },
+      },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        address: true,
+        city: true,
+        country: true,
+        timezone: true,
+        settings: true,
+      },
+    }),
+  ]);
   const horizon = new Date(now.getTime() + 8 * 86_400_000);
-  summary.clinics.total = clinics.length;
+  summary.clinics.total = total;
+  summary.clinics.messagingOff = total - clinics.length;
 
   for (const row of clinics) {
     const clinic = toMessagingProfile(row);
     const cfg = clinic.notifications.whatsapp;
+    // Belt and braces: the filter above and the parser here have to
+    // agree about what "on" means, and if they ever stop agreeing the
+    // count says so rather than a message going out unasked.
     if (!cfg.enabled) {
       summary.clinics.messagingOff++;
       continue;
