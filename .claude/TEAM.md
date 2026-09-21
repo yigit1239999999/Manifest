@@ -3576,3 +3576,88 @@ artık *"hiçbir yerde ad yok"* demek, *"ad başka öğede"* değil.
 
 **Görünür bir geri düşüş, sessiz bir varsayılandan iyidir — ve bir
 kusuru görünür kılan çirkinlik, kusurla birlikte silinmez.**
+
+### Üretiliyor → adlandırılmış → GÖRÜNÜYOR
+
+dev, hâl kliniğine yeni hâl eklerken bir tuzağın kenarından döndü: ilk
+sürümü ikinci randevuyu **arşivli** hayvana bağlıyordu (hayvan-başına-an
+indeksini atlatmak için). `modules/appointments/queries.ts` listesi
+`pet: { archivedAt: null }` süzüyor — yani o randevu **tabloda var,
+ekranda yok** olacaktı.
+
+**Kliniği, tam da var olma sebebinin tersi yönde genişletmek:** bir hâli
+üretmek için yazılan satır, o hâli **ekranda** üretmiyorsa hâl yok.
+
+Kuralın üç katmanı vardı, dördüncüsü buradan geldi — **sırası da
+önemli:**
+
+| katman | soru | atlanırsa |
+|---|---|---|
+| üretiliyor mu | satır yazıldı mı | hâl hiç yok |
+| adlandırılmış mı | listede kendi adıyla var mı | kimse gidip bakmıyor |
+| **görünüyor mu** | **ekranın kendi süzgeçlerinden geçiyor mu** | **sessizce yanlış güven** |
+
+**Satırı yazmak, hâli üretmekle aynı şey değildir.** Yeni hâl eklerken
+hâlin **ekranın kendi süzgeçlerinden sağ çıktığı** doğrulanır.
+
+Ve hâl **ikiye** çıktı, bire değil: durum süzgeci tek seçimli olduğu
+için *"kimse gelmedi"* ile *"geldi de yazılmadı"* **ayrı yürünüyor** —
+ayrı yürünen şey ayrı hâldir. Göreli tarih (`ago()`) de bu yüzden:
+**sabit tarih hâlin bir örneğini taşır, göreli tarih tanımını.**
+
+### Seçici listesi bir tercih sırası değildir
+
+dev-ui, hata özetinin işaret ettiği yeri bulurken tek çağrıda birden
+çok seçici verdi. `querySelector` **belgede en erken** eşleşeni döner,
+verilen sıradaki ilkini değil. Sonuç: tab durağını **ikinci** çipinde
+taşıyan bir grupta **birinciyi** — yani tam da ulaşılamayan öğeyi —
+döndürüyordu.
+
+**Tek çağrılı sürüm doğru okunuyordu ve yanlıştı.** İnceleme yakalamaz;
+yakalayan test oldu.
+
+> Bir API'nin "birden çok kabul etmesi", onları **senin sıranla**
+> denediği anlamına gelmez. Tercih sırası istiyorsan **sırayla ayrı
+> ayrı sor.**
+
+### Belirtilen mekanizma geçersizse, sessizce yerine koyma — geri sor
+
+ux, çip grubunun hata durumunu `aria-invalid` ile belirtmişti. ESLint
+durdurdu: `aria-invalid` bir **widget** özniteliği, `role="group"` ise
+**yapı** rolü ve onu desteklemiyor. dev-ui iki şeyi birden yaptı:
+görünür yarıyı çalıştırdı (değer sınırı sürüyor), ekran okuyucu
+yarısını **grubun taşıyabildiği** `aria-describedby` ile taşıdı — ve
+**asıl soruyu ux'e geri verdi**: tek seçimli bir denetimin doğru rolü
+`radiogroup` olabilir (o `aria-invalid`'i destekler), ama bu ux'in
+2–5 segment için `aria-pressed` kuralıyla ve roving-tabindex sınırıyla
+kesişiyor.
+
+**Bir tasarım kararının mekanizması geçersiz çıktığında, karar hâlâ
+tasarımcınındır.** Uygulayan tarafın işi: işleyen en yakın yolu
+kurmak **ve** kesişimi adıyla geri bildirmek — kendi başına yeni bir
+rol seçmek değil.
+
+### Aynı sınıf üçüncü kez: liste, detayın bildiğini bilmiyor
+
+| liste | detayın bildiği, listenin bilmediği |
+|---|---|
+| `/appointments` | *"saati geçti, sonucu kaydedilmedi"* — detay **cümleyle** söylüyor |
+| `/visits` | **tutar** — `/visits/[id]` gösteriyor, liste göstermiyor |
+| `/reminders` | onay durumu |
+
+Üçü de **liste** tarafında. **Bir sınıf üçüncü kez göründüğünde, tek
+tek düzeltmek artık en pahalı yoldur** — kalan listeler (`/clients`,
+`/pets`, `/invoices`) aynı gözle **ölçülerek** taranır, ve tarama
+ekran işidir: betikten değil, listeyi detayının yanına koyarak.
+
+### Kanıt seviyesi, maliyet seviyesine orantılıdır
+
+value önerisinin zayıf noktasını kendi yazdı: *mekanizma kesin (N
+ekran → 1), **frekans bilinmiyor** ve `REAL 0` iken ölçülemez.*
+
+Bu, **S** için yeterli bir temeldir ve **L** için değildir. Aynı
+kanıtla katalog **park edildi**, tutar kolonu **geçti** — fark
+önerinin gücünde değil, **yanlış çıkarsa ne kaybedileceğinde.**
+
+> Frekansı bilinmeyen bir mekanizma: küçükse yap ve bak, büyükse
+> bekle ve ölç.
