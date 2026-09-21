@@ -5881,3 +5881,43 @@ satır yüksekliği, kutu modeli gibi görünmeyen bir terim olabilir.
 Türetme bir **hipotez** verir; kanıtı ekranda ya da hesaplanmış
 değerde durur. Ve aritmetiği **dosyaya yaz**, yoksa bir dahaki kişi
 aynı umutla aynı çarpımı yapar.
+
+### Mekanizma doğru, konumu yanlış
+
+dev bugün üç düzeltmesine birden bakıp ortak şekli adlandırdı:
+
+| kontrol | nerede duruyordu | nerede durması gerekiyordu |
+|---|---|---|
+| sıfır dizisi kuralı | ülke kodu eklendikten **sonra** | **önce** (`"90"` sıfırdan farklı rakamı kendi sağlıyordu) |
+| eksik açıklama guard'ı | `stderr` | **sayının olduğu satır** |
+| ikiz eşleşmesi | zamanda **her iki yöne** | yalnız **geriye** (bastırma ancak bir gönderimden sonra olur) |
+
+> Üçünde de **mekanizma doğruydu, konumu yanlıştı.**
+
+Ve üçünün de belirtisi aynı: **hiçbir şey kırılmıyor.** Kontrol
+koşuyor, testler geçiyor, kod okununca doğru görünüyor — yalnız
+yakalaması gereken şeyi yakalamıyor, ya da yakaladığını kimseye
+söylemiyor.
+
+**Kural:** bir kontrol yazdıktan sonra ikinci soruyu sor — *bu, işini
+yapabileceği yerde mi duruyor?* Girdisi henüz bozulmamış mı,
+çıktısı bakılan yere mi düşüyor, kapsamı garantinin kapsamıyla aynı
+mı. Birincisi *"doğru mu"*, ikincisi *"yerinde mi"*, ve ikincisi
+sessizce başarısız olan taraf.
+
+### Kullanıcı boyutu pikselle değil, sığmayla ölçer
+
+Combobox listesinin son 8 pikselini kapatmayı dev-ui *"listenin
+**nasıl göründüğünü** değiştirir, **ne kadar büyük olduğunu**
+değil"* diye reddetmişti — yani kullanıcının şikâyetine denk
+düşmediğini düşündü.
+
+Karşı gerekçe: **kaydırma çubuğunun varlığı, listenin sığmadığının
+en görünür iddiasıdır.** 264'ü 256'dan kimse ayırt etmiyor;
+kaydırma çubuğunu herkes görüyor.
+
+dev-ui pozisyonunu değiştirdi ve kendi cümlesiyle özetledi: *"ben
+boyutu pikselle ölçtüm, kullanıcı **sığma** ile ölçüyor."* Ekledi:
+**sekiz piksel taşmak, taşımanın en kötü miktarı** — çubuk iki kat
+uzun bir liste için çıkacağı gibi çıkıyor, ve onu doğuran kıl payı
+algılanamıyor.
