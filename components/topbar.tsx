@@ -22,17 +22,26 @@ export async function Topbar({
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-4 md:px-8">
-      <span className="truncate text-sm font-semibold text-foreground">
+      {/* `min-w-0` beside `truncate`: this is the one thing in the
+          header that may give way, so it has to be able to. */}
+      <span className="min-w-0 truncate text-sm font-semibold text-foreground">
         {clinicName}
       </span>
 
-      {/* `min-w-0` so this group can give way at all. Everything in it
-          but the user's name is a fixed size, so when the header runs
-          out of room the name is the only thing that can yield — and
-          without this it refuses, because a flex item will not go
-          below its content. That is the long-name half of the defect;
-          the breakpoint below is the short-name half. */}
-      <div className="flex min-w-0 items-center gap-3">
+      {/* `shrink-0`, and the reason is a correction: `min-w-0` was
+          here first and it moved the failure instead of removing it.
+          Everything in this group is a fixed size — three theme
+          segments, two language buttons, the avatar, sign out — so
+          letting the group shrink does not make its contents
+          smaller. It made the group 215px wide with 278px of buttons
+          hanging out of it, and the page scrolled by 46px on every
+          route. My own sweep caught that, pointed at a clinic whose
+          name is long enough to produce it.
+
+          So the group keeps its size and the clinic name is the
+          thing that yields, which is the right way round: a name can
+          be shortened and read, a row of controls cannot. */}
+      <div className="flex shrink-0 items-center gap-3">
         <CommandPalette />
         <ThemeToggle initialTheme={theme} />
         <LocaleSwitcher />
