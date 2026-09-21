@@ -590,6 +590,36 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    dönüyordu. Boş dönen bir cevap şüphe uyandırır; dolu ve yanlış olan
    uyandırmaz.
 
+   **Üçüncü kardeş (`pm` ekledi, üçlüyü kapatıyor): doğru soru, doğru
+   alan, YANLIŞ AN.**
+
+   *Vaka:* rıza sorusu. Alan doğru, soru doğru, kolon üç hâli doğru
+   tutuyor, cevap doğru kaydediliyor — **bozuk olan yalnızca sırası.**
+   Ürün, kliniğe bildirimlerin var olduğunu söylemeden önce müşterisinin
+   bildirim iznini soruyor.
+
+   **Ne dağıtım çözer** (bilgi zaten doğru yerde), **ne anahtar
+   değiştirmek** (alan zaten doğru alan). Çare **sırayı** değiştirmek:
+   soruyu, cevabının anlamlı olduğu ana taşımak.
+
+   **Teşhis işareti:** *cevap doğru kaydediliyor ama neredeyse hep
+   boş.*
+
+   > **UYARI, ve `ux`'in bugün koyduğu ölçütün kendimize uygulanması:**
+   > bu işaretin bizdeki örnekleri (*"63 müşterinin 61'i"*, *"183
+   > kliniğin 180'i"*) **fikstür verisidir** — HÂL'i biz doldurduk, o
+   > klinikleri ekip üretti. **İşaret geçerli, o sayılar saha kanıtı
+   > değil.** Gerçek kanıt için `pm`'in kuralı geçerli: **yalnız düşüşü
+   > kanıt say** — sabit bir oran hiçbir şey kanıtlamaz.
+
+   **Ve her ailenin kanıtı farklı** (`pm`'in eşlemesi):
+
+   | aile | nasıl kanıtlanır |
+   |---|---|
+   | **dağıtım** (14) | iki ekranı **yan yana** okumak |
+   | **anahtar** (12) | *"kaç hâl var, kaçını gördüm"* sütunu |
+   | **sıra** (bu) | oran ölçümü + *"yalnız düşüşü kanıt say"* |
+
    *Ve bu ayrımı yapmanın bedeli ölçüldü:* mükerrer sahip vakasında
    `ux` **notu taşımaya** çalışıyordu (14'ün çaresi), `value`
    **anahtarın kırık** olduğunu gösterdi (12'nin çaresi). Yanlış aileye
