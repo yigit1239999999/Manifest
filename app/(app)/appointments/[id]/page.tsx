@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Card,
   CardContent,
@@ -65,9 +66,11 @@ export default async function AppointmentPage({
         description={formatDateTime(fmt, appointment.startsAt)}
       >
         <Badge variant="secondary">{tType(appointment.type as never)}</Badge>
-        <Badge variant="secondary">
-          {tStatus(appointment.status as never)}
-        </Badge>
+        <StatusBadge
+          kind="appointment"
+          status={appointment.status}
+          label={tStatus(appointment.status as never)}
+        />
         <Link
           href={`/appointments/${appointment.id}/edit`}
           className={buttonVariants({ variant: "secondary" })}
@@ -171,9 +174,11 @@ export default async function AppointmentPage({
                       </span>
                       {m.error && <span className="ml-2 text-xs text-destructive">{m.error}</span>}
                     </span>
-                    <Badge variant={m.status === "FAILED" ? "destructive" : "secondary"}>
-                      {tMsgStatus(m.status)}
-                    </Badge>
+                    <StatusBadge
+                      kind="message"
+                      status={m.status}
+                      label={tMsgStatus(m.status)}
+                    />
                   </li>
                 ))}
               </ul>
