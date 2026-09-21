@@ -842,3 +842,101 @@ describe("making the record the typed name does not match yet", () => {
     expect(rowText()).toEqual(["Limon · Ayşe Çelik", "Limon · Kerem Doğan"]);
   });
 });
+
+// The gap between a keystroke and the server's answer, and why it is
+// not a detail. The vet types the whole name before looking up --
+// "'Pam' works in the mock, but I finish the word, that is a reflex" --
+// and for those few hundred milliseconds the list still belongs to the
+// previous query. Offer "create" there and the product invents the
+// duplicate the vet is most afraid of, at the exact moment they cannot
+// see it: "the fourth Pamuk. That mistake is silent."
+describe("offering to create while the server is still answering", () => {
+  const answer = (options: ComboOption[]) =>
+    vi.fn(async () => ({ options, hasMore: false }));
+
+  const withSearch = (onSearch: ReturnType<typeof answer>) => {
+    const onCreate = vi.fn();
+    const view = render(
+      <Combobox
+        name="petId"
+        options={[]}
+        onSearch={onSearch}
+        onCreate={onCreate}
+        createLabel={(q) => `+ ${q}`}
+      />,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    return { ...view, input, onCreate };
+  };
+
+  const rowText = () => screen.queryAllByRole("option").map((o) => o.textContent);
+
+  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+  afterEach(() => vi.useRealTimers());
+
+  it("says nothing about creating until this query has been answered", async () => {
+    const onSearch = answer([{ value: "p-1", label: "Pamuk · kedi" }]);
+    const { input } = withSearch(onSearch);
+
+    fireEvent.change(input, { target: { value: "Pamuk" } });
+
+    // The debounce has not even started the request yet, so `status`
+    // is still idle and the old list is what is on screen.
+    expect(rowText().some((t) => t?.startsWith("+"))).toBe(false);
+  });
+
+  // The other bound, and it is the reason the rule is not "wait for
+  // quiet": somebody typing a genuinely new name must be offered the
+  // way out, or the feature does not exist for them.
+  it("offers it once the answer for this query arrives", async () => {
+    const onSearch = answer([]);
+    const { input } = withSearch(onSearch);
+
+    fireEvent.change(input, { target: { value: "Ceviz" } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(rowText().at(-1)).toBe("+ Ceviz");
+  });
+
+  // A stale answer must not unlock it either: the reply that arrives
+  // belongs to "Pam", and the box now says "Pamuk".
+  it("locks again when the typing moves past the answer", async () => {
+    const onSearch = answer([]);
+    const { input } = withSearch(onSearch);
+
+    fireEvent.change(input, { target: { value: "Pam" } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    fireEvent.change(input, { target: { value: "Pamuk" } });
+
+    expect(rowText().some((t) => t?.startsWith("+"))).toBe(false);
+  });
+});
+
+// The owner's name moved off the first line and onto the second, and a
+// filter that only read labels would have quietly removed the way a vet
+// actually looks for an animal: by whose it is.
+describe("finding an animal by its owner", () => {
+  it("matches the quieter second line too", () => {
+    render(
+      <Combobox
+        name="petId"
+        options={[
+          { value: "p-1", label: "Pamuk · kedi", caption: "Ayşe Yılmaz · 7 ay önce" },
+          { value: "p-2", label: "Zeytin · köpek", caption: "Kerem Doğan · 2 gün önce" },
+        ]}
+      />,
+    );
+    const input = document.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Kerem" } });
+
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Zeytin · köpekKerem Doğan · 2 gün önce",
+    ]);
+  });
+});

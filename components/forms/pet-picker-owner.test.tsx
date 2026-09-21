@@ -36,9 +36,30 @@ import { AppointmentForm } from "@/components/forms/appointment-form";
 const VETS = [{ id: "u-1", name: "Dr. Ayşe Demir" }];
 
 const TWO_ZEYTINS = [
-  { id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" },
-  { id: "p-2", name: "Zeytin", ownerName: "Mehmet Kaya" },
+  {
+    id: "p-1",
+    name: "Zeytin",
+    ownerName: "Ayşe Yılmaz",
+    speciesLabel: "Kedi",
+    lastSeen: "7 ay önce",
+  },
+  {
+    id: "p-2",
+    name: "Zeytin",
+    ownerName: "Mehmet Kaya",
+    speciesLabel: "Köpek",
+    lastSeen: "2 gün önce",
+  },
 ];
+
+// The row grew a second line after this test was written, and the
+// question it asks did not change: two animals with one name are told
+// apart by their owner. What moved is where the owner is said -- under
+// the name rather than after it, beside the last visit -- because the
+// vet is looking at the animal while they choose and asked for the
+// species next to the name: "I can see with my own eyes whether it is a
+// cat or a dog". `textContent` runs the two lines together, which is
+// why these read without a separator.
 
 const wrap = (ui: React.ReactNode) =>
   render(
@@ -68,8 +89,8 @@ describe("two animals with the same name", () => {
     wrap(<VisitForm pets={TWO_ZEYTINS} vets={VETS} />);
 
     expect(rows(/hayvan/i)).toEqual([
-      "Zeytin · Ayşe Yılmaz",
-      "Zeytin · Mehmet Kaya",
+      "Zeytin · KediAyşe Yılmaz · 7 ay önce",
+      "Zeytin · KöpekMehmet Kaya · 2 gün önce",
     ]);
   });
 
@@ -77,8 +98,8 @@ describe("two animals with the same name", () => {
     wrap(<AppointmentForm pets={TWO_ZEYTINS} vets={VETS} />);
 
     expect(rows(/hayvan/i)).toEqual([
-      "Zeytin · Ayşe Yılmaz",
-      "Zeytin · Mehmet Kaya",
+      "Zeytin · KediAyşe Yılmaz · 7 ay önce",
+      "Zeytin · KöpekMehmet Kaya · 2 gün önce",
     ]);
   });
 });

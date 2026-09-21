@@ -17,6 +17,20 @@ import { fold, matches } from "@/lib/search";
 export interface ComboOption {
   value: string;
   label: string;
+  /**
+   * A second, quieter line under the label.
+   *
+   * For the row somebody has to CHOOSE from rather than read: the
+   * animal picker puts the owner and the last visit here, because
+   * "Pamuk" three times is the shape of writing a visit into the wrong
+   * record (`lib/pet-label.ts`).
+   *
+   * It is matched by the local filter as well as the label, and that
+   * is not a nicety: the owner's name moved down here, and a filter
+   * that only read labels would have silently removed the ability to
+   * find an animal by its owner -- which is how a vet looks for one.
+   */
+  caption?: string;
 }
 
 interface Props {
@@ -210,6 +224,22 @@ export function Combobox({
   // `.catch(() => undefined)` and also read as "No results." — an
   // error wearing the clothes of an absence, which is the one
   // substitution this product has decided it will not make.
+  /**
+   * The query the list on screen belongs to, or null before any answer.
+   *
+   * There is a gap between a keystroke and the server's answer -- 200ms
+   * of debounce plus the round trip -- and during it `status` is still
+   * `idle` and `remote` still holds the PREVIOUS query's animals. Offer
+   * "create" in that gap and a vet who types a name in one go is shown
+   * "no such animal, make one" about an animal that exists: the
+   * duplicate they are most afraid of, produced at the exact moment
+   * they cannot see it.
+   *
+   * `status === "asking"` does not close the gap, because the timer may
+   * not have started yet. What closes it is naming the query the answer
+   * belongs to.
+   */
+  const [answeredFor, setAnsweredFor] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<"idle" | "asking" | "failed">(
     "idle",
   );
@@ -273,6 +303,7 @@ export function Combobox({
           if (!live) return;
           setRemote(found.options);
           setRemoteHasMore(found.hasMore);
+          setAnsweredFor(query);
           setActive(0);
           setMoved(false);
           setStatus("idle");
@@ -293,7 +324,9 @@ export function Combobox({
   }, [onSearch, query, readyToSearch]);
 
   const local = typed
-    ? options.filter((o) => matches(o.label, query))
+    ? options.filter(
+        (o) => matches(o.label, query) || matches(o.caption ?? "", query),
+      )
     : options;
   // Second, and only what is new. The same client can come back from the
   // server that is already on the handed list, and reading a name twice
@@ -321,7 +354,22 @@ export function Combobox({
     allowCustom && !freeText && typed && query.length > 0 && !exact;
   // Not conditioned on `exact`: see `onCreate`. The second Limon is a
   // different animal, and only the vet can say which one they meant.
-  const showCreate = Boolean(onCreate) && typed && query.trim().length > 0;
+  //
+  // But never while the list on screen belongs to an older query. The
+  // two halves of this rule are each other's limits: showing it early
+  // invents a duplicate, and never showing it at all means the feature
+  // does not exist for somebody who really is typing a new name. So it
+  // waits for THIS query's answer rather than for a quiet period.
+  //
+  // Below the search threshold there is no answer and so no offer,
+  // which is the same rule rather than an exception: with a capped list
+  // and one letter typed, the picker genuinely does not know whether
+  // the animal is already on file.
+  const showCreate =
+    Boolean(onCreate) &&
+    typed &&
+    query.trim().length > 0 &&
+    (!onSearch || answeredFor === query);
 
   function openList() {
     setOpen(true);
@@ -649,6 +697,24 @@ export function Combobox({
                   )}
                 >
                   {row.option!.label}
+                  {row.option!.caption && (
+                    // Quieter and below, because the name is what the
+                    // eye is scanning for and this is the tiebreaker.
+                    // Inside the same option, so a screen reader reads
+                    // the row as one thing rather than announcing a
+                    // name and leaving the part that tells it apart
+                    // unread.
+                    <span
+                      className={cn(
+                        "block text-xs",
+                        active === i
+                          ? "text-accent-foreground/80"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {row.option!.caption}
+                    </span>
+                  )}
                 </li>
               ),
             )}

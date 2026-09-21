@@ -20,12 +20,25 @@ import {
 } from "@/modules/appointments/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import { searchPetsAction } from "@/modules/pets/actions";
-import { petLabel } from "@/lib/pet-label";
+import { petRowCaption, petRowLabel } from "@/lib/pet-label";
 
 interface Props {
   appointment?: Appointment;
   /** The owner travels with the animal: see `lib/pet-label.ts`. */
-  pets: (Pick<Pet, "id" | "name"> & { ownerName: string })[];
+  pets: (Pick<Pet, "id" | "name"> & {
+    ownerName: string;
+    /**
+     * What this animal is, in the reader's language, and when it was
+     * last seen -- both already put into words by the page, because
+     * only the server has the catalogues and the clinic's time zone.
+     *
+     * The picker row shows them beside the name and under it: the vet
+     * is looking at the animal while they choose, so the species is
+     * what eliminates at a glance (`petRowLabel`).
+     */
+    speciesLabel?: string | null;
+    lastSeen?: string | null;
+  })[];
   /** See `InvoiceForm`: true when the list was cut off at its cap. */
   petsCapped?: boolean;
   vets: Pick<User, "id" | "name">[];
@@ -52,7 +65,12 @@ export function AppointmentForm({
   defaultPetLabel,
 }: Props) {
   const petOptions = useMemo(
-    () => pets.map((p) => ({ value: p.id, label: petLabel(p) })),
+    () =>
+      pets.map((p) => ({
+        value: p.id,
+        label: petRowLabel(p.name, p.speciesLabel),
+        caption: petRowCaption(p.ownerName, p.lastSeen),
+      })),
     [pets],
   );
   const t = useTranslations("appointment");

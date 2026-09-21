@@ -60,3 +60,38 @@ export function ownerLabel(owner: {
 }): string {
   return [owner.firstName, owner.lastName].filter(Boolean).join(" ");
 }
+
+/**
+ * The picker row, which is a different job from `petLabel` above and is
+ * kept apart on purpose.
+ *
+ * `petLabel` is one line, for anywhere a name has to fit in a cell or a
+ * column: its own note explains why a third part wraps a fifty-row list
+ * at 390px, and that reasoning still holds. This is two lines, for the
+ * one place where the reader is CHOOSING between animals rather than
+ * reading a list of them, and where being wrong means writing a visit
+ * into the wrong record.
+ *
+ * The species sits next to the name because of what the vet is looking
+ * at while they choose: "the animal is in front of me, I can see with
+ * my own eyes whether it is a cat or a dog". That is the filter that
+ * eliminates at a glance, so it has to be readable before the eye
+ * reaches the owner. The date is relative -- "7 months ago" -- because
+ * "12 March" raised their question rather than answering it: "12 March
+ * of which year?". Breed and age were offered and refused in the same
+ * breath: "they swell the row and they do not decide anything".
+ */
+export function petRowLabel(
+  name: string,
+  speciesLabel: string | null | undefined,
+): string {
+  return [name, speciesLabel].filter(Boolean).join(" · ");
+}
+
+/** The second line: whose animal it is, and when it was last seen. */
+export function petRowCaption(
+  ownerName: string,
+  lastSeen: string | null | undefined,
+): string {
+  return [ownerName, lastSeen].filter(Boolean).join(" · ");
+}
