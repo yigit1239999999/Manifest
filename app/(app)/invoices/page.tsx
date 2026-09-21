@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDate, formatMoney } from "@/lib/format";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function InvoicesPage({
   searchParams,
@@ -136,7 +137,7 @@ export default async function InvoicesPage({
                 // Was the hardcoded English string "Client".
                 header: tClient("one"),
                 cellClassName: "text-muted-foreground",
-                cell: (inv) => `${inv.client.firstName} ${inv.client.lastName}`,
+                cell: (inv) => ownerLabel(inv.client),
               },
               {
                 key: "issuedAt",

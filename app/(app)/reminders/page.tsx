@@ -51,6 +51,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
+import { ownerLabel } from "@/lib/pet-label";
 
 /**
  * Closed is derived, not listed again. A fifth status would otherwise have
@@ -379,7 +380,7 @@ export default async function RemindersPage({
               // independently: a listed animal's owner is not
               // necessarily one of the listed clients, and the form
               // fills the client in from the animal.
-              ownerName: `${p.owner.firstName} ${p.owner.lastName}`,
+              ownerName: ownerLabel(p.owner),
             }))}
             clientsCapped={clients.hasMore}
             petsCapped={pets.hasMore}
@@ -472,7 +473,7 @@ export default async function RemindersPage({
                       href={`/clients/${b.client.id}`}
                       className="hover:underline"
                     >
-                      {b.client.firstName} {b.client.lastName}
+                      {ownerLabel(b.client)}
                     </Link>
                     {b.pet && (
                       <>

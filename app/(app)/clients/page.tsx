@@ -12,6 +12,7 @@ import { FilterTabs } from "@/components/filter-tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function ClientsPage({
   searchParams,
@@ -126,7 +127,7 @@ export default async function ClientsPage({
                 cell: (c) => (
                   <>
                     <Link href={`/clients/${c.id}`} className="hover:underline">
-                      {c.firstName} {c.lastName}
+                      {ownerLabel(c)}
                     </Link>
                     {/* The animals, where a count used to be.
                         A vet rang eleven people called Ayşe looking for

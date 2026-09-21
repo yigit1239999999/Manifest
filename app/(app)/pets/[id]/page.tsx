@@ -48,6 +48,7 @@ import {
   formatDateTime,
   petAge,
 } from "@/lib/format";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function PetPage({
   params,
@@ -213,7 +214,7 @@ export default async function PetPage({
               href={`/clients/${pet.owner.id}`}
               className="font-medium underline"
             >
-              {pet.owner.firstName} {pet.owner.lastName}
+              {ownerLabel(pet.owner)}
             </Link>
           </Callout>
         )
@@ -253,7 +254,7 @@ export default async function PetPage({
                       href={`/clients/${pet.owner.id}`}
                       className="text-primary hover:underline"
                     >
-                      {pet.owner.firstName} {pet.owner.lastName}
+                      {ownerLabel(pet.owner)}
                     </Link>
                   ),
                 },

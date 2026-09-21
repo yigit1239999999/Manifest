@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function ClientPage({
   params,
@@ -69,7 +70,7 @@ export default async function ClientPage({
       <BackLink href="/clients" label={tCommon("back")} />
 
       <PageHeader
-        title={`${client.firstName} ${client.lastName}`}
+        title={ownerLabel(client)}
         description={client.email ?? client.phone ?? ""}
       >
         {canEdit && (

@@ -40,6 +40,7 @@ import {
   formatDateTime,
   formatMoney,
 } from "@/lib/format";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function VisitPage({
   params,
@@ -123,7 +124,7 @@ export default async function VisitPage({
 
       <PageHeader
         title={visit.chiefComplaint ?? tType(visit.type as never)}
-        description={`${formatDateTime(fmt, visit.visitedAt)} · ${visit.pet.name} · ${visit.client.firstName} ${visit.client.lastName}`}
+        description={`${formatDateTime(fmt, visit.visitedAt)} · ${visit.pet.name} · ${ownerLabel(visit.client)}`}
         badge={<Badge>{tType(visit.type as never)}</Badge>}
       >
         {canArchive && (

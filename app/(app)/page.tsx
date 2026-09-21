@@ -40,6 +40,7 @@ import {
   formatMoney,
   intlLocale,
 } from "@/lib/format";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function DashboardPage() {
   const session = await requireSession();
@@ -414,7 +415,7 @@ export default async function DashboardPage() {
                     >
                       <span className="flex flex-col">
                         <span className="text-sm font-medium">
-                          {a.pet.name} · {a.client.firstName} {a.client.lastName}
+                          {a.pet.name} · {ownerLabel(a.client)}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {formatDateTime(fmt, a.startsAt)}
@@ -445,7 +446,7 @@ export default async function DashboardPage() {
                     >
                       <span className="flex flex-col">
                         <span className="text-sm font-medium">
-                          {v.pet.name} · {v.client.firstName} {v.client.lastName}
+                          {v.pet.name} · {ownerLabel(v.client)}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {formatDateTime(fmt, v.visitedAt)} · {tVisitType(v.type)}

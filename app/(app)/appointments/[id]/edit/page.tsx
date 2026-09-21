@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { AppointmentForm } from "@/components/forms/appointment-form";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function EditAppointmentPage({
   params,
@@ -40,7 +41,7 @@ export default async function EditAppointmentPage({
             name: p.name,
             // `listPets` already loads the owner; dropping it here was
             // how three of the four pickers lost it.
-            ownerName: `${p.owner.firstName} ${p.owner.lastName}`,
+            ownerName: ownerLabel(p.owner),
           }))}
           petsCapped={pets.hasMore}
           defaultPetLabel={appointment.pet.name}

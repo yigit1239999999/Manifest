@@ -18,6 +18,7 @@ import { FilterTabs } from "@/components/filter-tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { petAge } from "@/lib/format";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function PetsPage({
   searchParams,
@@ -157,7 +158,7 @@ export default async function PetsPage({
                   <div className="border-t border-border pt-2.5 text-xs text-muted-foreground">
                     {t("owner")}:{" "}
                     <span className="font-medium text-foreground">
-                      {pet.owner.firstName} {pet.owner.lastName}
+                      {ownerLabel(pet.owner)}
                     </span>
                   </div>
                 </Link>

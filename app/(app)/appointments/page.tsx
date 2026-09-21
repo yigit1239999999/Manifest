@@ -28,6 +28,7 @@ import {
   isDayKey,
   shiftDayKey,
 } from "@/lib/format";
+import { ownerLabel } from "@/lib/pet-label";
 
 // A day's worth of appointments fits on one screen; paging only comes back
 // when the date filter is off.
@@ -283,7 +284,7 @@ export default async function AppointmentsPage({
                   <>
                     <div className="font-medium text-foreground">{a.pet.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {a.client.firstName} {a.client.lastName}
+                      {ownerLabel(a.client)}
                     </div>
                     {/* On the row, not behind a click. This is the screen
                         reception works from all morning, and "bites" read

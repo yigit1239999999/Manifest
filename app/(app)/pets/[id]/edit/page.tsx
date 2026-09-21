@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { PetForm } from "@/components/forms/pet-form";
 import { hiddenBuiltInSpecies } from "@/modules/pets/species-names";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function EditPetPage({
   params,
@@ -70,7 +71,7 @@ export default async function EditPetPage({
             lastName: o.lastName,
           }))}
           ownersCapped={owners.hasMore}
-          defaultOwnerLabel={`${pet.owner.firstName} ${pet.owner.lastName}`}
+          defaultOwnerLabel={ownerLabel(pet.owner)}
           customSpecies={customSpecies}
           clinicBreeds={clinicBreeds}
           enabledSpecies={enabledSpecies}

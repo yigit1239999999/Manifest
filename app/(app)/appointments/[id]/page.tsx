@@ -34,6 +34,7 @@ import {
   sendAppointmentMessageAction,
 } from "@/modules/notifications/actions";
 import { NotificationActions } from "@/components/notification-actions";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function AppointmentPage({
   params,
@@ -82,7 +83,7 @@ export default async function AppointmentPage({
     <div className="flex flex-col gap-6">
       <BackLink href="/appointments" label={tCommon("back")} />
       <PageHeader
-        title={`${appointment.pet.name} · ${appointment.client.firstName} ${appointment.client.lastName}`}
+        title={`${appointment.pet.name} · ${ownerLabel(appointment.client)}`}
         description={formatDateTime(fmt, appointment.startsAt)}
         badge={
           <>
