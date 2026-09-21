@@ -131,6 +131,16 @@ export const STATES = [
   // `hasMore` is false and the note is never rendered -- ux opened the
   // dropdown, counted 33 options and no note, and was looking at correct
   // behaviour. A cut list is a state like any other.
+  // A fix that cannot be produced on any screen cannot be accepted. The
+  // server now recognises a built-in species by the name a vet types,
+  // including one the clinic has switched off -- and no clinic had a
+  // built-in switched off on purpose, so there was nowhere to see it.
+  {
+    id: "species.builtIn.disabled",
+    covers:
+      "a built-in species the clinic switched off: typing its name still records the built-in, and creates no clinic-defined species",
+  },
+
   {
     id: "client.list.capped",
     covers:
@@ -166,11 +176,38 @@ export async function buildStateClinic(db) {
   await db.query(`DELETE FROM clinics WHERE name = $1`, [STATE_CLINIC_NAME]);
 
   const clinic = await one(
-    `INSERT INTO clinics (id, name, currency, timezone, "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, 'TRY', 'Europe/Istanbul', now())
+    `INSERT INTO clinics (id, name, currency, timezone, settings, "updatedAt")
+     VALUES (gen_random_uuid()::text, $1, 'TRY', 'Europe/Istanbul', $2::jsonb, now())
      RETURNING id`,
-    [STATE_CLINIC_NAME],
+    // RABBIT is left out of the enabled list, and the clinic already has
+    // a rabbit. That pairing is the state: an animal that exists as a
+    // built-in species the picker no longer offers. Switching a species
+    // off governs what is offered, not what exists, and typing "Tavşan"
+    // must still record RABBIT rather than inventing a clinic-defined
+    // species beside it.
+    //
+    // Written out rather than derived from DEFAULT_ENABLED_SPECIES. It
+    // is not a copy of that list, it is this clinic's choice -- and a
+    // choice recorded by inheritance cannot be told from a choice
+    // nobody made, which is the same distinction the null consent row
+    // above is here to hold.
+    [
+      STATE_CLINIC_NAME,
+      JSON.stringify({
+        enabledSpecies: [
+          "DOG",
+          "CAT",
+          "BIRD",
+          "RODENT",
+          "REPTILE",
+          "FISH",
+          "EXOTIC",
+          "OTHER",
+        ],
+      }),
+    ],
   );
+  made("species.builtIn.disabled");
 
   const vet = await one(
     `INSERT INTO users (id, "clinicId", name, email, "passwordHash", role, "updatedAt")

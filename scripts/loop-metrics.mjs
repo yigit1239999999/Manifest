@@ -35,6 +35,32 @@ const q = async (label, sql) => {
   console.log(label, JSON.stringify(r.rows));
 };
 
+/**
+ * A metric that is a fraction of something, printed as "N/A" when there
+ * is no something.
+ *
+ * `0/0` and `0 out of 40` look alike in a list and mean opposite things:
+ * one is "nobody came back", the other is "nobody was due yet". Read as
+ * the first, a measurement that has not started yet reads as a product
+ * that is failing, and somebody prioritises against it. The e2e clinics
+ * kept these denominators plausible for months; with them filtered out,
+ * several are honestly zero.
+ *
+ * And no percentages here, at any size. The raw pair is what gets
+ * printed because "2 of 5" carries its own uncertainty and "40%" throws
+ * it away -- a baseline of "18%" was carried around this session on a
+ * denominator of 11, most of which turned out to be the test suite
+ * signing up.
+ */
+const ratio = async (label, sql, denominator) => {
+  const r = await client.query(sql);
+  const empty = r.rows.every((row) => Number(row[denominator]) === 0);
+  console.log(
+    label,
+    empty ? `N/A — no data (${denominator} is zero)` : JSON.stringify(r.rows),
+  );
+};
+
 await client.connect();
 
 // Every timestamp column in this schema is `timestamp without time zone`
@@ -192,7 +218,7 @@ await q(
 
 // 1) Vaccination return: doses past their nextDueAt, and whether the same pet
 // got the same-named vaccine again (14-day grace before the due date).
-await q(
+await ratio(
   "VACCINATION_RETURN",
   `SELECT count(*) AS due,
           count(*) FILTER (WHERE EXISTS (
@@ -202,11 +228,12 @@ await q(
           )) AS returned
    FROM vaccinations v
    WHERE v."nextDueAt" IS NOT NULL AND v."nextDueAt" < now()`,
+  "due",
 );
 
 // 2) Follow-up return: visits with a past follow-up date, and whether the pet
 // came back around or after it (3-day grace).
-await q(
+await ratio(
   "FOLLOWUP_RETURN",
   `SELECT count(*) AS due,
           count(*) FILTER (WHERE EXISTS (
@@ -216,6 +243,7 @@ await q(
           )) AS returned
    FROM visits v
    WHERE v."followupAt" IS NOT NULL AND v."followupAt" < now()`,
+  "due",
 );
 
 await q(
@@ -239,9 +267,12 @@ await q(
 );
 
 // --- Milestone sonrası eklenecek ölçümler (alanlar oluşunca çalışır) ---
-const optional = async (label, sql) => {
+const optional = async (label, sql, denominator) => {
   try {
-    await q(label, sql);
+    // With a denominator named, the same "no data" rule as `ratio`: a
+    // metric whose population is empty must not read as a metric whose
+    // answer is zero.
+    await (denominator ? ratio(label, sql, denominator) : q(label, sql));
   } catch (e) {
     console.log(label, "N/A —", e.message.split("\n")[0]);
   }
@@ -252,6 +283,7 @@ await optional(
   "INPUT_FILL_RATE",
   `SELECT count(*) FILTER (WHERE "nextDueAt" IS NOT NULL) AS with_due, count(*) AS total
    FROM vaccinations WHERE "administeredAt" > now() - interval '90 days'`,
+  "total",
 );
 
 // R4a-1'in kesim tarihi: 7f64494, "Make the next vaccination date the second
@@ -326,6 +358,7 @@ await optional(
 await optional(
   "LINES_LINKED_TO_VISIT",
   `SELECT count(*) total, count(*) FILTER (WHERE "visitId" IS NOT NULL) linked FROM invoice_lines`,
+  "total",
 );
 // Fiyat sapması: aynı açıklamanın faturalar arasındaki en düşük/en yüksek fiyatı.
 await optional(
