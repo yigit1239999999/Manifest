@@ -68,11 +68,13 @@ export type BlockedReminderReason =
   | (typeof UNREACHED_STATES)[number];
 
 /**
- * Which question a row answers, named because both sides need the
- * same word: the dashboard is to count `unreached`, and clicking that
- * count is to filter the tab to exactly those rows. The name exists so
- * the two sides cannot describe different sets; the screen half of
- * that contract is dev-ui's and is not wired yet.
+ * Which question a row answers, named because both sides use the same
+ * word: the dashboard counts `unreached` and links to
+ * `?status=blocked&group=unreached`, which filters the tab to exactly
+ * the rows behind that number (`d62cec3`). The name is what stops the
+ * badge and the list describing different sets -- and it is a name
+ * rather than a filter expression precisely so the link and the query
+ * cannot drift apart.
  */
 export type ReminderProblemGroup = "unreached" | "blocked";
 
