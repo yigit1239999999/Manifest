@@ -2758,3 +2758,66 @@ doğru görünüyor; yalnızca **hesaplanmış değer** onun hiçbir şey
 çizmediğini söylüyor. *"Kodda var"* ile *"ekranda iş yapıyor"* arasındaki
 fark, bu oturumun `aria-describedby` ve `outline-ring` vakalarıyla aynı
 aileden — **üçünde de sınıf/öznitelik yazılıydı ve üçünde de etkisizdi.**
+
+### Paylaşımlı worktree'de `git add -A` YOK — kaybolan kod değil, GEREKÇE
+
+Bugün **iki kez** ısırdı, ikisinde de aynı mekanizmayla:
+
+- dev'in **on iki dosyalık sahnelenmiş** aksan işi, başka bir ajanın
+  `git add -A`'sıyla **odak halkası commit'ine** karıştı.
+- Aynı sabah dev'in kendisi dev-ui-2'ye aynısını yapmıştı (`git commit --
+  <yollar>` indeksi atlar).
+
+**Kaybolan şey kod değildi** — iş sağlam indi. Kaybolan şey **gerekçe ve
+ölçümlerdi**: commit mesajı odak halkasını anlatıyor, içinde `unaccent`,
+`searchKey`, trigram indeksi ve 511 öznelik eşlik ölçümü var. dev boş bir
+commit'le (`c921092`) kurtardı ve **geçmişi yeniden yazmadı** — dört ajan
+tek ağaca commit'lerken paylaşımlı tarihi düzeltmek, tamir ettiğinden
+fazlasına mal olurdu.
+
+> **Dört ajan aynı ağaçtayken `-A`'nın anlamı *"benim değişikliklerim"*
+> değil, *"şu an ağaçta ne varsa"*** — ve o ikisi **asla** aynı şey değil.
+
+**Kural zaten vardı ve hatırlamaya dayanıyordu; iki kez hatırlanmadı.**
+Yeri şu: **`git add -A` hiç kullanılmaz.** Dosya adıyla, `git add -p`, ya
+da `git apply --cached`.
+
+**Ve bedelin türü kayda değer:** bu oturumda kaç kez *"karar doğru,
+gerekçe çürük"* dediğimizi düşünürsek, **gerekçenin commit'ten düşmesi
+ucuz bir kayıp değil.** dev'in kendi cümlesi: *"paylaşılan şey dizin
+değil, indekstir."*
+
+### Bir yöntem hatası bulunduğunda, GEÇEN sayılar da şüphelidir
+
+value'nun geçiş tuzağı ölçümünden çıkardığı sonuç, ve bu oturumda
+uygulanmamış olan yarısı:
+
+Dört denetimde ilk kare yerleşmişten **yüksek** çıktı. Bugüne kadar
+yalnızca **kalan** (düşük) sayıları sorguladık — çünkü hatanın **alarm
+yönüne** saptığını varsaydık.
+
+> **Yöntem düzeltmesinden önce alınmış ve GEÇEN her sayı da şüphelidir.**
+> *"Ölçüldü, geçti"* diye duran bir satır, yöntem düzeltmesinden önceyse
+> **bir kanıt değil.**
+
+Bu, pm'in *"hata yöntemdeyse hasat da hatalıdır"* kuralının eksik yarısı:
+**hasat yalnızca kırmızılardan oluşmuyor.**
+
+### Ayrı kolonlardaki adı arayan `contains`, BOŞLUĞU AŞAMAZ
+
+Aksan işinin yan ürünü ve **ondan büyük** — o yüzden kendi satırında:
+
+```
+"Yiğit Sonbahar"  eski: 0 sonuç   yeni: 1
+"Yigit Sonbahar"  eski: 0 sonuç   yeni: 1     ← aksansız da bulunmuyordu
+```
+
+**Bu bir aksan vakası değil:** ad ve soyad **ayrı kolonlar**, ve dört
+`contains`'in OR'u araya giren **boşluğu** aşamıyor. Yani **tam ad yazan
+veteriner bugüne kadar hiçbir zaman hiçbir şey bulamadı** — ve bir
+müşteriyi tam adıyla aramak, arama kutusuna yazılacak **en tabii şey.**
+
+**Neden ayrı satır:** biri altı ay sonra `searchKey`'i *"aksan içindi,
+`unaccent` yeter"* diye sadeleştirirse **boşluk sorunu geri gelir ve
+kimse bağlantıyı kurmaz.** İki kusur tek anahtarla kapandı; **kayıt
+ikisini de taşımazsa anahtarın neden tek olduğu kaybolur.**
