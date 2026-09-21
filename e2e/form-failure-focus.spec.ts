@@ -39,8 +39,14 @@ test.describe("A submit the server refused", () => {
     // The browser would block an empty submit before the server ever
     // saw it. Turning `novalidate` on is how ux produced the failure
     // and it writes nothing: the server rejects the body.
+    //
+    // `main form`, not `form`. The first form on the page is the sign
+    // out button in the header, so the obvious selector set the flag
+    // on the wrong one, the browser went on blocking the real submit,
+    // and the test failed reporting "no error box" — which was true,
+    // and about nothing.
     await page.evaluate(() => {
-      document.querySelector("form")?.setAttribute("novalidate", "");
+      document.querySelector("main form")?.setAttribute("novalidate", "");
     });
 
     const submit = page.getByRole("button", {

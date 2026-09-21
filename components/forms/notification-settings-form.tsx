@@ -140,7 +140,16 @@ export function NotificationSettingsForm({
           </p>
         )}
         {REMINDER_MODES.map((m) => (
-          <label key={m} className="flex items-center gap-3 text-sm">
+          <label
+            key={m}
+            // `min-h-6 py-1`, the same as the consent radios. These are
+            // one line of text, so the clickable label was exactly the
+            // line box: `e2e/touch-targets.spec.ts` measured them at
+            // 244x20 and 218x20 against the 24 WCAG 2.5.8 asks for.
+            // The checkbox rows above are two lines and clear it
+            // already, which is why only these two came back.
+            className="flex min-h-6 items-center gap-3 py-1 text-sm"
+          >
             <input
               type="radio"
               name="reminderMode"
