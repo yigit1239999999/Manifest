@@ -246,6 +246,39 @@ describe("blockedReminders", () => {
     expect(where.client).toEqual({ archivedAt: null });
   });
 
+  // The two tried reasons need data to say anything at all. dev-ui
+  // had the choice between inventing a timestamp and leaving the row
+  // silent, took the silent one -- right, and exactly the gap the tab
+  // exists to close.
+  it("carries when it was tried, and how many attempts were spent", async () => {
+    const failedAt = (day: number, error = "message_too_long_or_invalid") => ({
+      status: "FAILED",
+      createdAt: new Date(`2026-09-${day}T08:00:00.000Z`),
+      error,
+      channel: "SMS",
+    });
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+      reminder({ id: "r-undelivered", messages: [
+        { status: "SENT", createdAt: new Date("2026-09-20T06:00:00.000Z"), error: null, channel: "SMS", deliveryStatus: "UNDELIVERED" },
+      ] }),
+      // Three that count, plus one of our own that does not: the vet
+      // must read the same number the sweep budgeted.
+      reminder({ id: "r-exhausted", messages: [
+        failedAt(18), failedAt(17), failedAt(16), failedAt(15, "duplicate_send_blocked"),
+      ] }),
+      reminder({ id: "r-unasked", client: { ...reminder().client, notificationsOptIn: null } }),
+    ] as never);
+
+    const { items } = await blockedReminders("clinic-1");
+
+    expect(items.map((i) => [i.reason, i.at, i.attempts])).toEqual([
+      ["undelivered", new Date("2026-09-20T06:00:00.000Z"), null],
+      ["failedExhausted", new Date("2026-09-18T08:00:00.000Z"), 3],
+      // Nothing was attempted, so a date here would be invented.
+      ["neverAsked", null, null],
+    ]);
+  });
+
   it("asks only for the days the sweep can act on", async () => {
     vi.mocked(prisma.reminder.findMany).mockResolvedValue([] as never);
 

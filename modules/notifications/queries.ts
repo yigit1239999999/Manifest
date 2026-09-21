@@ -69,8 +69,10 @@ export type BlockedReminderReason =
 
 /**
  * Which question a row answers, named because both sides need the
- * same word: the dashboard counts `unreached`, and clicking that
- * count filters the tab to exactly those rows.
+ * same word: the dashboard is to count `unreached`, and clicking that
+ * count is to filter the tab to exactly those rows. The name exists so
+ * the two sides cannot describe different sets; the screen half of
+ * that contract is dev-ui's and is not wired yet.
  */
 export type ReminderProblemGroup = "unreached" | "blocked";
 
@@ -80,6 +82,24 @@ export interface BlockedReminder {
   dueAt: Date;
   reason: BlockedReminderReason;
   group: ReminderProblemGroup;
+  /**
+   * When it was tried, for the reasons that were tried at all.
+   *
+   * `null` for the blocked group, where nothing was attempted and a
+   * date would be an invention. dev-ui had the choice between a made
+   * up timestamp and a silent row and took the silent one, which was
+   * right and could not stay: a silent row is the gap the tab exists
+   * to close.
+   */
+  at: Date | null;
+  /**
+   * How many attempts the sweep has spent, for a failure it gave up
+   * on. `null` where the question does not apply.
+   *
+   * The sweep's own count (`spentAttempts`), so the number a vet
+   * reads and the number the sweep budgets are the same number.
+   */
+  attempts: number | null;
   /**
    * The number, raw, because four of the six reasons end in a phone
    * call -- and a list that shows a problem while sending the work to
@@ -187,6 +207,8 @@ export async function blockedReminders(
       group: (UNREACHED_STATES as readonly string[]).includes(reason)
         ? "unreached"
         : "blocked",
+      at: "at" in state ? state.at : null,
+      attempts: state.state === "failed" ? state.attempts : null,
       client: {
         id: row.client.id,
         firstName: row.client.firstName,

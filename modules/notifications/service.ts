@@ -1173,7 +1173,12 @@ export function reminderDeliveryState(
       state: "failed",
       at: failures[0].createdAt,
       error: failures[0].error,
-      attempts: failures.length,
+      // The sweep's count, not every failure: a duplicate block of our
+      // own does not spend an attempt, so counting it here would show
+      // "3 attempts" beside a reminder the sweep still intends to
+      // retry. One number, one meaning -- two definitions of
+      // exhaustion were enough for one day.
+      attempts: spentAttempts(reminder.messages),
       // Derived here and not on the screen: the threshold is the sweep's
       // rule, and a copy of it in a component is a second place to
       // change when it moves. Counted the sweep's way too -- our own
