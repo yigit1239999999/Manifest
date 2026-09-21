@@ -425,6 +425,8 @@
     }
   },
   "vaccination": {
+    "dueDismissed": "Panelde kapatıldı",
+    "dueDismissedUndo": "Geri al",
     "title": "Aşılar",
     "new": "Aşı ekle",
     "create": "Aşıyı kaydet",
@@ -567,7 +569,7 @@
       "askAdmin": "Klinik yöneticinizle görüşünüz."
     },
     "banner": {
-      "disabled": "Otomatik mesajlar kapalı. Bu listedeki hiçbir hatırlatma gönderilmeyecek.",
+      "disabled": "Otomatik mesajlar kapalı. Hiçbir hatırlatma kendiliğinden gönderilmeyecek.",
       "notConfigured": "{channel} bağlantısı yapılmadı. Bu listeden hiçbir mesaj gönderilemiyor.",
       "clinicFailure": "Bildirim gönderimi durdu: {reason}"
     }

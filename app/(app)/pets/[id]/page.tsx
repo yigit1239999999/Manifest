@@ -12,6 +12,7 @@ import {
   listVaccinationsForPet,
   vaccinationIntervalSuggestions,
 } from "@/modules/vaccinations/queries";
+import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
 import { listPrescriptionsForPet } from "@/modules/prescriptions/queries";
 import { listTreatmentsForPet } from "@/modules/treatments/queries";
 import { listDiagnosticsForPet } from "@/modules/diagnostics/queries";
@@ -306,6 +307,40 @@ export default async function PetPage({
                           {v.nextDueAt && ` · → ${formatDate(fmt, v.nextDueAt)}`}
                         </p>
                       </div>
+                      {/* Closing an overdue vaccination on the dashboard
+                          hides it there, and the toast that offers the undo
+                          is gone in a few seconds -- pm ran one query to
+                          check the result and came back to nothing. The
+                          other half of closing something is being able to
+                          see what was closed, which this repo already
+                          decided for reminders; a reminder's home is the
+                          list, and a vaccination's home is the animal.
+
+                          The row was already here and simply said nothing
+                          about it: `listVaccinationsForPet` filters
+                          nothing out. No new surface and no new query. */}
+                      {v.dueDismissedAt && (
+                        <span className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {tVacc("dueDismissed")}
+                          </span>
+                          {canAddVaccination && (
+                            <RestoreButton
+                              action={setVaccinationDueDismissedAction.bind(
+                                null,
+                                v.id,
+                                false,
+                              )}
+                              mark="undo"
+                              label={tVacc("dueDismissedUndo")}
+                              name={tCommon("actionFor", {
+                                action: tVacc("dueDismissedUndo"),
+                                subject: v.name,
+                              })}
+                            />
+                          )}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>

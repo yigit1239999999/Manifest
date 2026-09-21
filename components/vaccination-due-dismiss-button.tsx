@@ -16,12 +16,14 @@ import { Button } from "@/components/ui/button";
  * is gone", and a card that made the larger one on a click would be a
  * trap the vet only finds later.
  *
- * Reversible, and the undo is in the toast rather than on a screen of
- * its own. The card hides what it closes, so a mis-click on a dense
- * list removes the row and its own way back at the same time; the
- * toast is the only place the undo can live while the row is still in
- * mind. Same call in both directions, so undoing costs no extra
- * round trip to work out what was undone.
+ * Reversible, and the toast is the FASTEST way back rather than the
+ * only one. The card hides what it closes, so a mis-click on a dense
+ * list removes the row and its own way back at the same time, and the
+ * toast catches that while the row is still in mind. But it lasts
+ * seconds -- pm ran a single query to check the result and returned to
+ * find it gone -- so the lasting way back lives on the animal's page,
+ * where the vaccination itself lives. Same call in both directions, so
+ * undoing costs no extra round trip to work out what was undone.
  */
 export function VaccinationDueDismissButton({
   action,

@@ -425,6 +425,8 @@
     }
   },
   "vaccination": {
+    "dueDismissed": "Closed on the dashboard",
+    "dueDismissedUndo": "Undo",
     "title": "Vaccinations",
     "new": "Add vaccination",
     "create": "Save vaccination",
@@ -567,7 +569,7 @@
       "askAdmin": "Ask your clinic administrator."
     },
     "banner": {
-      "disabled": "Automatic messages are switched off. No reminder on this list will be sent.",
+      "disabled": "Automatic messages are switched off. No reminder goes out on its own.",
       "notConfigured": "{channel} is not connected. No message can go out from this list.",
       "clinicFailure": "Message sending has stopped: {reason}"
     }
