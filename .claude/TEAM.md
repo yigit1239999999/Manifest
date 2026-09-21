@@ -1817,3 +1817,22 @@ Bu kod tabanı bedelini zaten ödedi: `formatMoney`'nin `"USD"` varsayılanı.
 Pratik şartı: para birimi adı/sembolü `lib/format.ts`'ten gelir, çağrı
 yerinde ham `"₺"` yazılmaz — yoksa **bir sonraki para biriminde ikinci
 eşleme tablosu doğar.**
+
+### Bir render dalını okuyup durmak — aynı dosyada, aynı saatte, iki kişi
+
+`components/timeline.tsx`'i bir saat içinde üç kişi okudu. **İkisi `:105`'te
+durdu** (`{event.title}`) ve *"satırda başka içerik yok"* sonucuna vardı;
+gövde **`:142`'de** basılıyor (`event.summary` = `n.body`), araya 37 satır ve
+altı `event.kind === …` dalı giriyor. İkimiz de aynı yanlış sınıfı ürettik:
+**bilgi kaybı**, oysa doğrusu **yanlış etiketleme.**
+
+İki kişinin aynı saatte aynı yerde durması **disiplin değil, dosyanın
+şeklidir.** Pratik kural:
+
+> **Bir satırın ekranda ne gösterdiğini söylemeden önce, o satırı çizen
+> bileşenin TAMAMI okunur** — başlık, gövde, koşullu ekler ve boş hâl. Bir
+> alanın nereden geldiğini bulmak, satırın ne gösterdiğini bulmak değildir.
+
+**Ve bu, "abartılmış şiddet" kuralının nedenini veriyor:** abartma çoğu
+zaman kötü niyet ya da acele değil, **yarım okumanın doğal sonucu** — ve
+yarım okuma, dosya uzunsa iki kişide birden olur.
