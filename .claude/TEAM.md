@@ -3434,3 +3434,78 @@ yanlış olurdu.
 **Yani bir nöbetçinin kırmızısı, bir tasarım kararının yokluğu
 anlamına gelmez.** Kararın yazılı olması, bir sonraki turda birinin
 onu "eksik" diye kapatmasını engelliyor — bugün üçüncü kez.
+
+### Negatif sonuç da bulgudur — "üretilemedi" yazmak, tahmin etmekten zordur
+
+value bir ölçüm istedi ve şartını koydu: *"üretilemezse tahmin etme,
+'üretilemedi' de."* pm ölçüme gitti ve **hâl kliniğinde soruyu
+üretecek veri olmadığını** buldu: iki randevunun ikisi de gelecekte,
+yani 31 hâlin arasında "geçmişte kalmış ama açık randevu" yok.
+
+pm elini boş döndürmedi — **verinin yokluğunu 32. hâl adayı olarak
+açtı.** Aradaki fark:
+
+| söylenen | ne demek | ne doğurur |
+|---|---|---|
+| "ölçemedim" | yöntem yetmedi | tekrar dene |
+| "ölçtüm, yok" | veri o hâli üretmiyor | **yeni bir hâl** |
+
+Ölçümü `PMTEST`'te yürüttü ve **iki randevuyu kendisinin
+oluşturduğunu rapora yazdı.** Bu satır, bugün lead'in iki kez
+düştüğü çukurun kenarına konmuş tabeladır (`PRICE_SPREAD`'in "lo
+11111 / hi 123456"sı pm'in test tutarlarıydı, kanıt sanıldı).
+**Kaynağı raporun içine koymak, karşı tarafı doğrulama işinden
+kurtarır.**
+
+### Maliyeti tıklamada değil, veterinerin kafasında ölç
+
+Ölçümün üç sayısı — 4 ekran, 3 tıklama, 0 ayrı gün — sorunun
+küçük olduğunu söylüyordu. **Asıl bulgu sayılarda değildi:**
+
+> Liste geçmişi gelecekten **ayırmıyor**. Beş satır yan yana, aynı
+> rozet, aynı renk; veteriner tarihleri okuyup bugünle **kendi
+> kafasında** karşılaştırıyor.
+
+pm bunu, sayfa metninde *"geçmiş" / "açık kalan" / "sonucu
+kaydedilmedi"* ifadelerinin **yokluğunu** tarayarak ölçtü — istenmemiş
+bir adım. Gerçek maliyet: **3 tıklama + her satır için zihinsel tarih
+karşılaştırması**, ve ikinci terim liste uzadıkça büyüyor. 5 satırda
+görünmez, 200 randevulu klinikte aranan iki satır aralarında kaybolur.
+
+**Kural: bir akışın maliyeti, tıklama sayısı artı kullanıcının
+yapmak zorunda kaldığı zihinsel iştir. İkincisi ölçülmezse ucuz
+görünen akışlar pahalıdır.**
+
+### "Bilgi eksik" ile "bilgi yanlış yerde" farklı işlerdir
+
+value ayrımı ürünün iki yerde bildiğini saymıştı; pm bir üçüncüsünü
+ekledi: **randevu detay sayfası ayrımı sadece bilmiyor, cümleyle
+söylüyor ve eylem öneriyor.** Bu, önerinin şeklini değiştirir:
+
+- "sekme ekleyelim" → yeni bir kavram, yeni bir iş
+- **"ürün bu ayrımı üç yerde biliyor, üçü de listenin dışında"** →
+  eksik olan bilgi değil, bilginin **bulunduğu yer**
+
+İkinci cümle hem işi küçültür hem de çözümün nereye konacağını
+söyler. **Bir kusuru açmadan önce, ürünün o bilgiyi zaten nerelerde
+bildiğini say.**
+
+### Sınırını yazan ölçüm, ölçümün kendisi kadar değerli
+
+pm iki sınır yazdı: **5 satırla ölçtü, 200'de ne olacağını
+bilmiyor** (yalnızca yön belli), ve **`ARRIVED`/`IN_PROGRESS`
+durumlarını ölçmedi** — "geldi de yazmadık" vakası orada olabilir ve
+süzgeç tek seçimli olduğu için bir tıklama daha ister. İkincisi
+kendiliğinden bir sonraki turun işini tanımlıyor.
+
+### Zemin kuralı çakışmayı da önleyebilir
+
+`SERVED_COMMIT.txt` yokken ölçmeme kuralı bugün **iki kişide birden**
+çalıştı (pm ve ux ayrı ayrı bekledi). pm bir adım öteye taşıdı: ux
+ile dev-ui'nin **aynı dakikada aynı derlemeyi tazelemek üzere**
+olduğunu görüp ikisini birbirine yönlendirdi. Kimsenin görevi
+değildi; iki kişiyi beklemekten kurtardı.
+
+**Zemin dosyası yalnızca "ölç/ölçme" demiyor — kimin neyi ne zaman
+tazelediğini de görünür kılıyor. Tazelemeden önce başkasının
+tazeleyip tazelemediğine bak.**
