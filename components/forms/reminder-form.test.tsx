@@ -280,6 +280,19 @@ describe("searching for an animal once the client is known", () => {
  * will not happen; it does not decide for anyone.
  */
 describe("warning that this reminder cannot reach anyone", () => {
+  // Read the way a screen reader reads it: follow the picker's own
+  // `aria-describedby` to whatever it points at. The sentence is on the
+  // page twice on purpose — once as the field's description, once in the
+  // live region that speaks it — so asking for it by text alone finds two
+  // and says nothing about whether either is attached to the field.
+  const described = () => {
+    const ids = (picker(/müşteri/i).getAttribute("aria-describedby") ?? "")
+      .split(" ")
+      .filter(Boolean);
+    return ids
+      .map((id) => document.getElementById(id)?.textContent ?? "")
+      .join(" ");
+  };
   const warning = () =>
     screen.queryByText(new RegExp(tr.reminder.unreachable.savedAnyway));
 
@@ -307,7 +320,7 @@ describe("warning that this reminder cannot reach anyone", () => {
   it("tells a question never asked apart from a refusal", () => {
     const { unmount } = renderForm();
     choose(/müşteri/i, "Mehmet Kaya");
-    expect(screen.getByText(/hiç sorulmamış/)).toBeInTheDocument();
+    expect(described()).toMatch(/hiç sorulmamış/);
     unmount();
 
     renderForm({
@@ -322,7 +335,7 @@ describe("warning that this reminder cannot reach anyone", () => {
       ],
     });
     choose(/müşteri/i, "Zeynep Arslan");
-    expect(screen.getByText(/onayı vermemiş/)).toBeInTheDocument();
+    expect(described()).toMatch(/onayı vermemiş/);
   });
 
   it("warns when there is consent but no number to send to", () => {
@@ -339,7 +352,7 @@ describe("warning that this reminder cannot reach anyone", () => {
     });
     choose(/müşteri/i, "Hasan Yıldız");
 
-    expect(screen.getByText(/telefon numarası yok/)).toBeInTheDocument();
+    expect(described()).toMatch(/telefon numarası yok/);
   });
 
   // It has to survive the capped path, which is the one the warning would
@@ -358,15 +371,28 @@ describe("warning that this reminder cannot reach anyone", () => {
     renderForm();
     choose(/müşteri/i, "Mehmet Kaya");
 
-    const input = picker(/müşteri/i);
-    const ids = (input.getAttribute("aria-describedby") ?? "").split(" ");
-    const described = ids
-      .map((id) => (id ? document.getElementById(id) : null))
-      .filter(Boolean);
-    expect(described.length).toBeGreaterThan(0);
-    expect(
-      described.some((el) => el!.textContent?.includes("hiç sorulmamış")),
-    ).toBe(true);
+    expect(described()).toMatch(/hiç sorulmamış/);
+  });
+
+  // The description is read when focus ARRIVES at a control. Choosing a
+  // client from the picker leaves focus exactly where it was, so a
+  // describedby that changes underneath it is correct and silent -- and
+  // the vet who most needs the warning is the one who never hears it.
+  // The region is on the page from the start and empty, because a live
+  // region that mounts together with its first message does not reliably
+  // announce anything.
+  it("speaks the warning at the moment the client is chosen", () => {
+    const { container } = renderForm();
+    const region = container.querySelector('[role="status"]')!;
+    expect(region, "the region has to exist before it has anything to say")
+      .not.toBeNull();
+    expect(region.textContent).toBe("");
+
+    choose(/müşteri/i, "Mehmet Kaya");
+    expect(region.textContent).toMatch(/hiç sorulmamış/);
+
+    choose(/müşteri/i, "Ayşe Demir");
+    expect(region.textContent).toBe("");
   });
 
   it("works for a client reached through the search", async () => {
@@ -386,7 +412,7 @@ describe("warning that this reminder cannot reach anyone", () => {
     await typeInto(/müşteri/i, "uza");
     fireEvent.mouseDown(screen.getByText("Uzak Müşteri"));
 
-    expect(screen.getByText(/hiç sorulmamış/)).toBeInTheDocument();
+    expect(described()).toMatch(/hiç sorulmamış/);
   });
 });
 

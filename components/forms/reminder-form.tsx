@@ -11,6 +11,7 @@ import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
+import { Announcer } from "@/components/ui/announcer";
 import { REMINDER_TYPES } from "@/modules/reminders/schema";
 import { createReminderAction } from "@/modules/reminders/actions";
 import { searchClientsAction } from "@/modules/clients/actions";
@@ -239,6 +240,9 @@ export function ReminderForm({
    * the half that does work -- the screen says what will not happen, it
    * does not decide for anyone.
    */
+  const unreachableText = (reason: string) =>
+    `${t(`unreachable.${reason}`)} ${t("unreachable.savedAnyway")}`;
+
   const unreachable =
     !contact
       ? null
@@ -267,14 +271,17 @@ export function ReminderForm({
           The cost is the warning colour, and it is a real cost. Raised
           with ux rather than settled here: the fix for it is a tone on
           `Field`, not a second box that repeats what this one says. */}
+      {/* Both channels, one string. The hint above is the description,
+          read when focus ARRIVES at the picker; this speaks at the moment
+          the answer changes while focus is already sitting there, which is
+          exactly when a client is chosen. Without it the description is
+          correct and silent, and the vet who most needs the warning is the
+          one who does not get it. */}
+      <Announcer message={unreachable ? unreachableText(unreachable) : null} />
       <Field
         label={tClient("one")}
         error={state.fieldErrors?.clientId}
-        hint={
-          unreachable
-            ? `${t(`unreachable.${unreachable}`)} ${t("unreachable.savedAnyway")}`
-            : undefined
-        }
+        hint={unreachable ? unreachableText(unreachable) : undefined}
         required
       >
         {/* See `InvoiceForm`: searchable only once the list is short of
