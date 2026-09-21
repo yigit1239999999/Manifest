@@ -347,11 +347,26 @@ export function Combobox({
     }
   }
 
-  // The note under the list. Two readings of one fact: above the
-  // threshold the server has answered and still had more, below it the
-  // server has not been asked at all — and what the user should do about
-  // that is different enough to say differently.
-  const footerLabel = belowThreshold ? searchHintLabel : hasMoreLabel;
+  // The note under the list, and it carries up to two sentences
+  // because up to two things are true.
+  //
+  // It used to pick one: below the threshold the instruction, above it
+  // the warning. That reads as though they were the same fact seen
+  // from two sides, and pm measured what it costs. A clinic with 63
+  // clients and a cap of 50 opens the picker and sees fifty names
+  // under the words "type at least two letters to search" — an
+  // invitation, not a warning. Thirteen records are missing and
+  // nothing says so. Someone who scrolls the list, does not find who
+  // they want, and creates a second record has done the exact thing
+  // `ad6b01e` was written to prevent, and the sentence that would
+  // have stopped them was already written and withheld until the
+  // second keystroke.
+  //
+  // So: the warning whenever the list is short of the clinic, the
+  // instruction whenever the server has not been asked yet, and both
+  // together in the state where both are true.
+  const showCapNote = hasMore && Boolean(hasMoreLabel);
+  const showSearchHint = belowThreshold && Boolean(searchHintLabel);
 
   const rows: Array<{
     key: string;
@@ -365,7 +380,7 @@ export function Combobox({
     })),
     ...(showAdd ? [{ key: "__add__", kind: "add" as const }] : []),
   ];
-  const showNote = hasMore && rows.length > 0 && Boolean(footerLabel);
+  const showNote = rows.length > 0 && (showCapNote || showSearchHint);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "ArrowDown") {
@@ -538,12 +553,16 @@ export function Combobox({
             ordered, so it is always the same end of the alphabet
             missing, which reads exactly like "not on file". */}
           {showNote && (
-            <p
+            <div
               id={noteId}
-              className="border-t border-border px-2.5 py-2 text-xs text-muted-foreground"
+              className="flex flex-col gap-0.5 border-t border-border px-2.5 py-2 text-xs text-muted-foreground"
             >
-              {footerLabel}
-            </p>
+              {/* The fact first, the instruction second. What is
+                  missing is the news; what to do about it only
+                  matters once you know there is something to do. */}
+              {showCapNote && <p>{hasMoreLabel}</p>}
+              {showSearchHint && <p>{searchHintLabel}</p>}
+            </div>
           )}
         </div>
       )}

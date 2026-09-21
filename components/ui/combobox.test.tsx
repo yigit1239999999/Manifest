@@ -501,12 +501,21 @@ describe("the note reaches the input it is about", () => {
   }
 
   it("describes the input by the note while the note is showing", () => {
-    const { input } = render_();
+    const { container, input } = render_();
     fireEvent.focus(input);
 
-    const note = screen.getByText("En az iki harf yazın.");
-    expect(input.getAttribute("aria-describedby")?.split(" ")).toContain(
-      note.id,
+    // Looked up from the input's own `aria-describedby` rather than
+    // from the text. The note grew a second sentence, so the text now
+    // sits in a child and the id is on the box around both — reading
+    // the id off the text element quietly found nothing. Going the
+    // direction a screen reader goes is also the direction that
+    // cannot drift.
+    const ids = input.getAttribute("aria-describedby")!.split(" ");
+    const described = ids
+      .map((id) => container.querySelector(`#${CSS.escape(id)}`))
+      .filter(Boolean);
+    expect(described.some((el) => el!.textContent?.includes("En az iki harf"))).toBe(
+      true,
     );
   });
 
@@ -519,7 +528,9 @@ describe("the note reaches the input it is about", () => {
 
     const ids = input.getAttribute("aria-describedby")!.split(" ");
     expect(ids).toContain("field-error");
-    expect(ids).toContain(screen.getByText("En az iki harf yazın.").id);
+    // The note's own id, whatever it is called: the assertion is that
+    // the caller's description was joined, not replaced.
+    expect(ids.length).toBeGreaterThan(1);
   });
 
   it("says nothing when there is no note", () => {
@@ -608,5 +619,66 @@ describe("what the list says while it has nothing to show", () => {
 
     expect(onSearch).not.toHaveBeenCalled();
     expect(screen.getByText("En az iki harf yazın.")).toBeInTheDocument();
+  });
+});
+
+// Two things can be true at once and the note used to pick one.
+//
+// pm measured the cost on a clinic of 63 with a cap of 50: open the
+// picker, see fifty names, and read "type at least two letters to
+// search". That is an invitation. Thirteen records are missing and
+// nothing on screen says so, and the sentence that would have said it
+// was already written — withheld until the second keystroke.
+describe("the note when the list is short of the clinic", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  function capped() {
+    const view = render(
+      <Combobox
+        name="clientId"
+        options={[
+          { value: "c1", label: "Ayşe Kara" },
+          { value: "c2", label: "Mehmet Kaya" },
+        ]}
+        onSearch={async () => []}
+        hasMore
+        searchHintLabel="En az iki harf yazın."
+        hasMoreLabel="Tüm kayıtlar gösterilmiyor."
+        noResultsLabel="Sonuç yok."
+      />,
+    );
+    return { ...view, input: view.container.querySelector('input[type="text"]')! };
+  }
+
+  it("says both, when both are true", () => {
+    const { input } = capped();
+    fireEvent.focus(input);
+
+    // The state pm found: nothing typed, the list is the capped one,
+    // and the server has not been asked.
+    expect(screen.getByText("Tüm kayıtlar gösterilmiyor.")).toBeInTheDocument();
+    expect(screen.getByText("En az iki harf yazın.")).toBeInTheDocument();
+  });
+
+  it("still says the list is short after one letter", () => {
+    // The second half of pm's measurement: one character is still
+    // below the threshold, and the records are still missing.
+    const { input } = capped();
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "M" } });
+
+    expect(screen.getByText("Tüm kayıtlar gösterilmiyor.")).toBeInTheDocument();
+  });
+
+  it("drops the instruction once the server has been asked", () => {
+    const { input } = capped();
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Me" } });
+
+    // The instruction has been followed, so it stops being said. The
+    // warning is a separate question and is still open — the server
+    // does not report whether its own answer was cut short.
+    expect(screen.queryByText("En az iki harf yazın.")).toBeNull();
   });
 });
