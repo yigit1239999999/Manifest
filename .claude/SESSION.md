@@ -246,6 +246,52 @@ yazılmadı, düzeltme burada.
 okuyan bir e2e testi **hatayı teste gömerdi.** Yazılacak test geçişin
 **yerleşmesini beklemeli.**
 
+## ⚠ BU ÜRÜNDE BUGÜN KULLANICI YOK — kuyruğu buna göre oku
+
+`58d7c86` sonrası metrik betiği her koşuda şunu basıyor:
+
+```
+POPULATION [seed 1 · e2e 147 · fixture 1 · hand-made 3 · REAL 0]
+REAL_POPULATION [none] — ...Nothing is failing; nothing has started.
+VOLUME  N/A — no real clinics
+```
+
+> **Döngü ölçümlerinin HİÇBİRİ kanıt değil. Sıralama kod kanıtına ve işin
+> mantığına dayanıyor, KULLANIM VERİSİNE DEĞİL.**
+
+**Bu ayrımın yazılı olması gerekiyor** çünkü kayıtta *"ölçüm"* kelimesi
+**iki ayrı şey** için geçiyor: `/staff` bandı, tür P0, 22 Tab — hepsi
+**ölçülmüş kod ve ekran** kanıtıydı ve sıralamayı onlar kurdu. Ama altı ay
+sonra biri kuyruğu **veri odaklı** sanabilir. Sanmasın.
+
+### Ve bir sayı bugün ÜÇ KEZ oynadı — üçünde de sebep veri değil TANIMDI
+
+| okuma | değişen |
+|---|---|
+| `true` 10 / 11 | hâl kliniği sayılıyor mu |
+| `INPUT_FILL_RATE` 2/11 → 2/5 | e2e klinikleri sayılıyor mu |
+| 2/5 → `1/2` → **N/A** | fikstür sayılıyor mu |
+
+**Her seferinde önce SÜZGECİ rafine ettik.** İşe yarayan şey dördüncü bir
+süzgeç değil, **tanımı çıktının parçası yapmak** oldu.
+
+> **Bir sayı tekrar tekrar oynuyorsa, oynayanın VERİ mi TANIM mı olduğunu
+> sor. Süzgeç eklemek, tanım sorusunu erteler.**
+
+**Ve value'nun süzgeç reddi bunun en iyi örneği:** `PMTEST` fikstürünü
+süzmek *"gerçek bir tabanı ortaya çıkarmıyor, **gerçek tabanın sıfır
+olduğunu** ortaya çıkarıyor"* — bir süzgeç daha sayıyı küçültür,
+*"gerçek"* etiketini bırakır, ve **hâlâ yanlış olur.**
+
+**dev'in iki sapması da gerekçeleriyle duruyor:** REAL sıfırken sorgular
+**yine de koşuyor**, yalnız çıktı `N/A` oluyor — *"boş bir cevap,
+sorgunun hâlâ derlendiğini kanıtlamıyor"*, ve `CLOSURE_REASONS`'ın kendi
+`column does not exist` satırını basması bunun **canlı kanıtı**. Erken
+çıkış *"sessiz bir betik, çalıştığının kanıtıdır"* yanılgısını üretirdi.
+Ve **`hand-made` bir desen değil LİSTE**, çünkü *görünür çürüsün*: yeni
+bir test kliniği `REAL 1` yapar ve aynı gün fark edilir; desen onu
+**sessizce yutardı** — `Money Clinic`'in yaptığı tam buydu.
+
 ## ⚠ ÖLÇÜM TABANLARININ TAMAMI YENİDEN OKUNMALI — payda test verisiymiş
 
 dev e2e kliniklerini süzdü ve sayı beklenenden **otuz beş kat** büyük
