@@ -6170,3 +6170,29 @@ o işi **taşıyan bir nesne** olmasını gerektirir. Yoksa yapılacak
 tek dürüst şey **kalemi ayırmak** — kapsam disiplini için değil,
 **gidecek yeri olmadığı** için. Ve o kalemin adı *"bir düğmenin
 metni"* değil, **"ürüne iç görev kavramı girmesi".**
+
+### Bir izni genişletmek, ondan türeyen kapıları sessizce boşaltır
+
+`RECEPTIONIST`'e `diagnostics.write` verildi — kullanıcının kararı,
+gerekçesi *"bir devir hatasını yeni bir devirle çözme"*.
+
+Beklenmeyen sonuç: **dört rolün dördü de** o izni taşır oldu, yani
+`pets/[id]` ve `visits/[id]`'deki `canAddDiagnostic` kapıları
+**kimseyi reddetmeyen sorular** hâline geldi. Kod aynı, davranış
+aynı, ve kapılar artık **hiçbir şey yapmıyor.**
+
+`app/route-states.test.ts` bunu **dev fark etmeden** yakaladı ve
+kırmızı verdi. dev kapıları **kaldırdı**, belge diye bırakmadı —
+testin uyguladığı kural bu — ve yerlerine gerçek kısıtlamanın nerede
+yaşadığını yazan bir yorum koydu.
+
+> **Bir izni genişletmek, ondan türeyen her kapıyı gözden geçirmeyi
+> gerektirir.** Genişleyen izin yukarıda, boşalan kapı aşağıda durur;
+> ikisi arasında hiçbir derleyici hatası yoktur ve **hiçbir davranış
+> değişmez** — yalnız bir koruma sessizce süse dönüşür.
+
+Bugünün ailesinin bir üyesi daha, ve ayırt edici yanı şu: ötekiler
+**iki yolun ayrışmasıydı**, bu **tek yolun anlamını yitirmesi.** İkisi
+de kod okunarak görülmez; birincisini karşılaştırma, ikincisini
+**kapının hâlâ birini reddedip reddetmediğini soran bir test**
+yakalar.
