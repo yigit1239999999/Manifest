@@ -4,6 +4,7 @@ import { Edit3 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { getAppointmentById } from "@/modules/appointments/queries";
 import { cancelAppointmentAction } from "@/modules/appointments/actions";
 import { PageHeader } from "@/components/page-header";
@@ -65,6 +66,11 @@ export default async function AppointmentPage({
   // A dead or archived animal is never written about, so the card offers
   // nothing rather than a button the server would refuse.
   const petSilenced = preview?.petSilenced ?? false;
+  // The same permission the service demands (`modules/appointments/service.ts`
+  // :22, :58, :95), not a near neighbour: if the screen asks a different
+  // question from the one the server answers, the two drift into a hidden
+  // door that is open or a visible one that is shut.
+  const canWrite = can(session.user.role, "appointments.write");
 
   return (
     <div className="flex flex-col gap-6">
@@ -85,13 +91,15 @@ export default async function AppointmentPage({
           </>
         }
       >
-        <Link
-          href={`/appointments/${appointment.id}/edit`}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Edit3 />
-          {tCommon("edit")}
-        </Link>
+        {canWrite && (
+          <Link
+            href={`/appointments/${appointment.id}/edit`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Edit3 />
+            {tCommon("edit")}
+          </Link>
+        )}
         {appointment.status !== "CANCELLED" && (
           <DeleteButton
             action={cancelAppointmentAction.bind(null, appointment.id)}
@@ -189,7 +197,11 @@ export default async function AppointmentPage({
                   invitation. A vet who reads "the outcome has not been
                   recorded" should not have to look back up the page and work
                   out that "Edit" is the name of the job. */}
-              {!isAppointmentClosed(appointment.status) &&
+              {/* The sentence above stays for a role that cannot act on it:
+                  we do not offer someone a job they are not allowed to do,
+                  and we do not hide from them what is going on either. */}
+              {canWrite &&
+                !isAppointmentClosed(appointment.status) &&
                 appointment.status !== "COMPLETED" && (
                   <Link
                     href={`/appointments/${appointment.id}/edit`}
