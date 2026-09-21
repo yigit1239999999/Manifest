@@ -12,6 +12,7 @@ vi.mock("@/modules/clients/actions", () => ({
 }));
 
 import { ClientForm } from "@/components/forms/client-form";
+import { clientSchema } from "@/modules/clients/schema";
 import type { Client } from "@/generated/prisma/client";
 
 // Consent is a record of something a client said, and a record has three
@@ -225,5 +226,60 @@ describe("what the counter has to fill in", () => {
     )) {
       expect(radio).not.toHaveAttribute("required");
     }
+  });
+});
+
+/**
+ * The third radio costs nothing, and this is what keeps it free.
+ *
+ * "Not now" submits an empty string, and `tristate` in `lib/forms.ts`
+ * turns anything that is not "true" or "false" into no value at all. So
+ * the column stays three-valued and no consumer of it learns a new
+ * state. The whole distinction lives on screen -- a question nobody
+ * reached against one somebody decided to leave.
+ *
+ * That freedom rests entirely on `tristate` staying lenient. Tightened
+ * to reject the empty string, this form would start failing validation
+ * with nothing on screen to say why, and the person tightening it would
+ * have no reason to suspect the client form at all. A note would not
+ * have stopped that: today a documented trap in `button.tsx` cost
+ * another cycle, and a hand-checked list of example names let a second
+ * bad one through. So it is a test, and the test says why.
+ */
+describe("what the third answer sends", () => {
+  it("submits an empty value that the schema reads as no answer", () => {
+    const parsed = clientSchema.safeParse({
+      firstName: "Ayşe",
+      phone: "0532 111 22 33",
+      notificationsOptIn: "",
+    });
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.notificationsOptIn).toBeUndefined();
+  });
+
+  it("reads an untouched form the same way", () => {
+    const parsed = clientSchema.safeParse({
+      firstName: "Ayşe",
+      phone: "0532 111 22 33",
+    });
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.notificationsOptIn).toBeUndefined();
+  });
+
+  it("is the value the third radio actually carries", () => {
+    const { container } = renderForm();
+
+    const radios = [
+      ...container.querySelectorAll<HTMLInputElement>(
+        'input[name="notificationsOptIn"]',
+      ),
+    ];
+
+    // Asserted against the rendered control rather than the constant, so
+    // the two tests above cannot go on passing about a value the form
+    // has stopped sending.
+    expect(radios.map((r) => r.value)).toContain("");
   });
 });

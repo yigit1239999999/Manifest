@@ -63,6 +63,19 @@ interface Props {
 // one. The second is ux's and is the same thought one step further --
 // a default IS a light kind of forcing, and unasked is not one of the
 // three answers. It is the absence of one.
+// And the third one writes NOTHING to the column, on purpose.
+//
+// "Not now" and an untouched form both arrive as null, because the
+// product does the same thing in both cases: no message goes out, and
+// the question has to be asked again. A fourth column value would add
+// no information and would put every consumer of this field --
+// `reminderCensus`, the dashboard count, the delivery lines -- in front
+// of a state it has never seen.
+//
+// Written here rather than left in a decision nobody can find later: in
+// six months the distinction will look forgotten rather than declined,
+// and somebody will add it back as a fourth value. That is the shape of
+// the defect this product already paid for once with `DRAFT`.
 const CONSENT_ANSWERS = ["true", "false", ""] as const;
 
 // What is behind the fold, named rather than counted by hand.
