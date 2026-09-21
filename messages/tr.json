@@ -795,7 +795,9 @@
       "sendFailed": "Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin.",
       "appointmentClosed": "Bu randevu kapandığı için mesaj gönderilemez.",
       "appointmentPast": "Randevu saati geçtiği için bu mesaj artık doğru değil.",
-      "petSilenced": "Bu hayvan için mesaj gönderilmez."
+      "petSilenced": "Bu hayvan için mesaj gönderilmez.",
+      "remindersDisabled": "Hatırlatma mesajları klinik ayarlarında kapalı.",
+      "alreadySent": "Bu hatırlatma için mesaj zaten gönderildi."
     },
     "validation": {
       "ownerNotInClinic": "Bu sahip bu klinikte bulunamadı.",

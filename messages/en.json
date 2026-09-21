@@ -795,7 +795,9 @@
       "sendFailed": "The message could not be sent. Please try again later.",
       "appointmentClosed": "This appointment is closed, so no message can be sent for it.",
       "appointmentPast": "The appointment time has passed, so this message is no longer true.",
-      "petSilenced": "No message is sent for this animal."
+      "petSilenced": "No message is sent for this animal.",
+      "remindersDisabled": "Reminder messages are switched off in the clinic settings.",
+      "alreadySent": "A message for this reminder has already been sent."
     },
     "validation": {
       "ownerNotInClinic": "This owner isn't in your clinic.",
