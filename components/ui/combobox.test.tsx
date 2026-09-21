@@ -220,3 +220,42 @@ describe("searching a combobox against the server", () => {
     );
   });
 });
+
+describe("a selection outside the capped list", () => {
+  // The cap came down from five hundred to fifty when the pickers got a
+  // server search. That made the list ten times more likely to be missing
+  // the record being edited, and the picker's label lookup only ever read
+  // `options` — so the edit screen for a clinic's 87th animal opened with
+  // an empty required field over a hidden input that still held the value.
+  const options = Array.from({ length: 50 }, (_, i) => ({
+    value: `pet-${i}`,
+    label: `Animal ${i}`,
+  }));
+
+  it("shows the name the caller supplies when the value is past the cap", () => {
+    render(
+      <Combobox
+        name="petId"
+        options={options}
+        defaultValue="pet-87"
+        defaultLabel="Animal 87"
+        noResultsLabel="none"
+      />,
+    );
+    expect(screen.getByRole("combobox")).toHaveValue("Animal 87");
+    expect(screen.getByDisplayValue("pet-87")).toBeInTheDocument();
+  });
+
+  it("prefers the option list when the value is in it", () => {
+    render(
+      <Combobox
+        name="petId"
+        options={options}
+        defaultValue="pet-3"
+        defaultLabel="stale name"
+        noResultsLabel="none"
+      />,
+    );
+    expect(screen.getByRole("combobox")).toHaveValue("Animal 3");
+  });
+});

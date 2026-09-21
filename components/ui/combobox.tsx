@@ -22,6 +22,21 @@ interface Props {
   name: string;
   options: ComboOption[];
   defaultValue?: string;
+  /**
+   * The label for `defaultValue`, when it cannot be found in `options`.
+   *
+   * On an edit screen the picker is handed a capped list — fifty animals
+   * out of a clinic's hundred and twenty — and the record being edited is
+   * not necessarily in it. Without this the field opens blank while the
+   * hidden input still carries the value: the vet sees an empty required
+   * field, and the only honest reading of that is that the selection was
+   * lost. It was not, which makes it worse — re-picking is the obvious
+   * move, and re-picking is how the wrong animal gets attached to a visit.
+   *
+   * The caller always knows this string. It is loading the record anyway
+   * in order to fill the rest of the form.
+   */
+  defaultLabel?: string;
   placeholder?: string;
   id?: string;
   required?: boolean;
@@ -76,6 +91,7 @@ export function Combobox({
   name,
   options,
   defaultValue = "",
+  defaultLabel,
   placeholder,
   id,
   required,
@@ -94,6 +110,7 @@ export function Combobox({
   const initialLabel = freeText
     ? defaultValue
     : (options.find((o) => o.value === defaultValue)?.label ??
+      defaultLabel ??
       (defaultValue && allowCustom ? defaultValue : ""));
 
   const [value, setValue] = React.useState(defaultValue);
