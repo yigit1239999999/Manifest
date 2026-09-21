@@ -2464,3 +2464,25 @@ vermedi"* **kapanmış bir konu.**
 **Ve gösterimde:** `null` için **tire basılmaz.** Tire yokluk işaretidir,
 oysa *"sorulmadı"* **bilgidir** — ayrım yeni kazanılıyorsa gösterimde
 hemen kaybedilmemeli.
+
+### Vurgu DEĞERLE izlenir, indeksle değil
+
+ux'in kuralı, birleşik liste (yerel süzme + eşzamansız uzak sonuç) şeklinden
+doğdu: liste **tek tuş vuruşunda iki kez** değişebiliyor.
+
+> **Vurgulanan seçenek, kullanıcı onu hareket ettirmeden KİMLİK
+> DEĞİŞTİREMEZ.** Vurgu değerle izlenir; yeni listede yoksa **sıfırlanır**
+> — *"ilk öğeye kay" değil*, çünkü o da sessizce bir seçim önerir.
+
+Vurgu indeksle tutulursa kullanıcı hiçbir şey yapmadan başka bir kaydın
+üstüne kayar ve Enter'a basınca **yanlış müşteriyi** seçer. Bu, `12`'nin
+(yanlış klinisyen) ve `0dcfaed`'in (yanlış aşı) aynı ailesi: **sessizce
+yanlış kayıt.**
+
+**Ve `searchMinChars`'ın gerekçesi `searchMore`'unkinden dar:** ikisinde de
+yapılacak şey yazmak, ama `searchMinChars` bir **cevapsızlığı** açıklıyor —
+kullanıcı bir harf yazar, liste kıpırdamaz, ve ekranın o an söylemesi
+gereken *"daha fazlası var"* değil **"henüz aramadım, bir harf yetmiyor."**
+`searchMore` orada dursaydı kullanıcı **aramanın bozuk olduğunu** düşünürdü.
+*İki mesaj aynı eylemi istiyor diye aynı mesaj değildir; hangi soruyu
+cevapladıkları farklı.*
