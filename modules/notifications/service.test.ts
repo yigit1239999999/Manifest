@@ -25,6 +25,7 @@ vi.mock("@/lib/messaging/transports", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
+import { TransportError } from "@/lib/messaging/types";
 import {
   automaticSendBlock,
   automaticSendBlocked,
@@ -116,6 +117,31 @@ describe("sendAppointmentMessage", () => {
       messageKey: "error.notifications.optedOut",
     });
     expect(transport.send).not.toHaveBeenCalled();
+  });
+
+  // What is stored has to be classifiable, because a screen decides
+  // from it whether to send a vet to the settings page or to a phone.
+  it("stores the transport's code, not the provider's sentence", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(appointment() as never);
+    transport.send.mockRejectedValue(
+      new TransportError("sender_title_not_registered", "Gonderici adi onayli degil"),
+    );
+
+    await expect(
+      sendAppointmentMessage("a-1", "APPOINTMENT_REMINDER", ctx),
+    ).rejects.toBeInstanceOf(AppError);
+
+    const logged = vi.mocked(prisma.messageLog.create).mock.calls[0][0] as {
+      data: { status: string; error: string };
+    };
+    expect(logged.data).toMatchObject({
+      status: "FAILED",
+      error: "sender_title_not_registered",
+    });
+    // The provider's wording is free text it may change at any time; it
+    // belongs in the log line a person reads, not in a column code
+    // depends on.
+    expect(logged.data.error).not.toContain("Gonderici");
   });
 
   it("logs a FAILED row and surfaces a user-facing error when the provider rejects", async () => {
@@ -574,8 +600,40 @@ describe("reminderDeliveryState", () => {
       at: new Date("2026-09-20T08:00:00.000Z"),
       error: "sender_title_not_registered",
       attempts: 2,
+      // Two of three: the sweep will try again, which is a different
+      // sentence from "it has stopped trying".
+      exhausted: false,
+      // An unapproved sender title fails every message the clinic sends,
+      // so it is one fact about the clinic rather than one about this
+      // owner -- the difference between changing a setting and phoning
+      // forty people.
+      scope: "CLINIC",
       channel: "SMS",
     });
+  });
+
+  it("marks the attempts spent, and says nothing it cannot know", () => {
+    const failedAt = (day: number, error: string | null) => ({
+      status: "FAILED",
+      createdAt: new Date(`2026-09-${day}T08:00:00.000Z`),
+      error,
+      channel: "SMS" as const,
+    });
+
+    const spent = reminderDeliveryState(
+      row({ messages: [failedAt(18, "message_too_long_or_invalid"), failedAt(17, "message_too_long_or_invalid"), failedAt(16, "message_too_long_or_invalid")] }),
+      clinic,
+    );
+    expect(spent).toMatchObject({ attempts: 3, exhausted: true, scope: "MESSAGE" });
+
+    // A row written before the code was stored holds a provider
+    // sentence, and nothing can classify that. `null` has to stay
+    // tellable from both answers rather than defaulting to one.
+    const older = reminderDeliveryState(
+      row({ messages: [failedAt(18, "Gonderici adi onayli degil")] }),
+      clinic,
+    );
+    expect(older).toMatchObject({ scope: null, exhausted: false });
   });
 
   // A fact does not change when a setting does. Switching messaging off
@@ -613,21 +671,36 @@ describe("reminderDeliveryState", () => {
       reminderDeliveryState(row({ client: { phone: null, notificationsOptIn: false } }), off),
     ).toEqual({ state: "disabled" });
 
+    // Refused and never asked are one falsy value in code and two
+    // different mornings for a vet: nothing to do about the first, a
+    // phone call about the second.
+    expect(
+      reminderDeliveryState(row({ client: { phone: "0532 123 45 67", notificationsOptIn: false } }), clinic),
+    ).toEqual({ state: "optedOut" });
+
     expect(
       reminderDeliveryState(row({ client: { phone: "0532 123 45 67", notificationsOptIn: null } }), clinic),
-    ).toEqual({ state: "optedOut" });
+    ).toEqual({ state: "neverAsked" });
 
     expect(
       reminderDeliveryState(row({ client: { phone: null, notificationsOptIn: true } }), clinic),
     ).toEqual({ state: "noPhone" });
   });
 
-  // No sentence at all, rather than a promise nobody will keep.
-  it("says nothing about a closed reminder or a dead animal", () => {
-    expect(reminderDeliveryState(row({ status: "DISMISSED" }), clinic)).toBeNull();
+  // Silence is the defect this sentence exists to remove: a row saying
+  // nothing reads exactly like a row waiting its turn.
+  it("says why a dead animal's reminder will not go, rather than nothing", () => {
     expect(
       reminderDeliveryState(row({ pet: { deceased: true, archivedAt: null } }), clinic),
-    ).toBeNull();
+    ).toEqual({ state: "petSilenced" });
+    expect(
+      reminderDeliveryState(row({ pet: { deceased: false, archivedAt: new Date() } }), clinic),
+    ).toEqual({ state: "petSilenced" });
+  });
+
+  // The one case with genuinely nothing to report: nobody is waiting.
+  it("says nothing about a closed reminder that never had a message", () => {
+    expect(reminderDeliveryState(row({ status: "DISMISSED" }), clinic)).toBeNull();
   });
 });
 

@@ -16,8 +16,9 @@ import { isPetSilenced } from "@/lib/pet-status";
 import { isReminderDue, isReminderNoticeDue, reminderNoticeDueAt } from "@/lib/whatsapp/schedule";
 import { composeAppointmentFor, composeReminderFor } from "@/lib/messaging/compose";
 import { getTransport, isChannelConfigured } from "@/lib/messaging/transports";
+import { failureScope } from "@/lib/messaging/failures";
+import { TransportError, type Channel, type FailureScope } from "@/lib/messaging/types";
 import { smsSegments } from "@/lib/messaging/sms/segments";
-import type { Channel } from "@/lib/messaging/types";
 import { TIMEZONES, type NotificationSettingsInput } from "./schema";
 import {
   countryCallingCode,
@@ -282,17 +283,29 @@ async function deliver(
     });
     return log;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const detail = error instanceof Error ? error.message : String(error);
+    // The stable code is what gets stored, not the provider's sentence.
+    //
+    // A transport already classifies what went wrong ("sender title not
+    // registered"), and the sentence beside it is free text the provider
+    // may reword at any time. Storing the sentence meant the screen had
+    // nothing it could classify: whether a failure is the clinic's to fix
+    // or this one message's could only be recovered by matching wording,
+    // which works until the wording changes and is then quietly wrong.
+    // The sentence is not lost -- it goes to the log line below, where a
+    // person reads it and no code depends on it.
+    const stored = error instanceof TransportError ? error.code : detail;
     logger.error("notifications.send_failed", {
       channel,
       transport: transport.name,
       kind: target.kind,
       appointmentId: target.appointmentId,
       reminderId: target.reminderId,
-      err: message,
+      code: stored,
+      err: detail,
     });
     await prisma.messageLog.create({
-      data: { ...base, status: "FAILED", error: message.slice(0, 500) },
+      data: { ...base, status: "FAILED", error: stored.slice(0, 500) },
     });
     throw new AppError("VALIDATION_FAILED", "error.notifications.sendFailed");
   }
@@ -811,8 +824,21 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
 export type ReminderDeliveryState =
   | { state: "scheduled"; sendAt: Date; channel: Channel }
   | { state: "sent"; at: Date; channel: Channel }
-  | { state: "failed"; at: Date; error: string | null; attempts: number; channel: Channel }
+  | {
+      state: "failed";
+      at: Date;
+      /** The transport's stable code, for logs. Not a sentence to show. */
+      error: string | null;
+      attempts: number;
+      /** No automatic attempt is left; only a person can move this now. */
+      exhausted: boolean;
+      /** Whose problem it is, or null when nothing here can say. */
+      scope: FailureScope | null;
+      channel: Channel;
+    }
   | { state: "optedOut" }
+  | { state: "neverAsked" }
+  | { state: "petSilenced" }
   | { state: "noPhone" }
   | { state: "notConfigured"; channel: Channel }
   | { state: "disabled" }
@@ -861,13 +887,24 @@ export function reminderDeliveryState(
       at: failures[0].createdAt,
       error: failures[0].error,
       attempts: failures.length,
+      // Derived here and not on the screen: the threshold is the sweep's
+      // rule, and a copy of it in a component is a second place to
+      // change when it moves.
+      exhausted: failures.length >= MAX_AUTOMATIC_ATTEMPTS,
+      scope: failureScope(failures[0].error),
       channel: failures[0].channel,
     };
 
-  // Nothing has been attempted. Everything below is about the future,
-  // so a row with no future gets no sentence at all rather than a
-  // promise nobody intends to keep.
-  if (reminder.pet && isPetSilenced(reminder.pet)) return null;
+  // Nothing has been attempted, so everything below is about the future.
+  //
+  // A dead or archived animal has no future here, and that used to
+  // return null -- a row that said nothing at all. Saying nothing is
+  // the defect this whole sentence exists to remove: silence reads
+  // exactly like "waiting", which is what a reminder looks like when
+  // the loop is quietly not running. It gets its own answer.
+  if (reminder.pet && isPetSilenced(reminder.pet)) return { state: "petSilenced" };
+  // A closed reminder nothing was ever sent for is the one case with
+  // genuinely nothing to report: nobody is waiting on it.
   if (reminder.status !== "PENDING") return null;
 
   const cfg = clinic.notifications.whatsapp;
@@ -877,7 +914,12 @@ export function reminderDeliveryState(
   if (!cfg.enabled || !cfg.reminders.enabled) return { state: "disabled" };
   const channel = clinic.notifications.channel;
   if (!isChannelConfigured(channel)) return { state: "notConfigured", channel };
-  if (!reminder.client.notificationsOptIn) return { state: "optedOut" };
+  // Refused and never asked are one falsy value in code and two
+  // different mornings for a vet: nothing to do about the first, a
+  // phone call about the second. The column keeps them apart
+  // (prisma/schema.prisma) and so must everything reading it.
+  if (reminder.client.notificationsOptIn === false) return { state: "optedOut" };
+  if (reminder.client.notificationsOptIn !== true) return { state: "neverAsked" };
   if (!normalizePhone(reminder.client.phone, countryCallingCode(clinic.country)))
     return { state: "noPhone" };
 

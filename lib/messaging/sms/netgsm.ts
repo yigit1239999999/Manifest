@@ -7,20 +7,41 @@
 // documented error code.
 
 import { env } from "@/lib/env";
-import { TransportError, type MessageTransport, type SendRequest, type SendResult } from "../types";
+import {
+  TransportError,
+  type FailureScope,
+  type MessageTransport,
+  type SendRequest,
+  type SendResult,
+} from "../types";
 
 const ENDPOINT = "https://api.netgsm.com.tr/sms/rest/v2/send";
 const ACCEPTED = new Set(["00", "01", "02"]);
 
-const ERROR_CODES: Record<string, string> = {
-  "20": "message_too_long_or_invalid",
-  "30": "invalid_credentials_or_ip",
-  "40": "sender_title_not_registered",
-  "50": "iys_controlled_sending_not_allowed",
-  "51": "iys_brand_missing",
-  "70": "invalid_parameters",
-  "80": "sending_limit_exceeded",
-  "85": "duplicate_send_blocked",
+/**
+ * Netgsm's documented failures, each with whose problem it is.
+ *
+ * The scope is next to the code rather than in a list beside it, so a
+ * code cannot be added without deciding it -- and almost all of them
+ * turn out to be the clinic's. That is the substance: a bad phone
+ * number produces none of these (it fails at delivery, not at
+ * acceptance), so "this message failed" is the rare case here and
+ * "every message is failing" is the ordinary one.
+ *
+ * `70` is CLINIC on the same test. The parameters are ours, not the
+ * owner's: if we are building a request the gateway will not take, it
+ * takes none of them, and forty identical row-level sentences would
+ * send a vet to forty owners over one bug.
+ */
+export const NETGSM_ERRORS: Record<string, { key: string; scope: FailureScope }> = {
+  "20": { key: "message_too_long_or_invalid", scope: "MESSAGE" },
+  "30": { key: "invalid_credentials_or_ip", scope: "CLINIC" },
+  "40": { key: "sender_title_not_registered", scope: "CLINIC" },
+  "50": { key: "iys_controlled_sending_not_allowed", scope: "CLINIC" },
+  "51": { key: "iys_brand_missing", scope: "CLINIC" },
+  "70": { key: "invalid_parameters", scope: "CLINIC" },
+  "80": { key: "sending_limit_exceeded", scope: "CLINIC" },
+  "85": { key: "duplicate_send_blocked", scope: "MESSAGE" },
 };
 
 export const netgsmTransport: MessageTransport = {
@@ -60,7 +81,10 @@ export const netgsmTransport: MessageTransport = {
     if (!res.ok) throw new TransportError(`netgsm_http_${res.status}`, json.description);
     const code = String(json.code ?? "");
     if (!ACCEPTED.has(code)) {
-      throw new TransportError(ERROR_CODES[code] ?? `netgsm_code_${code || "unknown"}`, json.description);
+      throw new TransportError(
+        NETGSM_ERRORS[code]?.key ?? `netgsm_code_${code || "unknown"}`,
+        json.description,
+      );
     }
     return { providerId: json.jobid ?? "" };
   },
