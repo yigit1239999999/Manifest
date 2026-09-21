@@ -108,7 +108,9 @@
     },
     "chart": {
       "partialPeriod": "The last column covers a period still in progress.",
-      "inProgress": "in progress"
+      "inProgress": "in progress",
+      "otherCurrency": "Also {amount} · {count, plural, one {1 invoice} other {# invoices}} · not in the chart",
+      "otherCurrencyCount": "+{count, plural, one {1 currency} other {# currencies}}"
     },
     "empty": {
       "appointments": "No upcoming appointments.",

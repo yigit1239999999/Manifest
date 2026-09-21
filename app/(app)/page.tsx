@@ -94,7 +94,20 @@ export default async function DashboardPage() {
       icon: Receipt,
       value: insights.counts.outstandingInvoices,
       href: "/invoices",
-      hint: formatMoney(fmt, insights.outstandingInvoiceCents, currency),
+      // The count is currency-agnostic and stays whole. The amount beside
+      // it is only what is owed in the clinic's own currency — adding
+      // dollars to lira and printing one symbol was the defect — so when
+      // there is debt in others, the hint says they exist. Not how much:
+      // the size lives under the revenue chart, and this card has room for
+      // the fact. Naming a screen to go and read it would be worse, since
+      // `/invoices` has no total to read (TEAM.md #33).
+      hint:
+        formatMoney(fmt, insights.outstandingInvoiceCents, currency) +
+        (insights.outstandingOtherCurrencies.length > 0
+          ? ` · ${t("chart.otherCurrencyCount", {
+              count: insights.outstandingOtherCurrencies.length,
+            })}`
+          : ""),
     },
     {
       key: "openReminders" as const,
@@ -192,6 +205,26 @@ export default async function DashboardPage() {
                 note: t("chart.partialPeriod"),
                 inProgress: t("chart.inProgress"),
               }}
+              // What the chart cannot show, said in the chart's own card
+              // and in its accessible name. The bars are only the clinic's
+              // own currency, because adding dollars to lira and printing
+              // one symbol is a number that exists nowhere; the rest is
+              // reported at its real size, per currency, because "4
+              // invoices elsewhere" does not say whether the chart is
+              // missing pocket change or the entire total. In the case
+              // that found this, it was the entire total.
+              footnote={
+                insights.revenueOtherCurrencies.length > 0
+                  ? insights.revenueOtherCurrencies
+                      .map((m) =>
+                        t("chart.otherCurrency", {
+                          amount: formatMoney(fmt, m.cents, m.currency),
+                          count: m.invoices,
+                        }),
+                      )
+                      .join(" · ")
+                  : undefined
+              }
             />
           </CardContent>
         </Card>

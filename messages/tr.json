@@ -108,7 +108,9 @@
     },
     "chart": {
       "partialPeriod": "Son sütun devam eden dönemi gösterir.",
-      "inProgress": "devam ediyor"
+      "inProgress": "devam ediyor",
+      "otherCurrency": "Ayrıca {amount} · {count, plural, one {1 fatura} other {# fatura}} · grafikte yok",
+      "otherCurrencyCount": "+{count, plural, one {1 para birimi} other {# para birimi}}"
     },
     "empty": {
       "appointments": "Yaklaşan randevu yok.",

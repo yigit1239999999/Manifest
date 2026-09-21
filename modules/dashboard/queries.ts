@@ -13,6 +13,7 @@ import { recentVisits } from "@/modules/visits/queries";
 import { upcomingAppointments } from "@/modules/appointments/queries";
 import { upcomingVaccinations } from "@/modules/vaccinations/queries";
 import { OPEN_REMINDER_STATUSES } from "@/modules/reminders/queries";
+import { getClinicCurrency } from "@/modules/clinics/queries";
 
 interface CountsRow {
   clients: number;
@@ -22,6 +23,7 @@ interface CountsRow {
   active_prescriptions: number;
   outstanding_invoices: number;
   outstanding_total_cents: number;
+  outstanding_other_currencies: string[];
   open_reminders: number;
 }
 
@@ -32,7 +34,25 @@ interface WeekRow {
 
 interface MonthRow {
   month_start: Date;
+  currency: string;
   cents: number;
+  invoices: number;
+}
+
+/**
+ * Money the clinic has that its own currency cannot express.
+ *
+ * Reported rather than converted, and the reason belongs in the code
+ * because it will be argued with: a rate we picked would be a number the
+ * clinic never agreed to, applied to their books. Inventing one is the same
+ * class of act as inventing a vaccination interval (TEAM.md #14) — it looks
+ * helpful, it is unfalsifiable on screen, and it is wrong in a way nobody
+ * can see. So the total stays in its own currency and says so.
+ */
+export interface MoneyLeftOut {
+  currency: string;
+  cents: number;
+  invoices: number;
 }
 
 export interface DashboardInsights {
@@ -45,19 +65,29 @@ export interface DashboardInsights {
     outstandingInvoices: number;
     openReminders: number;
   };
+  /** In the clinic's own currency only. See `MoneyLeftOut`. */
   outstandingInvoiceCents: number;
+  /** Other currencies present among outstanding invoices, if any. */
+  outstandingOtherCurrencies: string[];
   upcomingAppointments: Awaited<ReturnType<typeof upcomingAppointments>>;
   upcomingVaccinations: Awaited<ReturnType<typeof upcomingVaccinations>>;
   recentVisits: Awaited<ReturnType<typeof recentVisits>>;
   visitsByType: { type: string; count: number }[];
   petsBySpecies: { species: string; count: number }[];
   visitsLast12Weeks: { weekStart: Date; count: number }[];
+  /** In the clinic's own currency only. See `MoneyLeftOut`. */
   revenueLast6Months: { monthStart: Date; cents: number }[];
+  /** What the chart above had to leave out, per currency. */
+  revenueOtherCurrencies: MoneyLeftOut[];
 }
 
 export async function dashboardInsights(
   clinicId: string,
 ): Promise<DashboardInsights> {
+  // The clinic's own currency, and the only one any total here is allowed to
+  // be expressed in. Deduplicated per request by `cache()`, so asking for it
+  // here costs nothing the page was not already paying.
+  const currency = await getClinicCurrency(clinicId);
   const now = new Date();
   const since12Weeks = new Date(now);
   since12Weeks.setDate(since12Weeks.getDate() - 84);
@@ -97,14 +127,27 @@ export async function dashboardInsights(
       -- What is still owed, not what was billed: a partly paid invoice owes
       -- its remainder. GREATEST keeps an overpaid invoice from cancelling
       -- another client's debt, the same way the invoice page floors at zero.
+      -- The currency is part of the filter, not an afterthought: adding up
+      -- dollars and lira and printing the answer with one symbol is not a
+      -- rounding error, it is a made-up number.
       (SELECT COALESCE(SUM(GREATEST(i."totalCents" - COALESCE(paid.cents, 0), 0)), 0) FROM "invoices" i
         LEFT JOIN LATERAL (
           SELECT SUM(p."amountCents") AS cents FROM "payments" p WHERE p."invoiceId" = i.id
         ) paid ON TRUE
         WHERE i."clinicId" = ${clinicId}
           AND i.status IN ('SENT','PARTIAL')
+          AND i.currency = ${currency}
           AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
       )::int AS outstanding_total_cents,
+      -- Which other currencies are owed in, so the card can say that the
+      -- figure above is not the whole of it. The amounts are not summed
+      -- here: the metric card has room for the fact, not the size of it.
+      (SELECT COALESCE(ARRAY_AGG(DISTINCT i.currency), ARRAY[]::text[]) FROM "invoices" i
+        WHERE i."clinicId" = ${clinicId}
+          AND i.status IN ('SENT','PARTIAL')
+          AND i.currency <> ${currency}
+          AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
+      ) AS outstanding_other_currencies,
       -- The same set the reminders list shows, taken from the same constant:
       -- the card used to count only PENDING while the list showed PENDING and
       -- SENT, so the number on the card and the number of rows behind it
@@ -129,16 +172,22 @@ export async function dashboardInsights(
     ORDER BY week_start
   `);
 
-  // 3) Paid-invoice revenue per month, same idea.
+  // 3) Paid-invoice revenue per month, same idea — but grouped by currency
+  //    as well, because a month is not one number when the invoices in it
+  //    were issued in different ones. The split into "the chart" and "what
+  //    the chart left out" happens below, from these same rows, so it costs
+  //    no extra roundtrip.
   const monthsPromise = prisma.$queryRaw<MonthRow[]>(Prisma.sql`
     SELECT
       date_trunc('month', "paidAt") AS month_start,
-      COALESCE(SUM("totalCents"), 0)::int AS cents
+      currency,
+      COALESCE(SUM("totalCents"), 0)::int AS cents,
+      COUNT(*)::int AS invoices
     FROM "invoices"
     WHERE "clinicId" = ${clinicId}
       AND status = 'PAID'
       AND "paidAt" >= ${since6Months}
-    GROUP BY month_start
+    GROUP BY month_start, currency
     ORDER BY month_start
   `);
 
@@ -187,6 +236,7 @@ export async function dashboardInsights(
     active_prescriptions: 0,
     outstanding_invoices: 0,
     outstanding_total_cents: 0,
+    outstanding_other_currencies: [],
     open_reminders: 0,
   };
 
@@ -198,11 +248,30 @@ export async function dashboardInsights(
   );
 
   const revenueLast6Months = fillBucketSeries(
-    monthRows.map((r) => ({ start: r.month_start, value: r.cents })),
+    monthRows
+      .filter((r) => r.currency === currency)
+      .map((r) => ({ start: r.month_start, value: r.cents })),
     new Date(now.getFullYear(), now.getMonth() - 5, 1),
     6,
     "month",
   );
+
+  // Everything the chart could not show, kept per currency and reported as
+  // an amount rather than a count: "4 invoices elsewhere" does not say
+  // whether the chart is missing pocket change or all of it. In the case
+  // that found this, the figure left out was the entire total.
+  const leftOut = new Map<string, MoneyLeftOut>();
+  for (const row of monthRows) {
+    if (row.currency === currency) continue;
+    const seen = leftOut.get(row.currency) ?? {
+      currency: row.currency,
+      cents: 0,
+      invoices: 0,
+    };
+    seen.cents += row.cents;
+    seen.invoices += row.invoices;
+    leftOut.set(row.currency, seen);
+  }
 
   return {
     counts: {
@@ -215,6 +284,7 @@ export async function dashboardInsights(
       openReminders: c.open_reminders,
     },
     outstandingInvoiceCents: c.outstanding_total_cents,
+    outstandingOtherCurrencies: c.outstanding_other_currencies ?? [],
     upcomingAppointments: upcomingApptsList,
     upcomingVaccinations: upcomingVaccsList,
     recentVisits: recentVisitsList,
@@ -234,6 +304,9 @@ export async function dashboardInsights(
       monthStart: start,
       cents: value,
     })),
+    revenueOtherCurrencies: [...leftOut.values()].sort(
+      (a, b) => b.cents - a.cents,
+    ),
   };
 }
 

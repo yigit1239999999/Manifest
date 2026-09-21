@@ -64,3 +64,63 @@ describe("status names written into raw SQL", () => {
     expect(OPEN_REMINDER_STATUSES).toEqual(["PENDING", "SENT"]);
   });
 });
+
+describe("money the dashboard adds up", () => {
+  // The dashboard read "Paid invoices · Sep: ₺11,595.67" for a clinic whose
+  // four paid invoices were $111.11, $250.00, $10,000.00 and $1,234.56.
+  // Same number, different symbol: four dollar invoices summed and stamped
+  // with whatever currency the clinic happens to be set to today.
+  //
+  // `Invoice.currency` shipped so that no invoice would be restated by a
+  // settings change, and it worked — on the list, where each row prints its
+  // own. The totals never asked. A rule that holds per row and not per sum
+  // is not a rule the money obeys.
+  //
+  // This reads the SQL as text because the aggregates are raw: nothing here
+  // is typed, so nothing tells the compiler when a `SUM` loses its filter.
+  const aggregates = [...dashboardQueries.matchAll(/SUM\(([^;]*?)\)::int/g)];
+
+  it("finds the aggregates at all", () => {
+    expect(aggregates.length).toBeGreaterThan(0);
+  });
+
+  it("never sums invoice money without saying which currency", () => {
+    // Both money aggregates read `invoices`. Each must narrow to one
+    // currency — summing across them produces a number that exists in no
+    // currency at all.
+    const invoiceSums = dashboardQueries
+      .split("\n")
+      .map((line, i) => ({ line, i }))
+      .filter(({ line }) => /SUM\(.*(totalCents|amountCents)/.test(line));
+
+    expect(invoiceSums.length).toBeGreaterThan(0);
+
+    // The clinic's currency has to appear as a filter somewhere in the same
+    // statement as each total. `currency` is interpolated, so the marker is
+    // the parameter name rather than a literal.
+    expect(dashboardQueries).toContain('i.currency = ${currency}');
+    expect(dashboardQueries).toMatch(/GROUP BY month_start, currency/);
+  });
+
+  it("reports what it left out instead of dropping it", () => {
+    // Silence here is the same fault in a quieter form: a chart that shows
+    // only lira, in a clinic billing half in dollars, is not wrong on its
+    // face and is wrong about the business.
+    expect(dashboardQueries).toContain("revenueOtherCurrencies");
+    expect(dashboardQueries).toContain("outstandingOtherCurrencies");
+  });
+
+  // Not tested here, and on purpose: that nobody converts between
+  // currencies. The first version of this file grepped for "rate" and
+  // "convert" and failed on the comment explaining why we do not convert —
+  // a check that punishes the explanation is worse than no check. It is
+  // also the word-list trap we have argued out of two other tests this
+  // week: a conversion written as `× 34.2` would sail past it.
+  //
+  // The rule lives where it can be read instead: above `MoneyLeftOut` in
+  // `queries.ts`, with the reason (picking a rate is picking a number the
+  // clinic never agreed to and applying it to their books — the money
+  // version of inventing a vaccination interval, TEAM.md #14). What a test
+  // can hold is that each total names its currency, which the ones above
+  // do.
+});
