@@ -218,9 +218,21 @@ export default async function AppointmentsPage({
                       </div>
                     )}
                     {/* The columns hidden on a phone still matter, so the
-                        essentials ride along in this cell. */}
-                    <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground sm:hidden">
-                      <span>{tType(a.type as never)}</span>
+                        essentials ride along in this cell.
+
+                        Each rides until its own column arrives, which is
+                        not the same moment for both: the type column
+                        appears at `sm`, the phone column at `md`. This
+                        block used to disappear as one at `sm`, so between
+                        640 and 767 — a tablet held upright — the phone
+                        was in neither place. A stand-in has to be hidden
+                        on exactly the breakpoint of the thing it stands
+                        in for, column by column, or it leaves a hole
+                        instead of a duplicate. */}
+                    <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground md:hidden">
+                      <span className="sm:hidden">
+                        {tType(a.type as never)}
+                      </span>
                       {a.client.phone &&
                         (telHref(a.client.phone) ? (
                           <a
