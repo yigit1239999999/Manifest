@@ -128,9 +128,9 @@ export default async function AppointmentPage({
             <Callout variant="warning">{t("notifications.optedOut")}</Callout>
           )}
           {preview && preview.optedIn && !preview.configured && (
-            <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            <Callout variant="info">
               {t("notifications.notConfigured", { channel: tChannel(preview.channel) })}
-            </p>
+            </Callout>
           )}
           {petSilenced ? (
             <p className="text-sm text-muted-foreground">

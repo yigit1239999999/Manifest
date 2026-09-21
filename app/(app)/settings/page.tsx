@@ -12,6 +12,7 @@ import {
   setEnabledSpeciesAction,
 } from "@/modules/species/actions";
 import { PageHeader } from "@/components/page-header";
+import { Callout } from "@/components/ui/callout";
 import {
   Card,
   CardContent,
@@ -86,26 +87,33 @@ export default async function SettingsPage() {
           <CardDescription>{t("notifications.hint")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
-          <p
-            className={
-              configured
-                ? "rounded-lg border border-primary/30 bg-accent px-3 py-2 text-sm text-accent-foreground"
-                : "rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-            }
-          >
-            {configured
-              ? t("notifications.providerConnected", {
-                  channel: t(`notifications.channel_${channel}`),
-                  transport: transport ?? "",
-                })
-              : t("notifications.providerMissing", {
-                  channel: t(`notifications.channel_${channel}`),
-                })}
-          </p>
+          {configured ? (
+            // The connected case keeps its own accent box rather than
+            // becoming a `Callout`: it confirms a working setup, and the
+            // component has no affirmative variant (ux withdrew `--success`
+            // once the badge measurement showed the fill carries no signal).
+            // Raised with ux rather than invented here.
+            <p className="rounded-lg border border-primary/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
+              {t("notifications.providerConnected", {
+                channel: t(`notifications.channel_${channel}`),
+                transport: transport ?? "",
+              })}
+            </p>
+          ) : (
+            <Callout variant="info">
+              {t("notifications.providerMissing", {
+                channel: t(`notifications.channel_${channel}`),
+              })}
+            </Callout>
+          )}
           <NotificationSettingsForm
             action={setNotificationSettingsAction}
             settings={profile.notifications}
             timezone={profile.timezone}
+            connected={{
+              SMS: isChannelConfigured("SMS"),
+              WHATSAPP: isChannelConfigured("WHATSAPP"),
+            }}
           />
           <details className="rounded-lg border border-dashed border-border p-3 text-sm">
             <summary className="cursor-pointer font-medium">{t("notifications.preview")}</summary>

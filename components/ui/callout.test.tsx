@@ -85,14 +85,53 @@ describe("Callout", () => {
   it("paints each variant from its own role token, never a raw palette colour", () => {
     const { container: danger } = render(<Callout variant="danger">x</Callout>);
     const { container: warning } = render(<Callout variant="warning">y</Callout>);
+    const { container: info } = render(<Callout variant="info">z</Callout>);
     const classes = (c: HTMLElement) => c.firstElementChild!.className;
 
     expect(classes(danger)).toContain("text-destructive");
     expect(classes(warning)).toContain("text-warning");
     // The whole point of the token: no `amber-700` that dark mode cannot reach.
-    for (const c of [classes(danger), classes(warning)]) {
+    for (const c of [classes(danger), classes(warning), classes(info)]) {
       expect(c).not.toMatch(/(text|bg|border)-(amber|red|yellow)-\d/);
     }
+  });
+
+  describe("info", () => {
+    it("reports an absence without borrowing a severity colour", () => {
+      // "The channel you picked is not connected yet" is not a fault. If it
+      // were painted destructive or warning it would sit in the same visual
+      // class as a failed send, and a palette where everything is loud says
+      // nothing.
+      const { container } = render(<Callout variant="info">x</Callout>);
+      const classes = container.firstElementChild!.className;
+      expect(classes).toContain("text-muted-foreground");
+      expect(classes).not.toContain("text-destructive");
+      expect(classes).not.toContain("text-warning");
+    });
+
+    it("does not announce by default, and can be asked to", () => {
+      // Standing notice on first paint: nothing to announce. But the
+      // notification settings box appears only after the main switch is
+      // turned on, which is a change worth speaking.
+      render(<Callout variant="info">Kanal bağlı değil</Callout>);
+      expect(screen.queryByRole("alert")).toBeNull();
+
+      render(
+        <Callout variant="info" live>
+          Kanal bağlı değil
+        </Callout>,
+      );
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+    });
+
+    it("carries its own mark, not another variant's", () => {
+      const classOf = (v: "danger" | "warning" | "info") =>
+        render(<Callout variant={v}>x</Callout>)
+          .container.querySelector("svg")
+          ?.getAttribute("class");
+      const marks = [classOf("danger"), classOf("warning"), classOf("info")];
+      expect(new Set(marks).size).toBe(3);
+    });
   });
 
   it("keeps caller classes so a call site can hold its grid position", () => {

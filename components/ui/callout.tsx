@@ -1,14 +1,28 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { AlertCircle, AlertTriangle } from "lucide-react";
+import { AlertCircle, AlertTriangle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// One boxed message, two severities. Both derive border and fill from a single
-// role colour at low alpha and paint the text in the role colour itself — the
-// pattern the error boxes already used, now in one place instead of eleven.
+// One boxed message, three severities. `danger` and `warning` derive border
+// and fill from a single role colour at low alpha and paint the text in the
+// role colour itself — the pattern the error boxes already used, now in one
+// place instead of eleven.
+//
+// `info` is not a role colour at all, on purpose. It reports an absence, not
+// a fault: "the channel you picked is not connected yet". Painting that in a
+// severity colour would put it in the same visual class as a failure, and a
+// palette where everything is loud says nothing. It uses the neutral surface
+// two screens had already settled on by hand
+// (`appointments/[id]`, `settings`), which is also why it needs no new token:
+// `--muted-fg` on `bg-muted/40` measures 5.35 on card, 5.04 on the page and
+// 4.73 on muted in light, and 6.60 / 6.97 / 6.22 in dark.
 //
 // Deliberately absent, each for a reason:
-//   - no `info` / `success`: there is no call site for either today.
+//   - no `success`: still no call site. `info` had none either when this
+//     comment was first written; it has three now, so it exists. The rule is
+//     "no abstraction without a call site" (TEAM.md #30), not "never add
+//     one" — but the comment has to be corrected when the fact changes, or
+//     the next person reads a deliberate absence into an oversight.
 //   - no dismiss: a "bites / allergic" warning that a user can close stays
 //     closed for the next animal. Not a prop, so it cannot be argued back in.
 //   - no size: both groups of call sites use the same density today.
@@ -20,6 +34,7 @@ const calloutVariants = cva(
       variant: {
         danger: "border-destructive/30 bg-destructive/10 text-destructive",
         warning: "border-warning/30 bg-warning/10 text-warning",
+        info: "border-border bg-muted/40 text-muted-foreground",
       },
     },
   },
@@ -28,6 +43,7 @@ const calloutVariants = cva(
 const variantIcon = {
   danger: AlertCircle,
   warning: AlertTriangle,
+  info: Info,
 } as const;
 
 /**
@@ -54,8 +70,10 @@ export interface CalloutProps
    * region that speaks on load is noise competing with the page itself.
    *
    * Defaults to on for `danger` (server-action errors) and off for `warning`
-   * (standing notices that are already there when the page loads). Callers
-   * with the opposite situation pass it explicitly.
+   * and `info` (standing notices that are already there when the page
+   * loads). Callers with the opposite situation pass it explicitly — the
+   * notification settings box appears only after the main switch is turned
+   * on, so it announces.
    */
   live?: boolean;
 }
