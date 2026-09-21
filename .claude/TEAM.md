@@ -5167,3 +5167,104 @@ ve kalan belirsizliği **tek ölçümde** bölen bir teşhis istedi:
 **İyi bir ölçüm isteği, cevabın hangi hipotezi eleyeceğini önceden
 söyler.** Aksi hâlde ölçüm "çalışmıyor" der ve kimse nerede
 olduğunu bilmez.
+
+### Kör nokta kanalın değil, ZAMANLAMANIN olabilir
+
+pm üç ayrı raporda *"elle `data-spotlight` ekledim, boyanmadı"*
+yazdı. **Üçü de yanlıştı**, ve sebebi bir alet seçimi değildi:
+
+```
+transition-duration: 0.15s        (transition-colors)
+
+  0 ms → rgb(22,28,24)
+ 51 ms → rgb(22,41,35)
+201 ms → rgb(23,55,48)   ← accent
+```
+
+`setAttribute`'tan **hemen sonra** `getComputedStyle` okumak, geçişin
+**ilk karesini** veriyor. Kural hep çalışıyordu.
+
+**Ayıran deney kayda değer:** pm satırın **klonunu** aynı `ul`'e
+koydu — klon accent'e boyandı, gerçek satır boyanmadı. Aynı sınıf,
+aynı ebeveyn, aynı etiket. **Tek fark, klonda çalışan bir geçiş
+yoktu.**
+
+> Lead'in formülasyonu (*"ikinci kanal da bir alettir ve onun da kör
+> noktası vardır"*) doğruydu ve **eksikti.** Burada kanal doğruydu
+> (`getComputedStyle`), nesne doğruydu (gerçek satır), olay doğruydu
+> (nitelik konmuş) — **ve yine yanlış cevap, çünkü çok erken
+> ölçüldü.**
+
+pm'in kendi güncellemesi:
+> **Bir şeye "olmuyor" demeden önce, olmasının ne kadar süreceğini
+> sor.**
+
+**Ve ölçüm geçerliliği listemize dördüncü soru giriyor:**
+
+> **NEYİ · HANGİ OLAYI · HANGİ ZEMİNDE · NE ZAMAN**
+
+pm bugün bu aileden **beş** vaka yakaladı; dördü **yapı** katmanıydı
+(bileşen durumu · ARIA rolü · çıktı kesilmesi · stylesheet katmanı),
+beşincisi **zaman** katmanı — ve en pahalısı oldu, çünkü yanlış sonuç
+**üç ayrı rapora** taşındı.
+
+### Bir varsayımın ne kadar yanlış olduğunu ölçmek, düzeltmeyi doğrular
+
+dev-ui üç saniyelik beklemeyi kaldırdı, gerekçesi *"başkasının
+gidiş-dönüşü hakkında bir tahmin"*di. pm **sayıyı** ölçtü:
+
+```
+sunucu turu, bu makinede   4667 ms
+önceki turda aynı satır   17 400 ms
+```
+
+Yani üç saniye **gerçekten yetmiyordu**, ve pm'in bir önceki turda
+vurguyu görememesi **ölçüm hatası değildi.**
+
+**Ve dev-ui aynı hatayı düzeltmesinin içinde tekrarladığını gördü:**
+on beş saniyelik gözlemci tavanı da 17,4 saniyeye yetmiyordu.
+> *Ders "daha iyi bir sayı seç" değil: **bu bir gecikme bütçesi
+> olamaz.** Gözlemcinin yavaşlık için son tarihe ihtiyacı yok.*
+
+Kalan bir dakikalık tavan artık **başka bir vakayı** sınırlıyor —
+kapalı süzgeç açıkken kaydedilen bir hatırlatma bu sayfanın hiç
+göstermediği bir listeye düşüyor — ve kodda hangisi için olduğu
+yazılı.
+
+### "Sahip olmadığımız garantiyi ima etme"nin iki aynası daha
+
+Deniz'in kuralı *"'gönderildi' ile 'ulaştı' aynı kelime olmasın"*dı.
+value aynı turda **iki ters yüzünü** buldu:
+
+**1. Bilmediğimiz bir BAŞARISIZLIĞI da ima etmeyeceğiz.** dev-ui
+baskı gelirse `EXPIRED`'ı `UNDELIVERED`'a katlamayı önerdi; value
+reddetti:
+> *"Ulaşmadı" demek, olmadığını bilmediğimiz bir başarısızlığı
+> iddia etmek.* Bedeli somut: Deniz mesajı **almış** bir sahibi
+> arayıp *"size ulaşamadık"* der, **listeye güveni gider** — ve
+> listeye bakmayı bırakması bu paketin **tek başarısızlık biçimi.**
+
+Yerine güvenli kesim: `UNKNOWN` ile `PENDING` katlansın, çünkü o
+ayrım **bizim teşhis ihtiyacımız, veterinerin işi değil** — ve
+sorgulayıcı gerçekten durduysa o **klinik kapsamlı** bir arızadır,
+kırk satırda değil tek banner'da söylenir.
+
+**2. Sahip olmadığımız bir SÜRECİ de ima etmeyeceğiz.** value kendi
+şartnamesinde buldu: paket yalnız SMS sorgulaması getiriyor, WhatsApp
+webhook'u sonraki turda — yani **WhatsApp kullanan bir klinikte her
+mesaj sonsuza kadar `UNKNOWN` kalır** ve satır her gün *"teslim
+bilgisi bekleniyor"* der, **hiç gelmeyecek bir bilgiyi bekleyerek.**
+
+Çare **durumdan değil kanaldan** okunuyor: rapor kaynağı olmayan
+kanalda satır yalnız *"Gönderildi"* der.
+
+### Bir yasağı kaldırma, DARALT
+
+dev-ui *"hiçbir cümle teslim iddia etmesin"* testini, *"Ulaştı"*
+kelimesi gerçekten doğduğunda **gevşetmeyi değil daraltmayı** önerdi:
+*o kelime yalnız `DELIVERED`'da geçebilir.* value üstüne
+*"'Ulaşmadı' yalnız `UNDELIVERED`'da"* şartını ekledi — **yoksa
+reddettiği katlanma testten kaçarak geri gelirdi.**
+
+**Bir nöbetçi, koruduğu ayrım inceldiğinde gevşetilmez; ayrımın yeni
+sınırına göre yeniden çizilir.**
