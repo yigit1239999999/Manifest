@@ -39,9 +39,10 @@ dururlarsa okuyan hepsini B sanar.
 
 ### B — ÖLÇÜLMEDİ *(ölçülebilir, sıra gelmedi; bir tur gerekiyor)*
 
-4. **`/pets/<id>`'nin sabit maliyeti** — 993/1099 ms, **kararlı** yavaş.
-   Kesildi ve **açık soru olarak yazıldı: ölçülmedi; N+1 olabilir de
-   olmayabilir de.**
+4. **`/clients/<id>` 3001'de 500 döndü** — zemin `3bf5dbf`, **tekrar
+   denenmedi.** (pm gözlem olarak bıraktı, bulgu açmadı.) `/clients/[id]`
+   ile `/pets/[id]` aynı `collectTimeline`'ı paylaşıyor; tek fark
+   `modules/timeline/queries.ts:123`'teki müşteriye özel dal.
 5. **`/clients/new`'in 2,6 kat oynaması** (387–999 ms) — sabit değil
    **değişken**, ayrı bir soru. Kullanıcıya bilinen sonucu yok.
 6. **390px turunun kalanı — DÖRT SÜRÜMDÜR AÇIK:** EN'de 390px, yatay
@@ -60,6 +61,15 @@ bırakılmış işaret)*
 8. **Panelin 2405 ms'i.** ux gördü, pm temiz zeminde **tekrarlayamadı** —
    ama *"uygulamanın kendisi demek için kanıt yok"* dedi. Bir daha
    görülürse bu kayıt onu **yeni bir kusur sanmayı** önler.
+
+### BOŞLUK DEĞİL — sebebi bilinen sıradan kuyruk maddesi
+
+- **`/pets/<id>`'nin sabit maliyeti AÇIKLANDI** (dev ölçtü, value bağımsız
+  doğruladı): **N+1 değil — zaman çizelgesi ile dört liste aynı satırları
+  iki kez okuyor** (`modules/timeline/queries.ts:146-161` ve
+  `app/(app)/pets/[id]/page.tsx:92-95`). 993/1099 ms'nin sebebi bu.
+  **Etiketi tam olarak bu cümle olsun**; *"N+1 sorusu"* diye taşınırsa
+  yanlış taşınır. Boşluk listesinden çıktı.
 
 **Ve bu turun ölçümleri çoğunlukla EN arayüzde alındı.** TR'de `/staff`'ın
 6px'i, `/clients`'ın sıfırı ve `/reminders` satırı farklı çıkabilir —

@@ -1625,6 +1625,11 @@ araç.** value'nun isteğiyle toplandı.
 "Kod tabanına özgü" altında duruyor — oradakiler **neden**i anlatır, buradaki
 satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzeltilir.
 
+**Her ölçüm raporunun İLK SATIRI commit ve derleme zamanıdır — istenmiş
+olsun ya da olmasın.** (pm'in kuralı; gerekçesi: talimatla taşınan disiplin,
+talimat gelmeyince düşer.) Üretim derlemesinin kimliği
+`Manifest-prod/SERVED_COMMIT.txt`'te yazılı — **tur başında `cat` edilir.**
+
 **Bir ölçüm kaydedilmeden önce sekiz sorunun sekizi de cevaplanır:**
 
 1. **Hangi commit'te?** Rapor hash taşır. Zemin değişince o zeminde alınmış
