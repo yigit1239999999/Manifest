@@ -2958,3 +2958,47 @@ kaybederiz"* yetmez; **"bu istisna, daha önce aynı eşiği tutmuş kaç
 kararı açıklamasız bırakır"** sorulur. Ve bu, "abartılmış şiddet" ile
 "sahte pozitif" kurallarının üçüncü kardeşi: üçü de **bugünkü kararın
 bedelini yarınki karara** ödetiyor.
+
+### Yan etkisi olan bir ölçümde, hedefin kimliği TETİKLEMEDEN ÖNCE doğrulanır
+
+ux'in yeni sınıfı, ve ayrımı kendileri koydu: bugüne kadarki seçici
+hataları yalnızca **yanlış sayı** üretiyordu; bu ilk kez bir **EYLEM**
+üretti.
+
+**Olay:** hedefi `document.querySelector('form')` ile aldılar. Sayfadaki
+ilk form **düzen çubuğundaki çıkış formuymuş** — ölçüm *"Çıkış"*a tıkladı
+ve ux **kendi oturumunu kapattı.** (pm etkilenmedi; `127.0.0.1` ayrı
+çerez kavanozunda.)
+
+> **Okuyan bir ölçümün yanlış hedefi bir sayıyı bozar; TETİKLEYEN bir
+> ölçümün yanlış hedefi bir şey YAPAR.** İkincisinde geri alma her zaman
+> mümkün değildir.
+
+**Kural:** tetiklemeden önce hedefin kimliği doğrulanır (metin, `name`,
+`id`), ve **beklenmeyen bir şey görülürse ölçüm hiç çalışmaz** — ux'in
+diğer üç korumasıyla aynı şekil (URL kontrolü, servis edilen CSS
+kontrolü, bilinen değerle alet sınaması). **Dördüncü uygulama**, ve
+ilki bir sayıyı değil bir **eylemi** durduruyor.
+
+### Aynı cümleyi BEŞ KEZ yazdıysan, o bir kusur değil bir PAKETTİR
+
+value'nun tespiti. Bu oturumda beş ayrı kusur kaydedildi ve **beşi de
+aynı cümleyle** açıklandı:
+
+> **Bilmemek ile yokluk aynı ekranı gösteriyor.**
+
+- başarısız gönderimde odak `body`'ye düşüyor, `role="alert"` yok →
+  ekran okuyucu için gönderim **sessizce** başarısız
+- `disabled={pending}` beş çağrı yerinde → basılan denetim kayboluyor
+- `Combobox` arama sürerken *"Sonuç yok"* diyor
+- `.catch(() => undefined)` → arama **çökerse** de *"Sonuç yok"*
+
+**Her birini ayrı kusur diye kaydettik ve bu, altıncısını önlemiyordu.**
+Paket olarak görmek önlüyor.
+
+> **Bir cümle beşinci kez yazıldığında, kaydedilecek şey vaka değil
+> CÜMLEDİR** — ve o cümle bir paketin adı olur:
+> *"Bir şey yanlış gittiğinde ya da bilinmediğinde ekran söylüyor."*
+
+**Kaldırma testi de geçiyor:** hangisi çıkarılırsa bir başarısızlık hâlâ
+*"burada bir şey yok"* diye okunuyor.

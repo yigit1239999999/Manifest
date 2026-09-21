@@ -50,28 +50,13 @@ await client.connect();
 // script with this exact shape; the reminders were fine.
 await client.query("SET TIME ZONE 'UTC'");
 
-// Synthetic clinics are excluded from every number below, and the list
-// of what was excluded is printed on every run.
+// The state clinic is excluded from every number below, and says so.
 //
-// Two kinds, and the second one is the one that keeps growing.
-//
-// `scripts/seed-states.mjs` builds one clinic holding every state a
-// screen can be in — a void invoice, a deceased animal, a paid invoice
-// in a currency this clinic does not bill in. All of it is synthetic and
-// none of it is a measurement of anything.
-//
-// The e2e suite signs up through the real form, so every run leaves a
-// clinic behind: "Clinic <epoch ms>", and "Perf Clinic <epoch ms>" from
-// the performance spec. These are not a trickle. Measured the day this
-// filter was written, they were 142 of the database's 147 clinics and
-// 111 of its clients — the "real" population every agreed baseline was
-// drawn from was, in fact, mostly the test suite signing up.
-//
-// Matched by name pattern rather than by a flag on the row, because the
-// suite signs up through the product and the product has no such flag.
-// That makes the pattern load-bearing: an e2e spec that names its clinic
-// anything else rejoins the population silently. Worth replacing with an
-// explicit prefix when the specs can be touched.
+// `scripts/seed-states.mjs` builds one clinic holding every state a screen
+// can be in — a void invoice, a deceased animal, a paid invoice in a
+// currency this clinic does not bill in. All of it is synthetic and none
+// of it is a measurement of anything. Counted here it would move every
+// baseline the team has agreed on, in one command.
 //
 // Done as temporary views rather than a WHERE on each of the fourteen
 // queries below. `pg_temp` comes first in the search path, so every
@@ -79,59 +64,39 @@ await client.query("SET TIME ZONE 'UTC'");
 // query added later is filtered without anyone remembering to. Fourteen
 // hand-written conditions would work until the fifteenth query.
 //
-// The cost, and it will bite somebody: a query that wants to measure an
-// excluded clinic ITSELF returns zero from here on, because those are
-// the clinics these views hide. Whoever comes to ask "are all 31 states
-// still there" has to qualify the table — `public.clients`, not
-// `clients` — or the answer is a confident, wrong "no".
+// The cost, and it will bite somebody: a query that wants to measure the
+// state clinic ITSELF returns zero from here on, because it is the one
+// clinic these views hide. Whoever comes to ask "are all 27 states still
+// there" has to qualify the table — `public.clients`, not `clients` — or
+// the answer is a confident, wrong "no".
 const STATE_CLINIC_NAME = "HÂL KLİNİĞİ";
-// "Clinic 1789996168424" / "Perf Clinic 1789974778229": the e2e sign-up
-// helper's name, an epoch in milliseconds. Ten digits or more so that a
-// real clinic called "Clinic 3" is never swept up.
-const E2E_CLINIC_PATTERN = "^(Perf )?Clinic [0-9]{10,}$";
-
-const excluded = await client.query(
-  `SELECT id, name,
-          CASE WHEN name = $1 THEN 'state' ELSE 'e2e' END AS kind
-     FROM clinics
-    WHERE name = $1 OR name ~ $2`,
-  [STATE_CLINIC_NAME, E2E_CLINIC_PATTERN],
+const stateClinic = await client.query(
+  `SELECT id FROM clinics WHERE name = $1`,
+  [STATE_CLINIC_NAME],
 );
+const excludedId = stateClinic.rows[0]?.id ?? null;
 
-if (excluded.rowCount > 0) {
-  // The ids go into a temp table rather than into the view definitions.
+if (excludedId) {
+  // The id goes into a temp table rather than into the view definitions.
   // `CREATE VIEW` is a utility statement and takes no bind parameters —
   // the first version passed `$1` and every run died on the first view
   // with "bind message supplies 1 parameters, but prepared statement
-  // requires 0". Interpolating the ids into the SQL would work and is
-  // the obvious repair; a table keeps the values parameterised and, if
-  // nothing matches, `NOT IN` over an empty table excludes nothing
-  // instead of silently excluding everything the way `<> NULL` would.
+  // requires 0". Interpolating the id into the SQL would work and is the
+  // obvious repair; a one-row table keeps the value parameterised and, if
+  // the seed is ever missing, `NOT IN` over an empty table excludes
+  // nothing instead of silently excluding everything the way `<> NULL`
+  // would.
   await client.query(`CREATE TEMP TABLE excluded_clinic (id text)`);
-  await client.query(
-    `INSERT INTO excluded_clinic (id) SELECT unnest($1::text[])`,
-    [excluded.rows.map((r) => r.id)],
-  );
+  await client.query(`INSERT INTO excluded_clinic (id) VALUES ($1)`, [
+    excludedId,
+  ]);
 
   // Every public table carrying `clinicId`, not only the ones read today,
   // so the claim above — that a query added later is filtered — is true.
   const scoped = [
-    "appointments",
-    "audit_logs",
-    "clients",
-    "custom_species",
-    "diagnostics",
-    "documents",
-    "invoices",
-    "message_logs",
-    "notes",
-    "pets",
-    "prescriptions",
-    "reminders",
-    "treatments",
-    "users",
-    "vaccinations",
-    "visits",
+    "appointments", "audit_logs", "clients", "custom_species", "diagnostics",
+    "documents", "invoices", "message_logs", "notes", "pets", "prescriptions",
+    "reminders", "treatments", "users", "vaccinations", "visits",
   ];
   for (const table of scoped) {
     await client.query(
@@ -159,26 +124,11 @@ if (excluded.rowCount > 0) {
   );
 }
 
-// Named and counted, not just counted: "4 clinics excluded" would not
-// tell the next reader whether the filter caught what they think it
-// caught, and the e2e half is matched by a pattern that can silently
-// stop matching.
-{
-  const state = excluded.rows.filter((r) => r.kind === "state").length;
-  const e2e = excluded.rows.filter((r) => r.kind === "e2e").length;
-  const parts = [];
-  parts.push(
-    state > 0
-      ? `"${STATE_CLINIC_NAME}" — synthetic, see scripts/seed-states.mjs`
-      : `"${STATE_CLINIC_NAME}" not seeded`,
-  );
-  parts.push(
-    e2e > 0
-      ? `/${E2E_CLINIC_PATTERN}/ — ${e2e} clinic(s) left behind by e2e sign-ups`
-      : `/${E2E_CLINIC_PATTERN}/ — none`,
-  );
-  console.log(`EXCLUDED [${parts.join("; ")}]`);
-}
+console.log(
+  excludedId
+    ? `EXCLUDED ["${STATE_CLINIC_NAME}" — synthetic, see scripts/seed-states.mjs]`
+    : `EXCLUDED [none — "${STATE_CLINIC_NAME}" not seeded]`,
+);
 
 await q(
   "VOLUME",
@@ -238,13 +188,10 @@ await q(
   `SELECT status::text AS status, count(*) AS n FROM reminders GROUP BY 1 ORDER BY 2 DESC`,
 );
 
+
 // --- Milestone sonrası eklenecek ölçümler (alanlar oluşunca çalışır) ---
 const optional = async (label, sql) => {
-  try {
-    await q(label, sql);
-  } catch (e) {
-    console.log(label, "N/A —", e.message.split("\n")[0]);
-  }
+  try { await q(label, sql); } catch (e) { console.log(label, "N/A —", e.message.split("\n")[0]); }
 };
 
 // Girdi doluluk oranı: R4a-1'in işe yarayıp yaramadığı buradan okunur.
