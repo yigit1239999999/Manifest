@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Edit3, Plus } from "lucide-react";
+import { Archive, Edit3, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
@@ -86,8 +86,13 @@ export default async function ClientPage({
             it undoes is stated. */}
         {canArchive && !client.archivedAt && (
           <DeleteButton
+            // Archived, not deleted: reversible, so it is neither red nor
+            // marked with a bin (TEAM.md #25). The notice this puts on the
+            // page carries the way back.
             action={archiveClientAction.bind(null, client.id)}
             label={tCommon("archive")}
+            tone="default"
+            icon={Archive}
             confirmText={t("archiveConfirm")}
             description={tCommon("archiveUndoHint")}
           />

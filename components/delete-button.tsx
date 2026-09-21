@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Trash2, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { buttonVariants } from "@/components/ui/button";
@@ -14,10 +14,20 @@ import { buttonVariants } from "@/components/ui/button";
  * origin above the question, and it blocks the whole tab. `ConfirmDialog`
  * asks the same question in the app's own voice.
  *
- * `tone` is what the confirmation and the button look like. It defaults to
- * `destructive` because that is what every call site renders today — but
- * most of them archive or cancel, which are reversible, and telling them
- * apart is an open design question, not something to decide by default.
+ * `tone` and `icon` are what the action looks like, and they are separate
+ * on purpose. This used to say that telling reversible actions apart from
+ * destructive ones was an open design question; it is not any more. pm
+ * confirmed in the browser that archiving can be undone, and ux settled it:
+ * an archive is `default` with an `Archive` mark, a real deletion keeps
+ * `destructive` and the bin (TEAM.md #25, which cuts both ways — dressing
+ * a permanent delete quietly is as wrong as dressing an archive as one).
+ *
+ * The default stays `destructive`: the one true deletion in the app is the
+ * one that must not be softened by an oversight.
+ *
+ * The icon is its own prop rather than derived from the tone, because they
+ * do not move together. Cancelling an appointment is reversible and would
+ * be `default`, but an `Archive` mark on it would be a lie.
  */
 export function DeleteButton({
   action,
@@ -25,6 +35,7 @@ export function DeleteButton({
   confirmText,
   description,
   tone = "destructive",
+  icon: Icon = Trash2,
 }: {
   action: (formData: FormData) => Promise<unknown>;
   /** Names the action, on the trigger and on the confirming button. */
@@ -34,6 +45,8 @@ export function DeleteButton({
   /** What exactly happens, and whether it can be undone. */
   description?: string;
   tone?: "destructive" | "default";
+  /** The mark on the trigger. Defaults to the bin, for a real deletion. */
+  icon?: LucideIcon;
 }) {
   const tCommon = useTranslations("common");
 
@@ -58,7 +71,7 @@ export function DeleteButton({
             size: "md",
           })}
         >
-          <Trash2 />
+          <Icon />
           {label}
         </button>
       )}

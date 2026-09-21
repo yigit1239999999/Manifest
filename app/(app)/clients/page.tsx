@@ -117,19 +117,6 @@ export default async function ClientsPage({
                 cellClassName: "text-muted-foreground",
                 cell: (c) => c.phone ?? "-",
               },
-              {
-                key: "open",
-                header: tCommon("details"),
-                align: "end",
-                cell: (c) => (
-                  <Link
-                    href={`/clients/${c.id}`}
-                    className="text-xs font-medium text-primary hover:underline"
-                  >
-                    {tCommon("open")} →
-                  </Link>
-                ),
-              },
             ]}
           />
           <Pagination

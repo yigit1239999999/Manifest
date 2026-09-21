@@ -65,7 +65,15 @@ export default async function StaffPage() {
             {
               key: "email",
               header: t("email"),
-              cellClassName: "text-muted-foreground",
+              // `wrap-anywhere`, not decoration. An address is one
+              // unbreakable token, and a table is as wide as the widest
+              // thing it cannot break: pm measured this column at 244px on
+              // a 390px screen, which is most of the reason this list has
+              // to scroll sideways at all. `overflow-wrap: anywhere` is the
+              // one that lowers the min-content width; `break-word` does
+              // not. Hiding the column instead would have been cheaper and
+              // wrong — there is nowhere else on this page to read it.
+              cellClassName: "wrap-anywhere text-muted-foreground",
               cell: (member) => member.email,
             },
             {
