@@ -21,7 +21,9 @@ vi.mock("@/modules/pets/actions", () => ({
 vi.mock("@/modules/clients/actions", () => ({
   searchClientsAction: async () => [],
 }));
-vi.mock("@/modules/invoices/actions", () => ({ createInvoiceAction: async () => ({}) }));
+vi.mock("@/modules/invoices/actions", () => ({
+  createInvoiceAction: async () => ({}),
+}));
 
 import { VisitForm } from "@/components/forms/visit-form";
 import { AppointmentForm } from "@/components/forms/appointment-form";
@@ -53,8 +55,9 @@ const shown = (name: RegExp) =>
 
 /** What the form will submit for `name`. */
 const submitted = (container: HTMLElement, name: string) =>
-  container.querySelector<HTMLInputElement>(`input[type="hidden"][name="${name}"]`)
-    ?.value;
+  container.querySelector<HTMLInputElement>(
+    `input[type="hidden"][name="${name}"]`,
+  )?.value;
 
 const VETS = [{ id: "u-1", name: "Dr. Ayşe Demir" }];
 

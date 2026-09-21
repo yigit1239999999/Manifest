@@ -137,23 +137,25 @@ export function PetForm({
   // When editing, a pet that already has optional data shows it expanded.
   const hasOptionalData = Boolean(
     pet &&
-      (pet.birthDate ||
-        pet.weightKg != null ||
-        pet.color ||
-        pet.neutered ||
-        pet.microchipId ||
-        pet.insuranceProvider ||
-        pet.insurancePolicy ||
-        pet.alerts ||
-        pet.notes),
+    (pet.birthDate ||
+      pet.weightKg != null ||
+      pet.color ||
+      pet.neutered ||
+      pet.microchipId ||
+      pet.insuranceProvider ||
+      pet.insurancePolicy ||
+      pet.alerts ||
+      pet.notes),
   );
 
   return (
     <ActionForm form={form} className="flex flex-col gap-8">
-
       {/* The essentials: everything a vet needs to register an animal in
           under a minute. Everything else lives under "optional details". */}
-      <FormSection title={t("sections.identity")} description={t("sections.identityHint")}>
+      <FormSection
+        title={t("sections.identity")}
+        description={t("sections.identityHint")}
+      >
         <Field label={t("owner")} error={state.fieldErrors?.ownerId} required>
           {/* See `InvoiceForm`: searchable only once the list is short
               of the whole clinic, so a small one is not taxed for a
@@ -174,7 +176,12 @@ export function PetForm({
         </Field>
 
         <Field label={t("name")} error={state.fieldErrors?.name} required>
-          <Input name="name" defaultValue={pet?.name} required autoFocus={!pet} />
+          <Input
+            name="name"
+            defaultValue={pet?.name}
+            required
+            autoFocus={!pet}
+          />
         </Field>
 
         <Field label={t("species")} error={state.fieldErrors?.species} required>
@@ -229,16 +236,26 @@ export function PetForm({
       >
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
           <span className="flex flex-col">
-            <span className="font-semibold text-foreground">{t("optionalDetails")}</span>
-            <span className="text-xs text-muted-foreground">{t("optionalDetailsHint")}</span>
+            <span className="font-semibold text-foreground">
+              {t("optionalDetails")}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t("optionalDetailsHint")}
+            </span>
           </span>
           <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
         </summary>
 
         <div className="flex flex-col gap-8 px-4 pb-5 pt-2">
-          <FormSection title={t("sections.physical")} description={t("sections.physicalHint")}>
+          <FormSection
+            title={t("sections.physical")}
+            description={t("sections.physicalHint")}
+          >
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t("birthDate")} error={state.fieldErrors?.birthDate}>
+              <Field
+                label={t("birthDate")}
+                error={state.fieldErrors?.birthDate}
+              >
                 <Input
                   type="date"
                   name="birthDate"
@@ -269,10 +286,19 @@ export function PetForm({
             </div>
           </FormSection>
 
-          <FormSection title={t("sections.medical")} description={t("sections.medicalHint")}>
+          <FormSection
+            title={t("sections.medical")}
+            description={t("sections.medicalHint")}
+          >
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t("microchipId")} error={state.fieldErrors?.microchipId}>
-                <Input name="microchipId" defaultValue={pet?.microchipId ?? ""} />
+              <Field
+                label={t("microchipId")}
+                error={state.fieldErrors?.microchipId}
+              >
+                <Input
+                  name="microchipId"
+                  defaultValue={pet?.microchipId ?? ""}
+                />
               </Field>
               <Field
                 label={t("insuranceProvider")}
@@ -294,11 +320,18 @@ export function PetForm({
               </Field>
             </div>
             <Field label={t("alerts")} error={state.fieldErrors?.alerts}>
-              <Textarea name="alerts" rows={2} defaultValue={pet?.alerts ?? ""} />
+              <Textarea
+                name="alerts"
+                rows={2}
+                defaultValue={pet?.alerts ?? ""}
+              />
             </Field>
           </FormSection>
 
-          <FormSection title={t("sections.notes")} description={t("sections.notesHint")}>
+          <FormSection
+            title={t("sections.notes")}
+            description={t("sections.notesHint")}
+          >
             <Field label={t("notes")} error={state.fieldErrors?.notes}>
               <Textarea name="notes" rows={4} defaultValue={pet?.notes ?? ""} />
             </Field>
