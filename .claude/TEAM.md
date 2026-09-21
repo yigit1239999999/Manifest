@@ -326,6 +326,43 @@ tek bir yer bırakmayacağız — eksik gedik kabul edilmiyor.
 - **Şüphedeyken kullanıcıya sor, varsayma.** Ama sormadan önce koda bak:
   cevabın yarısı çoğu zaman zaten orada duruyor.
 
+## Altı UX kuralı — hepsi ölçümle doğdu (ux, 21 Eylül 2026)
+
+`ux` yazdı, ana oturum kaleme aldı. **Her kuralın yanında onu doğuran vaka
+duruyor, ve bu kasıtlı: vakasız bir kural altı ayda unutulur, vakalı bir
+kural kendi kendini savunur.** Kullanıcının talebi şuydu: *"UX bu
+uygulamanın bel kemiği, UX-first kültürünü herkese aşıla"* — ve `ux`'in
+cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
+
+1. **Ekran, kullanıcının kendi eyleminin sonucunu söyler.**
+   *Vaka:* "Bekliyor" rozeti hem *"yarın dokuzda gidecek"* hem *"hiç
+   gitmeyecek"* demekti. **Sessizlik yalnız kimsenin bir şey yapmadığı
+   yerde masumdur.**
+2. **Tıklanan şey ile varılan yer aynı kümeyi anlatır.**
+   *Vaka:* pano kartı 8 gösterip 3'e götürüyordu. Sayı ile satırlar
+   ayrışırsa insanlar **ikisini de** okumayı bırakır.
+3. **Bir metni yeniden kullanmak, taşıdığı vaadi de yeniden kullanmaktır.**
+   *Vaka:* *"kopyalayıp elle iletebilirsiniz"* cümlesi, kopyalama düğmesi
+   **olmayan** ekrana taşınıyordu. Anahtar ortak olabilir, cümle çağrı
+   yerine göredir.
+4. **Tahmini okuma tarafında yap, yazma tarafında yapma.**
+   *Vaka:* telefonu saklarken normalleştirmek, tahmin edilmiş bir `+90`'ı
+   **kalıcı** yazar ve kullanıcının yazdığını siler. Gösterimdeki tahmin
+   geri alınabilir, kaydedilen tahmin alınamaz.
+5. **Sayı, nüfusu değil yapılacak işi gösterir.**
+   *Vaka:* *"400 müşteriye sorulmamış"* korkutur ve hiçbir iş göstermez;
+   *"önümüzdeki günlerde 12 mesaj gitmeyecek"* **aranabilir bir kümedir.**
+6. **Aynı kural üçüncü kez elden yazılıyorsa bileşen eşiği geçilmiştir.**
+   *Vaka:* çevrilebilir numara kuralı üç yerde kopyalanmıştı. Aynı gün
+   ikinci örneği: hayvan etiketi `${ad} · ${sahip}` iki yerde yazılıydı,
+   iki yerde değildi — ve ikisi **tek bir açılır listenin içinde** karşı
+   karşıya geldi (`24bac17`).
+
+**Ve bir ölçüm kuralı, aynı gün beş kez lazım oldu:**
+
+> **İki sabiti çarpmak ölçüm değildir.** Ölçülmemiş bir sayı, ölçülmüş gibi
+> yazılmaz. **"Ölçemedim" bir cevaptır; "iyi görünüyor" değildir.**
+
 ## Ortak ilkeler
 
 **1. İddianı kanıtla.** Her bulgu `dosya:satır` ile gösterilir. "Sanırım",
