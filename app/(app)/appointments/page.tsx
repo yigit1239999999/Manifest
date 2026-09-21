@@ -119,7 +119,11 @@ export default async function AppointmentsPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")}>
-        {canCreate && (
+        {/* And not while the body is saying the link above this one is
+            missing. The header's button survived the first pass and put
+            two primary buttons on one screen, one of them the dead end
+            the other was put there to replace. */}
+        {canCreate && !needsPet && (
           <Link href="/appointments/new" className={buttonVariants()}>
             <Plus />
             {t("new")}

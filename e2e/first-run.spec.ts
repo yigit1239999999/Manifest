@@ -67,9 +67,16 @@ test.describe("First run", () => {
       await page.goto(list.path);
       const main = page.getByRole("main");
       await expect(main.getByText(list.says)).toBeVisible();
-      await expect(
-        main.getByRole("link", { name: /new client|yeni müşteri|new pet|yeni hayvan/i }),
-      ).toHaveAttribute("href", list.to);
+
+      // Exactly one primary way forward, and it is the one that works.
+      // The first pass at this left the page header's own "New pet" /
+      // "New invoice" button in place beside the sentence saying that
+      // form cannot be filled in yet — two primary buttons on one
+      // screen, one of them the dead end the other replaced. It is the
+      // count that catches it, not the href.
+      const ways = main.getByRole("link", { name: /^(new|yeni) /i });
+      await expect(ways).toHaveCount(1);
+      await expect(ways).toHaveAttribute("href", list.to);
     }
 
     await page.goto("/clients");
