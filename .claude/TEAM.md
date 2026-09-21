@@ -3971,3 +3971,176 @@ Haber vermek, işi yaptıktan sonra karşıdakine **zararı öğretir**;
 sormak, zararın **doğmasını** engeller. Paylaşılan kaynaklarımız:
 tarayıcı penceresi · üretim derlemesi · veritabanı (`db:seed`) · git
 indeksi. Dördünde de kural aynı.
+
+### İki zemin dosyası, iki saat — 3 saatlik yalan
+
+`SEEDED.txt` indi (`d13f6a5`) ve **ilk yazdığı satır yanlıştı:**
+
+```
+SERVED_COMMIT.txt  derlendi:  2026-09-21 16:35   ← stat -f %Sm, YEREL
+SEEDED.txt         seeded_at: 2026-09-21 13:51   ← toISOString, UTC
+```
+
+Dosya **16:51'de** yazıldı. Aynı dizinde, yan yana duran, **aynı işi
+yapan** iki dosya birbirinden **3 saat** kaymış durumda.
+
+Bu tam olarak `2773bc4`'te kapatılan sınıf: **bağımsız seçilmiş iki
+eşik, birbirine karşı.** Ve zarar biçimi bugünküyle aynı — *"tohumlama
+derlemeden önceydi"* diye okuyan biri, **doğru dosyalara bakarak yanlış
+sonuca** varır. Zemin dosyasının işi tam da bunu engellemekti.
+
+> **Aynı soruyu cevaplayan iki dosya, aynı saati kullanmak
+> zorundadır.** Biçim tercihi değil, karşılaştırılabilirlik şartı.
+
+### Ölçülemeyen bir sayı, kararı doğrulayamaz — erteleyemez de
+
+ux kendi hatasının adını koydu ve aileyi tamamladı:
+
+> value bugün iki kez **var olmayan bir sayıyı kanıt** olarak kullandı
+> (`PRICE_SPREAD`, `LINES_LINKED_TO_VISIT` — ikisi de fikstürden) ve
+> geri çekti. Ben aynı hatanın **öbür yüzünü** yaptım: var olmayan bir
+> sayıyı **kararı erteleme gerekçesi** olarak kullandım.
+
+`REAL 0` iken *"sonra sayıyla bakarız"*, **"sonra" değil "hiç"**
+demektir. value'nun *"yap ve bak"ın şartı bakmaktır* muhafızının
+tersten okunuşu.
+
+### Eksik bir davranışı açıklayan cümle, davranış gelince SİLİNİR
+
+ux, (a) ile eklenecek *"Bu tarih için hatırlatma otomatik
+oluşturulmaz"* cümlesinin (b) indiğinde **güncellenmesini değil
+silinmesini** şart koştu — ve gerekçesi "yanlış olacağı" değil:
+
+> (b) kaydetmeden **iki saniye sonra** zaten soruyor. Bunu bir de
+> alanın altında önceden duyurmak **gürültü.**
+
+> **O cümlenin işi boşluğu doldurmaktı; boşluk dolduğunda cümle
+> geçmişi anlatan bir kalıntıya dönüşür.**
+
+Ve neden özellikle tehlikeli: ölü kodu arıyoruz (`common.listCapped`,
+`enableLabel`, ölü `focus:ring-2`), **ölü metni kimse aramıyor** —
+ekranda durduğu sürece "içerik" gibi görünüyor. Şart olarak yazıldı:
+**(b)'nin kabul kriterinde "bu cümle silinir" satırı var.**
+
+### İki yalan arasında seçim: hangisi kullanıcıyı DURDURUYOR
+
+dev-ui, `hasMore` düzeltmesini **yazdı, testleri yazdı, sonra geri
+aldı** — iki mevcut test düşünce doğru bakmış:
+
+`searchClientsAction` düz dizi dönüyor, yani bileşen **tam cevabı
+kesilmiş cevaptan ayıramıyor.** Notu susturmak *"daha fazlası var"*
+yalanını *"hepsi bu"* yalanıyla değiştirirdi.
+
+> **İkincisi daha kötü: birincisi veterineri aramaya devam ettirir,
+> ikincisi durdurur.**
+
+Bir yalanı başka bir yalanla değiştirirken ölçü, yalanın büyüklüğü
+değil **kullanıcıyı hangi yöne ittiği.**
+
+Ve value ara durumu bilerek kabul etti: **yanlışı bilerek bırakıp
+doğru düzeltmeyi beklemek, bilmediğimiz bir yanlışla değiştirmekten
+iyidir** — madde paketin kesim şartında tutuldu, yani "bırakıldı"
+değil "bekliyor".
+
+Kararın gerekçesi de icat değil **eşitleme**: `listClients` zaten
+`{items, hasMore}` dönüyor, `quickSearchClients` düz dizi. Yani (a)
+yeni bir şey kurmuyor, **arama yolunu liste yoluna eşitliyor** — ve
+reddedilen (b) *"aynı gerçek iki yerde kodlu"* olurdu, yani
+**düzeltilen kusurun aynısı.**
+
+### Ölçülen kenara eşik uydurmak, dördüncü vakayı davet eder
+
+dev-ui 31 px bandını `lg`'de kapattı, pm'in ölçtüğü **800** kenarında
+değil:
+
+> O kenar, klinik ve kullanıcı adlarının uzunluğuyla **oynuyor** —
+> yani bir **olgu** değil bir **örnek**.
+
+Ve `/staff`'ın aldığı cevabın aynısını aldı, böylece kod tabanında
+**iki kural değil bir kural** var. Ölçüme tam oturan bir sayı seçmek,
+ölçümü **genelleme** sanmaktır.
+
+### Var olup korumayan kapı — ilk kez bir NÖBETÇİ yakaladı
+
+`visits/[id]/page.tsx`, `invoices.read` iznine bakıyor; o izni **her
+rol** taşıyor. Yani kapı var, **kimseyi reddedemiyor** — bugün altı
+kez adını koyduğumuz sınıf.
+
+**Farkı bu sefer kim bulduğu:** `app/route-states.test.ts`,
+**kendiliğinden.** Üstelik testi **dev yazdı** ve **ilk yakaladığı
+kişi dev oldu**. dev-ui'nin cümlesi doğru: *bu, testin çalışması; bir
+azar değil.*
+
+> Bir sınıf, elle bulunmaktan **nöbetçiyle bulunmaya** geçtiğinde
+> kapanmaya başlamıştır. Bugünün asıl ilerlemesi bu.
+
+### Sınıfın tersi: ekran değil SUNUCU kabul ediyor
+
+value, hatırlatma vakasının tersini buldu:
+`modules/appointments/service.ts`'in `resolvePet`'i `archivedAt`
+süzüyor, **`deceased` süzmüyor.**
+
+| | ekran | sunucu | sonuç |
+|---|---|---|---|
+| hatırlatma | sunuyor | **reddediyor** | çıkmaz sokak, **kurtarılabilir** (hata metni) |
+| **randevu** | sunuyor | **kabul ediyor** | **kayıt oluşuyor, gün planına giriyor** |
+
+Mesaj tarafı kapalı (süpürge `deceased: false` süzüyor), yani
+müşteriye bir şey gitmiyor — ama **veterinerin gün planında hiç
+gerçekleşemeyecek bir randevu duruyor ve oraya onu ÜRÜN koydu.**
+
+**Şiddet sırası:** sunucunun kabul ettiği > ekranın sunup sunucunun
+reddettiği. İkincisinde kalan bir hata mesajı var; birincisinde
+**kalan bir kayıt** var.
+
+### Üçüncü kaynak: askıya alınmış gözlemler
+
+Bu bulgu yeni bir turdan değil, **ux'in bulgu olarak açmadığı bir
+satırdan** çıktı: *"vefat etmiş hayvanın sayfasında Yeni randevu
+düğmesi duruyor. Bulgu olarak açmıyorum, gözlem olarak bırakıyorum."*
+Bir tur sonra bir `grep` onu bulguya çevirdi.
+
+| kaynak | ne verir | maliyeti |
+|---|---|---|
+| dedektör listesi | **doğrulama** kanalı | ucuz, ama düşünülmemiş soruyu sormaz |
+| yolculuklar | **keşif** kanalı | pahalı |
+| **askıya alınmış gözlemler** | **nereye bakılacağı** | **en ucuz — ölçümü başkası zaten yapmış** |
+
+**"Bulgu değil" diye bırakmak doğru davranıştır** (ölçülmemiş şey iş
+değildir) — **ama okunabilir bir yerde bırakmak şartıyla.**
+
+### Bir nöbetçinin VARLIĞI bakmayı durduruyor
+
+ux, yatay taşma süpürgesinde kapsam kusuru buldu: süpürge `/sign-up`
+ile **boş klinik** açıyor, oysa bu sınıftan bugün bulunan **üç
+kusurun üçü de veriye bağlı** (`/staff` 413 px uzun adlar · tür çipi
+76 px kapatılmış yerleşik tür · panel 140 px çizilmiş grafik).
+
+> Süpürge **yeşil yanar ve hiçbir şey öğretmez** — üstelik yeşil
+> olduğu için **kimse bir daha elle bakmaz.**
+
+Bu, "nöbetçi zemini" kuralının en pahalı hâli: eksik bir nöbetçi,
+yokluğundan **daha kötüdür**, çünkü yerine geçtiği dikkati de
+götürür.
+
+ux genelledi ve iki süpürgeyi daha sorguya çekti: `touch-targets`
+bugün `/settings`'te iki kusur buldu **çünkü orada veri vardı**;
+`focus-ring`'in bulduğu beş denetim her klinikte var ama **veriye
+bağlı odak kusurları boş klinikte hiç oluşmaz.**
+
+Ve pm aynı şeyi kendi ölçümü için yazdı: *`736755d`'yi "geçti" diye
+yazmadım — **çipi hiç üretemedim**, yani kusurlu yolu
+çalıştıramadığım için düzeltmeyi de çalıştıramadım.* **Sıfırın anlamı,
+sıfırı üreten koşula bağlı.**
+
+### Kuralı alanıyla yaz — nerede geçerli OLMADIĞINI da
+
+ux, `radiogroup` kararından sonra kendi pratiğini değiştirdi:
+
+> Kuralı alanıyla yazmayı bugün **bir kez** yaptım ve tesadüfen doğru
+> vakaya denk geldi. Bundan sonra **alan cümlesi olmadan kural
+> yazmayacağım.**
+
+**Kuralın nerede geçerli olmadığını yazmak, kuralın kendisi kadar iş
+görüyor** — çünkü alanı yazılmamış kural, yeni vakada ya bükülüyor ya
+da sessizce atlanıyor.
