@@ -167,15 +167,6 @@ export function ClientForm({ client }: Props) {
             <span className="text-xs text-muted-foreground">{t("notificationsOptInHint")}</span>
           </span>
         </label>
-        <label className="flex items-start gap-3 text-sm">
-          <input
-            type="checkbox"
-            name="marketingOptIn"
-            defaultChecked={client?.marketingOptIn ?? false}
-            className="mt-0.5 size-4 rounded border-border"
-          />
-          <span className="text-foreground">{t("marketingOptIn")}</span>
-        </label>
         <Field label={t("notes")} error={state.fieldErrors?.notes}>
           <Textarea name="notes" rows={4} defaultValue={client?.notes ?? ""} />
         </Field>

@@ -47,7 +47,6 @@ const validInput = {
   preferredContact: null,
   preferredLanguage: null,
   notificationsOptIn: true,
-  marketingOptIn: false,
   notes: null,
 };
 
@@ -136,6 +135,34 @@ describe("archiveClient", () => {
     expect(prisma.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: "ARCHIVE", entityType: "Client" }),
     });
+  });
+});
+
+// Backlog 36: the marketing consent box left the form, and the column
+// stayed. What makes that safe is exactly this — the update path no longer
+// mentions the field, so a client who consented keeps their consent through
+// every future edit. If `marketingOptIn` ever comes back into
+// `clientSchema` without a control in the form, an unticked checkbox sends
+// nothing and this write turns every stored `true` into `false`, silently,
+// on a field that is a record of what someone agreed to.
+describe("a consent nobody asks about any more", () => {
+  it("is not written by updateClient", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "c-1" } as never);
+    vi.mocked(prisma.client.update).mockResolvedValue({ id: "c-1" } as never);
+
+    await updateClient("c-1", validInput, ctx);
+
+    const data = vi.mocked(prisma.client.update).mock.calls[0][0].data;
+    expect(data).not.toHaveProperty("marketingOptIn");
+  });
+
+  it("is not written by createClient either", async () => {
+    vi.mocked(prisma.client.create).mockResolvedValue({ id: "c-1" } as never);
+
+    await createClient(validInput, ctx);
+
+    const data = vi.mocked(prisma.client.create).mock.calls[0][0].data;
+    expect(data).not.toHaveProperty("marketingOptIn");
   });
 });
 

@@ -143,7 +143,6 @@
     "preferredLanguageHint": "Messages sent to this client are written in this language.",
     "notificationsOptIn": "The client consented to notification messages",
     "notificationsOptInHint": "Tick this only if the client has agreed to receive messages. Left unticked, no automatic appointment confirmation, reminder or vaccination notice is sent to them.",
-    "marketingOptIn": "Allow marketing communications",
     "notes": "Notes",
     "archiveConfirm": "Archive this client?",
     "petsCount": "{count, plural, =0 {No pets} one {1 pet} other {# pets}}",

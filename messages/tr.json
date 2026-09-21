@@ -143,7 +143,6 @@
     "preferredLanguageHint": "Bu müşteriye gönderilen mesajlar bu dilde yazılır.",
     "notificationsOptIn": "Müşteri bildirim mesajlarına onay verdi",
     "notificationsOptInHint": "Bu kutuyu yalnızca müşteri mesaj almayı kabul ettiyse işaretleyiniz. İşaretlenmediğinde bu müşteriye otomatik randevu onayı, hatırlatma veya aşı bildirimi gönderilmez.",
-    "marketingOptIn": "Pazarlama iletişimine izin ver",
     "notes": "Notlar",
     "archiveConfirm": "Bu müşteri arşivlensin mi?",
     "petsCount": "{count, plural, =0 {Hayvan yok} one {1 hayvan} other {# hayvan}}",

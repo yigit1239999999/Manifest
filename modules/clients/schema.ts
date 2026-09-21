@@ -24,7 +24,11 @@ export const clientSchema = z.object({
   preferredContact: optionalEnum(CONTACT_METHODS),
   preferredLanguage: optionalEnum(LANGUAGES),
   notificationsOptIn: checkbox,
-  marketingOptIn: checkbox,
+  // No `marketingOptIn`. The column still exists and still holds the
+  // consents that were collected, but it is not a field of this form any
+  // more, and it must not become one by accident: an unticked checkbox
+  // submits nothing, so a schema key with no control above it would write
+  // `false` over a real consent on every single edit.
   notes: optionalText(2000),
 });
 
