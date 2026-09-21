@@ -22,6 +22,8 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
+    "cancelConfirm": "Cancel this appointment?",
+    "cancelUndoHint": "The appointment stays on the list with its status set to cancelled. You can schedule it again from the edit screen.",
     "nevermind": "Cancel",
     "edit": "Edit",
     "delete": "Delete",
@@ -493,6 +495,7 @@
     "dismiss": "Dismiss",
     "emptyHint": "Reminders you create (vaccination due, check-up, follow-up) are listed here until you close them.",
     "statusFilter": "Status",
+    "filterOpen": "Open",
     "filterClosed": "Closed",
     "filterAll": "All",
     "emptyClosed": "No closed reminders.",

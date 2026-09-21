@@ -5,8 +5,7 @@ import { surface } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
-import { can } from "@/lib/permissions";
-import { normalizePhone } from "@/lib/phone";
+import { telHref } from "@/lib/phone";
 import {
   listReminders,
   OPEN_REMINDER_STATUSES,
@@ -73,8 +72,6 @@ export default async function RemindersPage({
       listPets({ clinicId: session.user.clinicId }),
     ]);
 
-  const canWrite = can(session.user.role, "reminders.write");
-
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")} />
@@ -108,7 +105,12 @@ export default async function RemindersPage({
         param="status"
         label={t("statusFilter")}
         active={view === "open" ? undefined : view}
-        allLabel={tStatus("PENDING")}
+        // Not `tStatus("PENDING")`, which this used to borrow: this tab
+        // holds two statuses, and calling a set by the name of one of its
+        // members tells the user the list contains something narrower than
+        // it does. A sent reminder is still open work — the row's own badge
+        // says "Sent" while the tab above it said "Pending" (TEAM.md #25).
+        allLabel={t("filterOpen")}
         options={[
           { value: "closed", label: t("filterClosed") },
           { value: "all", label: t("filterAll") },
@@ -140,7 +142,13 @@ export default async function RemindersPage({
       ) : (
         <ul className="flex flex-col gap-2">
           {reminders.map((r) => {
-            const dialable = normalizePhone(r.client.phone);
+            // Three states, not two. No number at all shows nothing —
+            // not a dash, not an empty separator (TEAM.md #21). A number
+            // we cannot parse still shows, as plain text: it is the vet's
+            // information and they can dial it by hand, but a link that
+            // does nothing when tapped promises what it cannot do
+            // (TEAM.md #33). Only a number we can dial becomes a link.
+            const dial = telHref(r.client.phone);
             return (
               <li
                 key={r.id}
@@ -180,14 +188,18 @@ export default async function RemindersPage({
                         </Link>
                       </>
                     )}
-                    {dialable && (
+                    {r.client.phone && (
                       <>
                         <span aria-hidden="true">·</span>
-                        {/* `normalizePhone`, not the raw text: "0532 111 11
-                            11" in a `tel:` is not dialable. */}
-                        <a href={`tel:+${dialable}`} className="hover:underline">
-                          {r.client.phone}
-                        </a>
+                        {dial ? (
+                          // The written form is what is read, the dialable
+                          // form is what is called.
+                          <a href={dial} className="hover:underline">
+                            {r.client.phone}
+                          </a>
+                        ) : (
+                          <span>{r.client.phone}</span>
+                        )}
                       </>
                     )}
                   </p>
@@ -203,22 +215,28 @@ export default async function RemindersPage({
                     status={r.status}
                     label={tStatus(r.status as never)}
                   />
-                  {canWrite &&
-                    OPEN_REMINDER_STATUSES.includes(r.status as never) && (
-                      <ReminderCloseButtons
-                        acknowledge={acknowledgeReminderAction.bind(null, r.id)}
-                        dismiss={dismissReminderAction.bind(null, r.id)}
-                        acknowledgeLabel={t("acknowledge")}
-                        dismissLabel={t("dismiss")}
-                        // Ten rows carry ten buttons reading "Done". Named
-                        // by the reminder they belong to, they stop being
-                        // ten identical announcements (TEAM.md #26).
-                        acknowledgeName={t("acknowledgeFor", {
-                          title: r.title,
-                        })}
-                        dismissName={t("dismissFor", { title: r.title })}
-                      />
-                    )}
+                  {/* No permission guard: `reminders.write` is held by
+                      every role in the matrix, so a guard here could never
+                      be false and would tell the next reader that some
+                      role gets turned away. `app/route-states.test.ts`
+                      caught this one — I had written the guard by copying
+                      the page next door, which is exactly the habit that
+                      test exists for. */}
+                  {OPEN_REMINDER_STATUSES.includes(r.status as never) && (
+                  <ReminderCloseButtons
+                      acknowledge={acknowledgeReminderAction.bind(null, r.id)}
+                      dismiss={dismissReminderAction.bind(null, r.id)}
+                      acknowledgeLabel={t("acknowledge")}
+                      dismissLabel={t("dismiss")}
+                      // Ten rows carry ten buttons reading "Done". Named
+                      // by the reminder they belong to, they stop being
+                      // ten identical announcements (TEAM.md #26).
+                      acknowledgeName={t("acknowledgeFor", {
+                        title: r.title,
+                      })}
+                      dismissName={t("dismissFor", { title: r.title })}
+                    />
+                  )}
                 </div>
               </li>
             );

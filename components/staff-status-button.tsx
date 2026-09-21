@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { UserCheck, UserX } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import type { FormState } from "@/lib/action";
@@ -36,16 +37,28 @@ export function StaffStatusButton({
     router.refresh();
   };
 
+  // The word is hidden on a phone, not the button.
+  //
+  // `/staff` is the widest list in the app — five columns, one of them an
+  // e-mail address — and ux measured that even three do not fit 292px. Two
+  // columns moved under the name; this is the last 49px, and it is all
+  // label. The word comes back at `sm`, and the accessible name carries it
+  // at every width, so nothing is lost to anyone (TEAM.md #27: an action
+  // off the edge and a hidden one are the same thing — an action that is
+  // still there and still named is neither).
+  const Icon = active ? UserX : UserCheck;
   const trigger = (onClick?: () => void) => (
     <button
       type={onClick ? "button" : "submit"}
       onClick={onClick}
+      aria-label={label}
       className={buttonVariants({
         variant: active ? "ghost" : "secondary",
         size: "sm",
       })}
     >
-      {label}
+      <Icon />
+      <span className="sr-only sm:not-sr-only">{label}</span>
     </button>
   );
 

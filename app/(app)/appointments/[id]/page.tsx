@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Edit3 } from "lucide-react";
+import { CalendarX, Edit3 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
@@ -108,9 +108,20 @@ export default async function AppointmentPage({
         )}
         {canWrite && appointment.status !== "CANCELLED" && (
           <DeleteButton
+            // Cancelling is a status change, not a deletion: the row stays
+            // and the edit screen can put it back to scheduled, because
+            // that select lists every status. So it is neither red nor
+            // marked with a bin — the case TEAM.md #25 names by name.
+            // `CalendarX` and not `Archive`: nothing is being filed away,
+            // the appointment is simply not happening.
             action={cancelAppointmentAction.bind(null, appointment.id)}
             label={t("cancel")}
-            confirmText={t("cancel") + "?"}
+            tone="default"
+            icon={CalendarX}
+            // Was `t("cancel") + "?"`, which asked "Cancel the
+            // appointment?" by gluing a question mark to a button label.
+            confirmText={t("cancelConfirm")}
+            description={t("cancelUndoHint")}
           />
         )}
       </PageHeader>

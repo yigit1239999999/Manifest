@@ -293,8 +293,15 @@ export default async function DashboardPage() {
                     key={v.id}
                     className="flex items-center justify-between rounded-control px-2 py-2"
                   >
+                    {/* Not `v.pet?.name ?? "?"`. `Vaccination.petId` is
+                        non-null in the schema and the query includes the
+                        relation, so the guard defended a case that cannot
+                        happen — and printed a made-up "?" for it, which is
+                        the thing TEAM.md #21 is about. ux read the `?.` as
+                        evidence the field was nullable; defensive code had
+                        become the documentation. */}
                     <span className="text-sm font-medium">
-                      {v.pet?.name ?? "?"} · {v.name}
+                      {v.pet.name} · {v.name}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {formatDate(fmt, v.nextDueAt)}

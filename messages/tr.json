@@ -22,6 +22,8 @@
   "common": {
     "save": "Kaydet",
     "cancel": "İptal",
+    "cancelConfirm": "Bu randevu iptal edilsin mi?",
+    "cancelUndoHint": "Randevu listede kalır, durumu iptal edildi olur. İsterseniz düzenleme ekranından yeniden planlayabilirsiniz.",
     "nevermind": "Vazgeç",
     "edit": "Düzenle",
     "delete": "Sil",
@@ -493,6 +495,7 @@
     "dismiss": "Kapat",
     "emptyHint": "Oluşturduğunuz hatırlatmalar (aşı zamanı, kontrol, takip) siz kapatana kadar burada listelenir.",
     "statusFilter": "Durum",
+    "filterOpen": "Açık",
     "filterClosed": "Kapatılanlar",
     "filterAll": "Tümü",
     "emptyClosed": "Kapatılmış hatırlatma yok.",

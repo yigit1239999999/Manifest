@@ -59,26 +59,34 @@ export default async function StaffPage() {
                       ({t("you")})
                     </span>
                   )}
+                  {/* What the hidden columns held, riding along. Five
+                      columns do not fit 292px of phone — ux measured that
+                      even three do not — and hiding one is only honest
+                      when its content is still reachable, which is what
+                      this is. Same shape as `/appointments`.
+
+                      `wrap-anywhere` lives here and not on a column of its
+                      own: an address is one unbreakable token, and in a
+                      45px column it became twenty-six lines. Narrow enough
+                      to fit and unreadable is not a fix. */}
+                  <div className="mt-1 flex flex-col gap-0.5 text-xs font-normal text-muted-foreground sm:hidden">
+                    <span className="wrap-anywhere">{member.email}</span>
+                    <span>{tRole(member.role)}</span>
+                  </div>
                 </>
               ),
             },
             {
               key: "email",
               header: t("email"),
-              // `wrap-anywhere`, not decoration. An address is one
-              // unbreakable token, and a table is as wide as the widest
-              // thing it cannot break: pm measured this column at 244px on
-              // a 390px screen, which is most of the reason this list has
-              // to scroll sideways at all. `overflow-wrap: anywhere` is the
-              // one that lowers the min-content width; `break-word` does
-              // not. Hiding the column instead would have been cheaper and
-              // wrong — there is nowhere else on this page to read it.
-              cellClassName: "wrap-anywhere text-muted-foreground",
+              hideBelow: "sm",
+              cellClassName: "text-muted-foreground",
               cell: (member) => member.email,
             },
             {
               key: "role",
               header: t("role"),
+              hideBelow: "sm",
               cellClassName: "text-muted-foreground",
               cell: (member) => tRole(member.role),
             },
