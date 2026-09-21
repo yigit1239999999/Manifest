@@ -63,36 +63,23 @@ export default async function AppLayout({
             id="main"
             // Focusable only as a jump target, never in the tab order.
             tabIndex={-1}
-            // A wide cap, not no cap -- and this line has now been wrong
-            // in both directions, so both measurements are here.
+            // No reading-width cap. There was one — `max-w-6xl`, 1152px,
+            // centred — and on a 1920 screen it left 528px of empty
+            // gutter beside a sidebar of 240, about a quarter of the
+            // display; on 2560 it was closer to half. A cap like that
+            // buys short text lines, and this product's main screens
+            // are not text: /appointments, /invoices, /visits and
+            // /clients are tables, and every column they cannot fit is
+            // a fact the vet has to open a detail page to read. That is
+            // the defect we spent the day closing, so paying for it
+            // with whitespace was the wrong trade.
             //
-            // It was `max-w-6xl` (1152px). On a 1920 screen that left
-            // 528px of empty gutter beside a 240px sidebar, about a
-            // quarter of the display; the vet said the screen "came up
-            // half". So the cap came off, because this product's main
-            // screens are tables -- /appointments, /invoices, /visits,
-            // /clients -- and every column they cannot fit is a fact
-            // someone has to open a detail page to read.
-            //
-            // Off was also wrong, measured: content then ran to 1616px
-            // at 1920, 40% wider than the old cap. Nothing overflowed
-            // and nothing was unreachable -- pm checked every element on
-            // five pages and found zero past the viewport -- but a
-            // three-column client table spread its columns across 1614px,
-            // so the eye travels the whole display between a name and a
-            // phone number, and cards read as though their contents had
-            // drifted apart.
-            //
-            // 1440 is the middle that survives both complaints: 86% of
-            // the available width at 1920 against the old 69%, so the
-            // columns stay, and a hard stop on a 2560 display, where
-            // uncapped content was heading for ~2250px.
-            //
-            // This is a floor, not the design. The real answer is a cap
-            // per content type -- tables wide, forms and prose narrow --
-            // because a 1440px form field is as unreadable as a 1616px
-            // one. That work is with ux; this line stops the bleeding.
-            className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 md:px-8 md:py-8"
+            // The cost is real and known: on a very wide display a long
+            // prose field — an invoice note, a visit's history — runs to
+            // a line length that is hard to read. If that starts to
+            // bite, the answer is a cap on those blocks where the prose
+            // is, not one on every screen.
+            className="w-full flex-1 px-4 py-6 md:px-8 md:py-8"
           >
             {children}
           </main>
