@@ -57,6 +57,17 @@ interface Props {
    * empty over a hidden input that is not.
    */
   defaultPetLabel?: string;
+  /**
+   * The signed-in user, when they are somebody a visit may be recorded
+   * against. Absent for everyone else, and absent is not a fallback:
+   * "not recorded" is a better answer than a name nobody chose.
+   *
+   * Decided on the server (`visits/new/page.tsx`) rather than here,
+   * because the browser cannot tell a clinician from a receptionist,
+   * and the same question used to be answered in the service -- where
+   * it was a guess nobody could see.
+   */
+  defaultVetId?: string;
 }
 
 export function VisitForm({
@@ -66,6 +77,7 @@ export function VisitForm({
   vets,
   defaultPetId,
   defaultPetLabel,
+  defaultVetId,
 }: Props) {
   const router = useRouter();
   const locale = useLocale();
@@ -163,11 +175,18 @@ export function VisitForm({
           />
         </Field>
         <Field label={t("vet")} error={state.fieldErrors?.vetId}>
-          <Select name="vetId" defaultValue={visit?.vetId ?? ""}>
+          {/* Only a new visit takes the default: on an edit the field
+              already says who was recorded, and a blank there is a
+              decision somebody made rather than a question nobody
+              reached. */}
+          <Select name="vetId" defaultValue={visit?.vetId ?? defaultVetId ?? ""}>
             <option value="">{tCommon("none")}</option>
             {vets.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.name}
+                {/* The reader is in this list, and saying so is what
+                    makes a pre-chosen name readable as their own
+                    rather than as a name the form picked at random. */}
+                {v.id === defaultVetId ? t("vetYou", { name: v.name }) : v.name}
               </option>
             ))}
           </Select>

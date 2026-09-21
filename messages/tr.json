@@ -298,6 +298,7 @@
     "visitedAt": "Tarih ve saat",
     "chiefComplaint": "Ana şikayet",
     "vet": "Veteriner",
+    "vetYou": "{name} (siz)",
     "soap": "SOAP notları",
     "subjective": "Anamnez (S)",
     "objective": "Klinik bulgular (O)",

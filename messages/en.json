@@ -298,6 +298,7 @@
     "visitedAt": "Visit date & time",
     "chiefComplaint": "Chief complaint",
     "vet": "Veterinarian",
+    "vetYou": "{name} (you)",
     "soap": "SOAP notes",
     "subjective": "Subjective",
     "objective": "Objective",
