@@ -32,6 +32,7 @@ const AT = new Date("2026-09-30T06:00:00Z");
 // branch untested.
 const SAMPLE: Record<ReminderDeliveryStateName, ReminderDeliveryLineProps> = {
   scheduled: { state: "scheduled", sendAt: AT, channel: "SMS" },
+  dueNow: { state: "dueNow", channel: "SMS" },
   sent: { state: "sent", at: AT, channel: "SMS" },
   failedRetrying: { state: "failedRetrying", at: AT, attempts: 1 },
   failedExhausted: { state: "failedExhausted", at: AT, attempts: 3 },

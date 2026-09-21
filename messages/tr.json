@@ -536,6 +536,7 @@
     },
     "delivery": {
       "scheduled": "Gönderilecek: {at} · {channel}",
+      "dueNow": "Gönderilmeyi bekliyor ({channel}). Şimdi de gönderebilirsiniz.",
       "sent": "Gönderildi: {at} · {channel}",
       "failedRetrying": "Gönderilemedi. {attempts, plural, one {1 deneme} other {# deneme}} yapıldı, son deneme {at}. Otomatik olarak tekrar denenecek.",
       "failedExhausted": "{attempts, plural, other {# kez}} denendi, operatör kabul etmedi. Son deneme {at}. Elle gönderebilirsiniz.",

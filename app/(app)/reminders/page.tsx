@@ -114,6 +114,11 @@ export default async function RemindersPage({
       !clinic.notifications.whatsapp.reminders.enabled
     : false;
 
+  // Read once for the whole list, so every row is judged against the same
+  // instant and two rows either side of a notice time cannot disagree.
+  // eslint-disable-next-line react-hooks/purity -- server component, evaluated once per request
+  const now = Date.now();
+
   const deliveries = clinic
     ? reminders.map((r) => reminderDeliveryState(r, clinic))
     : [];
@@ -165,6 +170,16 @@ export default async function RemindersPage({
               attempts: delivery.attempts,
             };
       case "scheduled":
+        // The service computes the notice time and deliberately does not
+        // compare it to the clock -- a notice date in the past is still
+        // `scheduled`, because the next sweep picks it up. On screen that
+        // difference matters: printing a past instant next to "will be
+        // sent" promises a send that has already not happened. A reminder
+        // due tomorrow under a three-day lead time is in this state the
+        // moment it is written, so it is not an edge case.
+        return delivery.sendAt.getTime() <= now
+          ? { state: "dueNow", channel: tChannel(delivery.channel) }
+          : { ...delivery, channel: tChannel(delivery.channel) };
       case "sent":
       case "notConfigured":
         return { ...delivery, channel: tChannel(delivery.channel) };

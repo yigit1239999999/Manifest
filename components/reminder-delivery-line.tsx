@@ -57,8 +57,13 @@ import { cn } from "@/lib/utils";
  * cannot catch. `reminder-delivery-line.test.tsx` walks this.
  */
 export const REMINDER_DELIVERY_STATES = [
-  /** Due to go out; the sweep has worked out when. */
+  /** Due to go out, at a time still ahead. */
   "scheduled",
+  /**
+   * Due to go out, and the moment has already passed: it goes on the next
+   * sweep rather than at a time we can name.
+   */
+  "dueNow",
   /** The provider accepted it. Accepted, not delivered — see the naming rule. */
   "sent",
   /** Rejected, and the sweep will try again. */
@@ -97,6 +102,7 @@ export type ReminderDeliveryStateName =
  */
 export type ReminderDeliveryLineProps =
   | { state: "scheduled"; sendAt: Date; channel: string }
+  | { state: "dueNow"; channel: string }
   | { state: "sent"; at: Date; channel: string }
   | { state: "failedRetrying"; at: Date; attempts: number }
   | { state: "failedExhausted"; at: Date; attempts: number }
@@ -127,6 +133,7 @@ const TONE = {
 
 const WEIGHT: Record<ReminderDeliveryStateName, keyof typeof TONE> = {
   scheduled: "quiet",
+  dueNow: "quiet",
   sent: "quiet",
   failedRetrying: "alert",
   failedExhausted: "alert",
@@ -143,6 +150,7 @@ const WEIGHT: Record<ReminderDeliveryStateName, keyof typeof TONE> = {
 
 const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
   scheduled: Clock,
+  dueNow: Clock,
   sent: Check,
   failedRetrying: AlertCircle,
   failedExhausted: AlertCircle,
@@ -177,6 +185,15 @@ export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
 
   function sentence() {
     switch (props.state) {
+      // No time is named, because none can be truthfully named. The
+      // moment this was meant to go out is behind us -- a reminder due
+      // tomorrow with a three-day lead time is already past its notice
+      // date the minute it is written -- and the next attempt happens
+      // whenever the sweep next runs, which this screen does not know and
+      // must not guess. Before this it printed the computed notice time
+      // and so promised a send in the past.
+      case "dueNow":
+        return t("dueNow", { channel: props.channel });
       case "scheduled":
         return t("scheduled", {
           at: formatDateTime(fmt, props.sendAt),

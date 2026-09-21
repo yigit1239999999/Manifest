@@ -536,6 +536,7 @@
     },
     "delivery": {
       "scheduled": "Will be sent: {at} · {channel}",
+      "dueNow": "Waiting to go out ({channel}). You can also send it now.",
       "sent": "Sent: {at} · {channel}",
       "failedRetrying": "Could not be sent. {attempts, plural, one {1 attempt} other {# attempts}} so far, the last at {at}. It will be tried again automatically.",
       "failedExhausted": "Tried {attempts, plural, other {# times}}, the operator refused. Last attempt {at}. You can send it by hand.",
