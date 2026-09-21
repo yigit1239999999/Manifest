@@ -232,7 +232,11 @@ export const STATES = [
 
   // The loop's four resting places.
   { id: "reminder.pending", covers: "a reminder waiting to go" },
-  { id: "reminder.sent", covers: "one sent, the animal not yet back" },
+  {
+    id: "reminder.sent",
+    covers:
+      "one sent, the animal not yet back: the work is still open after the message left, and the row's badge and its delivery sentence have to agree about that",
+  },
   { id: "reminder.acknowledged", covers: "one closed because they came" },
   { id: "reminder.dismissed", covers: "one closed because it was not needed" },
 
@@ -891,6 +895,29 @@ export async function buildStateClinic(db) {
     );
     made(id);
   }
+
+  // The message behind the SENT one, and the reason it has to exist.
+  //
+  // This row carried `status = SENT` and no `MessageLog`, so its badge
+  // said "Gönderildi" while the delivery line, which reads the log and
+  // not the status, had nothing to say -- a row making a claim the row
+  // below it could not corroborate. Measured before fixing it: one such
+  // reminder in the whole database, this fixture, and no path in the
+  // product that could make another. The screen offers ACKNOWLEDGED,
+  // DISMISSED and PENDING; the only two writers of SENT are the sweep
+  // and the manual send, and both write the log first.
+  //
+  // So the fixture was asserting a state the product cannot reach,
+  // which is worse than a missing state: it invites a sentence for a
+  // case that will never arrive. The data is what was wrong.
+  await db.query(
+    `INSERT INTO message_logs (id, "clinicId", "clientId", "reminderId", channel, kind,
+                               recipient, language, body, status, "providerId", "createdAt")
+     VALUES ($5, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr',
+             'Sayın Hâl Sahibi, Zeytin için kontrol zamanı yaklaşıyor. HÂL KLİNİĞİ',
+             'SENT', 'log-seed', $4)`,
+    [clinic.id, client.id, halId("reminder", "sent"), ago(3), halId("messagelog", "sent")],
+  );
 
   // What the sweep can actually pick up, and the row beside it that it
   // must not. Before these, messaging was off for this clinic and the
