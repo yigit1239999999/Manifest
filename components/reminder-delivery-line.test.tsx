@@ -192,6 +192,13 @@ describe("sent is not delivered", () => {
  * Measured on the *rendered* sentence rather than the stored string — the
  * stored one counts ICU syntax nobody ever sees. The two link labels are
  * excluded: they are appended to a sentence, not sentences themselves.
+ *
+ * THE NUMBER BELONGS TO ONE CONTAINER AND DOES NOT TRAVEL. 80 is the
+ * delivery line inside a reminder row, which is 260px wide at 390px.
+ * pm's own check of the same threshold elsewhere: 80 characters in the
+ * form's 194px field column runs to FIVE lines. Carrying this number to
+ * another surface would repeat, in a new place, exactly the mistake that
+ * produced 118 here.
  */
 describe("longest translation, measured", () => {
   const rendered = (locale: "tr" | "en", messages: typeof tr | typeof en) => {
