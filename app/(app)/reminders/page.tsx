@@ -518,6 +518,22 @@ export default async function RemindersPage({
                       reminders actually go out never arrives. */}
                   {delivery &&
                     (delivery.state === "scheduled" ||
+                      // The clinic's switch is about the AUTOMATIC loop and
+                      // never belonged in this list. It sat here because
+                      // the server refused a manual send while it was off,
+                      // so hiding the button was following the server
+                      // correctly -- the divergence was underneath, in a
+                      // gate the appointment path never had. With that
+                      // fixed, and with the derivation now checking the
+                      // owner's own obstacles BEFORE the switch, a
+                      // `disabled` row is one the server will take.
+                      //
+                      // This matters more than a button: a vet told us
+                      // they will not turn the switch on until they have
+                      // sent a few by hand, and until now the screen made
+                      // that impossible in exactly the state they would be
+                      // in while deciding.
+                      delivery.state === "disabled" ||
                       (delivery.state === "failed" &&
                         delivery.scope !== "CLINIC")) && (
                       <ReminderSendNowButton

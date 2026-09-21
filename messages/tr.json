@@ -420,8 +420,8 @@
       "previewReminder": "Hatırlatma mesajı",
       "saved": "Bildirim ayarları kaydedildi.",
       "save": "Kaydet",
-      "enabledHint": "Randevu onaylarını ve hatırlatmaları klinik genelinde açar veya kapatır. Yalnızca zamanlanmış gönderimi etkiler.",
-      "disabledNotice": "Kapalı; hiçbir mesaj kendiliğinden gönderilmez. Ayarları şimdi yapıp bu anahtarı sonra açabilirsiniz."
+      "enabledHint": "Randevu onaylarını ve hatırlatmaları klinik genelinde açar veya kapatır. Elle gönderimi etkilemez.",
+      "disabledNotice": "Kapalı; hiçbir mesaj kendiliğinden gönderilmez. Ayarları şimdi yapıp bu anahtarı sonra açabilirsiniz. Elle gönderim bu anahtardan etkilenmez."
     }
   },
   "vaccination": {
@@ -569,7 +569,7 @@
       "askAdmin": "Klinik yöneticinizle görüşünüz."
     },
     "banner": {
-      "disabled": "Otomatik mesajlar kapalı. Hiçbir hatırlatma kendiliğinden gönderilmeyecek.",
+      "disabled": "Otomatik mesajlar kapalı. Hiçbir hatırlatma kendiliğinden gönderilmeyecek; elle gönderebilirsiniz.",
       "notConfigured": "{channel} bağlantısı yapılmadı. Bu listeden hiçbir mesaj gönderilemiyor.",
       "clinicFailure": "Bildirim gönderimi durdu: {reason}"
     }
