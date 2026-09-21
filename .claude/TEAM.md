@@ -5356,3 +5356,83 @@ etrafında dönmesin."*
 
 **Açık bırakılmış bir gözlem, kapatılmış bir gözlemden pahalıdır** —
 biri kuyrukta yer kaplar, öteki yalnız kayıtta.
+
+### Kanıtı olmayan bir kelime, kanıtını aşan bir kelimeden kötüdür
+
+dev'in `logTransport`'u artık sahte teslim raporu üretiyor
+(`reportsDelivery: true`). dev-ui satırı bağlarken sonucunu gördü:
+
+> Test zemininde bir satır `delivered` olup **"Ulaştı"** diyebilir —
+> **uygulamadan hiçbir şey çıkmamışken.**
+
+Ve sınıfı doğru adlandırdı:
+> Bu, bu turun bütün gün koruduğu kuralın **en kötü hâli**: bir
+> kelimenin **kanıtını aşması** değil, **altında hiç kanıt
+> olmaması.**
+
+Aynısı *"Ulaşmadı"* için de geçerli — **sahte bir rapor başarısız da
+olamaz.** Test kipinde beş kabul hâli de mevcut *"kaydedildi, dışarı
+bir şey çıkmadı"* cümlesine katlanıyor.
+
+**Ve dev-ui bunu bir eksiklik olarak RAPORLADI, sessizce karşılanmış
+saymadı:** value'nun 7. kriteri (*her şey `NETGSM_*` olmadan
+denenebilir*) **mekanizma için** geçerli, **kelime için değil** —
+`logTransport` ile ekranda *"Ulaştı"* görülemez, çünkü o satır bir
+yalan olurdu.
+
+> **Bir kabul kriterinin yarısının karşılandığını söylemek, tamamının
+> karşılandığını söylemekten zordur** — ve bu turda üçüncü kez biri
+> zoru seçti.
+
+### Türkçe'de bir sonek, biçimlenmiş bir değere sabitlenemez
+
+value cümleyi *"21 Eyl 18:05'te ulaştı"* diye yazdı. dev-ui
+**"Ulaştı: {at} · {channel}"** yaptı, gerekçesiyle:
+
+> Türkçe bulunma ekleri **önceki sese** uyuyor — *18:05'**te*** doğru,
+> *18:01'**de*** doğru, ve **hangisinin geleceği dakikaya bağlı.**
+
+Yani biçimlenmiş bir zamana **sabit bir sonek** eklemek, değerin
+yarısında yanlış. Anlam ve sözcük value'nun, **dilbilgisi
+yerleşimi** uygulayanın.
+
+Bu, aynı turdaki *"Karma aşı **aşı** satırını kapat"* ile aynı aile
+ve ikisi de **yalnız Türkçe'de** patlıyor:
+
+> **Bir cümle kalıbı tek bir dile aittir ve çevrilerek taşınmaz.**
+> Ve `messages.test.ts` bunu yakalayamaz — **iki dilde de anahtar
+> var, ikisi de dolu, biri anlamsız.**
+
+### Bir yasak, iki yönde birden uygulanır
+
+*"Ulaştı"* yalnız `delivered`'a ait — ve dev-ui **"Ulaşmadı" yalnız
+`undelivered`'a** şartını da koydu (value istemişti):
+
+> `reportExpired` onu **ödünç alamaz**, çünkü **gösteremediğimiz bir
+> başarısızlığı iddia etmek, gösteremediğimiz bir başarıyı iddia
+> etmekle aynı günah.**
+
+Ve sebebi mekanik: *o test olmadan, iki hâl **kelimeleri üzerinden**
+birbirine katlanır — kod onları ayrı tutmaya devam ederken.*
+
+**Bir ayrım, yalnız veri modelinde değil, o modeli anlatan
+sözcüklerde de korunur.** Kod ayırıp ekran birleştirirse ayrım
+kullanıcı için yok demektir.
+
+### "Basmadım" bir ölçüm sonucudur
+
+pm *"Kapat"* düğmesine **basmadı** ve sebebini yazdı:
+
+> Kartta geri alma görünmüyor ve tek geciken satır o — **basarsam
+> kart boşalır, aynı anda ölçüm yapan biri boş kart görür, ve geri
+> alamam.**
+
+Ve sınıflandırmayı kendisi yaptı: *"bu bir 'üretilemedi' değil,
+**bilerek yapılmadı**."*
+
+**Üçüncü bir kategori:** üretilemeyen · ölçülemeyen · **ölçülmesi
+paylaşılan zemine zarar veren.** Üçü de "yok" değil, ve üçünün de
+çaresi farklı — sonuncusunun çaresi **zamanlama.**
+
+*(Geri alma aslında vardı — toast'ta, gerekçesiyle. pm tıklamadığı
+için göremedi, ve tıklamaması yine de doğruydu.)*
