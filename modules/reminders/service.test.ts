@@ -49,7 +49,42 @@ describe("createReminder", () => {
     ).rejects.toBeInstanceOf(AppError);
     expect(prisma.pet.findFirst).toHaveBeenCalledWith({
       where: { id: "pet-x", clinicId: "clinic-1", ownerId: "client-1" },
-      select: { id: true },
+      select: { id: true, deceased: true, archivedAt: true },
+    });
+    expect(prisma.reminder.create).not.toHaveBeenCalled();
+  });
+
+  // Backlog 7, second half. Sending already stopped for a dead or archived
+  // animal; creating did not, so the list filled with rows that could never
+  // fire. A loop that cannot be trusted is worse than no loop (TEAM.md #12),
+  // and the refusal has to be visible on the field rather than a silent
+  // no-op (TEAM.md #33), which is what `validationFailed` gives it.
+  it.each([
+    ["deceased", { id: "pet-1", deceased: true, archivedAt: null }],
+    ["archived", { id: "pet-1", deceased: false, archivedAt: new Date() }],
+  ])("refuses a reminder for an animal that is %s", async (_case, pet) => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      id: "client-1",
+      archivedAt: null,
+    } as never);
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue(pet as never);
+
+    await expect(
+      createReminder({ ...validInput, petId: "pet-1" }, ctx),
+    ).rejects.toMatchObject({
+      details: { fieldErrors: { petId: ["error.validation.petSilenced"] } },
+    });
+    expect(prisma.reminder.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a reminder for an archived client", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      id: "client-1",
+      archivedAt: new Date(),
+    } as never);
+
+    await expect(createReminder(validInput, ctx)).rejects.toMatchObject({
+      details: { fieldErrors: { clientId: ["error.validation.clientArchived"] } },
     });
     expect(prisma.reminder.create).not.toHaveBeenCalled();
   });

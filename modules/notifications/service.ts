@@ -11,6 +11,7 @@ import {
   type AppointmentMessageKind,
 } from "@/lib/whatsapp/messages";
 import { normalizePhone } from "@/lib/phone";
+import { isPetSilenced } from "@/lib/pet-status";
 import { isReminderDue, isReminderNoticeDue } from "@/lib/whatsapp/schedule";
 import { composeAppointmentFor, composeReminderFor } from "@/lib/messaging/compose";
 import { getTransport, isChannelConfigured } from "@/lib/messaging/transports";
@@ -153,17 +154,6 @@ export function appointmentMessagingClosed(
     isAppointmentClosed(appointment.status) ||
     isAppointmentPast(appointment.startsAt, now)
   );
-}
-
-/**
- * An animal we must not write to its owner about. A reminder for a pet that
- * died is the one message that ends a clinic's trust in the whole system,
- * and an archived record is one the clinic has deliberately put away.
- */
-export function isPetSilenced(
-  pet: { deceased: boolean; archivedAt: Date | null } | null | undefined,
-): boolean {
-  return pet != null && (pet.deceased || pet.archivedAt != null);
 }
 
 export interface ComposedMessage {

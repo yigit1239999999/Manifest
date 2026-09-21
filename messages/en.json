@@ -749,6 +749,8 @@
       "petNotInClinic": "This pet isn't in your clinic.",
       "clientRequired": "Client not found.",
       "petRequired": "Pet not found.",
+    "petSilenced": "This animal has died or been archived, so no reminder can be created for it.",
+    "clientArchived": "This client is archived, so no reminder can be created. You can restore the client first.",
       "speciesUnknown": "Unknown species.",
       "speciesInUse": "This species is in use and can't be deleted.",
       "speciesNoneEnabled": "Select at least one species.",
