@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { AppError, notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
@@ -423,11 +424,152 @@ export async function notifyAppointmentBooked(appointmentId: string, ctx: Action
 // Reminder sweep (cron)
 // ---------------------------------------------------------------------------
 
+/**
+ * Why a row the sweep considered got no message.
+ *
+ * "0 sent" says nothing on its own: it reads the same whether nobody was
+ * due, nobody had consented, or there was nobody there at all — and those
+ * are three different jobs for three different people. A zero can mean
+ * the absence of a defect or the inability to produce one, and the only
+ * way to tell is to name what was eliminated and by what rule.
+ *
+ * Every row in the sweep's window is counted exactly once, under the
+ * first reason that applies, so `pool = sent + failed + Σ skipped`.
+ *
+ * The first five are decided inside the candidate query and deliberately
+ * so: an automatic send reaches an owner with nobody watching, and a
+ * guard that lives after the read is one somebody can forget to call.
+ * They are counted by a separate aggregate query rather than by widening
+ * the candidate query — the census must not pull rows into memory that
+ * the sweep has already decided it will not write to.
+ */
+export const SWEEP_SKIP_REASONS = [
+  /** Cancelled, missed or already done — or a reminder no longer pending. */
+  "closed",
+  "clientArchived",
+  "noPhone",
+  /** Refused, or never asked: a null consent is a "no" everywhere. */
+  "optedOut",
+  /** The animal died or was archived; nothing is written about it. */
+  "petSilenced",
+  /** A message for this row already went out, by us or by hand. */
+  "alreadySent",
+  "attemptsExhausted",
+  /** Failed recently; a later sweep tries again. */
+  "coolingOff",
+  /** Its hour has not come yet. This is the healthy zero. */
+  "notDue",
+  /** A number that is stored but cannot be dialled. */
+  "noRecipient",
+] as const;
+
+export type SweepSkipReason = (typeof SWEEP_SKIP_REASONS)[number];
+
+export interface SweepKindSummary {
+  /** Every row in the window, before a single rule was applied. */
+  pool: number;
+  /** What survived the candidate query. Should equal pool minus its skips. */
+  candidates: number;
+  sent: number;
+  failed: number;
+  /** Clinics that have this half of the loop switched off. */
+  clinicsDisabled: number;
+  skipped: Record<SweepSkipReason, number>;
+}
+
 export interface SweepSummary {
   configured: boolean;
-  clinics: number;
-  appointments: { checked: number; sent: number; failed: number; notDue: number };
-  reminders: { checked: number; sent: number; failed: number; notDue: number };
+  clinics: {
+    total: number;
+    /** Swept: messaging on and the channel actually configured. */
+    swept: number;
+    messagingOff: number;
+    channelNotConfigured: number;
+  };
+  appointments: SweepKindSummary;
+  reminders: SweepKindSummary;
+}
+
+function emptyKindSummary(): SweepKindSummary {
+  return {
+    pool: 0,
+    candidates: 0,
+    sent: 0,
+    failed: 0,
+    clinicsDisabled: 0,
+    skipped: Object.fromEntries(SWEEP_SKIP_REASONS.map((r) => [r, 0])) as Record<
+      SweepSkipReason,
+      number
+    >,
+  };
+}
+
+interface CensusRow {
+  reason: string;
+  n: number;
+}
+
+/**
+ * Folds a census into the summary: the pool is what the window held, and
+ * everything the candidate query dropped lands under its own reason.
+ */
+function applyCensus(rows: CensusRow[], into: SweepKindSummary): void {
+  for (const row of rows) {
+    into.pool += row.n;
+    if (row.reason === "eligible") continue;
+    into.skipped[row.reason as SweepSkipReason] += row.n;
+  }
+}
+
+/**
+ * The same eliminations the appointment candidate query makes, counted
+ * in the database instead of carried back as rows. The order of the
+ * branches decides which reason a doubly-disqualified row is filed
+ * under; it does not change which rows come out eligible, and eligible
+ * is the number that has to agree with the candidate query.
+ */
+function appointmentCensus(clinicId: string, from: Date, to: Date) {
+  return prisma.$queryRaw<CensusRow[]>(Prisma.sql`
+    SELECT CASE
+             WHEN a.status NOT IN ('SCHEDULED', 'CONFIRMED') THEN 'closed'
+             WHEN c."archivedAt" IS NOT NULL THEN 'clientArchived'
+             WHEN c.phone IS NULL THEN 'noPhone'
+             WHEN c."notificationsOptIn" IS NOT TRUE THEN 'optedOut'
+             WHEN p.deceased OR p."archivedAt" IS NOT NULL THEN 'petSilenced'
+             ELSE 'eligible'
+           END AS reason,
+           COUNT(*)::int AS n
+      FROM "appointments" a
+      JOIN "clients" c ON c.id = a."clientId"
+      JOIN "pets" p ON p.id = a."petId"
+     WHERE a."clinicId" = ${clinicId}
+       AND a."startsAt" > ${from}
+       AND a."startsAt" <= ${to}
+     GROUP BY 1
+  `);
+}
+
+/** The same, for reminders. A reminder naming no animal cannot be silenced by one. */
+function reminderCensus(clinicId: string, from: Date, to: Date) {
+  return prisma.$queryRaw<CensusRow[]>(Prisma.sql`
+    SELECT CASE
+             WHEN r.status <> 'PENDING' THEN 'closed'
+             WHEN c."archivedAt" IS NOT NULL THEN 'clientArchived'
+             WHEN c.phone IS NULL THEN 'noPhone'
+             WHEN c."notificationsOptIn" IS NOT TRUE THEN 'optedOut'
+             WHEN p.id IS NOT NULL AND (p.deceased OR p."archivedAt" IS NOT NULL)
+               THEN 'petSilenced'
+             ELSE 'eligible'
+           END AS reason,
+           COUNT(*)::int AS n
+      FROM "reminders" r
+      JOIN "clients" c ON c.id = r."clientId"
+      LEFT JOIN "pets" p ON p.id = r."petId"
+     WHERE r."clinicId" = ${clinicId}
+       AND r."dueAt" >= ${from}
+       AND r."dueAt" <= ${to}
+     GROUP BY 1
+  `);
 }
 
 /** A failed attempt waits this long before the sweep tries the same one again. */
@@ -447,26 +589,34 @@ export const MIN_RETRY_INTERVAL_MS = 6 * 3_600_000;
  * - Three failures: stop, and let someone look at it.
  * - Failed recently: wait, the attempt is not lost.
  */
+export function automaticSendBlock(
+  messages: { status: string; createdAt: Date }[],
+  now: Date,
+): Extract<SweepSkipReason, "alreadySent" | "attemptsExhausted" | "coolingOff"> | null {
+  if (messages.some((m) => m.status === "SENT" || m.status === "MANUAL")) return "alreadySent";
+
+  const failures = messages.filter((m) => m.status === "FAILED");
+  if (failures.length >= MAX_AUTOMATIC_ATTEMPTS) return "attemptsExhausted";
+  if (failures.length === 0) return null;
+
+  const lastFailure = Math.max(...failures.map((m) => m.createdAt.getTime()));
+  return now.getTime() - lastFailure < MIN_RETRY_INTERVAL_MS ? "coolingOff" : null;
+}
+
+/** The same decision as a yes-or-no, for callers that do not report why. */
 export function automaticSendBlocked(
   messages: { status: string; createdAt: Date }[],
   now: Date,
 ): boolean {
-  if (messages.some((m) => m.status === "SENT" || m.status === "MANUAL")) return true;
-
-  const failures = messages.filter((m) => m.status === "FAILED");
-  if (failures.length >= MAX_AUTOMATIC_ATTEMPTS) return true;
-  if (failures.length === 0) return false;
-
-  const lastFailure = Math.max(...failures.map((m) => m.createdAt.getTime()));
-  return now.getTime() - lastFailure < MIN_RETRY_INTERVAL_MS;
+  return automaticSendBlock(messages, now) !== null;
 }
 
 export async function runReminderSweep(now = new Date()): Promise<SweepSummary> {
   const summary: SweepSummary = {
     configured: false,
-    clinics: 0,
-    appointments: { checked: 0, sent: 0, failed: 0, notDue: 0 },
-    reminders: { checked: 0, sent: 0, failed: 0, notDue: 0 },
+    clinics: { total: 0, swept: 0, messagingOff: 0, channelNotConfigured: 0 },
+    appointments: emptyKindSummary(),
+    reminders: emptyKindSummary(),
   };
 
   const clinics = await prisma.clinic.findMany({
@@ -482,16 +632,27 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
     },
   });
   const horizon = new Date(now.getTime() + 8 * 86_400_000);
+  summary.clinics.total = clinics.length;
 
   for (const row of clinics) {
     const clinic = toMessagingProfile(row);
     const cfg = clinic.notifications.whatsapp;
-    if (!cfg.enabled) continue;
-    if (!isChannelConfigured(clinic.notifications.channel)) continue;
+    if (!cfg.enabled) {
+      summary.clinics.messagingOff++;
+      continue;
+    }
+    if (!isChannelConfigured(clinic.notifications.channel)) {
+      summary.clinics.channelNotConfigured++;
+      continue;
+    }
     summary.configured = true;
-    summary.clinics++;
+    summary.clinics.swept++;
 
-    if (cfg.reminder.mode !== "off") {
+    if (cfg.reminder.mode === "off") summary.appointments.clinicsDisabled++;
+    else {
+      const appointments = summary.appointments;
+      const hold = (reason: SweepSkipReason) => summary.appointments.skipped[reason]++;
+      applyCensus(await appointmentCensus(clinic.id, now, horizon), appointments);
       const candidates = await prisma.appointment.findMany({
         where: {
           clinicId: clinic.id,
@@ -510,31 +671,53 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           },
         },
       });
+      appointments.candidates += candidates.length;
       for (const appointment of candidates) {
-        if (automaticSendBlocked(appointment.messages, now)) continue;
-        summary.appointments.checked++;
+        const blocked = automaticSendBlock(appointment.messages, now);
+        if (blocked) {
+          hold(blocked);
+          continue;
+        }
         if (!isReminderDue(appointment.startsAt, now, cfg.reminder, clinic.timezone)) {
-          summary.appointments.notDue++;
+          hold("notDue");
+          continue;
+        }
+        // Built before the send, because the only thing it can refuse over
+        // is a number that will not normalize — which is a skip with a
+        // name, not the failure of an attempt that never left the house.
+        let target: DeliveryTarget;
+        try {
+          target = appointmentTarget(appointment, "APPOINTMENT_REMINDER", clinic);
+        } catch {
+          hold("noRecipient");
           continue;
         }
         try {
-          await deliver(clinic, appointmentTarget(appointment, "APPOINTMENT_REMINDER", clinic), null);
-          summary.appointments.sent++;
+          await deliver(clinic, target, null);
+          appointments.sent++;
         } catch {
-          summary.appointments.failed++;
+          appointments.failed++;
         }
       }
     }
 
-    if (cfg.reminders.enabled) {
+    if (!cfg.reminders.enabled) summary.reminders.clinicsDisabled++;
+    else {
       const reminderHorizon = new Date(
         now.getTime() + (cfg.reminders.daysBefore + 2) * 86_400_000,
+      );
+      const reminderFloor = new Date(now.getTime() - 86_400_000);
+      const remindersSummary = summary.reminders;
+      const hold = (reason: SweepSkipReason) => remindersSummary.skipped[reason]++;
+      applyCensus(
+        await reminderCensus(clinic.id, reminderFloor, reminderHorizon),
+        remindersSummary,
       );
       const reminders = await prisma.reminder.findMany({
         where: {
           clinicId: clinic.id,
           status: "PENDING",
-          dueAt: { gte: new Date(now.getTime() - 86_400_000), lte: reminderHorizon },
+          dueAt: { gte: reminderFloor, lte: reminderHorizon },
           client: { archivedAt: null, phone: { not: null }, notificationsOptIn: true },
           // Reminders can stand on their own, but one that names an animal
           // follows that animal: if it died or was archived, nothing goes out.
@@ -549,9 +732,13 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           },
         },
       });
+      remindersSummary.candidates += reminders.length;
       for (const reminder of reminders) {
-        if (automaticSendBlocked(reminder.messages, now)) continue;
-        summary.reminders.checked++;
+        const blocked = automaticSendBlock(reminder.messages, now);
+        if (blocked) {
+          hold(blocked);
+          continue;
+        }
         if (
           !isReminderNoticeDue(
             reminder.dueAt,
@@ -561,12 +748,15 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
             clinic.timezone,
           )
         ) {
-          summary.reminders.notDue++;
+          hold("notDue");
           continue;
         }
         const language = toMessageLocale(reminder.client.preferredLanguage);
         const recipient = normalizePhone(reminder.client.phone, countryCallingCode(clinic.country));
-        if (!recipient) continue;
+        if (!recipient) {
+          hold("noRecipient");
+          continue;
+        }
         const body = composeReminderFor(clinic.notifications.channel, {
           locale: language,
           clientName: `${reminder.client.firstName} ${reminder.client.lastName}`.trim(),
@@ -594,9 +784,9 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
             where: { id: reminder.id },
             data: { status: "SENT", sentAt: now },
           });
-          summary.reminders.sent++;
+          remindersSummary.sent++;
         } catch {
-          summary.reminders.failed++;
+          remindersSummary.failed++;
         }
       }
     }

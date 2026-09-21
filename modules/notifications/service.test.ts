@@ -7,6 +7,7 @@ vi.mock("@/lib/prisma", () => ({
     reminder: { findMany: vi.fn(), update: vi.fn() },
     messageLog: { create: vi.fn() },
     auditLog: { create: vi.fn() },
+    $queryRaw: vi.fn(),
   },
 }));
 
@@ -25,6 +26,7 @@ vi.mock("@/lib/messaging/transports", () => ({
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
 import {
+  automaticSendBlock,
   automaticSendBlocked,
   notifyAppointmentBooked,
   runReminderSweep,
@@ -290,6 +292,17 @@ describe("automaticSendBlocked", () => {
       true,
     );
   });
+
+  // Three different situations, and the sweep summary has to tell them
+  // apart: one is finished, one is waiting, and one wants a person.
+  it("names which of the three rules held the candidate back", () => {
+    expect(automaticSendBlock([{ status: "SENT", createdAt: now }], now)).toBe("alreadySent");
+    expect(automaticSendBlock([failedAt(1)], now)).toBe("coolingOff");
+    expect(automaticSendBlock([failedAt(40), failedAt(30), failedAt(20)], now)).toBe(
+      "attemptsExhausted",
+    );
+    expect(automaticSendBlock([], now)).toBeNull();
+  });
 });
 
 describe("notifyAppointmentBooked", () => {
@@ -336,6 +349,7 @@ describe("runReminderSweep", () => {
     vi.mocked(prisma.clinic.findMany).mockResolvedValue([clinicRow] as never);
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.reminder.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([] as never);
   });
 
   // The automatic path is the one that actually reaches an owner unasked,
@@ -358,6 +372,79 @@ describe("runReminderSweep", () => {
       { petId: null },
       { pet: { deceased: false, archivedAt: null } },
     ]);
+  });
+
+  // The whole reason the census exists. Before it, both of these sweeps
+  // returned the same summary -- zeros -- and the two situations need
+  // opposite things done about them: one is a clinic with nobody to
+  // write to, the other is a clinic whose owners were never asked for
+  // consent. Reading the second as the first is how "reminders do not
+  // work" gets answered with "there was nothing to send".
+  it("tells an empty window apart from one every rule emptied", async () => {
+    const empty = await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
+    expect(empty.appointments.pool).toBe(0);
+    expect(empty.appointments.skipped.optedOut).toBe(0);
+
+    vi.mocked(prisma.$queryRaw).mockImplementation((async () => [
+      { reason: "optedOut", n: 4 },
+      { reason: "petSilenced", n: 1 },
+      { reason: "eligible", n: 0 },
+    ]) as never);
+
+    const filtered = await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
+    expect(filtered.appointments.pool).toBe(5);
+    expect(filtered.appointments.sent).toBe(0);
+    expect(filtered.appointments.skipped.optedOut).toBe(4);
+    expect(filtered.appointments.skipped.petSilenced).toBe(1);
+  });
+
+  // `notDue` is the healthy zero: the candidate is fine, its hour has
+  // not come. It has to be countable apart from every unhealthy one.
+  it("counts a candidate whose hour has not come, and the one whose has", async () => {
+    vi.mocked(prisma.$queryRaw).mockImplementation((async () => [
+      { reason: "eligible", n: 2 },
+    ]) as never);
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([
+      // morningOf at 09:00 Istanbul: due for today's appointment, not for
+      // the one three days out.
+      appointment({ id: "a-soon", messages: [] }),
+      appointment({
+        id: "a-later",
+        startsAt: new Date("2026-09-23T11:30:00.000Z"),
+        messages: [],
+      }),
+    ] as never);
+    transport.send.mockResolvedValue({ providerId: "job-90" });
+
+    const summary = await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"));
+
+    expect(summary.appointments.candidates).toBe(2);
+    expect(summary.appointments.sent).toBe(1);
+    expect(summary.appointments.skipped.notDue).toBe(1);
+    // Nothing else may absorb a row: the pool is the sum of its parts,
+    // which is what makes the summary readable at all.
+    const skipped = Object.values(summary.appointments.skipped).reduce((a, b) => a + b, 0);
+    expect(summary.appointments.pool).toBe(
+      summary.appointments.sent + summary.appointments.failed + skipped,
+    );
+  });
+
+  // A clinic that swept nothing because it is switched off is not a
+  // clinic with nothing to send, and the count of clinics said neither.
+  it("says how many clinics it actually swept and why it skipped the rest", async () => {
+    vi.mocked(prisma.clinic.findMany).mockResolvedValue([
+      clinicRow,
+      { ...clinicRow, id: "clinic-2", settings: { notifications: { whatsapp: { enabled: false } } } },
+    ] as never);
+
+    const summary = await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
+
+    expect(summary.clinics).toEqual({
+      total: 2,
+      swept: 1,
+      messagingOff: 1,
+      channelNotConfigured: 0,
+    });
   });
 });
 
