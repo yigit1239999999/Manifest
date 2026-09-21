@@ -126,7 +126,7 @@
       "visits": "Henüz vizit yok.",
       "vaccinations": "Yaklaşan aşı yok."
     },
-    "blockedRemindersCount": "{count, plural, one {1 tanesi ulaşmayacak} other {# tanesi ulaşmayacak}}",
+    "unreachedRemindersCount": "{count, plural, one {1 tanesi ulaşmadı} other {# tanesi ulaşmadı}}",
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
     "overdueVaccinationsDismiss": "Kapat",
     "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
@@ -533,6 +533,8 @@
     "filterOpen": "Açık",
     "filterBlocked": "Ulaşmayacak",
     "filterBlockedCount": "Ulaşmayacak ({count})",
+    "emptyUnreached": "Ulaşmamış hatırlatma yok.",
+    "emptyUnreachedHint": "Denenip ulaşmayan hatırlatmalar burada görünür. Şu an hepsi ya ulaştı ya da henüz denenmedi.",
     "emptyBlocked": "Ulaşmayacak hatırlatma yok.",
     "emptyBlockedHint": "Mesajı gitmeyecek hatırlatmalar burada toplanır: onay verilmemiş, numarası olmayan ya da hayvanı artık takip edilmeyen müşteriler.",
     "filterClosed": "Kapatılanlar",

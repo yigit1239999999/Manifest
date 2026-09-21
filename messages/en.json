@@ -126,7 +126,7 @@
       "visits": "No visits yet.",
       "vaccinations": "No vaccinations due soon."
     },
-    "blockedRemindersCount": "{count, plural, one {1 will not reach anyone} other {# will not reach anyone}}",
+    "unreachedRemindersCount": "{count, plural, one {1 did not arrive} other {# did not arrive}}",
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
     "overdueVaccinationsDismiss": "Close",
     "overdueVaccinationsDismissed": "Vaccination row closed.",
@@ -533,6 +533,8 @@
     "filterOpen": "Open",
     "filterBlocked": "Will not reach",
     "filterBlockedCount": "Will not reach ({count})",
+    "emptyUnreached": "Nothing was tried and missed.",
+    "emptyUnreachedHint": "Reminders that were sent and did not arrive appear here. Right now every one either arrived or has not been tried yet.",
     "emptyBlocked": "No reminder is blocked.",
     "emptyBlockedHint": "Reminders whose message will not go out collect here: clients who have not consented, have no number, or whose animal is no longer followed.",
     "filterClosed": "Closed",

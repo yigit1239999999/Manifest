@@ -63,11 +63,11 @@ const CLOSED_REMINDER_STATUSES = REMINDER_STATUSES.filter(
 export default async function RemindersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; group?: string }>;
 }) {
   const fmt = await getFormatContext();
   const session = await requireSession();
-  const { status } = await searchParams;
+  const { status, group } = await searchParams;
   // No parameter means open, because open is the working list. "All" is a
   // deliberate ask, not the resting state (TEAM.md #16c: the list has to be
   // countable against the vet's own memory, and "everything ever" is not).
@@ -158,6 +158,21 @@ export default async function RemindersPage({
   // one can tell a link it can keep from one it cannot: the anchor it
   // points at only exists while that reminder is in the current filter.
   const presentIds = new Set(reminders.map((r) => r.id));
+
+  // The dashboard counts one half of this tab and links here carrying
+  // the name of that half. Without the filter a vet reads "3 will not
+  // reach anyone", arrives, and counts eight rows -- the number and the
+  // rows describing different sets, which is the whole thing the count
+  // was made a subset to avoid.
+  //
+  // Filtered from `items` rather than asked for separately: the group
+  // is decided in the query and carried on every row, so choosing here
+  // is a selection and not a second derivation. Bounded by the same
+  // `take` as the list itself.
+  const unreachedOnly = group === "unreached";
+  const blockedRows = unreachedOnly
+    ? blocked.items.filter((b) => b.group === "unreached")
+    : blocked.items;
 
   const deliveries = clinic
     ? reminders.map((r) => reminderDeliveryState(r, clinic))
@@ -390,15 +405,27 @@ export default async function RemindersPage({
           there is no send to offer and no message log to fold open, and
           the only action any of them has is a phone call. */}
       {view === "blocked" ? (
-        blocked.items.length === 0 ? (
+        blockedRows.length === 0 ? (
           <EmptyState
             icon={ClipboardList}
-            title={t("emptyBlocked")}
-            description={t("emptyBlockedHint")}
+            title={unreachedOnly ? t("emptyUnreached") : t("emptyBlocked")}
+            description={
+              unreachedOnly ? t("emptyUnreachedHint") : t("emptyBlockedHint")
+            }
+            action={
+              unreachedOnly ? (
+                <Link
+                  href="/reminders?status=blocked"
+                  className={buttonVariants({ variant: "secondary" })}
+                >
+                  {tCommon("clearFilter")}
+                </Link>
+              ) : undefined
+            }
           />
         ) : (
           <ul className="flex flex-col gap-2">
-            {blocked.items.map((b) => {
+            {blockedRows.map((b) => {
               const dial = telHref(b.client.phone);
               return (
                 <li

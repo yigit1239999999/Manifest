@@ -122,7 +122,19 @@ export default async function DashboardPage() {
       key: "openReminders" as const,
       icon: ClipboardList,
       value: insights.counts.openReminders,
-      href: "/reminders",
+      // The destination follows the hint when there is one, and that
+      // is the condition on this number rather than a flourish: a vet
+      // reads "3 will not reach anyone", clicks, and has to land on
+      // those three. Arriving at a tab of eight would put the number
+      // and the rows back into disagreement, which is why the count
+      // was made a named subset in the first place.
+      //
+      // It means this card's headline ("open reminders") and its
+      // destination differ while the hint is present. Deliberate and
+      // worth knowing: the actionable half of the card is the hint.
+      href: blocked.unreachedTotal
+        ? "/reminders?status=blocked&group=unreached"
+        : "/reminders",
       // How many of those open reminders will reach nobody. From the
       // same function that fills the "will not reach" tab, which is the
       // condition value put on this number: a card saying 3 above a tab
@@ -131,8 +143,13 @@ export default async function DashboardPage() {
       // Absent rather than zero when there are none. A nought here
       // would take a line of the card every morning to say that
       // nothing is wrong, which is the least useful day to speak.
-      hint: blocked.total
-        ? t("blockedRemindersCount", { count: blocked.total })
+      // `unreachedTotal`, not every blocked reminder. value's test:
+      // can this number reach zero this week? `optedOut` never can and
+      // `neverAsked` erodes over months, and a number that cannot
+      // reach zero stops being read -- taking the rest of the panel
+      // with it. What is left is what a vet can act on today.
+      hint: blocked.unreachedTotal
+        ? t("unreachedRemindersCount", { count: blocked.unreachedTotal })
         : undefined,
     },
   ];
