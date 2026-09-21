@@ -43,7 +43,7 @@ const validInput = {
   heartRateBpm: null,
   respiratoryRateBpm: null,
   followupAt: null,
-  totalCents: null,
+  total: null,
 };
 
 beforeEach(() => {

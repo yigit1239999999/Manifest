@@ -189,9 +189,9 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
             defaultValue={visit?.followupAt}
           />
         </Field>
-        <Field label={t("totalCost")} error={state.fieldErrors?.totalCents}>
+        <Field label={t("totalCost")} error={state.fieldErrors?.total}>
           <Input
-            name="totalCents"
+            name="total"
             inputMode="decimal"
             placeholder={centsToInputValue(locale, 0)}
             defaultValue={

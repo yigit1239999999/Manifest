@@ -9,9 +9,9 @@ import {
   optionalEnum,
   optionalFloat,
   optionalInt,
-  optionalMoneyCents,
+  optionalMoney,
   optionalPhone,
-  requiredMoneyCents,
+  requiredMoney,
   optionalText,
   requiredEmail,
   requiredEnum,
@@ -120,45 +120,47 @@ describe("optionalFloat / optionalInt / requiredInt", () => {
 });
 
 describe("money helpers", () => {
-  it("converts decimal money into integer cents", () => {
-    const r = optionalMoneyCents().safeParse("12.50");
-    expect(r.success && r.data).toBe(1250);
+  it("converts an amount written in the locale into integer cents", () => {
+    expect(optionalMoney("tr").safeParse("12,50").data).toBe(1250);
+    expect(optionalMoney("en").safeParse("12.50").data).toBe(1250);
   });
 
-  it("accepts comma as decimal separator", () => {
-    const r = optionalMoneyCents().safeParse("12,50");
-    expect(r.success && r.data).toBe(1250);
+  // The other locale's notation is refused rather than guessed at: in
+  // Turkish "12.50" groups thousands, and "12.50" is not a valid grouping.
+  it("refuses the other locale's decimal separator", () => {
+    expect(optionalMoney("tr").safeParse("12.50").success).toBe(false);
+    expect(optionalMoney("en").safeParse("12,50").success).toBe(false);
   });
 
   it("blank value is null", () => {
-    const r = optionalMoneyCents().safeParse("");
+    const r = optionalMoney("tr").safeParse("");
     expect(r.success && r.data).toBeNull();
   });
 
   // The bug this rule exists for: a whole-lira amount used to be stored as
   // its own cent count, so 500 became 5,00.
   it("reads a whole amount as units, not as cents", () => {
-    const r = requiredMoneyCents().safeParse("500");
+    const r = requiredMoney("tr").safeParse("500");
     expect(r.success && r.data).toBe(50_000);
   });
 
   it("reads a thousands separator instead of dividing by a thousand", () => {
-    const r = requiredMoneyCents().safeParse("1.234,56");
+    const r = requiredMoney("tr").safeParse("1.234,56");
     expect(r.success && r.data).toBe(123456);
   });
 
   it("bounds are expressed in cents", () => {
-    expect(requiredMoneyCents({ minCents: 1 }).safeParse("0").success).toBe(false);
-    expect(requiredMoneyCents({ maxCents: 10_000 }).safeParse("100").success).toBe(true);
-    expect(requiredMoneyCents({ maxCents: 10_000 }).safeParse("100,01").success).toBe(
+    expect(requiredMoney("tr", { minCents: 1 }).safeParse("0").success).toBe(false);
+    expect(requiredMoney("tr", { maxCents: 10_000 }).safeParse("100").success).toBe(true);
+    expect(requiredMoney("tr", { maxCents: 10_000 }).safeParse("100,01").success).toBe(
       false,
     );
   });
 
   it("rejects an unreadable amount instead of storing a guess", () => {
-    expect(requiredMoneyCents().safeParse("").success).toBe(false);
-    expect(requiredMoneyCents().safeParse("abc").success).toBe(false);
-    expect(requiredMoneyCents().safeParse("-5").success).toBe(false);
+    expect(requiredMoney("tr").safeParse("").success).toBe(false);
+    expect(requiredMoney("tr").safeParse("abc").success).toBe(false);
+    expect(requiredMoney("tr").safeParse("-5").success).toBe(false);
   });
 });
 
@@ -204,7 +206,7 @@ describe("fields the form never rendered", () => {
     expect(optionalDateTime.safeParse(undefined).data).toBeNull();
     expect(optionalFloat().safeParse(undefined).data).toBeNull();
     expect(optionalInt().safeParse(undefined).data).toBeNull();
-    expect(optionalMoneyCents().safeParse(undefined).data).toBeNull();
+    expect(optionalMoney("tr").safeParse(undefined).data).toBeNull();
   });
 
   it("required helpers report a missing key as required", () => {

@@ -17,7 +17,7 @@ async function resolvePetAndOwner(petId: string, clinicId: string) {
 export async function createVisit(input: VisitInput, ctx: ActionContext) {
   requirePermission(ctx.userRole, "visits.write");
   const pet = await resolvePetAndOwner(input.petId, ctx.clinicId);
-  const { petId, vetId, ...rest } = input;
+  const { petId, vetId, total, ...rest } = input;
 
   return withAudited(
     {
@@ -31,6 +31,7 @@ export async function createVisit(input: VisitInput, ctx: ActionContext) {
       tx.visit.create({
         data: {
           ...rest,
+          totalCents: total,
           clinicId: ctx.clinicId,
           petId,
           clientId: pet.ownerId,
@@ -53,7 +54,7 @@ export async function updateVisit(
   if (!existing) throw notFound("visit", id);
 
   const pet = await resolvePetAndOwner(input.petId, ctx.clinicId);
-  const { petId, vetId, ...rest } = input;
+  const { petId, vetId, total, ...rest } = input;
 
   return withAudited(
     {
@@ -69,6 +70,7 @@ export async function updateVisit(
         where: { id },
         data: {
           ...rest,
+          totalCents: total,
           petId,
           clientId: pet.ownerId,
           vetId: vetId || null,

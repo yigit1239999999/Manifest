@@ -59,6 +59,15 @@ test.describe("Money is stored as the amount that was typed", () => {
       .locator("xpath=../..");
     await expect(outstanding.getByText(/(^|[^\d.,])500[.,]00/).first()).toBeVisible();
 
+    // Sub-cent precision is refused, not rounded and not read as thousands:
+    // in Turkish "10,999" is ten lira and 99,9 kuruş, and it used to be
+    // stored as 10.999,00 — a 250 lira invoice paid off in one keystroke.
+    await paymentCard.getByLabel(/^amount$|^tutar$/i).fill("10,999");
+    await paymentCard.getByRole("button", { name: /^record$|^kaydet$/i }).click();
+    await expect(
+      page.getByText(/enter a valid amount|geçerli bir tutar/i).first(),
+    ).toBeVisible();
+
     // The dashboard owes the same number: payments are subtracted from what
     // was billed, so the card shows 500,00 and not the invoice's 1.000,00.
     await page.goto("/");

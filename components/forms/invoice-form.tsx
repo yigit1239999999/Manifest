@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
 import { centsToInputValue } from "@/lib/money";
+import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
@@ -32,10 +33,13 @@ interface Props {
 export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) {
   const t = useTranslations("invoice");
   const locale = useLocale();
-  // The hint is written the way this locale writes money, so nobody guesses
-  // whether the field wants "1234.50" or "1.234,50".
-  const amountPlaceholder = centsToInputValue(locale, 0);
   const tCommon = useTranslations("common");
+  // Both are written the way this locale writes money, so nobody has to
+  // guess whether the field wants "1234.50" or "1.234,50".
+  const amountPlaceholder = centsToInputValue(locale, 0);
+  const amountHint = tCommon("amountExample", {
+    example: centsToInputValue(locale, 123_456),
+  });
   const tStatus = useTranslations("enum.invoiceStatus");
   const tClient = useTranslations("client");
   const [lines, setLines] = useState<Line[]>([{ ...emptyLine }]);
@@ -50,15 +54,9 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
 
   return (
     <ActionForm form={form} className="flex flex-col gap-6">
-      {state.error && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Callout variant="danger">{state.error}</Callout>}
       {state.fieldErrors?.lines && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.fieldErrors.lines[0]}
-        </p>
+        <Callout variant="danger">{state.fieldErrors.lines[0]}</Callout>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -94,8 +92,12 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
         </Field>
       </div>
 
-      <Field label={t("tax")} error={state.fieldErrors?.taxCents}>
-        <Input name="taxCents" inputMode="decimal" placeholder={amountPlaceholder} />
+      <Field
+        label={t("tax")}
+        error={state.fieldErrors?.tax}
+        hint={amountHint}
+      >
+        <Input name="tax" inputMode="decimal" placeholder={amountPlaceholder} />
       </Field>
 
       <div className="flex flex-col gap-3">
@@ -122,7 +124,7 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
               required={i === 0}
             />
             <Input
-              name={`lines[${i}].unitPriceCents`}
+              name={`lines[${i}].unitPrice`}
               placeholder={t("unitPrice")}
               inputMode="decimal"
               value={line.unitPrice}

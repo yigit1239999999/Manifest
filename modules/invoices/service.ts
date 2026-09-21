@@ -7,7 +7,7 @@ import type { InvoiceInput, PaymentInput } from "./schema";
 
 function lineTotals(lines: InvoiceInput["lines"]) {
   return lines.reduce(
-    (acc, line) => acc + line.quantity * line.unitPriceCents,
+    (acc, line) => acc + line.quantity * line.unitPrice,
     0,
   );
 }
@@ -27,7 +27,7 @@ export async function createInvoice(input: InvoiceInput, ctx: ActionContext) {
   if (existing) throw conflict("error.conflict.invoiceDuplicate");
 
   const subtotal = lineTotals(input.lines);
-  const tax = input.taxCents ?? 0;
+  const tax = input.tax ?? 0;
   const total = subtotal + tax;
 
   return withAudited(
@@ -54,8 +54,8 @@ export async function createInvoice(input: InvoiceInput, ctx: ActionContext) {
             create: input.lines.map((line) => ({
               description: line.description,
               quantity: line.quantity,
-              unitPriceCents: line.unitPriceCents,
-              totalCents: line.quantity * line.unitPriceCents,
+              unitPriceCents: line.unitPrice,
+              totalCents: line.quantity * line.unitPrice,
               petId: line.petId,
               visitId: line.visitId,
             })),
@@ -85,7 +85,7 @@ export async function recordPayment(input: PaymentInput, ctx: ActionContext) {
       const created = await tx.payment.create({
         data: {
           invoiceId: input.invoiceId,
-          amountCents: input.amountCents,
+          amountCents: input.amount,
           method: input.method,
           reference: input.reference,
           notes: input.notes,
@@ -118,7 +118,7 @@ export async function recordPayment(input: PaymentInput, ctx: ActionContext) {
           entityType: "Invoice",
           entityId: input.invoiceId,
           changes: {
-            paymentAmount: input.amountCents,
+            paymentAmount: input.amount,
             paidSoFar,
             newStatus,
           },

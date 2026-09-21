@@ -178,6 +178,12 @@ function integerMsg(opts: { min?: number; max?: number }): string {
 // Money never converts itself: `parseMoneyToCents` is the only place text
 // becomes cents, and both bounds below are expressed in cents too, so a
 // caller cannot mix the two units by accident.
+//
+// The locale is a parameter rather than a guess because the same text means
+// different amounts in different ones: "12,345" is twelve lira and a third
+// of a kuruş in Turkish and twelve thousand in English. Schemas that carry
+// a money field are therefore built per request, from the locale the form
+// was rendered in.
 interface MoneyOpts {
   /** Smallest accepted amount in cents. Defaults to 0. */
   minCents?: number;
@@ -190,18 +196,21 @@ const centsInRange = (cents: number | null, opts: MoneyOpts): boolean =>
   cents >= (opts.minCents ?? 0) &&
   cents <= (opts.maxCents ?? MAX_MONEY_CENTS);
 
-export const optionalMoneyCents = (opts: MoneyOpts = {}) =>
+export const optionalMoney = (locale: string, opts: MoneyOpts = {}) =>
   trim
     .refine(
-      (v) => v === "" || centsInRange(parseMoneyToCents(v), opts),
+      (v) => v === "" || centsInRange(parseMoneyToCents(v, locale), opts),
       msg("error.form.amount"),
     )
-    .transform((v) => (v === "" ? null : parseMoneyToCents(v)!));
+    .transform((v) => (v === "" ? null : parseMoneyToCents(v, locale)!));
 
-export const requiredMoneyCents = (opts: MoneyOpts = {}) =>
+export const requiredMoney = (locale: string, opts: MoneyOpts = {}) =>
   trim
-    .refine((v) => centsInRange(parseMoneyToCents(v), opts), msg("error.form.amount"))
-    .transform((v) => parseMoneyToCents(v)!);
+    .refine(
+      (v) => centsInRange(parseMoneyToCents(v, locale), opts),
+      msg("error.form.amount"),
+    )
+    .transform((v) => parseMoneyToCents(v, locale)!);
 
 export const checkbox = z
   .string()

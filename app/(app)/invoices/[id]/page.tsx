@@ -150,6 +150,7 @@ export default async function InvoicePage({
                 <PaymentForm
                   invoiceId={invoice.id}
                   remainingCents={Math.max(0, remaining)}
+                  currency={currency}
                 />
               </CardContent>
             </Card>

@@ -11,49 +11,50 @@
 export const MAX_MONEY_CENTS = 1_000_000_000;
 
 /**
- * Reads an amount a person typed and returns whole cents, or `null` when the
- * text is not an amount we are sure about. Never guesses: an input we cannot
- * read unambiguously is rejected so the user sees an error instead of a
- * silently wrong number.
+ * What each separator means in a locale.
  *
- * Both notations are accepted, because the app runs in two locales and a
- * clinic pastes what its own keyboard produces:
- *
- *   "1.234,56" → 123456   "1,234.56" → 123456   "1234,5" → 123450
- *
- * The ambiguous case is a single separator followed by exactly three digits
- * ("1.500"). It is read as a **thousands separator**, because that is what it
- * means in both locales in practice: Turkish writes 1,50 for one and a half
- * lira and English writes 1,500 for fifteen hundred. Reading it as a decimal
- * point would turn 1.500 TL into 1,50 TL.
- *
- * More than two decimals is rejected rather than rounded: sub-cent precision
- * in a clinic's invoice is a typo, and rounding it away is a silent edit.
+ * Reading a number without knowing the locale cannot be done safely: a
+ * Turkish "12,345" is twelve lira and 34,5 kuruş (sub-cent, a typo), while an
+ * English "12,345" is twelve thousand. Both are one separator followed by
+ * three digits, so any locale-blind rule gets one of them wrong by a factor
+ * of a thousand — and does it silently.
  */
-export function parseMoneyToCents(value: string): number | null {
+function separatorsOf(locale: string): { decimal: string; group: string } {
+  return locale === "tr"
+    ? { decimal: ",", group: "." }
+    : { decimal: ".", group: "," };
+}
+
+/**
+ * Reads an amount a person typed in their own locale and returns whole
+ * cents, or `null` when the text is not an amount we are sure about. It
+ * never guesses: anything it cannot read unambiguously is rejected so the
+ * user sees an error instead of a silently wrong number.
+ *
+ *   tr: "1.234,56" → 123456   "12.345" → 1234500   "12,345" → null
+ *   en: "1,234.56" → 123456   "12,345" → 1234500   "12.345" → null
+ *
+ * The rejected cases are sub-cent precision ("12,345" in Turkish is 12,345
+ * lira). Rounding it away would be a silent edit of someone's money, and
+ * reading it as a thousands separator — which is what a locale-blind version
+ * of this function did — multiplied it by a thousand.
+ */
+export function parseMoneyToCents(value: string, locale: string): number | null {
+  const { decimal, group } = separatorsOf(locale);
   const cleaned = value.replace(/[\s   ]/g, "");
-  if (cleaned === "" || !/^[0-9]*[0-9.,][0-9.,]*$/.test(cleaned)) return null;
+  if (cleaned === "" || !/^[0-9.,]+$/.test(cleaned)) return null;
   if (!/[0-9]/.test(cleaned)) return null;
 
-  const lastSep = Math.max(cleaned.lastIndexOf("."), cleaned.lastIndexOf(","));
-  if (lastSep === -1) return toCents(cleaned, "");
+  const lastDecimal = cleaned.lastIndexOf(decimal);
+  if (lastDecimal === -1) return toCents(cleaned, "", group);
 
-  const decimalChar = cleaned[lastSep];
-  const otherChar = decimalChar === "." ? "," : ".";
-  const digitsAfter = cleaned.length - lastSep - 1;
-  const isDecimalPoint =
-    cleaned.includes(otherChar) ||
-    (occurrences(cleaned, decimalChar) === 1 && digitsAfter !== 3);
+  // Only one decimal separator, and nothing groups digits after it.
+  if (cleaned.indexOf(decimal) !== lastDecimal) return null;
+  const fraction = cleaned.slice(lastDecimal + 1);
+  if (fraction.includes(group)) return null;
+  if (fraction.length < 1 || fraction.length > 2) return null;
 
-  if (!isDecimalPoint) {
-    // Every separator is a thousands separator, so there is no fraction.
-    return toCents(cleaned, "", decimalChar);
-  }
-  if (digitsAfter < 1 || digitsAfter > 2) return null;
-  const whole = cleaned.slice(0, lastSep);
-  const fraction = cleaned.slice(lastSep + 1);
-  if (whole.includes(decimalChar)) return null;
-  return toCents(whole, fraction, otherChar);
+  return toCents(cleaned.slice(0, lastDecimal), fraction, group);
 }
 
 /**
@@ -67,32 +68,20 @@ export function centsToInputValue(locale: string, cents: number): string {
   }).format(cents / 100);
 }
 
-function occurrences(text: string, char: string): number {
-  let n = 0;
-  for (const c of text) if (c === char) n++;
-  return n;
-}
-
 /**
  * `whole` may still carry thousands separators; they are dropped only after
  * their grouping is verified, so "1.23.456" is rejected instead of read as
- * 123456.
+ * 123456, and "0.001" is a typo rather than one thousand.
  */
-function toCents(whole: string, fraction: string, groupChar?: string): number | null {
-  let digits = whole;
-  if (groupChar) {
-    const parts = whole.split(groupChar);
-    if (parts.length > 1) {
-      const [first, ...rest] = parts;
-      // A real grouped number never starts with a zero group, so "0,001" is
-      // a typo rather than one thousand and is rejected instead of read.
-      if (!/^[1-9][0-9]{0,2}$/.test(first)) return null;
-      if (rest.some((p) => !/^[0-9]{3}$/.test(p))) return null;
-    }
-    digits = parts.join("");
+function toCents(whole: string, fraction: string, groupChar: string): number | null {
+  const parts = whole.split(groupChar);
+  if (parts.length > 1) {
+    const [first, ...rest] = parts;
+    if (!/^[1-9][0-9]{0,2}$/.test(first)) return null;
+    if (rest.some((p) => !/^[0-9]{3}$/.test(p))) return null;
   }
+  const digits = parts.join("");
   if (digits !== "" && !/^[0-9]+$/.test(digits)) return null;
-  if (fraction !== "" && !/^[0-9]{1,2}$/.test(fraction)) return null;
 
   const units = digits === "" ? 0 : Number.parseInt(digits, 10);
   const cents = units * 100 + Number.parseInt(fraction.padEnd(2, "0") || "0", 10);

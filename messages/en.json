@@ -60,7 +60,8 @@
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
-    "themeSystem": "Auto"
+    "themeSystem": "Auto",
+    "amountExample": "For example: {example}"
   },
   "auth": {
     "signIn": "Sign in",
@@ -472,6 +473,8 @@
     "void": "Void invoice",
     "payment": {
       "amount": "Amount",
+      "remaining": "Outstanding: {amount}",
+      "payFull": "Pay in full",
       "method": "Method",
       "reference": "Reference",
       "notes": "Notes",

@@ -39,13 +39,13 @@ const baseInvoice = {
   number: "INV-001",
   status: "DRAFT" as const,
   dueAt: null,
-  taxCents: null,
+  tax: null,
   notes: null,
   lines: [
     {
       description: "Consultation",
       quantity: 1,
-      unitPriceCents: 5000,
+      unitPrice: 5000,
       petId: null,
       visitId: null,
     },
@@ -82,10 +82,10 @@ describe("createInvoice", () => {
 
     const input = {
       ...baseInvoice,
-      taxCents: 500,
+      tax: 500,
       lines: [
-        { description: "A", quantity: 2, unitPriceCents: 1000, petId: null, visitId: null },
-        { description: "B", quantity: 1, unitPriceCents: 3000, petId: null, visitId: null },
+        { description: "A", quantity: 2, unitPrice: 1000, petId: null, visitId: null },
+        { description: "B", quantity: 1, unitPrice: 3000, petId: null, visitId: null },
       ],
     };
 
@@ -119,7 +119,7 @@ describe("recordPayment", () => {
 
     const input = {
       invoiceId: "inv-1",
-      amountCents: 5000,
+      amount: 5000,
       method: "CARD" as const,
       reference: null,
       notes: null,
@@ -135,7 +135,7 @@ describe("recordPayment", () => {
     vi.mocked(prisma.invoice.findFirst).mockResolvedValue(null);
     await expect(
       recordPayment(
-        { invoiceId: "inv-x", amountCents: 100, method: "CASH", reference: null, notes: null },
+        { invoiceId: "inv-x", amount: 100, method: "CASH", reference: null, notes: null },
         ctx,
       ),
     ).rejects.toBeInstanceOf(AppError);
@@ -158,7 +158,7 @@ describe("recordPayment", () => {
     await recordPayment(
       {
         invoiceId: "inv-1",
-        amountCents: 4000,
+        amount: 4000,
         method: "CARD",
         reference: null,
         notes: null,
@@ -204,7 +204,7 @@ describe("recordPayment", () => {
     await recordPayment(
       {
         invoiceId: "inv-1",
-        amountCents: 3000,
+        amount: 3000,
         method: "CASH",
         reference: null,
         notes: null,

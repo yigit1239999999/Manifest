@@ -60,7 +60,8 @@
     "theme": "Tema",
     "themeLight": "Açık",
     "themeDark": "Koyu",
-    "themeSystem": "Otomatik"
+    "themeSystem": "Otomatik",
+    "amountExample": "Örnek: {example}"
   },
   "auth": {
     "signIn": "Giriş",
@@ -472,6 +473,8 @@
     "void": "Faturayı iptal et",
     "payment": {
       "amount": "Tutar",
+      "remaining": "Kalan borç: {amount}",
+      "payFull": "Tamamını öde",
       "method": "Yöntem",
       "reference": "Referans",
       "notes": "Notlar",

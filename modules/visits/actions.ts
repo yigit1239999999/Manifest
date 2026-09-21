@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { action, parse, type FormState } from "@/lib/action";
 import { visitSchema } from "./schema";
@@ -9,7 +10,7 @@ import { archiveVisit, createVisit, updateVisit } from "./service";
 export const createVisitAction = action(
   "visit.create",
   async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
-    const parsed = parse(visitSchema, formData);
+    const parsed = parse(visitSchema(await getLocale()), formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
     const visit = await createVisit(parsed.data, ctx);
@@ -29,7 +30,7 @@ export const updateVisitAction = action(
     _prev: FormState,
     formData: FormData,
   ): Promise<FormState> => {
-    const parsed = parse(visitSchema, formData);
+    const parsed = parse(visitSchema(await getLocale()), formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
     const visit = await updateVisit(id, parsed.data, ctx);
