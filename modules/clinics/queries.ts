@@ -14,14 +14,6 @@ export interface ClinicSettings {
   name: string;
   currency: string;
   timezone: string;
-  /**
-   * When the first-step card was closed, or null if it was not.
-   *
-   * Free to ask for: the dashboard already loads this row for the
-   * clinic's name and currency, and this rides along in the same
-   * cached select rather than adding a query to every render.
-   */
-  firstStepHiddenAt: Date | null;
 }
 
 export const getClinicSettings = cache(
@@ -33,7 +25,6 @@ export const getClinicSettings = cache(
         name: true,
         currency: true,
         timezone: true,
-        firstStepHiddenAt: true,
       },
     }),
 );

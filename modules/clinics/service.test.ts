@@ -11,7 +11,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
-import { setClinicCurrency, setFirstStepHidden } from "./service";
+import { setClinicCurrency } from "./service";
 
 const ctx = {
   clinicId: "clinic-1",
@@ -68,82 +68,5 @@ describe("setClinicCurrency", () => {
 
     expect(prisma.invoice.update).not.toHaveBeenCalled();
     expect(prisma.invoice.updateMany).not.toHaveBeenCalled();
-  });
-});
-
-// The card exists to be read on a first morning and to disappear by
-// itself once the chain is complete. The clinic that needs this one is
-// the clinic being asked for something it has decided not to do -- and
-// a prompt with no way out gets ignored, which spends the attention the
-// card was collecting.
-describe("setFirstStepHidden", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({
-      firstStepHiddenAt: null,
-    } as never);
-  });
-
-  it("writes when it was closed, not merely that it was", async () => {
-    const before = Date.now();
-    const result = await setFirstStepHidden(true, ctx);
-
-    const written = vi.mocked(prisma.clinic.update).mock.calls[0][0] as {
-      where: { id: string };
-      data: { firstStepHiddenAt: Date | null };
-    };
-    expect(written.where.id).toBe("clinic-1");
-    expect(written.data.firstStepHiddenAt).toBeInstanceOf(Date);
-    expect(
-      (written.data.firstStepHiddenAt as Date).getTime(),
-    ).toBeGreaterThanOrEqual(before);
-    expect(result.firstStepHiddenAt).toBeInstanceOf(Date);
-  });
-
-  // Undo is a write of null, so "nobody ever closed it" and "somebody
-  // put it back" are the same state -- which is what makes the card
-  // returnable rather than spent.
-  it("puts the card back by clearing the stamp", async () => {
-    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({
-      firstStepHiddenAt: new Date("2026-09-20T08:00:00Z"),
-    } as never);
-
-    await setFirstStepHidden(false, ctx);
-
-    expect(prisma.clinic.update).toHaveBeenCalledWith({
-      where: { id: "clinic-1" },
-      data: { firstStepHiddenAt: null },
-    });
-  });
-
-  it("says nothing when the card is already in that state", async () => {
-    await setFirstStepHidden(false, ctx);
-
-    expect(prisma.clinic.update).not.toHaveBeenCalled();
-    expect(prisma.auditLog.create).not.toHaveBeenCalled();
-  });
-
-  // Clinic-wide, so it is behind the floor of the chain the card names.
-  // A technician has neither `clients.write` nor `pets.write`, sees the
-  // waiting sentence rather than a button, and would otherwise be
-  // deciding for everybody about a prompt they cannot act on.
-  it("is closed to a reader who cannot do what it asks", async () => {
-    await expect(
-      setFirstStepHidden(true, { ...ctx, userRole: "VET_TECH" }),
-    ).rejects.toBeInstanceOf(AppError);
-    expect(prisma.clinic.update).not.toHaveBeenCalled();
-  });
-
-  it("records who closed it", async () => {
-    await setFirstStepHidden(true, ctx);
-
-    expect(prisma.auditLog.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        clinicId: "clinic-1",
-        actorId: "u-1",
-        entityType: "Clinic",
-        entityId: "clinic-1",
-        changes: { firstStepHidden: true },
-      }),
-    });
   });
 });

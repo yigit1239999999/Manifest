@@ -29,10 +29,30 @@ model Clinic {
   timezone          String    @default("Europe/Istanbul")
   currency          String    @default("TRY")
   settings          Json?
-  /// When somebody closed the first-step card on the dashboard. Null
-  /// means nobody has, which is how a clinic that has never seen it and
-  /// a clinic that wants it back are the same state. See
-  /// `setFirstStepHidden`.
+  /// DELIBERATELY UNREAD. Nothing in the product writes or reads this
+  /// today, and that is a design decision rather than an oversight.
+  ///
+  /// It was going to let a clinic close the first-step card. The card
+  /// names the one missing link of the mandatory chain and removes
+  /// itself the moment that link exists, so the only clinic that keeps
+  /// seeing it is one that has not started -- and the card is then
+  /// saying something true. A dismiss button would take that sentence
+  /// off the screen and leave the situation where it was, and it would
+  /// also remove the only thing pointing the way during a clinic's
+  /// first week. Two vets met the card and both watched it disappear on
+  /// its own; neither asked to close one.
+  ///
+  /// The column stays rather than being dropped because the migration
+  /// is already applied to a shared database and a second migration to
+  /// undo it costs more than a nullable column nobody reads.
+  ///
+  /// What would make it live, so the next reader does not have to guess:
+  /// a real clinic saying it cannot close the card. On that day the
+  /// condition is that it must also be possible to bring the card back
+  /// -- no one-way door -- which is why this is a timestamp and not a
+  /// boolean: "never closed", "closed on this day" and "put back" are
+  /// three facts, and undo writes null so the first and the third are
+  /// the same state.
   firstStepHiddenAt DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
