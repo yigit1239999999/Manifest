@@ -522,6 +522,26 @@ describe("runReminderSweep", () => {
   // write to, the other is a clinic whose owners were never asked for
   // consent. Reading the second as the first is how "reminders do not
   // work" gets answered with "there was nothing to send".
+  // Two different facts about a clinic: nobody asked, versus somebody
+  // asked and was told no. An owner who said no is not missing data,
+  // and counting them as work to do objects to the vet's own
+  // relationship with their client on our behalf.
+  it("counts a refusal apart from a question nobody asked", async () => {
+    vi.mocked(prisma.$queryRaw).mockImplementation((async () => [
+      { reason: "optedOut", n: 2 },
+      { reason: "neverAsked", n: 7 },
+      { reason: "eligible", n: 0 },
+    ]) as never);
+
+    const summary = await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
+
+    expect(summary.reminders.skipped.optedOut).toBe(2);
+    expect(summary.reminders.skipped.neverAsked).toBe(7);
+    // Both censuses classify consent from one SQL fragment, so the two
+    // halves cannot drift into two different answers.
+    expect(summary.appointments.skipped.neverAsked).toBe(7);
+  });
+
   it("tells an empty window apart from one every rule emptied", async () => {
     const empty = await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
     expect(empty.appointments.pool).toBe(0);
@@ -846,16 +866,23 @@ describe("reminderDeliveryState", () => {
     expect(state).toMatchObject({ state: "sentNoReportChannel", channel: "WHATSAPP" });
   });
 
-  it("names the reason nothing will go, clinic-wide reasons first", () => {
+  it("names the owner's own obstacle before the clinic's switch", () => {
     const off = toMessagingProfile({
       ...clinicRow,
       settings: { notifications: { channel: "SMS", whatsapp: { enabled: false } } },
     } as never);
-    // Both switched off and not consented: the vet is sent to the
-    // setting, which is the one they can act on.
+    // This order was the other way round until sending by hand started
+    // working with the switch off. Now the rows are not equally stuck:
+    // on most of them the vet can press the button, and on this one
+    // they cannot -- so the consent is the sentence that matters, and
+    // "notifications are off" would hide it.
     expect(
       reminderDeliveryState(row({ client: { phone: null, notificationsOptIn: false } }), off),
-    ).toEqual({ state: "disabled" });
+    ).toEqual({ state: "optedOut" });
+
+    // With nothing standing in this owner's way, the switch is exactly
+    // what the row should name -- next to a button that works.
+    expect(reminderDeliveryState(row(), off)).toEqual({ state: "disabled" });
 
     // Refused and never asked are one falsy value in code and two
     // different mornings for a vet: nothing to do about the first, a

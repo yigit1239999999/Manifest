@@ -465,8 +465,13 @@ export const SWEEP_SKIP_REASONS = [
   "closed",
   "clientArchived",
   "noPhone",
-  /** Refused, or never asked: a null consent is a "no" everywhere. */
+  /**
+   * Asked, and told no. A decision, not a gap -- which is why it is
+   * counted apart from the one below.
+   */
   "optedOut",
+  /** Nobody asked. The only one of the two with anything to do about it. */
+  "neverAsked",
   /** The animal died or was archived; nothing is written about it. */
   "petSilenced",
   /** A message for this row already went out, by us or by hand. */
@@ -554,13 +559,34 @@ function applyCensus(rows: CensusRow[], into: SweepKindSummary): void {
  * under; it does not change which rows come out eligible, and eligible
  * is the number that has to agree with the candidate query.
  */
+/**
+ * Consent, classified once for both censuses.
+ *
+ * `NULL` and `FALSE` were one bucket, and they are two different
+ * facts about a clinic: nobody asked, versus somebody asked and was
+ * told no. A settings screen counting the first as work to do would
+ * count the second as work too -- and an owner who said no is not
+ * missing data, it is a decision. Presenting it as a gap objects to
+ * the vet's own relationship with their client, on our behalf.
+ *
+ * One fragment, interpolated into both queries, because two copies of
+ * a classification eventually become two different numbers. The unit
+ * stays the row, not the distinct client: the census counts what the
+ * sweep would have looked at, and switching one line to
+ * COUNT(DISTINCT) would make the columns stop adding up.
+ */
+const CONSENT_CENSUS = Prisma.sql`
+  WHEN c."notificationsOptIn" IS NULL THEN 'neverAsked'
+  WHEN c."notificationsOptIn" = FALSE THEN 'optedOut'
+`;
+
 function appointmentCensus(clinicId: string, from: Date, to: Date) {
   return prisma.$queryRaw<CensusRow[]>(Prisma.sql`
     SELECT CASE
              WHEN a.status NOT IN ('SCHEDULED', 'CONFIRMED') THEN 'closed'
              WHEN c."archivedAt" IS NOT NULL THEN 'clientArchived'
              WHEN c.phone IS NULL THEN 'noPhone'
-             WHEN c."notificationsOptIn" IS NOT TRUE THEN 'optedOut'
+             ${CONSENT_CENSUS}
              WHEN p.deceased OR p."archivedAt" IS NOT NULL THEN 'petSilenced'
              ELSE 'eligible'
            END AS reason,
@@ -582,7 +608,7 @@ function reminderCensus(clinicId: string, from: Date, to: Date) {
              WHEN r.status <> 'PENDING' THEN 'closed'
              WHEN c."archivedAt" IS NOT NULL THEN 'clientArchived'
              WHEN c.phone IS NULL THEN 'noPhone'
-             WHEN c."notificationsOptIn" IS NOT TRUE THEN 'optedOut'
+             ${CONSENT_CENSUS}
              WHEN p.id IS NOT NULL AND (p.deceased OR p."archivedAt" IS NOT NULL)
                THEN 'petSilenced'
              ELSE 'eligible'
@@ -1115,11 +1141,10 @@ export function reminderDeliveryState(
   if (reminder.status !== "PENDING") return null;
 
   const cfg = clinic.notifications.whatsapp;
-  // Clinic-wide reasons before per-client ones. With messaging switched
-  // off every row is equally stuck, and telling the vet "this owner did
-  // not consent" would send them to the wrong screen to fix it.
-  if (!cfg.enabled || !cfg.reminders.enabled) return { state: "disabled" };
   const channel = clinic.notifications.channel;
+  // No channel at all comes first, and stays first: with nothing
+  // configured even a manual send is refused, so nothing more specific
+  // about this owner would change what can be done.
   if (!isChannelConfigured(channel)) return { state: "notConfigured", channel };
   // Refused and never asked are one falsy value in code and two
   // different mornings for a vet: nothing to do about the first, a
@@ -1129,6 +1154,23 @@ export function reminderDeliveryState(
   if (reminder.client.notificationsOptIn !== true) return { state: "neverAsked" };
   if (!normalizePhone(reminder.client.phone, countryCallingCode(clinic.country)))
     return { state: "noPhone" };
+
+  // Last, and it used to be first. The old order put the clinic-wide
+  // switch ahead of the per-owner reasons, on the argument that with
+  // messaging off every row is equally stuck and naming this owner's
+  // consent would send the vet to the wrong screen.
+  //
+  // `ed0f364` ended that: sending by hand now works while the switch
+  // is off, so the rows are no longer equally stuck. On a row whose
+  // owner never consented there is still nothing to do, and saying
+  // "notifications are off" there hides the only reason that matters
+  // -- while on every other row the switch is exactly what the
+  // sentence should name, beside a button that works.
+  //
+  // dev-ui found this, from the comment that used to justify the
+  // opposite: a reason written down is what makes it checkable when
+  // the thing underneath it moves.
+  if (!cfg.enabled || !cfg.reminders.enabled) return { state: "disabled" };
 
   return {
     state: "scheduled",
