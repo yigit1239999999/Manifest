@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { action, parse, type FormState } from "@/lib/action";
 import { petSchema } from "./schema";
+import { quickSearchPets } from "./queries";
+import { PAGE_SIZES } from "@/lib/pagination";
+import { requireSession } from "@/lib/session";
+import { requirePermission } from "@/lib/permissions";
 import {
   archivePet,
   createPet,
@@ -81,3 +85,27 @@ export const markDeceasedAction = action(
     revalidatePath(`/pets/${id}`);
   },
 );
+
+/**
+ * Animals matching what someone has typed into a picker. See
+ * `searchClientsAction` for the shape and the reasoning.
+ *
+ * The owner's name is part of the label, and here it earns its place: a
+ * search spans owners by definition, and two animals called Karabaş are
+ * indistinguishable without it.
+ */
+export async function searchPetsAction(
+  term: string,
+): Promise<{ value: string; label: string }[]> {
+  const session = await requireSession();
+  requirePermission(session.user.role ?? "", "pets.read");
+  const rows = await quickSearchPets(
+    session.user.clinicId,
+    term,
+    PAGE_SIZES.SEARCH_RESULTS,
+  );
+  return rows.map((p) => ({
+    value: p.id,
+    label: `${p.name} · ${p.owner.firstName} ${p.owner.lastName}`,
+  }));
+}

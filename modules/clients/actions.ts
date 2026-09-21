@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { action, parse, type FormState } from "@/lib/action";
 import { clientSchema } from "./schema";
+import { quickSearchClients } from "./queries";
+import { PAGE_SIZES } from "@/lib/pagination";
+import { requireSession } from "@/lib/session";
+import { requirePermission } from "@/lib/permissions";
 import {
   archiveClient,
   createClient,
@@ -67,3 +71,41 @@ export const restoreClientAction = action(
     revalidatePath(`/clients/${id}`);
   },
 );
+
+/**
+ * Clients matching what someone has typed into a picker.
+ *
+ * The pickers were handed the first five hundred clients and filtered them
+ * in the browser, so past that the rest were not merely hard to find —
+ * they were absent, and searching could not reach them. This is the way
+ * in: the query runs where the rows are.
+ *
+ * Shaped as `{ value, label }` because that is all a picker needs. Handing
+ * back rows would send the phone, the address and the notes over the wire
+ * to draw one line of text.
+ *
+ * Below two characters it returns nothing rather than the first page of
+ * everybody — two letters is the shortest search worth running against a
+ * whole clinic — and the picker tells "type more" from "no matches" by
+ * looking at what was typed, not at the empty array.
+ *
+ * Outside the `action()` wrapper on purpose: that wrapper exists to turn a
+ * thrown `AppError` into a `FormState` for a form to render, and this
+ * returns data to a component rather than a result to a form. Session and
+ * permission are still checked, which is what the wrapper was giving it.
+ */
+export async function searchClientsAction(
+  term: string,
+): Promise<{ value: string; label: string }[]> {
+  const session = await requireSession();
+  requirePermission(session.user.role ?? "", "clients.read");
+  const rows = await quickSearchClients(
+    session.user.clinicId,
+    term,
+    PAGE_SIZES.SEARCH_RESULTS,
+  );
+  return rows.map((c) => ({
+    value: c.id,
+    label: `${c.firstName} ${c.lastName}`,
+  }));
+}

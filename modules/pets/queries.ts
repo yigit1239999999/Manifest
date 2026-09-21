@@ -135,7 +135,9 @@ export async function countPets(clinicId: string) {
 export async function quickSearchPets(
   clinicId: string,
   term: string,
-  take = PAGE_SIZES.COMMAND_PALETTE,
+  // Annotated rather than inferred from the default: without it the
+  // parameter's type is the literal 5 and the picker cannot ask for 20.
+  take: number = PAGE_SIZES.COMMAND_PALETTE,
 ) {
   if (term.length < 2) return [];
   return prisma.pet.findMany({
