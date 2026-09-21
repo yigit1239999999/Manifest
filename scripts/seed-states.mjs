@@ -366,12 +366,12 @@ export async function buildStateClinic(db) {
     // in the behaviour, which is the failure this clinic is here to
     // prevent.
     //
-    // `hoursBefore: 24` rather than the default `morningOf`: the mode
+    // `hoursBefore: 48` rather than the default `morningOf`: the mode
     // decides at what hour of the clinic's day a reminder becomes due,
     // so `morningOf` makes whether a fixture is sendable depend on what
-    // time the seed was run. A fixed number of hours before the
-    // appointment is the same fixture at nine in the morning and at
-    // eleven at night.
+    // time the seed was run. Forty-eight hours is what lets the sendable
+    // appointment below sit at a plausible hour of the working day and
+    // still be inside the window whenever the seed is run.
     [
       STATE_CLINIC_NAME,
       JSON.stringify({
@@ -380,7 +380,7 @@ export async function buildStateClinic(db) {
           whatsapp: {
             enabled: true,
             confirmOnBooking: true,
-            reminder: { mode: "hoursBefore", hoursBefore: 24, morningHour: 9 },
+            reminder: { mode: "hoursBefore", hoursBefore: 48, morningHour: 9 },
             reminders: { enabled: true, daysBefore: 3 },
           },
         },
@@ -746,16 +746,26 @@ export async function buildStateClinic(db) {
   }
 
   // What the sweep can actually pick up, and the row beside it that it
-  // must not. Every other appointment in this clinic fails one of the
-  // sweep's rules -- the two that are still open are two and three days
-  // out, which is outside the reminder window -- so before these the
-  // sweep had nothing to send anywhere in the database, and "0 sent"
-  // was the only answer it was capable of giving.
+  // must not. Before these, messaging was off for this clinic and the
+  // sweep skipped it before looking at a single appointment, so "0 sent"
+  // was the only answer it was capable of giving anywhere in the
+  // database.
   //
-  // Twelve hours out against the clinic's `hoursBefore: 24`: inside the
-  // window from both ends, rather than at an edge where an hour between
-  // seeding and sweeping decides the answer.
-  const sendableAt = ahead(0.5);
+  // Tomorrow at ten in the morning, clinic time, against the clinic's
+  // `hoursBefore: 48`.
+  //
+  // Both halves of that matter. "Now plus twelve hours" was sendable on
+  // any clock too, but it put the appointment at 05:47 when the seed
+  // happened to run at 17:47 -- and a fixture at an hour no clinic works
+  // is one a reader has to look past to believe the rest. A wall-clock
+  // hour on the next day is between ten and thirty-four hours away
+  // whenever the seed is run, so it is always ahead and always inside
+  // the window, without the window ever deciding the hour.
+  const sendableStart = new Date(Date.now() + DAY);
+  // 07:00 UTC is 10:00 in Europe/Istanbul; the column is naive UTC and
+  // the session is pinned to it above, same as the busy day.
+  sendableStart.setUTCHours(7, 0, 0, 0);
+  const sendableAt = iso(sendableStart);
 
   // The refusing owner needs an animal of their own. Everything else in
   // this clinic hangs off the consenting owner, and hanging the
