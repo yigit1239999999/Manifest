@@ -2233,6 +2233,64 @@ yeniden alınacak.
 
 # Sonraki sürüm: "Kliniğin parası uygulamanın içinde kapansın"
 
+## Yazdırma katmanı yok — ve aşı kâğıdı onun ilk müşterisi (ux, 21 Eylül 2026)
+
+**Açılmadı.** `ux` ilk akışta açık kararı kalmayınca kimsenin bakmadığı
+yere baktı; iki olgu çıktı ve ikisi de kalem açılmadan önce bilinmeli.
+
+### Bugün duran kusur: yazdırma desteği hiç yok
+
+`@media print` ve `window.print` için arama: **sıfır sonuç.** Yani bugün
+bir hekim herhangi bir ekranda Cmd+P'ye bassa **kenar çubuğu, üst çubuk,
+filtre sekmeleri ve düğmelerle birlikte** basıyor. Bu, aşağıdaki kalemden
+**bağımsız** — bugün de birinin bir şey yazdırmaya kalkması mümkün.
+
+**Ve `ux`'in çerçevesi sıralamayı belirliyor:** *"aşı kâğıdı bu katmanın
+**ilk müşterisi**, tek müşterisi değil. Fatura, vizit özeti, reçete —
+hepsi aynı katmanı kullanacak. Yani **katman kâğıdın parçası değil, kâğıt
+katmanın parçası.**"*
+
+### Kalemi küçülten olgu: mevzuat listesi neredeyse tamamen şemada
+
+`Vaccination` zaten taşıyor: `name` · `manufacturer` · **`lotNumber`** ·
+`administeredAt` · `administeredById` (uygulayan hekim) · `site` ·
+`notes`; klinik bilgileri `Clinic`'te, hayvan ve sahip ilişkileriyle.
+
+Yani hekimin saydığı liste için **yeni alan gerekmiyor**. Eksik olan tek
+şey **kâğıdın kendisi** ve imza-kaşe için boş alan. **Bu bir şema işi
+değil, bir sayfa işi.**
+
+**Tek dikkat, ve bir tasarım şartı doğuruyor:** alanların çoğu isteğe
+bağlı (`lotNumber String?`). Kâğıt **eksik alanla basılabilir**, oysa
+hekimin cümlesi *"eksik bir alan kâğıdı geçersiz kılar"*. Şart: **kâğıt
+eksik alanı sessizce boş bırakmasın** — ya alanı adıyla *"kayıtlı değil"*
+diye göstersin ya da basmadan önce uyarsın. *"Boş bir satır, kâğıdı alan
+memur için 'yok' değil **'gözden kaçmış'** demektir."*
+
+### Kâğıdın tasarım iskeleti (hazır, kalem açılırsa)
+
+- **Tek sayfa, tek hayvan, tek amaç.** Rapor değil, **elden verilecek
+  belge**: klinik başlığı · hayvan ve sahip kimliği · aşı satırları
+  (tarih · aşı · üretici · lot · uygulayan) · altta **imza ve kaşe için
+  boş alan.**
+- **Ekranda güzel olan kâğıtta doğru olmayabilir:** renk, rozet ve arka
+  plan dolgusu kâğıtta anlam taşımaz — ayrım **kenarlık ve tipografiyle**
+  kurulsun.
+- **Tarih her zaman gün-ay-yıl**, ve kâğıtta göreceli tarih (*"3 gün
+  önce"*) **hiç** olmasın. Hekimin kendi şartı.
+
+### Neden bu kalem doğdu
+
+Hekim, sahibin aşı bilgisini **bir yere vermek için** istediğini söyledi
+— pansiyona, belediyeye, yurt dışına; aslında **aşı karnesini
+kaybetmiş.** Ve mesajın yerine geçmediğini de söyledi: *"resmî hiçbir
+yerde görmez — **seri/lot numarası yok, tarih kayıtlı bir kaynaktan
+gelmiyor, kaşem ve imzam yok.** Benim yaptığım şey: programdan aşı
+dökümünü **yazdırıp** imzalayıp kaşelemek."*
+
+Mesaj yolu **rakip değil yoldaş**: *"hem kâğıdı veririm hem telefonuna
+kopya düşer, bir dahakine bana sormaz."*
+
 ## KULLANICI KARARLARI — 21 Eylül 2026, dördü birden
 
 Ana oturum dört soruyu kullanıcıya önizlemeli olarak sordu, dördü de
