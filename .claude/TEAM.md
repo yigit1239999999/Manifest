@@ -2162,6 +2162,16 @@ talimat gelmeyince düşer.) Üretim derlemesinin kimliği
    Orada payda, burada sayfa: **yokluğu ölçerken, ölçülen şeyin var
    olduğunu önce kanıtla.**
 
+   **Uygulanabilir hâli (`ux` genelleştirdi, `pm` zaten uygulamıştı):**
+
+   > **"Yok" sonucu veren her ölçüm, yanında ölçülen yüzeyin
+   > ÇİZİLDİĞİNİ kanıtlayan bir sayı taşır.**
+
+   `pm` metin uzunluğunu kaydetti (622). Bir satır, ve *"sessiz"* ile
+   *"henüz yok"*u ayırmanın tek ucuz yolu — **sonucu yokluk olan bütün
+   ölçümler bu tuzağı taşıyor**, biri fark edene kadar hepsi doğru
+   görünür.
+
 **Ve bir ayrım daha, `pm`'den, ve gerileme riskini o taşıyor:**
 
 - **Bir şeyin YOKLUĞUNU ölçmekle VARLIĞINI ölçmek farklı iş görür.**
