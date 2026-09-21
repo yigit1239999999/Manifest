@@ -136,7 +136,19 @@ const E2E_CLINIC_PATTERN = "^(Perf )?Clinic [0-9]{10,}$";
 // September 2026. A list and not a pattern because there is no pattern:
 // they were named by people, one at a time. It does not need
 // maintaining — anything new falls into REAL, which is the point.
-const HAND_MADE = ["PM Test Klinigi", "Yiğit Klinik", "Sunrise"];
+const HAND_MADE = [
+  "PM Test Klinigi",
+  "Yiğit Klinik",
+  "Sunrise",
+  // Opened by hand on 21 September 2026, to look at what a brand new
+  // clinic sees on its first screen. It is the product's owner signing
+  // up as a customer would, which is exactly the shape of a real
+  // clinic and exactly why it has to be named here: for a few hours it
+  // was the only row this census called REAL, and every derived number
+  // below would have started reporting on it. A baseline of one, made
+  // by us, reading as the first real user.
+  "Sonbahar Veteriner Kliniği",
+];
 
 const census = await client.query(
   `SELECT id, name,
