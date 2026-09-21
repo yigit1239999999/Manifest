@@ -84,6 +84,13 @@ export function DescriptionList({
    * values — the vitals on `/visits/[id]` are the case it exists for,
    * where seven stacked pairs would be fourteen lines instead of seven.
    * Anywhere a value can wrap, `stacked` is the right one.
+   *
+   * There is a lower bound on the container (see the row class below) and
+   * deliberately no upper one, which is only safe as far as today's call
+   * sites go: every container `row` renders in is between 176px and about
+   * 432px. Put it in a wide one and the label sits hundreds of pixels from
+   * its value, which no eye pairs up — the reason `/visits/[id]` keeps its
+   * three-column grid rather than letting the card go full width.
    */
   layout?: "stacked" | "row";
   className?: string;
