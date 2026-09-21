@@ -26,7 +26,7 @@ export default async function AuthLayout({
         <LocaleSwitcher />
       </div>
       <div className="flex items-center gap-2.5">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+        <span className="flex size-10 items-center justify-center rounded-tile bg-primary text-primary-foreground">
           <PawPrint className="size-6" />
         </span>
         <span className="text-xl font-semibold tracking-tight">{t("name")}</span>

@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/session";
 import { listPets } from "@/modules/pets/queries";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/page-header";
+import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { VisitForm } from "@/components/forms/visit-form";
 
@@ -28,13 +29,13 @@ export default async function NewVisitPage({
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <BackLink href="/visits" label={tCommon("back")} />
       <PageHeader title={t("new")} />
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <Card className="p-6">
         <VisitForm
           pets={pets.map((p) => ({ id: p.id, name: p.name }))}
           vets={vets}
           defaultPetId={petId}
         />
-      </div>
+      </Card>
     </div>
   );
 }

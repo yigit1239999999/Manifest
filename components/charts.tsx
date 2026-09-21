@@ -64,9 +64,9 @@ export function HorizontalBars({
             <span className="w-24 shrink-0 truncate text-xs text-muted-foreground">
               {d.label}
             </span>
-            <span className="relative flex h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <span className="relative flex h-2.5 flex-1 overflow-hidden rounded-pill bg-muted">
               <span
-                className="h-full rounded-full bg-primary"
+                className="h-full rounded-pill bg-primary"
                 style={{ width: `${pct}%` }}
               />
             </span>
@@ -159,6 +159,12 @@ export function ColumnBars({
                   that rounds to nearly nothing still reads as present. */}
               {d.value > 0 && (
                 <div
+                  // `rounded-t-md` and not one of the four radius roles: the
+                  // top of a bar is not a surface, a tile, a control or a
+                  // pill — it is a graphic detail that keeps the column from
+                  // ending in two sharp points. The allow-list in
+                  // `app/theme-tokens.test.ts` names it so that the next
+                  // sweep does not read it as a leftover.
                   className="w-full rounded-t-md bg-primary/80 transition-colors group-hover:bg-primary"
                   style={{
                     height: `${pct}%`,

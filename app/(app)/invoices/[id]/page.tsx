@@ -70,33 +70,42 @@ export default async function InvoicePage({
           <CardHeader>
             <CardTitle>{t("lines")}</CardTitle>
           </CardHeader>
-          <CardContent>
+          {/* `px-0` so the header band reaches both edges of the card the
+              way `DataTable`'s does. Inside the card's own `p-6` it would be
+              an inset stripe, and the whole point of sharing the header
+              style is that the two do not look like two different products.
+              The cells carry the padding instead. */}
+          <CardContent className="px-0">
             {/* The one hand-written table left, and deliberately not a
                 `DataTable`: this is a document, not a list. It has a
                 `<tfoot>` of running totals, no pagination, no empty state
-                and no row to click. What it does share with `DataTable` is
-                every figure in it — right-aligned with `tabular-nums`, so
-                the line totals and the totals below them line up on the
-                same decimal. A figure column that cannot be read down its
-                length is the only reason it is a column. */}
+                and no row to click. What it shares with `DataTable` is what
+                a reader would notice if it differed — cell density, header
+                style, and figures set in `tabular-nums` so the line totals
+                line up with the totals underneath them. A different
+                component does not mean a different-looking one.
+
+                It stays hand-written because a `footer` slot and a "no
+                card" variant, one call site each, would be a shared
+                component told to stop sharing (TEAM.md #30). */}
             <table className="w-full text-sm">
-              <thead className="text-start text-xs uppercase tracking-wide text-muted-foreground">
+              <thead className="bg-muted/50 text-start text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="py-2 text-start">{t("description")}</th>
-                  <th className="py-2 text-end">{t("quantity")}</th>
-                  <th className="py-2 text-end">{t("unitPrice")}</th>
-                  <th className="py-2 text-end">{t("lineTotal")}</th>
+                  <th className="px-4 py-3 text-start font-medium">{t("description")}</th>
+                  <th className="px-4 py-3 text-end font-medium">{t("quantity")}</th>
+                  <th className="px-4 py-3 text-end font-medium">{t("unitPrice")}</th>
+                  <th className="px-4 py-3 text-end font-medium">{t("lineTotal")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {invoice.lines.map((l) => (
                   <tr key={l.id}>
-                    <td className="py-2">{l.description}</td>
-                    <td className="py-2 text-end tabular-nums">{l.quantity}</td>
-                    <td className="py-2 text-end tabular-nums">
+                    <td className="px-4 py-3">{l.description}</td>
+                    <td className="px-4 py-3 text-end tabular-nums">{l.quantity}</td>
+                    <td className="px-4 py-3 text-end tabular-nums">
                       {formatMoney(fmt, l.unitPriceCents, currency)}
                     </td>
-                    <td className="py-2 text-end tabular-nums">
+                    <td className="px-4 py-3 text-end tabular-nums">
                       {formatMoney(fmt, l.totalCents, currency)}
                     </td>
                   </tr>
@@ -104,33 +113,33 @@ export default async function InvoicePage({
               </tbody>
               <tfoot className="border-t border-border text-sm">
                 <tr>
-                  <td colSpan={3} className="py-2 text-end text-muted-foreground">
+                  <td colSpan={3} className="px-4 py-3 text-end text-muted-foreground">
                     {t("subtotal")}
                   </td>
-                  <td className="py-2 text-end tabular-nums">
+                  <td className="px-4 py-3 text-end tabular-nums">
                     {formatMoney(fmt, invoice.subtotalCents, currency)}
                   </td>
                 </tr>
                 <tr>
-                  <td colSpan={3} className="py-2 text-end text-muted-foreground">
+                  <td colSpan={3} className="px-4 py-3 text-end text-muted-foreground">
                     {t("tax")}
                   </td>
-                  <td className="py-2 text-end tabular-nums">
+                  <td className="px-4 py-3 text-end tabular-nums">
                     {formatMoney(fmt, invoice.taxCents, currency)}
                   </td>
                 </tr>
                 <tr>
-                  <td colSpan={3} className="py-2 text-end font-semibold">
+                  <td colSpan={3} className="px-4 py-3 text-end font-semibold">
                     {t("total")}
                   </td>
-                  <td className="py-2 text-end font-semibold tabular-nums">
+                  <td className="px-4 py-3 text-end font-semibold tabular-nums">
                     {formatMoney(fmt, invoice.totalCents, currency)}
                   </td>
                 </tr>
               </tfoot>
             </table>
             {invoice.notes && (
-              <p className="mt-4 rounded-lg bg-muted/40 p-3 text-sm">
+              <p className="mx-4 mt-4 rounded-control bg-muted/40 p-3 text-sm">
                 {invoice.notes}
               </p>
             )}

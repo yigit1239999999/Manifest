@@ -180,7 +180,7 @@ export function PetForm({
 
       <details
         open={hasOptionalData}
-        className="group rounded-2xl border border-border bg-muted/20 open:bg-transparent"
+        className="group rounded-surface border border-border bg-muted/20 open:bg-transparent"
       >
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
           <span className="flex flex-col">

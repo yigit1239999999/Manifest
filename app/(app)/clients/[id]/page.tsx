@@ -120,7 +120,7 @@ export default async function ClientPage({
               ]}
             />
             {client.notes && (
-              <div className="mt-2 rounded-lg bg-muted/40 p-3 text-sm">
+              <div className="mt-2 rounded-control bg-muted/40 p-3 text-sm">
                 {client.notes}
               </div>
             )}

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/card";
 import { PawPrint, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
@@ -83,10 +85,10 @@ export default async function PetsPage({
                 <Link
                   key={pet.id}
                   href={`/pets/${pet.id}`}
-                  className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/30"
+                  className={cn(surface, "group flex flex-col gap-3 p-4 shadow-sm transition-colors hover:border-primary/30")}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-tile bg-accent text-accent-foreground">
                       <SpeciesIcon species={pet.species} className="size-5" />
                     </span>
                     <div className="flex min-w-0 flex-col">

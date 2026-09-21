@@ -97,7 +97,7 @@ export function SpeciesPicker({
               aria-pressed={active}
               onClick={() => select(o.value)}
               className={cn(
-                "inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm transition-colors",
+                "inline-flex h-10 items-center gap-2 rounded-control border px-3 text-sm transition-colors",
                 active
                   ? "border-primary bg-accent font-medium text-accent-foreground ring-2 ring-ring/30"
                   : "border-border bg-card text-foreground hover:border-primary/40",
@@ -113,7 +113,7 @@ export function SpeciesPicker({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-dashed border-primary/50 px-3 text-sm font-medium text-primary transition-colors hover:bg-accent"
+            className="inline-flex h-10 items-center gap-1.5 rounded-control border border-dashed border-primary/50 px-3 text-sm font-medium text-primary transition-colors hover:bg-accent"
           >
             <Plus className="size-4" />
             {newLabel}
@@ -122,7 +122,7 @@ export function SpeciesPicker({
       </div>
 
       {adding && (
-        <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/30 p-3">
+        <div className="flex flex-col gap-1.5 rounded-control border border-border bg-muted/30 p-3">
           <div className="flex gap-2">
             <input
               ref={inputRef}
@@ -140,13 +140,13 @@ export function SpeciesPicker({
                   setDraft("");
                 }
               }}
-              className="h-10 flex-1 rounded-lg border border-input bg-card px-3 text-sm text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+              className="h-10 flex-1 rounded-control border border-input bg-card px-3 text-sm text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
             />
             <button
               type="button"
               onClick={commitDraft}
               disabled={!draft.trim()}
-              className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-50"
+              className="h-10 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-50"
             >
               {addLabel}
             </button>

@@ -57,7 +57,7 @@ export function Sidebar({
   return (
     <aside className="sticky top-0 flex h-screen w-16 shrink-0 flex-col gap-6 border-r border-border bg-card px-3 py-5 md:w-60 md:px-4">
       <Link href="/" className="flex items-center gap-2.5 px-1.5">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-tile bg-primary text-primary-foreground">
           <PawPrint className="size-5" />
         </span>
         {/* `sr-only`, not `hidden`: below md the rail shows icons only, and
@@ -77,7 +77,7 @@ export function Sidebar({
             // The active item is currently signalled by colour alone.
             aria-current={isActive(href) ? "page" : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-control px-2.5 py-2 text-sm font-medium transition-colors",
               isActive(href)
                 ? "bg-accent text-accent-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",

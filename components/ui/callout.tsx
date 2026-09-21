@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 //   - no size: both groups of call sites use the same density today.
 //   - no icon override: the same meaning should carry the same mark everywhere.
 const calloutVariants = cva(
-  "flex items-start gap-2 rounded-lg border px-3 py-2 text-sm",
+  "flex items-start gap-2 rounded-control border px-3 py-2 text-sm",
   {
     variants: {
       variant: {

@@ -18,7 +18,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 text-xs",
+        "inline-flex items-center gap-0.5 rounded-control border border-border bg-card p-0.5 text-xs",
         className,
       )}
       role="group"
@@ -31,7 +31,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
           disabled={pending || locale === option.value}
           onClick={() => startTransition(() => setLocale(option.value))}
           className={cn(
-            "rounded-md px-2 py-1 font-semibold transition-colors",
+            "rounded-control px-2 py-1 font-semibold transition-colors",
             locale === option.value
               ? "bg-accent text-accent-foreground"
               : "text-muted-foreground hover:text-foreground",

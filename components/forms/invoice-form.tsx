@@ -105,7 +105,7 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
         {lines.map((line, i) => (
           <div
             key={i}
-            className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-[1fr_80px_120px_auto]"
+            className="grid gap-2 rounded-control border border-border p-3 sm:grid-cols-[1fr_80px_120px_auto]"
           >
             <Input
               name={`lines[${i}].description`}

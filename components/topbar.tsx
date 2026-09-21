@@ -36,7 +36,7 @@ export async function Topbar({
               two stray letters. */}
           <span
             aria-hidden="true"
-            className="flex size-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground"
+            className="flex size-9 items-center justify-center rounded-pill bg-accent text-sm font-semibold text-accent-foreground"
           >
             {initials(userName)}
           </span>

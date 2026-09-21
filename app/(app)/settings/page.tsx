@@ -120,7 +120,7 @@ export default async function SettingsPage() {
             // component has no affirmative variant (ux withdrew `--success`
             // once the badge measurement showed the fill carries no signal).
             // Raised with ux rather than invented here.
-            <p className="rounded-lg border border-primary/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
+            <p className="rounded-control border border-primary/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
               {t("notifications.providerConnected", {
                 channel: t(`notifications.channel_${channel}`),
                 transport: transport ?? "",
@@ -136,7 +136,7 @@ export default async function SettingsPage() {
               WHATSAPP: isChannelConfigured("WHATSAPP"),
             }}
           />
-          <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+          <details className="rounded-control border border-dashed border-border p-3 text-sm">
             <summary className="cursor-pointer font-medium">{t("notifications.preview")}</summary>
             <div className="mt-3 grid gap-4 lg:grid-cols-2">
               {(["tr", "en"] as const).map((locale) => (
@@ -145,7 +145,7 @@ export default async function SettingsPage() {
                     <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       {t("notifications.previewConfirmation")} · {locale.toUpperCase()}
                     </p>
-                    <pre className="whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-sans text-xs">
+                    <pre className="whitespace-pre-wrap rounded-control bg-muted/40 p-3 font-sans text-xs">
                       {sample(locale, "APPOINTMENT_CONFIRMATION")}
                     </pre>
                     {channel === "SMS" && (
@@ -160,7 +160,7 @@ export default async function SettingsPage() {
                     <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       {t("notifications.previewReminder")} · {locale.toUpperCase()}
                     </p>
-                    <pre className="whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-sans text-xs">
+                    <pre className="whitespace-pre-wrap rounded-control bg-muted/40 p-3 font-sans text-xs">
                       {sample(locale, "APPOINTMENT_REMINDER")}
                     </pre>
                     {channel === "SMS" && (

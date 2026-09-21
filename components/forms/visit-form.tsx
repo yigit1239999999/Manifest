@@ -1,6 +1,8 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/card";
 import type { Pet, User, Visit } from "@/generated/prisma/client";
 import { centsToInputValue } from "@/lib/money";
 import { Callout } from "@/components/ui/callout";
@@ -103,7 +105,7 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
         />
       </Field>
 
-      <fieldset className="grid gap-4 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2">
+      <fieldset className={cn(surface, "grid gap-4 p-4 sm:grid-cols-2")}>
         <legend className="px-2 text-sm font-semibold text-foreground">
           {t("soap")}
         </legend>
@@ -137,7 +139,7 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
         </Field>
       </fieldset>
 
-      <fieldset className="grid gap-4 rounded-2xl border border-border bg-card p-4 sm:grid-cols-4">
+      <fieldset className={cn(surface, "grid gap-4 p-4 sm:grid-cols-4")}>
         <legend className="px-2 text-sm font-semibold text-foreground">
           {t("vitals")}
         </legend>

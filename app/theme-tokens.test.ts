@@ -407,3 +407,73 @@ describe("the app paints from role tokens only", () => {
     expect(rawColour.test('className="border-b-2"')).toBe(false);
   });
 });
+
+// Corner radius had the same failure mode as colour, one step earlier: five
+// raw values were in use for four roles and every new component picked one
+// by looking at whatever was next to it. `Callout` took `rounded-lg`,
+// `ConfirmDialog` `rounded-2xl`, `EmptyState` `rounded-2xl`, `Input`
+// `rounded-lg` — nobody was wrong, and the result was still five values.
+//
+// Naming the four roles only helps if the raw scale stops being reachable,
+// so the rule is a scan rather than a convention.
+describe("the app rounds by role only", () => {
+  const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+  const roots = ["app", "components"].map((d) => `${projectRoot}${d}`);
+
+  /**
+   * The one place a raw value survives, with its reason in the file: the
+   * top of a bar in `charts.tsx` is not a surface, a tile, a control or a
+   * pill, and a fifth token for one call site would be worse than the
+   * exception (TEAM.md #30). Named here so the next sweep does not read it
+   * as a leftover — and so that a second one cannot be added silently.
+   */
+  const allowed = new Set(["components/charts.tsx:rounded-t-md"]);
+
+  function sourceFiles(dir: string, out: string[] = []): string[] {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) sourceFiles(path, out);
+      else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
+        out.push(path);
+      }
+    }
+    return out;
+  }
+
+  const rawRadius =
+    /\brounded(-[tblrse]{1,2})?-(none|xs|sm|md|lg|xl|2xl|3xl|4xl|full)\b/g;
+
+  it("uses no raw radius value outside the named exception", () => {
+    const files = roots.flatMap((root) => sourceFiles(root));
+    expect(files.length).toBeGreaterThan(50);
+
+    const offenders: string[] = [];
+    for (const file of files) {
+      const relative = file.slice(projectRoot.length);
+      for (const hit of readFileSync(file, "utf8").matchAll(rawRadius)) {
+        if (!allowed.has(`${relative}:${hit[0]}`)) {
+          offenders.push(`${relative} ${hit[0]}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("recognises a raw radius when it sees one", () => {
+    // Without this the rule could be silently inverted and still pass.
+    expect('className="rounded-2xl"'.match(rawRadius)).not.toBeNull();
+    expect('className="rounded-t-md"'.match(rawRadius)).not.toBeNull();
+    expect('className="rounded-surface"'.match(rawRadius)).toBeNull();
+    expect('className="rounded-pill"'.match(rawRadius)).toBeNull();
+  });
+
+  it("defines every role it asks call sites to use", () => {
+    const css = readFileSync(
+      fileURLToPath(new URL("./globals.css", import.meta.url)),
+      "utf8",
+    );
+    for (const role of ["control", "tile", "surface", "pill"]) {
+      expect(css).toContain(`--radius-${role}:`);
+    }
+  });
+});

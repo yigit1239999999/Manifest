@@ -199,7 +199,7 @@ export default async function PetPage({
       )}
 
       {pet.deceased && (
-        <p className="rounded-lg border border-muted-foreground/30 bg-muted px-3 py-2 text-sm">
+        <p className="rounded-control border border-muted-foreground/30 bg-muted px-3 py-2 text-sm">
           {t("deceased")}: {formatDate(fmt, pet.deceasedAt)}
         </p>
       )}
@@ -208,7 +208,7 @@ export default async function PetPage({
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+              <span className="flex size-9 items-center justify-center rounded-tile bg-accent text-accent-foreground">
                 <SpeciesIcon species={pet.species} className="size-5" />
               </span>
               {tCommon("details")}
@@ -252,7 +252,7 @@ export default async function PetPage({
               ]}
             />
             {pet.notes && (
-              <div className="mt-2 rounded-lg bg-muted/40 p-3 text-sm">
+              <div className="mt-2 rounded-control bg-muted/40 p-3 text-sm">
                 {pet.notes}
               </div>
             )}
@@ -273,7 +273,7 @@ export default async function PetPage({
                   {vaccinations.map((v) => (
                     <li
                       key={v.id}
-                      className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
+                      className="flex items-center justify-between rounded-control border border-border px-3 py-2 text-sm"
                     >
                       <div>
                         <p className="font-medium">{v.name}</p>
@@ -286,7 +286,7 @@ export default async function PetPage({
                   ))}
                 </ul>
               )}
-              <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+              <details className="rounded-control border border-dashed border-border p-3 text-sm">
                 <summary className="cursor-pointer font-medium">
                   <Plus className="mr-1 inline size-3.5" />
                   {tVacc("new")}
@@ -311,7 +311,7 @@ export default async function PetPage({
                   {prescriptions.map((p) => (
                     <li
                       key={p.id}
-                      className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
+                      className="flex items-center justify-between rounded-control border border-border px-3 py-2 text-sm"
                     >
                       <div>
                         <p className="font-medium">{p.medicationName}</p>
@@ -329,7 +329,7 @@ export default async function PetPage({
                   ))}
                 </ul>
               )}
-              <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+              <details className="rounded-control border border-dashed border-border p-3 text-sm">
                 <summary className="cursor-pointer font-medium">
                   <Plus className="mr-1 inline size-3.5" />
                   {tRx("new")}
@@ -354,7 +354,7 @@ export default async function PetPage({
                   {treatments.map((tr) => (
                     <li
                       key={tr.id}
-                      className="flex items-start justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm"
+                      className="flex items-start justify-between gap-3 rounded-control border border-border px-3 py-2 text-sm"
                     >
                       <div className="min-w-0">
                         <p className="font-medium">{tr.name}</p>
@@ -374,7 +374,7 @@ export default async function PetPage({
                   ))}
                 </ul>
               )}
-              <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+              <details className="rounded-control border border-dashed border-border p-3 text-sm">
                 <summary className="cursor-pointer font-medium">
                   <Plus className="mr-1 inline size-3.5" />
                   {tTreatment("new")}
@@ -403,7 +403,7 @@ export default async function PetPage({
                   {diagnostics.map((d) => (
                     <li
                       key={d.id}
-                      className="rounded-lg border border-border px-3 py-2 text-sm"
+                      className="rounded-control border border-border px-3 py-2 text-sm"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -438,7 +438,7 @@ export default async function PetPage({
                   ))}
                 </ul>
               )}
-              <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+              <details className="rounded-control border border-dashed border-border p-3 text-sm">
                 <summary className="cursor-pointer font-medium">
                   <Plus className="mr-1 inline size-3.5" />
                   {tDiag("new")}

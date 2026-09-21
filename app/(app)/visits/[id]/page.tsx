@@ -245,7 +245,7 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+          <details className="rounded-control border border-dashed border-border p-3 text-sm">
             <summary className="cursor-pointer font-medium">
               <Plus className="mr-1 inline size-3.5" />
               {tVacc("new")}
@@ -278,7 +278,7 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+          <details className="rounded-control border border-dashed border-border p-3 text-sm">
             <summary className="cursor-pointer font-medium">
               <Plus className="mr-1 inline size-3.5" />
               {tRx("new")}
@@ -309,7 +309,7 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+          <details className="rounded-control border border-dashed border-border p-3 text-sm">
             <summary className="cursor-pointer font-medium">
               <Plus className="mr-1 inline size-3.5" />
               {tTreatment("new")}
@@ -340,7 +340,7 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          <details className="rounded-lg border border-dashed border-border p-3 text-sm">
+          <details className="rounded-control border border-dashed border-border p-3 text-sm">
             <summary className="cursor-pointer font-medium">
               <Plus className="mr-1 inline size-3.5" />
               {tDiag("new")}

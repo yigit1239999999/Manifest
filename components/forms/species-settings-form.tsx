@@ -40,7 +40,7 @@ export function SpeciesSettingsForm({
           <label
             key={s.value}
             className={cn(
-              "flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-sm transition-colors hover:border-primary/40",
+              "flex cursor-pointer items-center gap-3 rounded-control border border-border bg-card px-3 py-2.5 text-sm transition-colors hover:border-primary/40",
               "has-[:checked]:border-primary has-[:checked]:bg-accent has-[:checked]:text-accent-foreground",
             )}
           >

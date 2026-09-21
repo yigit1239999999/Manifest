@@ -37,14 +37,14 @@ export function DayNav({
         <Link
           href={href(previousDate)}
           aria-label={labels.previous}
-          className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="inline-flex size-9 items-center justify-center rounded-control border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <ChevronLeft className="size-4" />
         </Link>
         <Link
           href={href(nextDate)}
           aria-label={labels.next}
-          className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="inline-flex size-9 items-center justify-center rounded-control border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <ChevronRight className="size-4" />
         </Link>
@@ -79,7 +79,7 @@ function Pill({
     <Link
       href={href}
       className={cn(
-        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+        "rounded-pill border px-3 py-1 text-xs font-medium transition-colors",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",

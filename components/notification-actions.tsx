@@ -84,7 +84,7 @@ export function NotificationActions({
   return (
     <div className="flex flex-col gap-3">
       {messages.map((m) => (
-        <div key={m.kind} className="flex flex-col gap-2 rounded-lg border border-border p-3">
+        <div key={m.kind} className="flex flex-col gap-2 rounded-control border border-border p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-sm font-medium text-foreground">
               {tKind(m.kind)}
@@ -134,7 +134,7 @@ export function NotificationActions({
           </div>
           <details className="text-xs text-muted-foreground">
             <summary className="cursor-pointer">{t("preview")}</summary>
-            <pre className="mt-2 whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-sans text-xs text-foreground">
+            <pre className="mt-2 whitespace-pre-wrap rounded-control bg-muted/40 p-3 font-sans text-xs text-foreground">
               {m.body}
             </pre>
           </details>

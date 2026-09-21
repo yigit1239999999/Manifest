@@ -10,6 +10,7 @@ import {
 } from "@/modules/pets/queries";
 import { listClients } from "@/modules/clients/queries";
 import { PageHeader } from "@/components/page-header";
+import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { PetForm } from "@/components/forms/pet-form";
 
@@ -36,7 +37,7 @@ export default async function EditPetPage({
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <BackLink href={`/pets/${pet.id}`} label={tCommon("back")} />
       <PageHeader title={t("edit")} description={pet.name} />
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <Card className="p-6">
         <PetForm
           pet={pet}
           owners={owners.map((o) => ({
@@ -49,7 +50,7 @@ export default async function EditPetPage({
           enabledSpecies={enabledSpecies}
           manageHref={can(session.user.role, "settings.manage") ? "/settings" : undefined}
         />
-      </div>
+      </Card>
     </div>
   );
 }

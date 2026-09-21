@@ -10,6 +10,7 @@ import {
   listCustomSpecies,
 } from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
+import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PetForm } from "@/components/forms/pet-form";
@@ -49,7 +50,7 @@ export default async function NewPetPage({
           }
         />
       ) : (
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <Card className="p-6">
           <PetForm
             owners={owners.map((o) => ({
               id: o.id,
@@ -62,7 +63,7 @@ export default async function NewPetPage({
             enabledSpecies={enabledSpecies}
             manageHref={can(session.user.role, "settings.manage") ? "/settings" : undefined}
           />
-        </div>
+        </Card>
       )}
     </div>
   );

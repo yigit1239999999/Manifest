@@ -78,7 +78,7 @@ function FilterPill({
     <Link
       href={href}
       className={cn(
-        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+        "rounded-pill border px-3 py-1 text-xs font-medium transition-colors",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",

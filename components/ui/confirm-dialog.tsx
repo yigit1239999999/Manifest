@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { surface } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 // Built on the native <dialog> so the platform provides the modal behaviour
@@ -11,8 +13,12 @@ import { Button, buttonVariants } from "@/components/ui/button";
 // A plain string, not a `cva`: there is one panel and there are no
 // variants of it. Wrapping a constant in a variant builder reads as though
 // a second look is coming.
-const panelClassName =
-  "w-full max-w-sm rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-lg backdrop:bg-black/40";
+const panelClassName = cn(
+  surface,
+  // The shadow is the dialog's own: it floats above the page, which a card
+  // does not.
+  "w-full max-w-sm p-5 text-card-foreground shadow-lg backdrop:bg-black/40",
+);
 
 interface ConfirmDialogProps {
   /** The question, written as a full sentence. */

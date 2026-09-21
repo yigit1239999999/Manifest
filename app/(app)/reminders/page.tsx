@@ -1,4 +1,6 @@
 import { ClipboardList } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
@@ -65,7 +67,7 @@ export default async function RemindersPage() {
           {reminders.map((r) => (
             <li
               key={r.id}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4"
+              className={cn(surface, "flex items-center justify-between gap-3 p-4")}
             >
               <div className="flex flex-col">
                 <div className="flex items-baseline gap-2">

@@ -41,7 +41,7 @@ export function ThemeToggle({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5",
+        "inline-flex items-center gap-0.5 rounded-control border border-border bg-card p-0.5",
         className,
       )}
       role="group"
@@ -58,7 +58,7 @@ export function ThemeToggle({
             aria-pressed={active}
             onClick={() => setTheme(option)}
             className={cn(
-              "rounded-md p-1.5 transition-colors",
+              "rounded-control p-1.5 transition-colors",
               active
                 ? "bg-accent text-accent-foreground"
                 : "text-muted-foreground hover:text-foreground",

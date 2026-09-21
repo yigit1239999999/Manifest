@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
+import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
@@ -19,9 +20,9 @@ export default async function NewStaffPage() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <BackLink href="/staff" label={tCommon("back")} />
       <PageHeader title={t("new")} description={t("subtitle")} />
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <Card className="p-6">
         <StaffForm />
-      </div>
+      </Card>
     </div>
   );
 }

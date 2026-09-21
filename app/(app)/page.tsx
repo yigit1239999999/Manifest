@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/card";
 import {
   CalendarClock,
   ClipboardList,
@@ -136,7 +138,7 @@ export default async function DashboardPage() {
           <Link
             key={key}
             href={href}
-            className="rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/30"
+            className={cn(surface, "p-4 transition-colors hover:border-primary/30")}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -207,7 +209,7 @@ export default async function DashboardPage() {
                   <li key={a.id}>
                     <Link
                       href={`/appointments/${a.id}`}
-                      className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-muted"
+                      className="flex items-center justify-between gap-3 rounded-control px-2 py-2 hover:bg-muted"
                     >
                       <span className="flex flex-col">
                         <span className="text-sm font-medium">
@@ -238,7 +240,7 @@ export default async function DashboardPage() {
                   <li key={v.id}>
                     <Link
                       href={`/visits/${v.id}`}
-                      className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-muted"
+                      className="flex items-center justify-between gap-3 rounded-control px-2 py-2 hover:bg-muted"
                     >
                       <span className="flex flex-col">
                         <span className="text-sm font-medium">
@@ -289,7 +291,7 @@ export default async function DashboardPage() {
                 {insights.upcomingVaccinations.map((v) => (
                   <li
                     key={v.id}
-                    className="flex items-center justify-between rounded-xl px-2 py-2"
+                    className="flex items-center justify-between rounded-control px-2 py-2"
                   >
                     <span className="text-sm font-medium">
                       {v.pet?.name ?? "?"} · {v.name}

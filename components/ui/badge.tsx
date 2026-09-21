@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 // second variant, it was a second name for the first one. Two names for one
 // look is how a type badge ends up impersonating a status badge (TEAM.md #30).
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+  "inline-flex items-center gap-1 rounded-pill px-2.5 py-0.5 text-xs font-medium",
   {
     variants: {
       variant: {

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { surface } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 // The same table markup was copy-pasted into seven list routes, down to the
@@ -88,7 +89,7 @@ export function DataTable<Row>({
   caption?: string;
 }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+    <div className={cn("overflow-x-auto", surface)}>
       <table className="w-full text-sm">
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead className="bg-muted/50 text-start text-xs uppercase tracking-wide text-muted-foreground">

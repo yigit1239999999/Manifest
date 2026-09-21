@@ -23,6 +23,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import {
+  appointmentMessagingClosed,
   isAppointmentClosed,
   previewAppointmentMessages,
 } from "@/modules/notifications/service";
@@ -60,7 +61,7 @@ export default async function AppointmentPage({
 
   // The service decides what "closed" means; the screen only reflects it,
   // so the card cannot offer a send the server would refuse.
-  const closed = preview?.closed ?? isAppointmentClosed(appointment.status);
+  const closed = preview?.closed ?? appointmentMessagingClosed(appointment);
   // A dead or archived animal is never written about, so the card offers
   // nothing rather than a button the server would refuse.
   const petSilenced = preview?.petSilenced ?? false;
@@ -133,7 +134,7 @@ export default async function AppointmentPage({
             ]}
           />
           {appointment.notes && (
-            <div className="mt-2 rounded-lg bg-muted/40 p-3 text-sm">
+            <div className="mt-2 rounded-control bg-muted/40 p-3 text-sm">
               {appointment.notes}
             </div>
           )}
@@ -172,7 +173,12 @@ export default async function AppointmentPage({
             <p className="text-sm text-muted-foreground">
               {appointment.status === "COMPLETED"
                 ? t("notifications.completedNotice")
-                : t("notifications.cancelledNotice")}
+                : isAppointmentClosed(appointment.status)
+                  ? t("notifications.cancelledNotice")
+                  : // Still `SCHEDULED`, but the day has gone by. Saying
+                    // "cancelled" here would be a second false statement on
+                    // top of the one we just stopped.
+                    t("notifications.pastNotice")}
             </p>
           ) : !preview?.confirmation.recipient ? (
             <p className="text-sm text-muted-foreground">{t("notifications.noPhone")}</p>

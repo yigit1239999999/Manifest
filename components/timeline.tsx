@@ -88,7 +88,7 @@ export async function Timeline({ events }: { events: TimelineEvent[] }) {
                   className="flex gap-4 py-3 animate-in fade-in"
                 >
                   <div className="relative flex flex-col items-center">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-pill bg-accent text-accent-foreground">
                       <Icon className="size-4" />
                     </span>
                     <span

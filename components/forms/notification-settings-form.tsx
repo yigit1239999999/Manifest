@@ -178,7 +178,7 @@ export function NotificationSettingsForm({
         </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-3 rounded-lg border border-border p-3">
+      <fieldset className="flex flex-col gap-3 rounded-control border border-border p-3">
         <legend className="px-1 text-sm font-medium text-foreground">{t("remindersTitle")}</legend>
         <p className="text-xs text-muted-foreground">{t("remindersHint")}</p>
         <label className="flex items-start gap-3 text-sm">

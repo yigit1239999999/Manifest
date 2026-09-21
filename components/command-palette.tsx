@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { surface } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import { Title as DialogTitle } from "@radix-ui/react-dialog";
@@ -107,7 +108,7 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:bg-muted sm:inline-flex"
+        className="hidden h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:bg-muted sm:inline-flex"
         aria-label={tCommon("search")}
       >
         <Search className="size-3.5" />
@@ -133,7 +134,7 @@ export function CommandPalette() {
           onClick={() => handleOpenChange(false)}
           className="fixed inset-0 bg-foreground/30 backdrop-blur-sm animate-in fade-in"
         />
-        <div className="relative w-full max-w-xl rounded-2xl border border-border bg-card shadow-2xl animate-in fade-in mx-4">
+        <div className={cn(surface, "relative mx-4 w-full max-w-xl shadow-lg animate-in fade-in")}>
           <div className="flex items-center gap-2 border-b border-border px-3">
             <Search className="size-4 text-muted-foreground" />
             <Command.Input
@@ -227,7 +228,7 @@ function PaletteItem({
       value={value}
       onSelect={onSelect}
       className={cn(
-        "flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 transition-colors",
+        "flex cursor-pointer items-center gap-2.5 rounded-control px-2 py-2 transition-colors",
         "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground",
       )}
     >

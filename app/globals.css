@@ -22,6 +22,29 @@
   --color-destructive-foreground: var(--destructive-fg);
   --color-warning: var(--warning);
 
+  /* Corner radius by the role of the thing, not by an arbitrary scale.
+     Five raw values were in use for four roles (`rounded-control` 47,
+     `rounded-surface` 29, `rounded-control` 10, `rounded-pill` 9, `rounded-control` 8),
+     each picked by looking at whatever was nearby — so the system already
+     existed, it just was not written down. These are that system read back
+     from its own majority, which is why almost nothing moves.
+
+     surface  a thing standing on the page: card, table, dialog, toast,
+              empty state, the panel of a command palette
+     tile     a coloured square carrying an icon or an initial
+     control  anything inside a surface: button, input, callout, list row,
+              combobox option, code block. Named for the common case; the
+              rule is containment, not interactivity
+     pill     badge, filter tab, avatar, progress bar
+
+     A fifth value (6px, for things nested one level deeper) was measured
+     and dropped: what separates a combobox option from the input above it
+     is that the option has no border, not two pixels of curvature. */
+  --radius-control: 0.5rem;
+  --radius-tile: 0.75rem;
+  --radius-surface: 1rem;
+  --radius-pill: 9999px;
+
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 
   --animate-in: in 200ms ease-out both;

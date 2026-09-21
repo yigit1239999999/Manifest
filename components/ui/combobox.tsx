@@ -182,7 +182,7 @@ export function Combobox({
         onChange={(e) => handleInput(e.target.value)}
         onFocus={openList}
         onKeyDown={handleKeyDown}
-        className="h-10 w-full rounded-lg border border-input bg-card px-3 pr-9 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+        className="h-10 w-full rounded-control border border-input bg-card px-3 pr-9 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
       />
       <button
         type="button"
@@ -202,7 +202,7 @@ export function Combobox({
         <ul
           id={listId}
           role="listbox"
-          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-lg border border-border bg-card p-1 shadow-lg"
+          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-control border border-border bg-card p-1 shadow-lg"
         >
           {rows.length === 0 && (
             <li className="px-2.5 py-2 text-xs text-muted-foreground">
@@ -222,7 +222,7 @@ export function Combobox({
                 }}
                 onMouseEnter={() => setActive(i)}
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium text-primary",
+                  "flex cursor-pointer items-center gap-2 rounded-control px-2.5 py-2 text-sm font-medium text-primary",
                   active === i && "bg-accent text-accent-foreground",
                 )}
               >
@@ -241,7 +241,7 @@ export function Combobox({
                 }}
                 onMouseEnter={() => setActive(i)}
                 className={cn(
-                  "cursor-pointer rounded-md px-2.5 py-2 text-sm",
+                  "cursor-pointer rounded-control px-2.5 py-2 text-sm",
                   active === i
                     ? "bg-accent text-accent-foreground"
                     : "text-foreground",
