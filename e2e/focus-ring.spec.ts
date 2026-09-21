@@ -174,8 +174,12 @@ test.describe("Focus ring", () => {
           //   Segments sitting side by side inside a bordered group take
           //   `outline-offset: 0`. An outset mark crosses the neighbour
           //   and the group's own border, and the gap was not carrying
-          //   the contrast anyway — against the active segment's
-          //   `bg-accent` the ring measures 4.58 light, 5.69 dark.
+          //   the contrast anyway: at offset 0 the line sits just
+          //   outside the border box, which is the group's `bg-card`
+          //   and not the selected segment's fill, and ux measured it
+          //   there at 7.62 dark / 5.21 light. (My earlier 5.69 / 4.58
+          //   was against `bg-accent` — the same verdict off the wrong
+          //   surface, which is the mistake this file exists to stop.)
           //
           // The rule lives here rather than only in the two call sites
           // because the third segmented group is the one that will get
@@ -185,6 +189,35 @@ test.describe("Focus ring", () => {
           // The old `ring-offset-background` cannot come back unnoticed
           // even so: `app/theme-tokens.test.ts` fails on the string.
           measured++;
+        }
+      }
+    }
+
+    // A segmented control presents as many controls as it has segments,
+    // or it is lying about how many choices there are. `LocaleSwitcher`
+    // marked the current language by disabling it, so a two-option
+    // group offered the keyboard exactly one button and the current
+    // language could not be reached at all. ux counted that by hand;
+    // counting by hand is not done twice.
+    for (const route of ["/", "/clients", "/clients/new"]) {
+      await page.goto(route);
+      const groups = page.locator("[role=group]:visible");
+      for (let g = 0; g < (await groups.count()); g++) {
+        const group = groups.nth(g);
+        const name = await group.getAttribute("aria-label");
+        const total = await group.locator("button:visible").count();
+        if (total === 0) continue;
+        // A second locator, not `.locator()` chained off the first:
+        // chaining descends into the buttons' children rather than
+        // narrowing the buttons, so it would have counted zero
+        // everywhere and reported every group as broken.
+        const reachable = await group
+          .locator("button:visible:not([disabled])")
+          .count();
+        if (reachable !== total) {
+          offenders.push(
+            `${route} group "${name}": ${reachable} of ${total} segments reachable`,
+          );
         }
       }
     }
