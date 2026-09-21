@@ -5800,3 +5800,30 @@ araya girdiği için çöpe attı, bir başkasını bayat derlemede yaptı.
 **Bekleyen iş ucuz, geçersiz ölçüm pahalı** — ve pahalı olan taraf
 bekleyen kişinin değil, ölçen kişinin hanesine yazılıyor, o yüzden
 bekleme kararını **işi elinde tutanın** vermesi gerekiyor.
+
+### Gösterim anındaki tahmin geri alınır, saklanan tahmin taşlaşır
+
+pm telefon numaralarının **normalleştirilmeden saklandığını** buldu —
+veride üç biçim yan yana. Doğru tespit, ve *"saklarken de
+normalleştirelim"* açık cevap gibi duruyordu.
+
+ux reddetti, gerekçe kodun kendisinde (`lib/phone.ts:12-18`):
+**`Clinic.country` için yazma yolu yok.** Her klinik `null` okunuyor
+ve varsayılan çağrı kodu Türkiye.
+
+> Bugün saklama anında normalleştirirsek, **tahmin edilmiş bir
+> `+90`'ı veritabanına kalıcı olarak yazarız.** Dubai'den gelen bir
+> müşterinin numarası yanlış ülkeyle taşlaşır, **ve yazdığı asıl
+> biçim de kaybolur.**
+
+Aynı tahmini **gösterim anında** yapmak geri alınabilir: ülke alanı
+geldiği gün ekran kendiliğinden düzelir, veri hiç bozulmamış olur.
+
+**Kural:** eksik bir girdiyi tahminle tamamlıyorsan, tahmini
+**okuma** tarafında yap. Yazma tarafındaki tahmin, kaynağı da
+silerek kendini doğrulanamaz hâle getirir. Sıra: **önce eksik
+girdinin yolu, sonra saklamada normalleştirme.**
+
+Ve bir ek tespit, ölçüyü değiştiriyor: *"96 boşluklu / 38 `+90` / 4
+düz"* dağılımı **bir veri kusuru değil, insanların yazdığı biçim.**
+Kusur, onu **olduğu gibi göstermemiz.**
