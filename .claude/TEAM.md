@@ -5595,3 +5595,44 @@ Bu, bugün iki kez ödediğimiz bedelin üçüncüsüydü ve bu sefer
 veteriner — ve cevabın **ne zaman** gerektiği de ayrı bir soru:
 önizleme şablonun önünde olduğu için bu sorunun **aciliyeti yok**,
 yani sormadan beklemek de bir karar.
+
+### `never` kapısı ilk kez gerçek bir vakada tetiklendi
+
+`3a04210` teslim hâlleri için `default:` dalı yerine tükenmişlik
+kontrolü koymuştu — o gün gerekçesi vardı ama kanıtı yoktu, ve
+böyle bir korumanın kanıtı ancak birisi onu **istemeden** deneyince
+gelir.
+
+Bugün geldi: dev `duplicateSuppressed`'i ekledi, ve sayfa
+**derlenmeyi reddetti.**
+
+`default:` dalı olsaydı yeni hâl satıra **isimsiz** geçecek, ekran
+**boş bir satır** çizecekti — ve bunu **tek amacı sessiz olmamak
+olan** bir hâlde yapacaktı. Yani kaçak, en çok zarar vereceği yerde
+olacaktı.
+
+**Kural, artık bir örnekle:** tükenmişlik kontrolü, bugünün kodu
+için değil, **yarın birinin ekleyeceği hâl** için yazılır. `default:`
+her zaman "bir şey yaptım" der; asıl soru **ne** yaptığıdır, ve
+cevabı çoğu zaman "hiçbir şey, sessizce".
+
+### Davranıştan önce yazılan söz, yanlış söz olarak bekler
+
+`enabledHint`/`disabledNotice`'in *"elle gönderim her durumda
+çalışır"* vaadini, engelin kaldırılacağı işin **doğru olacağı hâle**
+getirmesini istemiştim. dev-ui yapmadı ve haklıydı:
+
+> *3'ün ne zaman ineceği dev'in ölçümüne bağlı, ve o arada metin
+> **yanlış** kalacaktı — yani davranıştan önce yazılmış bir söz.*
+
+Bunun yerine vaadi **kaldırdı**: metin artık yalnız anahtarın ne
+yaptığını söylüyor, bugün doğru, düzeltmeden sonra da doğru.
+
+**Kaybedilen şey bir güvence cümlesi** (*"yine de elle
+gönderebilirsin"*) ve o cümlenin değeri gerçek — veterinerin geçiş
+töreni tam olarak ona dayanıyor. Ama **dar ama doğru bir cümle**,
+sonradan yeniden hak edilmesi gereken güven verici bir cümleden iyi.
+
+**Ve kaybedilen cümle bir kaleme yazılır, yoksa kaybolur:** güvence
+metni, engeli kaldıran işin **kapsamının parçası** — ondan sonra
+yazılacak bir iyileştirme değil.
