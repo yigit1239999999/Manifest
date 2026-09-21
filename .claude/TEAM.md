@@ -2524,3 +2524,30 @@ Bu, ölçüm listesinin 1. ve 2. maddelerini (*hangi commit, hangi zemin*)
 ve **iki kişiyi yanılttı**, sonunda silindi. Farkı yapan şey: iyi bir yer
 **bugünkü doğruyu** taşır (`SERVED_COMMIT.txt` şu an ne sunulduğunu),
 kötü bir yer **dünkü doğruyu** taşır ve bugünkü sanılır.
+
+### Ajan adının DEĞİŞTİRİLMESİ, aslının hayatta olduğunun kanıtıdır
+
+Bu oturumda **üç kez** kopya ajan yaratıldı, ve üçüncüsü iki `value`'nun
+**farklı kararlar** üretmesiyle sonuçlandı. value'nun tespiti doğru ve
+rahatlatıcı olanı reddediyor:
+
+> *"Bu kez iki value'nun kararları çelişmedi, birbirini tamamladı —
+> **ve bu şans, yapı değil.**"*
+
+**Kural değil, YER:** ajan başlatıldığında sonuç **istenen adı değil,
+verilen adı** döndürür. `value` isteyip `value-3` almak, sistemin
+*"bu ad zaten dolu, aslı yaşıyor"* demesidir.
+
+> **Spawn sonucundaki ad istenenden farklıysa, DURDUR: kopya yarattın.**
+> Eskisini durdur ya da yenisini durdur, ama ikisini birden çalıştırma.
+
+Bu, *"başlatmadan önce `ListAgents` çalıştır"* kuralından iyidir, çünkü o
+kural **hatırlamaya** dayanıyor — ve bu oturumda üç kez hatırlanmadı.
+Adın dönmesi ise **işlemin kendi çıktısı**: atlanamaz, çünkü atlanırsa
+ajan da yok. ux'in *"zemin kontrolü ölçümün içinde bir satır olmalı"*
+kuralının aynısı, başka bir işlemde.
+
+**Ve kopyanın bedeli iki yerde ödendi, ikisi de bu turda:** iki value
+çelişen sürüm kararları verdi, ve durdurulan bir kopya dev-ui **ESLint'i
+düşen bir dosyayı ağaçta bıraktı** (araçları tur ortasında kapandı).
+İkincisi hatırlatıyor: **bir kopyayı durdurmak da bedelsiz değil.**

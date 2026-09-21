@@ -36,6 +36,21 @@ buraya yazılır. Ad üzerine tur harcanmadı.
 eşiği kıl payı geçiyor). Kapı değil, tutarlılık borcu. **Ama adın
 *"her ekranda"* çağrışımı o altısını kapsıyormuş gibi okunmamalı.**
 
+**ADIN KAPSAMI — etikete girmesi gereken iki satır, value'nun isteği.**
+Etiket main'e gitti, v0.3.0 kuralı gereği yeniden yazılmıyor; düzeltme
+burada:
+
+1. **Ölçüm masaüstü genişlikte yapıldı. 390 px'te HİÇBİR odak işareti
+   ölçülmedi** — ve ürünün gerçekten kullanıldığı genişlik orası.
+2. Üst çubuğun altı denetimi sistemin desenini paylaşmıyor (3,11, eşiği
+   geçiyor, tutarlılık borcu).
+
+**Adın kendisi onaylandı, geriye dönük ve artık sayıya dayanıyor:** etikette
+*"value'nun son ad onaylaması alınamadı"* diye açık bir madde duruyordu; ux
+onu kapattı — `<summary>` **2,89 → koyu 9,25 / açık 7,62**, zemin
+`097cc67`, yerleşmeli yöntemle, görünürlük ve `:focus-visible` ayrıca
+doğrulanmış. value: *"savunulabilir."*
+
 ### Ve bir sayıyı iki kez yanlış taşıdım — `notificationsOptIn` = 10
 
 `_whatsapp_opt_in_backup`'ı silerken **11** okudum ve bu sayıyı **dev'e ve
