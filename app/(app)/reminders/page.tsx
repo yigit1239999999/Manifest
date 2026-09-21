@@ -178,6 +178,12 @@ export default async function RemindersPage({
       case "noPhone":
       case "petSilenced":
         return { state: delivery.state };
+      case "duplicateSuppressed":
+        return {
+          state: "duplicateSuppressed",
+          at: delivery.at,
+          channel: tChannel(delivery.channel),
+        };
       case "failed":
         return delivery.scope === "CLINIC"
           ? { state: "failedClinic", at: delivery.at }

@@ -113,6 +113,15 @@ export const REMINDER_DELIVERY_STATES = [
   "notConfigured",
   /** The reminder names an animal that has died or been archived. */
   "petSilenced",
+  /**
+   * No message of its own, because an identical one had already gone.
+   *
+   * Two reminders for one animal on one day compose the same SMS -- the
+   * text is built from owner, animal, type and day, and never reads the
+   * title. So the owner was told; this reminder simply did not produce a
+   * second copy of the telling. Not a failure, and not silence either.
+   */
+  "duplicateSuppressed",
 ] as const;
 
 export type ReminderDeliveryStateName =
@@ -166,7 +175,8 @@ export type ReminderDeliveryLineProps =
   | { state: "neverAsked" }
   | { state: "noPhone" }
   | { state: "notConfigured"; channel: string }
-  | { state: "petSilenced" };
+  | { state: "petSilenced" }
+  | { state: "duplicateSuppressed"; at: Date; channel: string };
 
 /**
  * Three weights, and the middle one is the point of the screen.
@@ -215,6 +225,9 @@ export const WEIGHT: Record<ReminderDeliveryStateName, keyof typeof TONE> = {
   // is stale work that will never finish on its own, and the only way it
   // leaves the list is somebody closing it.
   petSilenced: "attention",
+  // Nothing to do: the owner has the message, just not twice. Saying so
+  // is worth a line; asking for attention is not.
+  duplicateSuppressed: "quiet",
 };
 
 const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
@@ -235,6 +248,9 @@ const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
   noPhone: BellOff,
   notConfigured: BellOff,
   petSilenced: BellOff,
+  // No message went for this reminder, which is what the mark says; the
+  // sentence carries the part the mark cannot, that one went anyway.
+  duplicateSuppressed: BellOff,
 } as const;
 
 export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
@@ -325,6 +341,11 @@ export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
         return t(props.state);
       case "notConfigured":
         return t("notConfigured", { channel: props.channel });
+      case "duplicateSuppressed":
+        return t("duplicateSuppressed", {
+          at: formatDateTime(fmt, props.at),
+          channel: props.channel,
+        });
     }
   }
 }

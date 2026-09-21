@@ -47,6 +47,11 @@ const SAMPLE: Record<ReminderDeliveryStateName, ReminderDeliveryLineProps> = {
   noPhone: { state: "noPhone" },
   notConfigured: { state: "notConfigured", channel: "SMS" },
   petSilenced: { state: "petSilenced" },
+  duplicateSuppressed: {
+    state: "duplicateSuppressed",
+    at: AT,
+    channel: "SMS",
+  },
 };
 
 const props = (state: ReminderDeliveryStateName) => SAMPLE[state];

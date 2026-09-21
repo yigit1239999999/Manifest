@@ -398,7 +398,7 @@
       "channelConnected": "Connected",
       "channelNotConnected": "Not connected",
       "segments": "{count, plural, one {1 SMS segment} other {# SMS segments}}",
-      "enabled": "Automatic notification messages enabled",
+      "enabled": "Send scheduled messages",
       "confirmOnBooking": "Send a confirmation when an appointment is created",
       "reminder": "Reminder timing",
       "reminderOff": "Do not send reminders",
@@ -420,8 +420,8 @@
       "previewReminder": "Reminder",
       "saved": "Notification settings saved.",
       "save": "Save",
-      "enabledHint": "Turns the scheduled messages — booking confirmations and reminders — on and off for the whole clinic. Sending a message by hand from an appointment page keeps working either way.",
-      "disabledNotice": "Automatic messages are off; nothing is sent on its own. You can set the timings now and switch this on later. Sending by hand from the appointment page works either way."
+      "enabledHint": "Turns booking confirmations and reminders on and off for the whole clinic. It affects scheduled sending only.",
+      "disabledNotice": "Off; nothing is sent on its own. You can set the timings now and switch this on later."
     }
   },
   "vaccination": {
@@ -562,6 +562,7 @@
       "noPhone": "Will not be sent: the client has no phone number on record.",
       "notConfigured": "Will not be sent: {channel} is not connected yet.",
       "petSilenced": "Will not be sent: the animal has died or been archived.",
+      "duplicateSuppressed": "Not sent: {at} · {channel}. The same message had already gone out.",
       "openSettings": "Notification settings",
       "askAdmin": "Ask your clinic administrator."
     },
@@ -768,7 +769,8 @@
     "messageStatus": {
       "SENT": "Sent",
       "FAILED": "Failed",
-      "MANUAL": "Sent manually"
+      "MANUAL": "Sent manually",
+      "SUPPRESSED": "Not sent"
     },
     "auditAction": {
       "CREATE": "Created",

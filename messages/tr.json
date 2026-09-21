@@ -398,7 +398,7 @@
       "channelConnected": "Bağlı",
       "channelNotConnected": "Bağlı değil",
       "segments": "{count, plural, one {1 SMS segmenti} other {# SMS segmenti}}",
-      "enabled": "Otomatik bildirim mesajları açık",
+      "enabled": "Zamanlanmış mesajları gönder",
       "confirmOnBooking": "Randevu oluşturulduğunda onay mesajı gönder",
       "reminder": "Hatırlatma zamanı",
       "reminderOff": "Hatırlatma gönderme",
@@ -420,8 +420,8 @@
       "previewReminder": "Hatırlatma mesajı",
       "saved": "Bildirim ayarları kaydedildi.",
       "save": "Kaydet",
-      "enabledHint": "Zamanlanmış mesajları (randevu onayları ve hatırlatmaları) klinik genelinde açar veya kapatır. Randevu sayfasından elle tek tıkla gönderim her durumda çalışmaya devam eder.",
-      "disabledNotice": "Otomatik mesajlar kapalı; hiçbir mesaj kendiliğinden gönderilmez. Ayarları şimdi yapıp bu anahtarı sonra açabilirsiniz. Randevu sayfasından elle gönderim her durumda çalışır."
+      "enabledHint": "Randevu onaylarını ve hatırlatmaları klinik genelinde açar veya kapatır. Yalnızca zamanlanmış gönderimi etkiler.",
+      "disabledNotice": "Kapalı; hiçbir mesaj kendiliğinden gönderilmez. Ayarları şimdi yapıp bu anahtarı sonra açabilirsiniz."
     }
   },
   "vaccination": {
@@ -562,6 +562,7 @@
       "noPhone": "Gönderilmeyecek: müşterinin kayıtlı telefon numarası yok.",
       "notConfigured": "Gönderilmeyecek: {channel} bağlantısı henüz yapılmadı.",
       "petSilenced": "Gönderilmeyecek: hayvan vefat etmiş ya da arşivlenmiş.",
+      "duplicateSuppressed": "Gönderilmedi: {at} · {channel}. Aynı mesaj zaten gönderilmişti.",
       "openSettings": "Bildirim ayarları",
       "askAdmin": "Klinik yöneticinizle görüşünüz."
     },
@@ -768,7 +769,8 @@
     "messageStatus": {
       "SENT": "Gönderildi",
       "FAILED": "Başarısız",
-      "MANUAL": "Elle gönderildi"
+      "MANUAL": "Elle gönderildi",
+      "SUPPRESSED": "Gönderilmedi"
     },
     "auditAction": {
       "CREATE": "Oluşturuldu",
