@@ -5948,3 +5948,39 @@ veteriner, süpürge özeti, ekran cümlesi, panel sayısı. Bunun yoktu.
 ayrım değil, **süs**. Ve bu kural bu ekibin kendi en güçlü
 alışkanlığına karşı yazılmıştır — iyi bir refleks, uygulanacak yer
 kalmayınca da uygulanmaya devam eder.
+
+### Ölçüm aracı, kendi ortamını da uydurabilir
+
+Kullanıcı *"ekran sağa doğru çok büyüyor, UI kaymış"* dedi. pm ölçtü
+ve **kodda kusur olmadığını** buldu — ama asıl bulgu sebebin
+**ölçüm aracının kendisi** olmasıydı:
+
+```
+pencere (outerWidth)        1710
+görüntü alanı (innerWidth)  1920   ← 210px daha geniş
+```
+
+Sayfa, kullanıcının penceresinden **210 piksel geniş** çiziliyordu.
+Sebebi pm'in `browser_resize`'ı. Ve pm kuralı **çiğnemedi** — ajan
+tanımı *"tur sonunda 1920×1080'e geri al"* diyordu ve pm her turda
+tam onu yaptı. **1920 kullanıcının penceresi değildi**; bir
+varsayılan sanılıp sabitlendi, ve hata **kurala uyulduğu sanılarak**
+her turda tekrarlandı.
+
+**Sonra ikinci katman çıktı, ve o daha önemli:** pm `screen.width`'i
+okudu ve **1200** gördü — pencere genişliğine **birebir eşit.**
+Gerçek bir ekran pencereye tam eşit olmaz. Yani araç `screen`'i de
+**taklit ediyor**, dolayısıyla ilk ölçümdeki *"ekran 1920"* da
+sahteydi.
+
+> **Aracın sana ortam hakkında söylediği her sayı, aracın kendi
+> geçersiz kılmasından geçmiş olabilir.** Ürünü ölçerken aracı
+> hesaba katıyoruz; **ortamı** ölçerken aynı şüpheyi göstermedik.
+
+**Ve zinciri sonuna kadar götür:** pm *"içerik 1616px'e geriliyor"*
+diye rapor etti, ben o sayıya dayanarak bir genişlik kapağı koydum
+ve **sevk ettim.** Sayı zorlanmış görüntü alanında alınmıştı —
+kullanıcının hiç sahip olmadığı bir genişlikte. pm sayıyı geri
+çekti, ben commit'i geri aldım. **Bir ölçüm geçersizse, ondan
+türeyen karar da geçersizdir** ve geri alınması ayrı bir iş
+değildir, aynı işin ikinci yarısıdır.
