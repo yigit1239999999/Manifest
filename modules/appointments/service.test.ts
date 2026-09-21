@@ -144,4 +144,53 @@ describe("createAppointment, asked twice for the same slot", () => {
       isolationLevel: "Serializable",
     });
   });
+
+  // The database holds the same rule as a partial unique index, for the
+  // case the read cannot see: two requests on separate connections. The
+  // index is the second belt, and these say what the loser of that race is
+  // shown — which must not be a database error. Being told
+  // "Unique constraint failed on the fields: (clinicId, petId, startsAt)"
+  // is worse than the duplicate it prevented.
+  it.each([
+    ["the unique index refused it", "P2002"],
+    ["the transaction could not be ordered", "P2034"],
+  ])("returns the winner's appointment when %s", async (_case, code) => {
+    vi.mocked(prisma.$transaction).mockRejectedValue(
+      Object.assign(new Error("write conflict"), { code }),
+    );
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue({
+      id: "a-first",
+    } as never);
+
+    const result = await createAppointment(validInput, ctx);
+
+    expect(result).toMatchObject({ id: "a-first" });
+    expect(notifyAppointmentBooked).not.toHaveBeenCalled();
+  });
+
+  it("does not swallow a failure that is not that race", async () => {
+    // Everything else still has to reach the caller. A `catch` that turns
+    // every error into "it already exists" would hide the next real one.
+    vi.mocked(prisma.$transaction).mockRejectedValue(
+      Object.assign(new Error("connection lost"), { code: "P1001" }),
+    );
+
+    await expect(createAppointment(validInput, ctx)).rejects.toThrow(
+      "connection lost",
+    );
+  });
+
+  it("re-throws the race error when nothing turns up on the second look", async () => {
+    // Losing the race means someone else's row is there. If it is not, the
+    // cause was something we have not understood and reporting success
+    // would be a lie.
+    vi.mocked(prisma.$transaction).mockRejectedValue(
+      Object.assign(new Error("write conflict"), { code: "P2002" }),
+    );
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null);
+
+    await expect(createAppointment(validInput, ctx)).rejects.toThrow(
+      "write conflict",
+    );
+  });
 });

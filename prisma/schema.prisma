@@ -298,6 +298,12 @@ model Appointment {
   @@index([clinicId, vetId, startsAt])
   @@index([clinicId, petId])
   @@index([clinicId, status, startsAt])
+  // One more index exists that is not written here: a UNIQUE index on
+  // (clinicId, petId, startsAt) WHERE status <> 'CANCELLED', added in
+  // `20260921140000_one_appointment_per_animal_per_instant`. Prisma cannot
+  // express a partial unique index, so it lives in the migration alone —
+  // noted here because a model that looks like it permits duplicates is
+  // how someone comes to rely on that.
   @@map("appointments")
 }
 

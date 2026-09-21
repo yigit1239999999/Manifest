@@ -35,12 +35,26 @@ function duplicateOf(input: AppointmentInput, petId: string, clinicId: string) {
   };
 }
 
+/**
+ * Prisma's two ways of saying "someone else got there first": the unique
+ * index refused the row (P2002), or the serializable transaction could not
+ * be ordered against a concurrent one (P2034).
+ *
+ * Matched on the code rather than the error class so that this stays
+ * readable without the generated client, and so a test can produce one.
+ */
+function lostTheRace(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  return code === "P2002" || code === "P2034";
+}
+
 export async function createAppointment(
   input: AppointmentInput,
   ctx: ActionContext,
 ) {
   requirePermission(ctx.userRole, "appointments.write");
   const pet = await resolvePet(input.petId, ctx.clinicId);
+  const clash = duplicateOf(input, pet.id, ctx.clinicId);
 
   // Booking the same animal into the same instant twice returns the first
   // one instead of making a second.
@@ -59,51 +73,64 @@ export async function createAppointment(
   //
   // Serializable, because reading then writing is exactly the pattern two
   // overlapping submits defeat: without it both can read "none" and both
-  // insert. A partial unique index would close it in the database too and
-  // is the right end state; it cannot be added until the one duplicate pair
-  // already stored is dealt with, which is a decision about data, not code.
-  const { appointment, created } = await prisma.$transaction(
-    async (tx) => {
-      const existing = await tx.appointment.findFirst({
-        where: duplicateOf(input, pet.id, ctx.clinicId),
-      });
-      if (existing) return { appointment: existing, created: false };
+  // insert.
+  const attempt = () =>
+    prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.appointment.findFirst({ where: clash });
+        if (existing) return { appointment: existing, created: false };
 
-      const made = await tx.appointment.create({
-        data: {
-          clinicId: ctx.clinicId,
-          petId: pet.id,
-          clientId: pet.ownerId,
-          vetId: input.vetId || null,
-          startsAt: input.startsAt,
-          durationMinutes: input.durationMinutes ?? 30,
-          type: input.type,
-          status: input.status,
-          reason: input.reason,
-          notes: input.notes,
-        },
-      });
-      await writeAudit(
-        {
-          clinicId: ctx.clinicId,
-          actorId: ctx.userId,
-          action: "CREATE",
-          entityType: "Appointment",
-          entityId: made.id,
-          changes: redact(input),
-        },
-        tx,
-      );
-      return { appointment: made, created: true };
-    },
-    { isolationLevel: "Serializable" },
-  );
+        const made = await tx.appointment.create({
+          data: {
+            clinicId: ctx.clinicId,
+            petId: pet.id,
+            clientId: pet.ownerId,
+            vetId: input.vetId || null,
+            startsAt: input.startsAt,
+            durationMinutes: input.durationMinutes ?? 30,
+            type: input.type,
+            status: input.status,
+            reason: input.reason,
+            notes: input.notes,
+          },
+        });
+        await writeAudit(
+          {
+            clinicId: ctx.clinicId,
+            actorId: ctx.userId,
+            action: "CREATE",
+            entityType: "Appointment",
+            entityId: made.id,
+            changes: redact(input),
+          },
+          tx,
+        );
+        return { appointment: made, created: true };
+      },
+      { isolationLevel: "Serializable" },
+    );
+
+  let result: Awaited<ReturnType<typeof attempt>>;
+  try {
+    result = await attempt();
+  } catch (error) {
+    // The database holds this rule too, as a partial unique index
+    // (`20260921140000_one_appointment_per_animal_per_instant`). Two
+    // requests on separate connections are the case the read cannot see,
+    // and the index is what stops them — but the loser must not be handed
+    // a database error. They asked for an appointment and one exists; the
+    // answer is the same as if they had arrived a moment later.
+    if (!lostTheRace(error)) throw error;
+    const existing = await prisma.appointment.findFirst({ where: clash });
+    if (!existing) throw error;
+    result = { appointment: existing, created: false };
+  }
 
   // Only for a booking that actually happened. The confirmation is the
   // reason this matters more than a duplicate row: the owner would get the
   // same message twice, from an app whose whole promise is not to do that.
-  if (created) await notifyAppointmentBooked(appointment.id, ctx);
-  return appointment;
+  if (result.created) await notifyAppointmentBooked(result.appointment.id, ctx);
+  return result.appointment;
 }
 
 export async function updateAppointment(
