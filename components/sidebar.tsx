@@ -17,8 +17,23 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Permission } from "@/lib/permissions";
 
-const NAV: { href: string; key: string; icon: typeof Home }[] = [
+// Permission belongs to the entry, not to the component's signature.
+//
+// It used to arrive two ways at once: `/audit` was in this list
+// unconditionally while `/staff` and `/settings` came in as two booleans
+// from the layout. So the sidebar showed every role a link to the clinic's
+// entire change history, and adding the check as a third boolean would have
+// worked while guaranteeing a fourth one for the next permission.
+//
+// An entry with no `permission` is for everyone.
+const NAV: {
+  href: string;
+  key: string;
+  icon: typeof Home;
+  permission?: Permission;
+}[] = [
   { href: "/", key: "dashboard", icon: Home },
   { href: "/clients", key: "clients", icon: Users },
   { href: "/pets", key: "pets", icon: PawPrint },
@@ -27,27 +42,40 @@ const NAV: { href: string; key: string; icon: typeof Home }[] = [
   { href: "/prescriptions", key: "prescriptions", icon: Pill },
   { href: "/reminders", key: "reminders", icon: ClipboardList },
   { href: "/invoices", key: "invoices", icon: Receipt },
-  { href: "/audit", key: "audit", icon: History },
+  { href: "/audit", key: "audit", icon: History, permission: "audit.read" },
+  { href: "/staff", key: "staff", icon: UserCog, permission: "users.manage" },
+  {
+    href: "/settings",
+    key: "settings",
+    icon: Settings,
+    permission: "settings.manage",
+  },
 ];
 
 export function Sidebar({
-  canManageStaff = false,
-  canManageSettings = false,
+  permissions,
 }: {
-  canManageStaff?: boolean;
-  canManageSettings?: boolean;
+  /**
+   * What this role may do, resolved once in the layout.
+   *
+   * An array rather than a `Set`: this is a client component, so the prop
+   * crosses the server boundary, and three strings in the payload read as
+   * what they are. A `Set` would serialise too and save nothing at this
+   * size.
+   *
+   * Hiding a link is not access control — every page behind one of these
+   * checks its own permission and answers with the forbidden state. This
+   * only stops the sidebar from offering a door the user cannot open.
+   */
+  permissions: readonly Permission[];
 }) {
   const t = useTranslations("nav");
   const tApp = useTranslations("app");
   const pathname = usePathname();
 
-  const items = [
-    ...NAV,
-    ...(canManageStaff ? [{ href: "/staff", key: "staff", icon: UserCog }] : []),
-    ...(canManageSettings
-      ? [{ href: "/settings", key: "settings", icon: Settings }]
-      : []),
-  ];
+  const items = NAV.filter(
+    (item) => !item.permission || permissions.includes(item.permission),
+  );
 
   const isActive = (href: string) =>
     href === "/"
