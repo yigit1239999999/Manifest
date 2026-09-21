@@ -433,6 +433,27 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    kendi içinden gelen kanıtı: uyarı vardı, okundu, ve yine kaçtı —
    çare uyarıyı güçlendirmek değil, **indeksi paylaşmayı bırakmak.**
 
+10. **Kimlik alanı yerinde düzeltilmez. Hekim bunu kendisi reddetti.**
+   Bir seçicide yanlış kaydı seçmişken adı *"düzeltmek"*, gerçek bir
+   insanın kaydını **sessizce başkasının adıyla** değiştirmektir.
+   *Vaka ve gerekçe hekimin kendi cümlesi:* *"Telefon eklemek zararsız;
+   yanlış kişideysem 'bu numara sizin mi' diye sorunca anlarım. Ama **ad
+   kimliktir** — yanlış Ayşe'yi seçip adını düzeltirsem gerçek bir insanın
+   kaydını başkasının adıyla değiştirmiş olurum ve **hiç fark etmem.**"*
+
+   > **"Kopya en azından iki dosya bırakır; yanlış yeniden adlandırma tek
+   > dosya bırakır, ve o dosya yalan söyler."**
+
+   **Ve istediği şey düzeltmek değil, FARK ETMEK:** *"Adın yanlış olduğunu
+   fark ettiğim an istediğim şey düzeltmek değil; yanına 'sahibin sayfası'
+   bağlantısı yetsin, ben hasta çıktıktan sonra düzeltirim."* Yani doğru
+   tasarım, hatayı **kolay düzeltilir** değil **görünür** yapmak — ve
+   düzeltmeyi, dikkatin tam olduğu bir ana bırakmak.
+
+   Ayrımı da o koydu: **telefon eklenebilir** (yanlışsa aynı anda
+   sorulabilir, yani kendi kendini doğruluyor), **ad değiştirilemez**
+   (yanlışsa hiçbir yerden anlaşılmıyor).
+
 **Ve bir ölçüm kuralı, aynı gün beş kez lazım oldu:**
 
 > **İki sabiti çarpmak ölçüm değildir.** Ölçülmemiş bir sayı, ölçülmüş gibi
