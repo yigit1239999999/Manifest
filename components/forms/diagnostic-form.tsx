@@ -104,6 +104,23 @@ export function DiagnosticForm({
           />
         </Field>
       </div>
+      {/* Unticked by default, which is what three quarters of tests
+          are. The two mistakes are not symmetrical: wrongly ticked
+          fills the unread list with in-house results until nobody
+          reads it, wrongly left loses one row. And the label says
+          where it came from rather than asking whether somebody ought
+          to read it -- that judgement is not the typist's to make. */}
+      <label className="flex items-start gap-3 text-sm sm:col-span-2">
+        <input
+          type="checkbox"
+          name="externalLab"
+          className="mt-0.5 size-4 rounded border-border"
+        />
+        <span className="flex flex-col gap-1">
+          <span className="font-medium">{t("externalLab")}</span>
+          <span className="text-xs text-muted-foreground">{t("externalLabHint")}</span>
+        </span>
+      </label>
       <SubmitButton size="sm" className="w-fit sm:col-span-2">
         {t("create")}
       </SubmitButton>

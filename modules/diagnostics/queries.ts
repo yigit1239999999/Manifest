@@ -53,6 +53,12 @@ export async function unreadDiagnostics(
 
   const where = {
     clinicId,
+    // Only what came from outside. A result run in the room closes in
+    // the conversation that follows it, and asking for a button there
+    // fills the list with finished work until nobody reads it. The
+    // ones that go missing are the ones that arrived while the vet
+    // was elsewhere.
+    externalLab: true,
     readAt: null,
     createdAt: { lt: startOfToday },
     // A row with nothing in it yet is not an unread result: there is

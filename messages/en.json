@@ -501,7 +501,9 @@
     "resultPending": "Result pending",
     "interpretation": "Interpretation",
     "interpretationPlaceholder": "Clinical interpretation, differential diagnosis, recommended follow-up…",
-    "notes": "Notes"
+    "notes": "Notes",
+    "externalLab": "Came from an outside laboratory",
+    "externalLabHint": "If ticked, it waits on the dashboard until you mark it read. In-house results never enter the list."
   },
   "note": {
     "title": "Notes",

@@ -397,6 +397,11 @@ export const STATES = [
     covers:
       "one the vet has seen, carrying who and when: it leaves the count, and the record says whose desk it reached rather than merely that it arrived",
   },
+  {
+    id: "diagnostic.inHouse",
+    covers:
+      "an unread result run in the clinic's own room: identical to the counted one in every way except where it came from, so whether the narrowing actually holds can be seen rather than argued",
+  },
 ];
 
 /**
@@ -894,7 +899,12 @@ export async function buildStateClinic(db) {
   //
   // With a result in it, because a test with nothing recorded is not
   // an unread result -- there is nothing to read.
-  for (const [key, type, name, result, createdAt, readAt, stateId] of [
+  // The third row is the control. It is unread, it has a result, it
+  // was entered before today -- everything the counted one is, except
+  // that it was run in the clinic's own room. Without it, "in-house
+  // results stay out of the list" is a claim nobody can check; with
+  // it, the count being 1 rather than 2 is the proof.
+  for (const [key, type, name, result, createdAt, readAt, external, stateId] of [
     [
       "unread",
       "CYTOLOGY",
@@ -902,6 +912,7 @@ export async function buildStateClinic(db) {
       "Mast hücreli tümör, Grade II. Cerrahi sınırlar yetersiz.",
       ago(2),
       null,
+      true,
       "diagnostic.unread",
     ],
     [
@@ -911,14 +922,25 @@ export async function buildStateClinic(db) {
       "Tüm değerler referans aralığında.",
       ago(3),
       ago(2),
+      true,
       "diagnostic.read",
+    ],
+    [
+      "inhouse",
+      "URINE",
+      "İdrar tahlili",
+      "Dansite 1.030, sediment temiz.",
+      ago(2),
+      null,
+      false,
+      "diagnostic.inHouse",
     ],
   ]) {
     await db.query(
       `INSERT INTO diagnostics (id, "clinicId", "petId", "visitId", type, name,
                                 "performedAt", result, "createdAt", "readAt", "readById",
-                                "updatedAt")
-       VALUES ($5, $1, $2, $3, $11::"DiagnosticType", $6, $4, $7, $8, $9, $10, now())`,
+                                "externalLab", "updatedAt")
+       VALUES ($5, $1, $2, $3, $11::"DiagnosticType", $6, $4, $7, $8, $9, $10, $12, now())`,
       [
         clinic.id,
         active.id,
@@ -933,6 +955,7 @@ export async function buildStateClinic(db) {
         // the marker exists to say it reached a person who can act.
         readAt ? vet.id : null,
         type,
+        external,
       ],
     );
     made(stateId);

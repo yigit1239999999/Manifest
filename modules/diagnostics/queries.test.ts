@@ -61,6 +61,16 @@ describe("unreadDiagnostics", () => {
     expect(whereOf().readAt).toBeNull();
   });
 
+  // A result run in the room closes in the conversation that follows
+  // it. Asking for a button there means finishing a finished job
+  // several times a day, and within a week nobody presses it -- then
+  // the unpressed rows pile up and nobody reads the list either.
+  it("counts only what came from outside the clinic", async () => {
+    await unreadDiagnostics("clinic-1");
+
+    expect(whereOf().externalLab).toBe(true);
+  });
+
   it("leaves out animals nobody is treating any more", async () => {
     await unreadDiagnostics("clinic-1");
 

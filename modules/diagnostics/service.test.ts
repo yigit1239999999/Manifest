@@ -28,6 +28,8 @@ const validInput = {
   performedAt: new Date("2026-05-22T10:00:00.000Z"),
   result: null,
   interpretation: null,
+  // In-house by default, which is what three quarters of tests are.
+  externalLab: false,
   notes: null,
 };
 

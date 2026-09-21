@@ -553,6 +553,28 @@ model Diagnostic {
   resultData     Json?
   interpretation String?
   notes          String?
+  /// Whether this result came from outside the clinic.
+  ///
+  /// The read-marker loop applies to these only. Three quarters of a
+  /// vet's tests are run in the room: the printout is in their hand
+  /// and they turn round and tell the owner, so the result closes in
+  /// the conversation. Asking them to press a button afterwards is
+  /// asking them to finish a finished job five times a day -- they
+  /// stop pressing within the week, unpressed rows pile up, the list
+  /// turns red and they stop reading the list. Which is the failure
+  /// the list exists to prevent.
+  ///
+  /// The ones that get lost share one property: the result arrived
+  /// while the vet was not in the room. Two or three a week.
+  ///
+  /// A fact, not a judgement. Not "does this need reading" -- that
+  /// would put a decision on whoever types it in. Where it came from
+  /// is something they already know.
+  ///
+  /// Defaults to false, and the two mistakes are not symmetrical:
+  /// wrongly marked external fills the list with in-house results and
+  /// kills it, wrongly left internal loses one row and the list lives.
+  externalLab    Boolean        @default(false)
   /// When the person who decides saw this result, and who they were.
   ///
   /// "The result arrived" and "the vet read it" were the same fact,

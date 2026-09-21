@@ -31,6 +31,7 @@ export async function createDiagnostic(
       performedAt: input.performedAt,
       result: input.result,
       interpretation: input.interpretation,
+      externalLab: input.externalLab,
       notes: input.notes,
       // Writing a comment is reading. Recorded at the moment it
       // happens rather than inferred later, so the marker always says

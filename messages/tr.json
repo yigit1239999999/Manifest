@@ -501,7 +501,9 @@
     "resultPending": "Sonuç bekleniyor",
     "interpretation": "Değerlendirme",
     "interpretationPlaceholder": "Klinik yorum, ön tanı, önerilen ileri tetkik…",
-    "notes": "Notlar"
+    "notes": "Notlar",
+    "externalLab": "Dış laboratuvardan geldi",
+    "externalLabHint": "İşaretlenirse, siz okudum diyene kadar panelde bekler. Klinik içi sonuçlar listeye girmez."
   },
   "note": {
     "title": "Notlar",
