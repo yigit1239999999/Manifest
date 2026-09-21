@@ -77,7 +77,7 @@ export default async function EditPetPage({
           hiddenBuiltIns={hiddenBuiltIns}
           hiddenQualifier={t("hiddenSpeciesQualifier")}
           enableHref={canManageSpecies ? "/settings" : undefined}
-          enableLabel={canManageSpecies ? t("manageSpecies") : undefined}
+          enableLabel={canManageSpecies ? t("openSpeciesSettings") : undefined}
           manageHref={canManageSpecies ? "/settings" : undefined}
         />
       </Card>

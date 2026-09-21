@@ -241,6 +241,27 @@ describe("typing the name of a species the clinic turned off", () => {
     expect(screen.queryByRole("link", { name: /Ayarlarda aç/ })).toBeNull();
   });
 
+  it("does not say the same words twice in the same picker", () => {
+    // Both links go to /settings: the standing one under the chips,
+    // and the one at the end of the note. They were handed the same
+    // label, so a reader who may manage settings saw "Manage species"
+    // twice, one under the other, with no way to tell what the second
+    // one was for. The inline one says what it does to *this* species;
+    // the standing one names the section.
+    pickerWithHidden({
+      manageHref: "/settings",
+      manageLabel: "Türleri yönet",
+      enableHref: "/settings",
+      enableLabel: "Ayarlarda aç",
+    });
+    type("Kedi");
+    fireEvent.click(screen.getByRole("button", { name: /Kedi/ }));
+
+    const labels = screen.getAllByRole("link").map((a) => a.textContent);
+    expect(labels).toEqual(["Ayarlarda aç", "Türleri yönet"]);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
   it("opens the setting in a new tab for the reader who may", () => {
     // The animal is on the table and the form is unsaved. A link that
     // navigates away costs more than the setting is worth.
