@@ -55,6 +55,7 @@
     "emptyFilteredHint": "Filtreyi kaldırırsanız tüm kayıtlar listelenir.",
     "clearFilter": "Filtreyi temizle",
     "details": "Detaylar",
+    "actionFor": "{action}: {subject}",
     "emailPlaceholder": "ornek@eposta.com",
     "language": "Dil",
     "createdAt": "Oluşturuldu",
@@ -496,16 +497,13 @@
     "acknowledge": "Tamam",
     "dismiss": "Kapat",
     "reopen": "Geri aç",
-    "reopenFor": "{title}: geri aç",
     "emptyHint": "Oluşturduğunuz hatırlatmalar (aşı zamanı, kontrol, takip) siz kapatana kadar burada listelenir.",
     "statusFilter": "Durum",
     "filterOpen": "Açık",
     "filterClosed": "Kapatılanlar",
     "filterAll": "Tümü",
     "emptyClosed": "Kapatılmış hatırlatma yok.",
-    "emptyClosedHint": "Tamamladığınız ya da gerek kalmadığı için kapattığınız hatırlatmalar burada birikir.",
-    "acknowledgeFor": "{title}: tamamlandı olarak işaretle",
-    "dismissFor": "{title}: gerek kalmadı"
+    "emptyClosedHint": "Tamamladığınız ya da gerek kalmadığı için kapattığınız hatırlatmalar burada birikir."
   },
   "invoice": {
     "title": "Faturalar",

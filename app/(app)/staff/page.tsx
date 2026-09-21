@@ -118,6 +118,10 @@ export default async function StaffPage() {
                       )}
                       active={member.active}
                       label={member.active ? t("deactivate") : t("activate")}
+                      name={tCommon("actionFor", {
+                        action: member.active ? t("deactivate") : t("activate"),
+                        subject: member.name,
+                      })}
                       confirmText={
                         member.active ? t("deactivateConfirm") : undefined
                       }

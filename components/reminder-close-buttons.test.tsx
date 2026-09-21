@@ -22,9 +22,9 @@ function rowFor(title: string) {
       acknowledgeLabel="Tamam"
       dismissLabel="Kapat"
       reopenLabel="Geri aç"
-      acknowledgeName={`${title}: tamamlandı olarak işaretle`}
-      dismissName={`${title}: gerek kalmadı`}
-      reopenName={`${title}: geri aç`}
+      acknowledgeName={`Tamam: ${title}`}
+      dismissName={`Kapat: ${title}`}
+      reopenName={`Geri aç: ${title}`}
     />,
   );
 }
@@ -34,16 +34,14 @@ describe("closing a reminder", () => {
     rowFor("Pamuk — kuduz aşısı");
 
     expect(
-      screen.getByRole("button", {
-        name: "Pamuk — kuduz aşısı: tamamlandı olarak işaretle",
-      }),
+      screen.getByRole("button", { name: "Tamam: Pamuk — kuduz aşısı" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Pamuk — kuduz aşısı: gerek kalmadı" }),
+      screen.getByRole("button", { name: "Kapat: Pamuk — kuduz aşısı" }),
     ).toBeInTheDocument();
   });
 
-  it("keeps the visible label short, which is why the name is separate", () => {
+  it("keeps the visible label short, and keeps it inside the name", () => {
     const { container } = rowFor("Pamuk — kuduz aşısı");
     const buttons = [...container.querySelectorAll("button")];
 
@@ -51,10 +49,15 @@ describe("closing a reminder", () => {
       "Tamam",
       "Kapat",
     ]);
-    // If these two ever became the same string, the rule would have been
-    // satisfied by shortening the name rather than by naming the row.
     for (const button of buttons) {
-      expect(button.getAttribute("aria-label")).not.toBe(button.textContent);
+      const name = button.getAttribute("aria-label")!;
+      // Longer than the label, so the row is identified...
+      expect(name).not.toBe(button.textContent);
+      // ...and containing it, so someone driving by voice can still say
+      // the word they can see. pm found "Kapat" missing from "gerek
+      // kalmadı" — and found it by `getByRole` returning nothing, which
+      // is the same trap waiting in any e2e test written against it.
+      expect(name).toContain(button.textContent!.trim());
     }
   });
 

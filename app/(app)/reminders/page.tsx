@@ -232,10 +232,22 @@ export default async function RemindersPage({
                       reopenLabel={t("reopen")}
                       // Ten rows carry ten buttons reading "Done". Named
                       // by the reminder they belong to, they stop being
-                      // ten identical announcements (TEAM.md #26).
-                      acknowledgeName={t("acknowledgeFor", { title: r.title })}
-                      dismissName={t("dismissFor", { title: r.title })}
-                      reopenName={t("reopenFor", { title: r.title })}
+                      // ten identical announcements (TEAM.md #26). The
+                      // name is built from the visible label, not written
+                      // beside it, so the two cannot drift: "Dismiss" has
+                      // to be sayable out loud to reach that button.
+                      acknowledgeName={tCommon("actionFor", {
+                        action: t("acknowledge"),
+                        subject: r.title,
+                      })}
+                      dismissName={tCommon("actionFor", {
+                        action: t("dismiss"),
+                        subject: r.title,
+                      })}
+                      reopenName={tCommon("actionFor", {
+                        action: t("reopen"),
+                        subject: r.title,
+                      })}
                     />
                   ) : (
                     // A row closed by mistake has to have a way back, or
@@ -247,9 +259,18 @@ export default async function RemindersPage({
                       acknowledgeLabel={t("acknowledge")}
                       dismissLabel={t("dismiss")}
                       reopenLabel={t("reopen")}
-                      acknowledgeName={t("acknowledgeFor", { title: r.title })}
-                      dismissName={t("dismissFor", { title: r.title })}
-                      reopenName={t("reopenFor", { title: r.title })}
+                      acknowledgeName={tCommon("actionFor", {
+                        action: t("acknowledge"),
+                        subject: r.title,
+                      })}
+                      dismissName={tCommon("actionFor", {
+                        action: t("dismiss"),
+                        subject: r.title,
+                      })}
+                      reopenName={tCommon("actionFor", {
+                        action: t("reopen"),
+                        subject: r.title,
+                      })}
                     />
                   )}
                 </div>

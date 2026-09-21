@@ -12,11 +12,25 @@ export function StaffStatusButton({
   action,
   active,
   label,
+  name,
   confirmText,
 }: {
   action: (formData: FormData) => Promise<FormState | void>;
   active: boolean;
   label: string;
+  /**
+   * What the button is called to a screen reader, which has to say whose
+   * account it turns off.
+   *
+   * Five rows carried five buttons all named "Deactivate" — the row was
+   * identified only by where it happened to be on the screen, which is
+   * the one thing a screen reader user does not have. Hiding the word
+   * below `sm` made it worse: the name became the only channel.
+   *
+   * Built from the visible label at the call site, not written beside it,
+   * so "Deactivate" stays sayable out loud (TEAM.md #26).
+   */
+  name: string;
   /** Only deactivating asks; switching someone back on does not. */
   confirmText?: string;
 }) {
@@ -51,7 +65,7 @@ export function StaffStatusButton({
     <button
       type={onClick ? "button" : "submit"}
       onClick={onClick}
-      aria-label={label}
+      aria-label={name}
       className={buttonVariants({
         variant: active ? "ghost" : "secondary",
         size: "sm",

@@ -55,6 +55,7 @@
     "emptyFilteredHint": "Clear the filter to see every record.",
     "clearFilter": "Clear filter",
     "details": "Details",
+    "actionFor": "{action}: {subject}",
     "emailPlaceholder": "example@email.com",
     "language": "Language",
     "createdAt": "Created",
@@ -496,16 +497,13 @@
     "acknowledge": "Mark done",
     "dismiss": "Dismiss",
     "reopen": "Reopen",
-    "reopenFor": "{title}: reopen",
     "emptyHint": "Reminders you create (vaccination due, check-up, follow-up) are listed here until you close them.",
     "statusFilter": "Status",
     "filterOpen": "Open",
     "filterClosed": "Closed",
     "filterAll": "All",
     "emptyClosed": "No closed reminders.",
-    "emptyClosedHint": "Reminders you have completed, or closed because they were no longer needed, collect here.",
-    "acknowledgeFor": "{title}: mark as done",
-    "dismissFor": "{title}: no longer needed"
+    "emptyClosedHint": "Reminders you have completed, or closed because they were no longer needed, collect here."
   },
   "invoice": {
     "title": "Invoices",

@@ -93,11 +93,44 @@ describe("confirming an action", () => {
   it("does not ask when there is nothing to warn about", () => {
     // Switching a deactivated account back on is not a question.
     withIntl(
-      <StaffStatusButton action={noop} active={false} label="Aktifleştir" />,
+      <StaffStatusButton
+        action={noop}
+        active={false}
+        label="Aktifleştir"
+        name="Ayşe Yılmaz: Aktifleştir"
+      />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Aktifleştir" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ayşe Yılmaz: Aktifleştir" }),
+    );
 
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("says whose account the button turns off", () => {
+    // Five rows carried five buttons all named "Deactivate", so the only
+    // thing telling them apart was where they sat on the screen — which
+    // is what a screen reader user does not have. Hiding the word below
+    // `sm` for width made the name the only channel there is.
+    //
+    // And the name is built from the visible label rather than written
+    // beside it: "Deactivate" has to stay sayable out loud to reach this
+    // button, so the two cannot drift apart (TEAM.md #26).
+    withIntl(
+      <StaffStatusButton
+        action={noop}
+        active
+        label="Devre dışı bırak"
+        name="Ayşe Yılmaz: Devre dışı bırak"
+        confirmText="Emin misiniz?"
+      />,
+    );
+
+    const button = screen.getByRole("button", {
+      name: "Ayşe Yılmaz: Devre dışı bırak",
+    });
+    expect(button).toBeInTheDocument();
+    expect(button.getAttribute("aria-label")).toContain("Devre dışı bırak");
   });
 
   it("asks before switching an account off", () => {
@@ -106,10 +139,13 @@ describe("confirming an action", () => {
         action={noop}
         active
         label="Devre dışı bırak"
+        name="Ayşe Yılmaz: Devre dışı bırak"
         confirmText="Bu personel devre dışı bırakılsın mı?"
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Devre dışı bırak" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ayşe Yılmaz: Devre dışı bırak" }),
+    );
 
     expect(
       screen.getByRole("dialog", { name: "Bu personel devre dışı bırakılsın mı?" }),
