@@ -19,6 +19,42 @@ Plan `.claude/BACKLOG.md`'de, çalışma ilkeleri `.claude/TEAM.md`'de.
 > **KURAL: `audit_logs` ya da `message_logs`'tan okunan bir saat, ekranda
 > görülen saatle karşılaştırılmadan KANIT SAYILMAZ.**
 
+## v0.8.0'IN ADI DAR — ve bir sayıyı iki kez yanlış taşıdım
+
+**Ad:** *"Klavyeyle çalışan biri nerede olduğunu görüyor."* Savunulabilir
+ama **sürümün yalnızca klavye yarısını anlatıyor** — on sekiz commit'in
+altısını. **Ve sürümün en ağır kalemi adın dışında kaldı:** `ff1bb2a`,
+`createVisit`'te alan boş bırakıldığında **formu dolduran kişinin vizitin
+veterineri olarak kaydedilmesi.** Bu bir odak konusu değil, **sessizce
+yanlış klinik kayıt** (ilke 2). Ölçek ve para kalemleri de adın dışında.
+
+**Etiket yeniden yazılmadı** — v0.3.0'da konan kural: düzeltme metne değil
+buraya yazılır. Ad üzerine tur harcanmadı.
+
+**İkinci bulgu, ux'ten:** üst çubuğun **yedi düğmesinden altısı**
+`buttonVariants` kullanmıyor ve tarayıcı varsayılanına düşüyor (**3,11** —
+eşiği kıl payı geçiyor). Kapı değil, tutarlılık borcu. **Ama adın
+*"her ekranda"* çağrışımı o altısını kapsıyormuş gibi okunmamalı.**
+
+### Ve bir sayıyı iki kez yanlış taşıdım — `notificationsOptIn` = 10
+
+`_whatsapp_opt_in_backup`'ı silerken **11** okudum ve bu sayıyı **dev'e ve
+value'ya ayrı ayrı yazdım.** ux 10 ölçtü, yeniden saydım: **10.**
+
+```
+2026-09-21T12:44Z  false 138 · true 10   (arşivsiz de aynı)
+true'lar 10 ayrı klinikte, klinik başına 1
+```
+
+**Kök neden benim tarafımda ve bu oturumda üçüncü kez:** bir değeri
+okuyup **mesajda tekrarladım.** value'nun teşhisi tam buydu —
+*değeri tekrarlayan her mesaj, bayatlayabilecek ikinci bir kopya
+üretir.* pm'in `ce13705` hatası da benim mesajımdan gelmişti.
+
+> **Kesim tabanı mesajdan değil, kesim anında veritabanından okunur** —
+> value'nun şartı bunu zaten söylüyor (*"migration kesim anında taze
+> sayılır"*), ve bu vaka onun **neden** gerektiğinin kanıtı.
+
 ## ⚠ BİLDİRİLEN ODAK GERİLEMESİ YOKTU — geri alındı, iki kez
 
 Bir sürüm kararı **olmayan bir kusur** üzerine kuruldu ve geri alındı. Bu
