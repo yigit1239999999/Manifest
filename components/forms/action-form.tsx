@@ -176,8 +176,9 @@ interface ActionFormProps extends Omit<React.ComponentProps<"form">, "action"> {
    */
   wide?: boolean;
   /**
-   * Put the cursor in the first empty required field when the form
-   * opens, and on the submit button when there is none.
+   * Put the cursor on the work that is left when the form opens:
+   * the first empty required field, then the first empty field of any
+   * kind, and only if nothing at all is blank, the submit button.
    *
    * For a form that arrives already part-filled: the vet has just come
    * back from creating the animal this visit is about, and leaving the
@@ -229,17 +230,38 @@ export function ActionForm({
     if (!focusFirstEmpty) return;
     const formEl = ref.current;
     if (!formEl) return;
-    const controls = formEl.querySelectorAll<HTMLInputElement>(
-      "input[required], select[required], textarea[required]",
-    );
-    for (const control of controls) {
-      if (control.disabled || control.type === "hidden") continue;
-      if (control.value) continue;
-      control.focus();
+
+    const empty = (control: HTMLInputElement) =>
+      !control.disabled && control.type !== "hidden" && !control.value;
+    const first = (selector: string) =>
+      Array.from(formEl.querySelectorAll<HTMLInputElement>(selector)).find(
+        empty,
+      );
+
+    // A field carrying a default is NOT an answered field. `VisitForm`
+    // opens with a visit type and a date already in it, neither of them
+    // chosen by anybody, so "no required field is empty" is true of the
+    // DOM and false of the work: it stepped over `chiefComplaint` --
+    // "Zeytin came in, she is vomiting", the sentence the vet is there
+    // to write -- and landed on the save button, where a reflex Enter
+    // files a wellness check with no findings in it.
+    //
+    // So the fall-back looks past `required` at anything still blank.
+    // Selects are left out of that second pass: one always displays a
+    // chosen option, and "none" is an answer on the screen, where an
+    // empty box shows nothing at all.
+    const target =
+      first("input[required], select[required], textarea[required]") ??
+      first("input, textarea");
+
+    if (target) {
+      target.focus();
       return;
     }
-    // Nothing left to fill: the work is to submit, so that is where the
-    // cursor goes rather than nowhere.
+    // Nothing blank anywhere: the work is to submit. Kept as a sentry
+    // rather than a route -- a part-filled form is by definition one
+    // nobody has typed into yet, so reaching here means the premise
+    // above went wrong somewhere.
     formEl.querySelector<HTMLButtonElement>("button[type=submit]")?.focus();
   }, [focusFirstEmpty]);
 

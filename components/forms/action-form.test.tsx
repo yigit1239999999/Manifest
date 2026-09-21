@@ -62,10 +62,28 @@ describe("where the cursor lands on a part-filled form", () => {
     expect((document.activeElement as HTMLInputElement).name).toBe("petId");
   });
 
-  it("goes to the submit button when nothing is left to fill", () => {
+  it("goes to an optional field rather than past it to submit", () => {
+    // The visit type and the date arrive with defaults nobody chose, so
+    // a form whose required fields are all "answered" can still have the
+    // reason for the visit blank. A default is not an answer.
+    wrap(<Defaulted />);
+
+    expect((document.activeElement as HTMLInputElement).name).toBe("notes");
+  });
+
+  it("goes to the submit button only when nothing at all is blank", () => {
     wrap(<ActionFormWithAll />);
 
     expect(document.activeElement?.textContent).toBe("save");
+  });
+
+  it("does not count a select showing 'none' as blank", () => {
+    // A select always displays a chosen option, and "none" is an answer
+    // on the screen; an empty box shows nothing. So the vet select on
+    // the visit form is stepped over, not landed in.
+    wrap(<Defaulted />);
+
+    expect(document.activeElement?.tagName).toBe("INPUT");
   });
 
   it("stays out of the way when the form was opened deliberately", () => {
@@ -95,7 +113,7 @@ describe("the last step of the chain, on the real form", () => {
   // the date carry defaults, so nothing required is empty and the work
   // left is to submit. What must not happen is the cursor landing in
   // the animal picker, whose value the chain just wrote.
-  it("does not land in the animal the chain just chose", () => {
+  it("lands on the sentence the vet came to write", () => {
     wrap(
       <VisitForm
           pets={[{ id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" }]}
@@ -106,6 +124,25 @@ describe("the last step of the chain, on the real form", () => {
     );
 
     expect(document.activeElement?.getAttribute("role")).not.toBe("combobox");
-    expect(document.activeElement?.tagName).toBe("BUTTON");
+    expect((document.activeElement as HTMLTextAreaElement).name).toBe(
+      "chiefComplaint",
+    );
   });
 });
+
+/** Required fields all "answered" by defaults, with the real work blank. */
+function Defaulted() {
+  const form = useActionForm(async () => ({}), {});
+  return (
+    <ActionForm form={form} focusFirstEmpty>
+      <input name="petId" required defaultValue="Zeytin · Ayşe" />
+      <input name="visitedAt" required defaultValue="2026-09-21T09:00" />
+      <select name="vetId" defaultValue="">
+        <option value="">none</option>
+        <option value="u-1">Dr. Ayşe Demir</option>
+      </select>
+      <input name="notes" defaultValue="" />
+      <button type="submit">save</button>
+    </ActionForm>
+  );
+}
