@@ -2800,6 +2800,19 @@ fazlasına mal olurdu.
 >
 > **Biri ötekinin çaresi değil; ikisi de kör.**
 
+**value'nun kendi payı ve sınıfın adı:** *"`git add -A` yasağı, kimsenin
+kullanmadığı bir komutu yasaklıyor ve gerçek iki mekanizmayı
+**kapsamıyor** — yani **koruma görüntüsü veren, korumayan** bir kural."*
+
+> **Bugün bu şekle ÜÇÜNCÜ kez isim takıldı:** `outline-ring`'in dizgi
+> testi (sınıf yazılıydı, CSS üretmiyordu) · filtrelenen `tsc` kapısı
+> (yeşil, yeşil olmadığının bile kanıtı değil) · ve bu yasak. **Üçü de
+> bakmayı durduruyor ve hiçbiri korumuyor.**
+
+Ve value'nun kendi teşhisi: *"mekanizmayı **ölçmeden adlandırdım** — bu
+turda ux'e, pm'e ve dev'e tam bunu üç kez söyledim, dördüncüsünü kendim
+yaptım."*
+
 **Gerçek kural daha donuk ve dev-ui'nin kendi uygulamasından geliyor:**
 
 > **Commit'ten hemen önce `git diff --cached --name-only` koş ve içinde
