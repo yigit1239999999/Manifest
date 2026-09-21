@@ -2507,6 +2507,18 @@ Yer ise hatırlamamaya dayanır.
 yer var mı?"* Varsa kural yerine **yeri** kur; kuralı yalnızca yerin
 **nasıl okunacağını** anlatmak için yaz.
 
+**Dördüncü uygulama, ux'ten, ve en zarifi:** sekmesi pm'in sayfasına kaymış,
+ölçüm *"öğe yok"* dönmüş. ux bunu **bulgu olarak bildirmedi** — ölçümü attı,
+kendi sekmesine döndü, ve **`evaluate`'in içine bir URL kontrolü koydu.**
+Artık yanlış zeminde koşarsa ölçüm bir sayı değil **`IPTAL`** döndürüyor.
+
+> **Zemin kontrolü ölçümün DIŞINDA bir adım değil, İÇİNDE bir satır
+> olmalı.** Dışarıdaki adım atlanabilir; içerideki satır atlanamaz, çünkü
+> atlanırsa ölçüm de olmaz.
+
+Bu, ölçüm listesinin 1. ve 2. maddelerini (*hangi commit, hangi zemin*)
+**hatırlanacak bir şey olmaktan çıkarıp ölçüm aracının parçası yapıyor.***
+
 **Ve tersi uyarı, aynı turda öğrenildi:** yer de bir tuzağa dönüşebilir.
 `_whatsapp_opt_in_backup` iyi niyetli bir **yer**di (eski değerleri sakla)
 ve **iki kişiyi yanılttı**, sonunda silindi. Farkı yapan şey: iyi bir yer
