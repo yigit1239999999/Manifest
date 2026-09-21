@@ -124,8 +124,14 @@ export default async function RemindersPage({
   // Said once, above the list, instead of on every row. The master switch
   // being off is one fact about the clinic; printed per row it becomes a
   // hundred identical sentences pointing at the same single setting.
+  // Three-valued, and the middle value is the new one: `null` means
+  // nobody has opened the settings page yet, `false` means somebody
+  // decided against it. Telling a clinic that has never seen that page
+  // it "switched messaging off" describes a decision it never made --
+  // the same shape as `neverAsked` against `optedOut` one level down.
+  const notSetUp = clinic?.notifications.whatsapp.enabled === null;
   const messagingOff = clinic
-    ? !clinic.notifications.whatsapp.enabled ||
+    ? clinic.notifications.whatsapp.enabled === false ||
       !clinic.notifications.whatsapp.reminders.enabled
     : false;
 
@@ -190,6 +196,7 @@ export default async function RemindersPage({
     switch (delivery.state) {
       case "disabled":
       case "notConfigured":
+      case "notSetUp":
         return null;
       case "optedOut":
       case "neverAsked":
@@ -284,7 +291,11 @@ export default async function RemindersPage({
           switch off nothing is being attempted, so that rejection is a
           record of the past and "nothing goes out at all" is the fact to
           act on first. */}
-      {messagingOff ? (
+      {notSetUp ? (
+        <NotificationBlockedBanner settingsHref={settingsHref}>
+          {t("banner.notSetUp")}
+        </NotificationBlockedBanner>
+      ) : messagingOff ? (
         <NotificationBlockedBanner settingsHref={settingsHref}>
           {t("banner.disabled")}
         </NotificationBlockedBanner>
@@ -452,6 +463,7 @@ export default async function RemindersPage({
                       others rather than growing a second, shorter set
                       of sentences beside them. */}
                   {b.reason !== "disabled" &&
+                    b.reason !== "notSetUp" &&
                     b.reason !== "undelivered" &&
                     b.reason !== "failedExhausted" && (
                       <ReminderDeliveryLine

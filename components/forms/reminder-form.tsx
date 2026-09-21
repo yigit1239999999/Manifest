@@ -206,14 +206,21 @@ export function ReminderForm({
     [],
   );
 
+  const savedMessage = tCommon("saved");
+
+  // The message is resolved BEFORE the effect and the effect depends on
+  // the string, not on the translator. `useTranslations` hands back a
+  // new function identity on a re-render, so a dependency array holding
+  // it re-runs the effect for a render that changed nothing -- and the
+  // user gets a second toast for one save. A string is equal to itself.
   useEffect(() => {
     if (state.success) {
       reset();
-      toast.success(tCommon("saved"));
+      toast.success(savedMessage);
     }
     // No `toast.error`: the rule and its reasoning live in
     // `action-form.tsx`, which owns the box a failure goes into.
-  }, [state.success, tCommon, reset]);
+  }, [state.success, savedMessage, reset]);
 
   // These two are held up here, so `reset()` — which clears the
   // uncontrolled fields — cannot reach them. Adjusted during render for the
