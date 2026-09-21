@@ -4400,3 +4400,39 @@ Ve ikinci cümleyi **zorunlu** kıldı: alan isteğe bağlı, akış
 kırılmıyor — ama söylenmezse veteriner boş listeyi **engel** sanıp
 durur. value'nun şartı *"sebebi söylesin"*di; ux *"ne yapılacağını da
 söylesin"* diye genişletmişti ve burada **ikisi birden** gerekiyor.
+
+### Kapı, borunun içinde kaybolur
+
+Lead birleştirmeyi commit'leyip **aynı zincirde** kapıları koştu:
+
+```sh
+npx tsc --noEmit | tail -3 && npx vitest run | grep -E "Test Files|Tests |FAIL" && git push
+```
+
+**`git push` çalıştı ve kapılar kırmızıydı.** Sebep zincirde değil,
+**boruda**: `vitest` başarısız olsa bile `grep` eşleşme bulduğu için
+`0` dönüyor, ve `&&` devam ediyor. Bir kapının çıkış kodu, **son
+komutun** çıkış kodudur.
+
+> **Bir kapıyı süzgeçten geçirirsen kapı olmaktan çıkar.** Çıktıyı
+> kısaltmak için `| tail`, `| grep` kullanacaksan, kararı **ayrı bir
+> çalıştırmanın çıkış koduna** bağla — ya da `PIPESTATUS`.
+
+Ve ikinci kusur birincisinden büyüktü: **koşulan kapı HEAD'i değil
+ÇALIŞMA AĞACINI ölçüyordu.** İki ajan o sırada aynı dosyalarda
+çalışıyordu; gördüğüm beş kırmızı test yarım kalmış bir düzenlemenin
+kırmızısıydı, commit'in değil.
+
+Temiz bir `git worktree`'de ölçünce HEAD **777/777** çıktı. Yani
+**hem yanlış şeyi ölçtüm hem de ölçmeden ittim**, ve ikisi
+birbirini gizledi: yanlış ölçüm kırmızı verdi, bozuk kapı ittirdi,
+ve sonuç doğru çıktı — **tesadüfen.**
+
+**Kural, kesim ritmimizin zaten söylediği şey, artık birleştirmeye de
+uygulanıyor:** *kapılar temiz bir worktree'de, ölçülecek commit'e
+karşı koşulur.* Ve o worktree'de **önce `npx prisma generate`** —
+`generated/` gitignore'da, türetilmiş eser kopyalanmaz.
+
+Bugün bu sıranın ikinci ihlali. Birincisinde (`6714de5`) kapı
+kapanmamış bir `fieldset` yakalamıştı ve commit'ten **sonra**
+koşmuştu; bu sefer kapı hiç konuşmadı.
