@@ -267,6 +267,10 @@
     "reason": "Sebep",
     "notes": "Notlar",
     "cancel": "Randevuyu iptal et",
+    "duplicate": {
+      "notice": "Bu hayvanın bu saatte zaten bir randevusu var; mevcut kayda getirildiniz.",
+      "noticeDropped": "Bu hayvanın bu saatte zaten bir randevusu var; mevcut kayda getirildiniz. Bu kez yazdıklarınız kaydedilmedi, randevunun kendi bilgileri korundu."
+    },
     "notifications": {
       "title": "Bildirimler",
       "language": "Mesaj dili",

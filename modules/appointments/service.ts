@@ -43,6 +43,38 @@ function duplicateOf(input: AppointmentInput, petId: string, clinicId: string) {
  * Matched on the code rather than the error class so that this stays
  * readable without the generated client, and so a test can produce one.
  */
+/**
+ * Whether the second submission carried details the stored appointment does
+ * not have.
+ *
+ * Only asked when a duplicate was found, and only so the screen can say so.
+ * The stored record is never overwritten: someone else may have booked it,
+ * and replacing their reason with this submission's would prevent a
+ * duplicate row by losing a real one. `petId` and `startsAt` are excluded
+ * because they are what made the two the same appointment.
+ */
+function submissionDiffers(
+  input: AppointmentInput,
+  existing: {
+    vetId: string | null;
+    durationMinutes: number;
+    type: string;
+    status: string;
+    reason: string | null;
+    notes: string | null;
+  },
+): boolean {
+  const typed = (value: string | null | undefined) => value?.trim() || null;
+  return (
+    typed(input.vetId) !== existing.vetId ||
+    (input.durationMinutes ?? 30) !== existing.durationMinutes ||
+    input.type !== existing.type ||
+    input.status !== existing.status ||
+    typed(input.reason) !== existing.reason ||
+    typed(input.notes) !== existing.notes
+  );
+}
+
 function lostTheRace(error: unknown): boolean {
   const code = (error as { code?: unknown } | null)?.code;
   return code === "P2002" || code === "P2034";
@@ -130,7 +162,19 @@ export async function createAppointment(
   // reason this matters more than a duplicate row: the owner would get the
   // same message twice, from an app whose whole promise is not to do that.
   if (result.created) await notifyAppointmentBooked(result.appointment.id, ctx);
-  return result.appointment;
+
+  // The caller needs all three. Returning only the appointment is what let
+  // the first version of this be a silent wrong: the second submission's
+  // "Reason" was dropped and the screen it landed on showed the first
+  // appointment's empty one, with nothing to say a word had been thrown
+  // away (backlog: the duplicate guard's own tail).
+  return {
+    appointment: result.appointment,
+    created: result.created,
+    discarded: result.created
+      ? false
+      : submissionDiffers(input, result.appointment),
+  };
 }
 
 export async function updateAppointment(

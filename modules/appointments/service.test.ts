@@ -65,9 +65,10 @@ describe("createAppointment, asked twice for the same slot", () => {
       petId: "pet-1",
     } as never);
 
-    const result = await createAppointment(validInput, ctx);
+    const { appointment, created } = await createAppointment(validInput, ctx);
 
-    expect(result).toMatchObject({ id: "a-1" });
+    expect(appointment).toMatchObject({ id: "a-1" });
+    expect(created).toBe(false);
     expect(prisma.appointment.create).not.toHaveBeenCalled();
   });
 
@@ -124,9 +125,10 @@ describe("createAppointment, asked twice for the same slot", () => {
       id: "a-2",
     } as never);
 
-    const result = await createAppointment(validInput, ctx);
+    const { appointment, created } = await createAppointment(validInput, ctx);
 
-    expect(result).toMatchObject({ id: "a-2" });
+    expect(appointment).toMatchObject({ id: "a-2" });
+    expect(created).toBe(true);
     expect(notifyAppointmentBooked).toHaveBeenCalledWith("a-2", ctx);
   });
 
@@ -162,9 +164,9 @@ describe("createAppointment, asked twice for the same slot", () => {
       id: "a-first",
     } as never);
 
-    const result = await createAppointment(validInput, ctx);
+    const { appointment } = await createAppointment(validInput, ctx);
 
-    expect(result).toMatchObject({ id: "a-first" });
+    expect(appointment).toMatchObject({ id: "a-first" });
     expect(notifyAppointmentBooked).not.toHaveBeenCalled();
   });
 
@@ -192,5 +194,72 @@ describe("createAppointment, asked twice for the same slot", () => {
     await expect(createAppointment(validInput, ctx)).rejects.toThrow(
       "write conflict",
     );
+  });
+
+  // The tail the duplicate guard grew, found in acceptance: the second
+  // submission's "Reason" was thrown away and the page it landed on showed
+  // the first appointment's empty one. Preventing a duplicate row by
+  // silently eating what someone typed is a worse fault than the duplicate.
+  //
+  // The text is still not written to the stored record, and that is the
+  // decision rather than an omission: someone else may have made the first
+  // appointment, and overwriting their reason with this submission's would
+  // trade a duplicate row for a lost one. What changes is that the screen
+  // is told, so `discarded` says whether there is anything to tell.
+  const stored = {
+    id: "a-1",
+    vetId: null,
+    durationMinutes: 30,
+    type: "WELLNESS_CHECK",
+    status: "SCHEDULED",
+    reason: null,
+    notes: null,
+  };
+
+  it("reports that the details typed the second time were not kept", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(stored as never);
+
+    const { discarded } = await createAppointment(
+      { ...validInput, reason: "Aşı tekrarı" },
+      ctx,
+    );
+
+    expect(discarded).toBe(true);
+  });
+
+  it("says nothing was lost when the second submission matched", async () => {
+    // Two identical submits — a double click — lose nothing, and telling
+    // the user their details were dropped would be its own small lie.
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(stored as never);
+
+    const { discarded } = await createAppointment(validInput, ctx);
+
+    expect(discarded).toBe(false);
+  });
+
+  it("treats empty text and no text as the same submission", async () => {
+    // A form posts "" for an untouched field; the column holds null. They
+    // are the same thing, and reading them as different would report a
+    // loss on every duplicate.
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(stored as never);
+
+    const { discarded } = await createAppointment(
+      { ...validInput, reason: "   ", notes: "" },
+      ctx,
+    );
+
+    expect(discarded).toBe(false);
+  });
+
+  it("never reports a loss for an appointment it actually created", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.appointment.create).mockResolvedValue({ id: "a-2" } as never);
+
+    const { discarded } = await createAppointment(
+      { ...validInput, reason: "Aşı tekrarı" },
+      ctx,
+    );
+
+    expect(discarded).toBe(false);
   });
 });

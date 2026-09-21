@@ -37,11 +37,17 @@ import { NotificationActions } from "@/components/notification-actions";
 
 export default async function AppointmentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ existing?: string }>;
 }) {
   const fmt = await getFormatContext();
   const { id } = await params;
+  // Set by `createAppointmentAction` when a second booking for the same
+  // animal at the same instant was turned into a visit to the first one.
+  // It has to survive a redirect, so it travels in the URL.
+  const { existing } = await searchParams;
   const session = await requireSession();
   const [appointment, t, tCommon, tPet, tType, tStatus, tKind, tMsgStatus, tLang, tChannel, preview, log] =
     await Promise.all([
@@ -108,6 +114,22 @@ export default async function AppointmentPage({
           />
         )}
       </PageHeader>
+
+      {/* Arriving here instead of at a new appointment needs saying. Being
+          moved without explanation reads as the app having lost what was
+          typed — and when the second submission carried details, it did
+          lose them: they are deliberately not written over the stored
+          appointment, which someone else may have made. `info`, not
+          `warning`: nothing went wrong, the booking the user wanted exists.
+          Announced, because it appears after a navigation rather than as
+          part of a page the user chose to open. */}
+      {existing && (
+        <Callout variant="info" live>
+          {existing === "dropped"
+            ? t("duplicate.noticeDropped")
+            : t("duplicate.notice")}
+        </Callout>
+      )}
 
       {/* "Bites" and "allergic to" belong on every screen where someone is
           about to handle the animal, not only on its own page (TEAM.md #20).
