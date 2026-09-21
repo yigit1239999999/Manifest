@@ -1749,3 +1749,37 @@ test, kapsamadığı şeyi de kapsıyormuş gibi okunur.
 değil (altı randevunun hepsinde `vetId` boş). Düzeltmedi ve **teste de
 yazmadı** — *muhakemeyle vardığımız bir kusurun önüne kapı kurmak, olmayan
 bir vaka için kural yazmaktır.*
+
+### Mock'lanmış bir sınır, EN GÜÇLÜ sinyali EN ZAYIF kanıtla verir
+
+dev'in kuralı, `isClinician` filtresini kaldırdığında **bütün servis
+testlerinin yeşil kalmasından** çıktı:
+
+> **Servisin kontrolü çağırdığını test etmek, kontrolün doğru soruyu
+> sorduğunu test etmek değildir.**
+
+dev-ui'nin kuralıyla birleşince tehlike tamamlanıyor — *bir test, bir şeyin
+halledildiğine dair verilebilecek en güçlü sinyaldir* — çünkü **mock'lanan
+tam olarak kanıtın kendisidir.** Test "çağrıldı" der ve okuyan "doğru
+çalışıyor" anlar; ikisinin arasındaki boşlukta mock durur.
+
+**Pratik sonucu:** bir sınır mock'lanıyorsa, o sınırın **ne sorduğu** ayrı
+bir testle doğrulanır. dev bunu yaptı ve `ff1bb2a`'da ayrı test yazdı.
+
+### "DOM'da var" ile "ekranda var" ayrı iddialardır
+
+ux'in kuralı, beş kez kendi ölçüm aracına yakalandıktan sonra:
+
+> **Görünürlük metinden değil GEOMETRİDEN ölçülür.**
+
+`textContent` gizli alt elemanları da toplar, `getBoundingClientRect`
+`content-visibility: hidden` altında **eski geometriyi** döndürür, ve
+`next-intl` bütün çeviri kataloğunu HTML'e gömer — yani sayfada bir dizeyi
+"bulmak" onun görüldüğü anlamına gelmez. Üçü de aynı turda ux'i yanılttı ve
+üçü de **yayınlanmadan** yakalandı.
+
+Bu kural bu oturumda iki yönde birden bedel ödetti: `/appointments`'ta
+**iki telefon DOM'daydı ve ikisi de görünmüyordu**; aynı rotada sonradan
+**görünen** metinle ölçüm doğru cevabı verdi ama yanlış ağaçta alındı.
+**Ölçüm aracı, ölçümün parçasıdır** — ve bu, o ailenin arayüz tarafındaki
+en somut kuralı.
