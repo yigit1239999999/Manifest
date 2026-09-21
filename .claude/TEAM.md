@@ -1629,11 +1629,16 @@ satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzel
    `content-visibility: hidden` altında eski geometri döndürür, `next-intl`
    bütün kataloğu HTML'e gömer. *"DOM'da var" ile "ekranda var" ayrı
    iddialardır.*
-7. **Veri, kusuru barındırabiliyor mu?** pm `vet` sütununu **boş** veriyle
-   ölçtü ve *"gizli"* ile *"-"* arasını ayıramadı; ölçüm sessizce "temiz"
-   dedi. **Araç doğru olsa bile, veri kusuru taşıyamıyorsa ölçüm hiçbir şey
-   kanıtlamaz.** Her `hideBelow` kabulü, o alanın **dolu olduğu bir kayıt**
-   ister. *(ux: "ölçüm aracı ölçümün parçasıdır"ın veri tarafı.)*
+7. **Veri, o hâli üretebiliyor mu?** value'nun genelleştirmesi:
+   **bir hâlin doğrulanması, o hâli üretebilen veri gerektirir — veri hâli
+   üretemiyorsa ölçüm "temiz" demez, "ÖLÇÜLEMEDİ" der.**
+   Bu oturumda iki kez oldu ve **ikisi de sessizce "temiz" görünüyordu:**
+   pm `vet`'i boş veriyle ölçtü (*"-"* ile *"gizli"* ayırt edilemedi,
+   veteriner atanınca yedi genişlikte kesinleşti); grafiğin **dolu** hâli
+   hiç üretilemedi ve "kabul edilmiş boşluk" diye kaydedildi.
+   Her `hideBelow` kabulü, o alanın **dolu olduğu bir kayıt** ister.
+   *(ux: "ölçüm aracı ölçümün parçasıdır" — value: **veri de aracın
+   parçası.**)*
 8. **Mutasyon iki yönde mi doğrulandı?** Kusuru geri koyup testin kırmızıya
    **döndüğünü görmek** gerekir; *"eski dal bunu render etmiyordu"* metinsel
    bir olgudur, kırmızı gördüm değildir. Ve doğrulama **paylaşılan ağaçta
@@ -2011,3 +2016,29 @@ sessizce kaybeder.**
 
 Pratik sonucu: bir `??` yazarken *"bu kolay olduğu için mi burada?"* sorusu,
 *"bu doğru mu?"* sorusundan **daha ayırt edici** çıkıyor.
+
+### Sıralama, kapasiteyi SERİ varsaydığında gereksiz yere daraltır
+
+value'nun kendi kararını çürütmesinden. Ham enum için üç seçenekten en
+dar olanını seçmişlerdi — *"tek satır, bileşende, tam taşımayı pakete
+bırak"* — gerekçe **ölçek taahhüdünü korumaktı.** Ağaçta olan:
+
+- `8976632` + `a321cdd` + `b7deaba` → **tam taşıma zaten indi**
+- `@@index([clinicId, petId, visitedAt])` → **ölçek paketi de ilerledi**
+
+**İkisi birden oldu, yani korunan kısıt hiç bağlamadı.**
+
+> *"Önce bu, sonra şu"* yalnızca **aynı hattı** ya da **aynı dosyayı**
+> paylaşan işler için doğrudur. Farklı hatlardaki işler için **sıra değil,
+> HAT ATAMASI** gerekir.
+
+**Bu oturumdaki bedeli:** en az üç kez bir ajana "bekle" dendi ve
+beklemesine gerek yoktu; dev-ui bir kez boşta kalıp kapsam dışına çıktı.
+O olay *"paketin cümlesi bir hattı boşta bırakıyor"* diye kaydedilmişti —
+**daha basit bir sebebi de varmış: sıra seri kurulmuştu.**
+
+**Ve doğal sonucu bir paketi kapattı:** "Hayvan sayfası kim olduğunu
+söylüyor" çekirdeğini kaybetti (1. ve 2. parça indi), geriye yalnızca
+kesilebilir olan parça kaldı ve o da başka bir pakete oturdu.
+**Bir paket eksildi, hiçbir iş eksilmedi** — paket, işin evidir; işin
+kendisi değil.
