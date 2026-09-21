@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/session";
 import { listClinicians } from "@/modules/staff/queries";
 import { can } from "@/lib/permissions";
 import { getPetLabel, listPets } from "@/modules/pets/queries";
+import { MissingLink } from "@/components/missing-link";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
@@ -31,15 +32,19 @@ export default async function NewVisitPage({
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <BackLink href="/visits" label={tCommon("back")} />
       <PageHeader title={t("new")} />
-      <Card className="p-6">
-        <VisitForm
-          pets={pets.items.map((p) => ({ id: p.id, name: p.name }))}
-          petsCapped={pets.hasMore}
-          vets={vets}
-          defaultPetId={petId}
-          defaultPetLabel={defaultPetLabel}
-        />
-      </Card>
+      {pets.items.length === 0 ? (
+        <MissingLink need="pet" />
+      ) : (
+        <Card className="p-6">
+          <VisitForm
+            pets={pets.items.map((p) => ({ id: p.id, name: p.name }))}
+            petsCapped={pets.hasMore}
+            vets={vets}
+            defaultPetId={petId}
+            defaultPetLabel={defaultPetLabel}
+          />
+        </Card>
+      )}
     </div>
   );
 }

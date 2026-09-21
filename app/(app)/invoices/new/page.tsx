@@ -8,6 +8,7 @@ import { getInvoiceForVisit } from "@/modules/invoices/queries";
 import { centsToInputValue } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { redirect } from "next/navigation";
+import { MissingLink } from "@/components/missing-link";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
@@ -82,20 +83,24 @@ export default async function NewInvoicePage({
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <BackLink href="/invoices" label={tCommon("back")} />
       <PageHeader title={t("new")} />
-      <Card className="p-6">
-        <InvoiceForm
-          clients={clients.items.map((c) => ({
-            id: c.id,
-            firstName: c.firstName,
-            lastName: c.lastName,
-          }))}
-          clientsCapped={clients.hasMore}
-          defaultClientId={client}
-          defaultClientLabel={clientLabel}
-          defaultNumber={defaultNumber}
-          prefilledLine={prefilledLine}
-        />
-      </Card>
+      {clients.items.length === 0 ? (
+        <MissingLink need="client" />
+      ) : (
+        <Card className="p-6">
+          <InvoiceForm
+            clients={clients.items.map((c) => ({
+              id: c.id,
+              firstName: c.firstName,
+              lastName: c.lastName,
+            }))}
+            clientsCapped={clients.hasMore}
+            defaultClientId={client}
+            defaultClientLabel={clientLabel}
+            defaultNumber={defaultNumber}
+            prefilledLine={prefilledLine}
+          />
+        </Card>
+      )}
     </div>
   );
 }

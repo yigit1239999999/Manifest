@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
@@ -13,10 +11,9 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
-import { EmptyState } from "@/components/ui/empty-state";
+import { MissingLink } from "@/components/missing-link";
 import { PetForm } from "@/components/forms/pet-form";
 import { hiddenBuiltInSpecies } from "@/modules/pets/species-names";
-import { buttonVariants } from "@/components/ui/button";
 
 export default async function NewPetPage({
   searchParams,
@@ -29,7 +26,6 @@ export default async function NewPetPage({
   const [
     t,
     tCommon,
-    tClient,
     tSpecies,
     owners,
     customSpecies,
@@ -39,7 +35,6 @@ export default async function NewPetPage({
   ] = await Promise.all([
     getTranslations("pet"),
     getTranslations("common"),
-    getTranslations("client"),
     getTranslations("enum.species"),
     listClients({ clinicId: session.user.clinicId }),
     listCustomSpecies(session.user.clinicId),
@@ -67,16 +62,7 @@ export default async function NewPetPage({
       <BackLink href="/pets" label={tCommon("back")} />
       <PageHeader title={t("new")} />
       {owners.items.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title={tClient("empty")}
-          description={t("noOwnersHint")}
-          action={
-            <Link href="/clients/new" className={buttonVariants()}>
-              {tClient("new")}
-            </Link>
-          }
-        />
+        <MissingLink need="client" />
       ) : (
         <Card className="p-6">
           <PetForm
