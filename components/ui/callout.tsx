@@ -84,13 +84,15 @@ export function Callout({
   live,
   className,
   children,
+  ref,
   ...props
-}: CalloutProps) {
+}: CalloutProps & { ref?: React.Ref<HTMLDivElement> }) {
   const Icon = variantIcon[variant];
   const announce = live ?? variant === "danger";
 
   return (
     <div
+      ref={ref}
       // `role="alert"` carries an implicit assertive live region; adding
       // aria-live alongside it is redundant and double-announces in some
       // screen reader / browser pairings.

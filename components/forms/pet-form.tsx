@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ChevronDown } from "lucide-react";
 import type { Client, Pet } from "@/generated/prisma/client";
-import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
@@ -108,7 +107,6 @@ export function PetForm({
 
   return (
     <ActionForm form={form} className="flex flex-col gap-8">
-      {state.error && <Callout variant="danger">{state.error}</Callout>}
 
       {/* The essentials: everything a vet needs to register an animal in
           under a minute. Everything else lives under "optional details". */}

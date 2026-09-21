@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import type { FormState } from "@/lib/action";
 import { SpeciesIcon } from "@/components/species-icon";
-import { Callout } from "@/components/ui/callout";
 import { SubmitButton } from "@/components/submit-button";
 import { cn } from "@/lib/utils";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
@@ -35,9 +34,6 @@ export function SpeciesSettingsForm({
 
   return (
     <ActionForm form={form} className="flex flex-col gap-4">
-      {state.error && (
-        <Callout variant="danger">{state.error}</Callout>
-      )}
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {species.map((s) => (

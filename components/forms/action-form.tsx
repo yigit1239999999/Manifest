@@ -17,6 +17,7 @@
 //   <ActionForm form={form} className="...">…</ActionForm>
 
 import * as React from "react";
+import { Callout } from "@/components/ui/callout";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import type { FormState } from "@/lib/action";
@@ -39,6 +40,15 @@ export interface ActionFormApi {
   clearFieldError: (name: string) => void;
   /** Incremented by `reset()`; the <ActionForm> watches it. */
   resetToken: number;
+  /**
+   * Incremented once per server response, whatever the response says.
+   *
+   * The <ActionForm> scrolls a failure into view off this rather than off
+   * the message: the same rejection twice is two events, and a comparison
+   * on the sentence would leave the second submit looking like nothing
+   * happened.
+   */
+  responseToken: number;
   /**
    * Messages for fields this form does not render. The <ActionForm> works out
    * which those are and reports them, and they surface in `state.error` —
@@ -71,9 +81,14 @@ export function useActionForm(
 
   // Every server response re-arms all of its messages.
   const [seen, setSeen] = React.useState(raw);
+  // Counts server responses, not messages. The same rejection twice is two
+  // events the user needs shown twice; comparing the sentence would make
+  // the second submit look like nothing happened at all.
+  const [responseToken, setResponseToken] = React.useState(0);
   let active = cleared;
   if (seen !== raw) {
     setSeen(raw);
+    setResponseToken((n) => n + 1);
     if (cleared.length > 0) setCleared([]);
     if (homeless.length > 0) setHomeless([]);
     active = [];
@@ -109,8 +124,15 @@ export function useActionForm(
           Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined,
       };
     }
-    if (!next.error && homeless.length > 0) {
-      next = { ...next, error: homeless.join(" ") };
+    if (homeless.length > 0) {
+      // Beside the form-level error, not instead of it. A submit can fail
+      // for two reasons at once — "the invoice needs a client" and "line 2
+      // has no price" — and the second used to be dropped whenever the
+      // first was present, because there is no `Field` for it to land in.
+      next = {
+        ...next,
+        error: [next.error, ...homeless].filter(Boolean).join(" "),
+      };
     }
     return next;
   }, [raw, active, homeless]);
@@ -122,6 +144,7 @@ export function useActionForm(
     reset,
     clearFieldError,
     resetToken,
+    responseToken,
     reportHomelessErrors,
   };
 }
@@ -131,8 +154,14 @@ interface ActionFormProps extends Omit<React.ComponentProps<"form">, "action"> {
 }
 
 export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps) {
-  const { state, formAction, clearFieldError, resetToken, reportHomelessErrors } =
-    form;
+  const {
+    state,
+    formAction,
+    clearFieldError,
+    resetToken,
+    responseToken,
+    reportHomelessErrors,
+  } = form;
   const ref = React.useRef<HTMLFormElement>(null);
   const values = state.values;
   const fieldErrors = state.fieldErrors;
@@ -160,34 +189,57 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
     reportHomelessErrors(homeless);
   }, [fieldErrors, reportHomelessErrors]);
 
-  // A rejected submit puts its message in a box at the top of the form. On a
-  // long form (a visit, a pet, an invoice) the submit button is far below
-  // that box, so without this the page does not move and the user sees
+  // Where a rejected submit is reported, and the only place it is.
+  //
+  // This box used to be copied into every form, and the rule that a failure
+  // belongs inline rather than in a toast held in one of eighteen — because
+  // a rule you have to remember to copy is a rule the nineteenth form will
+  // not have. Owning it here means no form can forget, and the scroll below
+  // has a target it does not have to go looking for.
+  //
+  // `col-span-full` rather than `sm:col-span-2`: it spans whatever the grid
+  // turns out to be, and does nothing at all in the flex and stacked forms.
+  // The six forms that carried `sm:col-span-2` by hand were right until a
+  // grid grew a third column.
+  const errorBox = React.useRef<HTMLDivElement>(null);
+
+  // On a long form (a visit, a pet, an invoice) the submit button is far
+  // below the box, so without this the page does not move and the user sees
   // nothing happen at all. `block: "nearest"` scrolls the minimum needed: a
   // box already on screen stays exactly where it is.
+  //
+  // Keyed to the response, not the message: the same rejection twice is two
+  // events, and the second one has to be shown too.
   //
   // Focus is deliberately NOT moved into the box. It is `role="alert"`, so
   // focusing it makes a screen reader read the message a second time (see
   // the note in `callout.tsx`). The price is recorded: a keyboard user's
-  // focus stays on the submit button. If that turns out to be the worse
-  // trade, moving focus and `live={false}` go together — never one alone.
+  // focus stays on the submit button, which may now be off screen. The
+  // observation that would change this: pm seeing "I submitted, the page
+  // jumped, I lost my button" in real use. If it does, moving focus and
+  // `live={false}` go together — never one alone.
   //
   // Reduced motion removes the animation, not the scroll: the movement
   // carries information here, it is not decoration.
-  const error = state.error;
-  const announced = React.useRef<string | undefined>(undefined);
+  // Skipped on mount: a message that was there at first paint did not
+  // arrive, so there is nothing to bring the user's attention to.
+  const firstResponse = React.useRef(true);
   React.useEffect(() => {
-    if (error === undefined) {
-      announced.current = undefined;
+    if (firstResponse.current) {
+      firstResponse.current = false;
       return;
     }
-    if (announced.current === error) return;
-    announced.current = error;
-    const box = ref.current?.querySelector('[role="alert"]');
-    if (!(box instanceof HTMLElement)) return;
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    box.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
-  }, [error]);
+    const target =
+      errorBox.current ?? ref.current?.querySelector('[aria-invalid="true"]');
+    if (!(target instanceof HTMLElement)) return;
+    const reduced = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    target.scrollIntoView({
+      block: "nearest",
+      behavior: reduced ? "auto" : "smooth",
+    });
+  }, [responseToken]);
 
   // Skip the initial render: only an explicit reset() clears the form.
   const firstRender = React.useRef(true);
@@ -219,9 +271,11 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
     }, 0);
   }, [state.fieldErrors, values, clearFieldError]);
 
+  const { children, ...rest } = props;
+
   return (
     <form
-      {...props}
+      {...rest}
       ref={ref}
       action={formAction}
       onInput={(e) => {
@@ -232,7 +286,14 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
         scan();
         onClick?.(e);
       }}
-    />
+    >
+      {state.error && (
+        <Callout ref={errorBox} variant="danger" className="col-span-full">
+          {state.error}
+        </Callout>
+      )}
+      {children}
+    </form>
   );
 }
 

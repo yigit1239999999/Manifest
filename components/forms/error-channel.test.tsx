@@ -5,8 +5,17 @@ import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 
-import { ActionForm, type ActionFormApi } from "@/components/forms/action-form";
-import { Callout } from "@/components/ui/callout";
+// `useActionForm` refreshes the route after a successful submit, so the
+// hook-level test below needs a router to exist.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: () => {} }),
+}));
+
+import {
+  ActionForm,
+  useActionForm,
+  type ActionFormApi,
+} from "@/components/forms/action-form";
 
 // Where a failed submit is reported, and what happens when it is.
 //
@@ -37,6 +46,19 @@ function codeLines(source: string): string[] {
     .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line));
 }
 
+function api(state: ActionFormApi["state"]): ActionFormApi {
+  return {
+    state,
+    pending: false,
+    formAction: () => {},
+    reset: () => {},
+    clearFieldError: () => {},
+    resetToken: 0,
+    responseToken: 0,
+    reportHomelessErrors: () => {},
+  };
+}
+
 describe("a submission error is shown in the form, not in a toast", () => {
   it("finds the forms at all, so an empty scan cannot pass", () => {
     expect(sources.length).toBeGreaterThan(10);
@@ -56,20 +78,43 @@ describe("a submission error is shown in the form, not in a toast", () => {
   // assertion: deleting the toast without putting the message on screen
   // would pass the test above and leave the user with nothing at all —
   // a submit that really does look like it did nothing.
-  it("every form renders its own error", () => {
+  //
+  // The check is on `state.error` rather than on the box, because the rule
+  // is about *who reports a failed submit*, not about which forms may draw
+  // a red box. `invoice-form` is the case that makes the difference: a
+  // legitimate `danger` box for something other than the submit result
+  // would fail a count of boxes and passes this.
+  it("no form reads the submission error itself", () => {
     const offenders = sources
-      // `action-form.tsx` declares the hook rather than calling it: it is
-      // the plumbing every form below shares, and renders no message itself.
+      // `action-form.tsx` is the one that owns it.
       .filter(({ name }) => name !== "action-form.tsx")
-      .filter(({ source }) => source.includes("useActionForm("))
-      .filter(
-        ({ source }) =>
-          !source.includes("state.error") ||
-          !source.includes('variant="danger"'),
+      .filter(({ source }) =>
+        codeLines(source).some((line) => line.includes("state.error")),
       )
       .map(({ name }) => name);
 
     expect(offenders).toEqual([]);
+  });
+
+  it("the wrapper renders exactly one alert, and only when there is one", () => {
+    // jsdom has no `scrollIntoView`; the mount effect would reach for it.
+    Element.prototype.scrollIntoView = vi.fn();
+    const empty = render(<ActionForm form={api({})}><input name="a" /></ActionForm>);
+    expect(empty.container.querySelectorAll('[role="alert"]')).toHaveLength(0);
+    empty.unmount();
+
+    const failed = render(
+      <ActionForm form={api({ error: "Kaydedilemedi." })}>
+        <input name="a" />
+      </ActionForm>,
+    );
+    const alerts = failed.container.querySelectorAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent("Kaydedilemedi.");
+    // Spans whatever the grid turns out to be. Six forms carried
+    // `sm:col-span-2` by hand, which was right until a grid grew a third
+    // column.
+    expect(alerts[0].className).toContain("col-span-full");
   });
 
   // Success stays where it was. A toast is right for it: nothing needs
@@ -88,25 +133,25 @@ describe("a new error is brought into view", () => {
   // button is far below it, so the page stayed exactly as it was. The only
   // thing that happened was a `role="alert"`, which means a screen reader
   // user was told and a sighted user was not.
-  function api(state: ActionFormApi["state"]): ActionFormApi {
-    return {
-      state,
-      pending: false,
-      formAction: () => {},
-      reset: () => {},
-      clearFieldError: () => {},
-      resetToken: 0,
-      reportHomelessErrors: () => {},
-    };
-  }
-
-  function harness(state: ActionFormApi["state"]) {
+  // Keyed on the response, not the message: the same rejection twice is
+  // two events and has to be shown twice.
+  function harness(state: ActionFormApi["state"], responseToken = 1) {
     return (
-      <ActionForm form={api(state)}>
-        {state.error && <Callout variant="danger">{state.error}</Callout>}
+      <ActionForm form={{ ...api(state), responseToken }}>
         <input name="name" />
       </ActionForm>
     );
+  }
+
+  /**
+   * Mounts a clean form and then lets one response come back, which is the
+   * only order this ever happens in. A message present at first paint did
+   * not arrive and is deliberately not scrolled to.
+   */
+  function submit(state: ActionFormApi["state"]) {
+    const view = render(harness({}, 0));
+    view.rerender(harness(state, 1));
+    return view;
   }
 
   function spy() {
@@ -117,10 +162,10 @@ describe("a new error is brought into view", () => {
 
   it("scrolls the box into view when an error arrives", () => {
     const scrollIntoView = spy();
-    const { rerender } = render(harness({}));
+    const { rerender } = render(harness({}, 0));
     expect(scrollIntoView).not.toHaveBeenCalled();
 
-    rerender(harness({ error: "Bir şeyler ters gitti." }));
+    rerender(harness({ error: "Bir şeyler ters gitti." }, 1));
 
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
     // `nearest` and nothing else: a box already on screen must not move the
@@ -128,10 +173,15 @@ describe("a new error is brought into view", () => {
     expect(scrollIntoView.mock.calls[0][0]).toMatchObject({ block: "nearest" });
   });
 
-  it("scrolls again when the next submit fails differently", () => {
+  it("scrolls again when the same submit fails the same way twice", () => {
+    // The case that a comparison on the message would miss, and the one
+    // that matters most: the user changes nothing, submits again, and gets
+    // the identical sentence back. Nothing moving would read as nothing
+    // having happened.
     const scrollIntoView = spy();
-    const { rerender } = render(harness({ error: "İlk hata." }));
-    rerender(harness({ error: "İkinci hata." }));
+    const error = "Aynı hata.";
+    const { rerender } = submit({ error });
+    rerender(harness({ error }, 2));
 
     expect(scrollIntoView).toHaveBeenCalledTimes(2);
   });
@@ -139,16 +189,74 @@ describe("a new error is brought into view", () => {
   it("stays put while the user is typing", () => {
     const scrollIntoView = spy();
     const error = "Bir şeyler ters gitti.";
-    const { rerender } = render(harness({ error }));
-    // Fixing one field re-renders the form with the same error still shown.
-    rerender(harness({ error, fieldErrors: { name: ["Zorunlu."] } }));
+    const { rerender } = submit({ error });
+    // Fixing one field re-renders the form without a new server response.
+    rerender(harness({ error, fieldErrors: { name: ["Zorunlu."] } }, 1));
 
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
   });
 
+  it("folds a field error with nowhere to land into the same alert", () => {
+    // The real path, through the hook: `lines` is not the name of any
+    // control here, so `ActionForm` reports it as homeless and the hook
+    // has to put it somewhere. It used to go in only when there was no
+    // form-level message, so a submit that failed for two reasons showed
+    // one — and `invoice-form` covered the gap with a second red box that
+    // duplicated the first whenever there was only one reason.
+    function Harness() {
+      const form = useActionForm(async () => ({}), {
+        error: "Müşteri seçin.",
+        fieldErrors: { lines: ["2. kalemin fiyatı eksik."] },
+      });
+      return (
+        <ActionForm form={form}>
+          <input name="clientId" />
+        </ActionForm>
+      );
+    }
+
+    const { container } = render(<Harness />);
+    const alerts = container.querySelectorAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent("Müşteri seçin.");
+    expect(alerts[0]).toHaveTextContent("2. kalemin fiyatı eksik.");
+  });
+
+  it("shows both reasons when a submit fails for two, in one alert", () => {
+    // `invoice-form` is why: `fieldErrors.lines` has no control to sit
+    // under, so it is folded into the form-level message. It used to be
+    // folded only when there was no form-level message, which silently
+    // dropped it whenever a submit failed for two reasons at once — and
+    // the form worked around that with a second red box saying the same
+    // thing as the first whenever there was only one reason.
+    const { container } = render(
+      <ActionForm
+        form={{
+          ...api({
+            error: "Müşteri seçin. 2. kalemin fiyatı eksik.",
+          }),
+          responseToken: 1,
+        }}
+      >
+        <input name="clientId" />
+      </ActionForm>,
+    );
+    const alerts = container.querySelectorAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent("Müşteri seçin.");
+    expect(alerts[0]).toHaveTextContent("2. kalemin fiyatı eksik.");
+  });
+
+  it("does not scroll to a message that was already on the page", () => {
+    // Nothing arrived, so nothing needs pointing at.
+    const scrollIntoView = spy();
+    render(harness({ error: "Sunucudan gelen hata." }, 0));
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
   it("smooths the scroll by default", () => {
     const scrollIntoView = spy();
-    render(harness({ error: "Bir şeyler ters gitti." }));
+    submit({ error: "Bir şeyler ters gitti." });
     expect(scrollIntoView.mock.calls[0][0]).toMatchObject({
       behavior: "smooth",
     });
@@ -171,7 +279,7 @@ describe("a new error is brought into view", () => {
     })) as unknown as typeof window.matchMedia;
 
     try {
-      render(harness({ error: "Bir şeyler ters gitti." }));
+      submit({ error: "Bir şeyler ters gitti." });
 
       expect(scrollIntoView).toHaveBeenCalledTimes(1);
       expect(scrollIntoView.mock.calls[0][0]).toMatchObject({

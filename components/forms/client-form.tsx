@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
-import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
@@ -34,7 +33,6 @@ export function ClientForm({ client }: Props) {
 
   return (
     <ActionForm form={form} className="flex flex-col gap-8">
-      {state.error && <Callout variant="danger">{state.error}</Callout>}
 
       <FormSection title={t("sections.identity")} description={t("sections.identityHint")}>
         <div className="grid gap-4 sm:grid-cols-2">

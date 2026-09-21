@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
 import { centsToInputValue } from "@/lib/money";
-import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
@@ -54,11 +53,6 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
 
   return (
     <ActionForm form={form} className="flex flex-col gap-6">
-      {state.error && <Callout variant="danger">{state.error}</Callout>}
-      {state.fieldErrors?.lines && (
-        <Callout variant="danger">{state.fieldErrors.lines[0]}</Callout>
-      )}
-
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={tClient("one")} error={state.fieldErrors?.clientId} required>
           <Select name="clientId" defaultValue={defaultClientId ?? ""} required>

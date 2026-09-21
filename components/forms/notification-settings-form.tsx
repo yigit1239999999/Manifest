@@ -47,9 +47,6 @@ export function NotificationSettingsForm({
 
   return (
     <ActionForm form={form} className="flex flex-col gap-5">
-      {state.error && (
-        <Callout variant="danger">{state.error}</Callout>
-      )}
 
       {/* The channel decides what every automatic message costs and who it
           can reach at all: SMS is charged per segment and goes to any number,

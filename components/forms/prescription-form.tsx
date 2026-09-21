@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
-import { Callout } from "@/components/ui/callout";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
@@ -39,9 +38,6 @@ export function PrescriptionForm({
       form={form}
       className="grid gap-3 sm:grid-cols-2"
     >
-      {state.error && (
-        <Callout variant="danger" className="sm:col-span-2">{state.error}</Callout>
-      )}
 
       <input type="hidden" name="petId" value={petId} />
       {visitId && <input type="hidden" name="visitId" value={visitId} />}
