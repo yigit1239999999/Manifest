@@ -3121,3 +3121,33 @@ Paket olarak görmek önlüyor.
 
 **Kaldırma testi de geçiyor:** hangisi çıkarılırsa bir başarısızlık hâlâ
 *"burada bir şey yok"* diye okunuyor.
+
+### Bir olgu geri alındığında, ondan TÜRETİLMİŞ iddialar kendiliğinden geri alınmaz
+
+value'nun kuralı, ve zinciri tam olarak izlenebildiği için değerli:
+
+```
+pm:     "b507d23'te 28 px ölçtüm"           ← olgu
+value:  "demek ki 8cd3696 getirdi"           ← ÇIKARIM
+pm:     "zemin etiketim yanlıştı"            ← olgu GERİ ÇEKİLDİ
+value:  (çıkarım geri çekilmedi)             ← çünkü artık BAŞKA bir cümlenin içinde
+ux:     `git log -S "min-h-6"` → 6b8ccf7     ← ölçümle çürütüldü
+```
+
+> **Bir olgu geri alındığında, ondan türetilmiş iddialar kendiliğinden
+> geri alınmaz** — çünkü türev, kaynağından **ayrı bir cümlede** yaşar ve
+> kaynağın geri çekilmesi o cümleye ulaşmaz.
+
+**Pratik sonucu:** bir şeyi geri çekerken *"bundan ne türetildi"* diye
+sorulur; ve bir çıkarımı yazarken **kaynağı adıyla anılır**, ki kaynak
+düşünce çıkarım da düşsün.
+
+**Ve value'nun kendi payı ayrı bir ders:** *"ölçebileceğim bir şeyi
+çıkarımla kurdum — `git log -S` on saniyelik bir komut, ve bugün üç kez
+başkalarına 'ölçmeden adlandırma' dedim."*
+
+**ux'in üstünde durma gerekçesi de kaydedilmeli, çünkü kaydın işlevini
+tarif ediyor:** `py-1`'in yanlış commit'e atfı, birinin onu *"gereksiz
+dolgu"* diye silmesine zemin hazırlar. **Nöbetçi kırılmayı durdurur,
+KAYIT NİYETİ TAŞIR** — ikisi farklı işler, ve biri ötekinin yerine
+geçmez.
