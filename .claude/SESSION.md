@@ -41,10 +41,14 @@ burada:
 
 1. **Ölçüm masaüstü genişlikte yapıldı. 390 px'te HİÇBİR odak işareti
    ölçülmedi** — ve ürünün gerçekten kullanıldığı genişlik orası.
-2. **Ölçüm KOYU temada yapıldı. AÇIK temada hiçbir odak işareti
-   ölçülmedi.** (ux'in `classList` / `data-theme` hatasının sonucu; ayrıntı
-   aşağıdaki kutuda. *Bu maddenin sonradan eklenmesi gerekti, çünkü "iki
-   temada ölçtüm" sanılıyordu.*)
+2. ~~Ölçüm koyu temada yapıldı, açık tema ölçülmedi.~~ **KAPANDI** — ux
+   taze zeminde (`3089ec2`) iki temayı da ölçtü: tema segmenti 7,62/5,21 ·
+   ⌘K 8,20/4,74 · `<summary>` 7,62/5,21 · secondary bağlantı 8,20/4,74.
+   **Beşi de iki temada geçiyor.** *(Maddenin sonradan eklenmek zorunda
+   kalması yine de ders: herkes "iki temada ölçtüm" sanıyordu.)*
+   **Ve ux bunu pm'i beklemeden yaptı** — temayı `data-theme` özniteliğiyle
+   kendi çevirdi, çerez yazmadan, ölçüm sonunda geri aldı; ortak pencereye
+   dokunmadı.
 3. ~~Üst çubuğun altı denetimi sistemin desenini paylaşmıyor (3,11).~~
    **BU SATIR v0.8.0 İÇİN DOĞRU, BUGÜN İÇİN DEĞİL — açık madde listesine
    taşınmasın.** dev-ui `76c8dce` ile bir e2e nöbetçi indirdi ve **ilk

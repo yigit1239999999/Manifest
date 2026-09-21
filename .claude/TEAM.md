@@ -2601,3 +2601,41 @@ checkout'un kendi şemasından üretildi."*
 `Visit.currency` eksik diye derlemenin patlaması, ikincisi terk edilmiş
 `Manifest/.next-prod`, üçüncüsü bu. **Üçünün de ortak yanı: türetilmiş
 bir şeyin kaynağından koparılmış olması.**
+
+### Ölçüm için kurulan zemin, ÖLÇÜMLE BİRLİKTE kaldırılır
+
+Aynı turda iki kez, iki ayrı kişiden, kimse söylemeden:
+
+- **dev** `unaccent` uzantısını ölçmek için kurdu, ölçtü, **kaldırdı** —
+  gerekçesi: *"migration'ın tarif etmediği bir zemin bırakmamak."*
+- **ux** temayı `data-theme` ile çevirdi, ölçtü, **geri aldı** — çerez
+  yazmadan, ortak pencereye dokunmadan.
+
+> **Bir ölçüm için değiştirilen her şey, ölçümün bittiği anda eski hâline
+> döner.** Kalan şey bir sonraki ölçümün zemini olur ve **hiçbir yerde
+> yazmaz.**
+
+Bu oturumda zeminin **beş kez** yanılttığı düşünülürse: bırakılan bir ölçüm
+kalıntısı, kendi başına zararsız olsa bile **bir sonraki kişinin ölçtüğü
+şeyi sessizce değiştirir.** `_whatsapp_opt_in_backup` bu sınıfın kalıcı
+hâliydi; `unaccent` ve çevrilmiş tema geçici hâli olurdu.
+
+### Bir kusuru OLDUĞUNDAN BÜYÜK yazmanın bedeli, bir SONRAKİNİN de büyütülmüş sayılmasıdır
+
+ux'in gerekçesi, v0.9.0'ın kesim şartının cümlesini düzeltirken.
+
+**Yanlış:** *"onay kutusu ve radyoların odak işareti yok."*
+**Doğru:** *"deseni hiç taşımıyor ve KOYU temada eşiğin altında kalıyor"* —
+Chromium'un mavisi açık temada **5,98** ile eşiği geçiyor, koyuda **2,89**
+ile kalıyor.
+
+**İş küçülmüyor; tarif doğruluyor.** Ama fark sonraki turda ödeniyor:
+
+> Abartılmış bir kusur düzeltildiğinde, **düzeltmenin kazancı da abartılmış
+> görünür** — ve bir sonraki gerçek kusur *"onlar hep büyütüyor"* diye
+> okunur. **Şiddet enflasyonu, bulgunun kendisini değil, bulan kişinin
+> sonraki bulgusunu harcar.**
+
+Bu, *"abartılmış şiddet gerçek kusuru da beraberinde götürür"* kuralının
+**zaman içindeki** hâli: birincisi aynı bulguyu, ikincisi **sonraki
+bulguyu** harcıyor.
