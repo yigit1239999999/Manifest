@@ -37,7 +37,13 @@ export default async function NewAppointmentPage({
       ) : (
         <Card className="p-6">
           <AppointmentForm
-            pets={pets.items.map((p) => ({ id: p.id, name: p.name }))}
+            pets={pets.items.map((p) => ({
+              id: p.id,
+              name: p.name,
+              // `listPets` already loads the owner; dropping it here was
+              // how three of the four pickers lost it.
+              ownerName: `${p.owner.firstName} ${p.owner.lastName}`,
+            }))}
             petsCapped={pets.hasMore}
             vets={vets}
             defaultPetId={petId}

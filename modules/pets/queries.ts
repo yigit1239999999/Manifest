@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { fold } from "@/lib/search";
+import { ownerLabel, petLabel } from "@/lib/pet-label";
 import type { Prisma } from "@/generated/prisma/client";
 
 export interface ListPetsArgs {
@@ -202,9 +203,14 @@ export async function quickSearchPets(
 export async function getPetLabel(clinicId: string, id: string) {
   const pet = await prisma.pet.findFirst({
     where: { id, clinicId },
-    select: { name: true },
+    // The owner too, and this is the most load-bearing of the four places
+    // the label is built: a picker filled in from a `?petId=` link is the
+    // one the vet did not choose. A row they picked themselves they at
+    // least read while picking it; a field that arrived already filled
+    // reading "Zeytin" is simply believed.
+    select: { name: true, owner: { select: { firstName: true, lastName: true } } },
   });
-  return pet?.name;
+  return pet ? petLabel({ name: pet.name, ownerName: ownerLabel(pet.owner) }) : undefined;
 }
 
 /** Clinic-defined species, alphabetical — feeds the species combobox. */

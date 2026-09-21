@@ -20,10 +20,12 @@ import {
 } from "@/modules/appointments/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import { searchPetsAction } from "@/modules/pets/actions";
+import { petLabel } from "@/lib/pet-label";
 
 interface Props {
   appointment?: Appointment;
-  pets: Pick<Pet, "id" | "name">[];
+  /** The owner travels with the animal: see `lib/pet-label.ts`. */
+  pets: (Pick<Pet, "id" | "name"> & { ownerName: string })[];
   /** See `InvoiceForm`: true when the list was cut off at its cap. */
   petsCapped?: boolean;
   vets: Pick<User, "id" | "name">[];
@@ -50,7 +52,7 @@ export function AppointmentForm({
   defaultPetLabel,
 }: Props) {
   const petOptions = useMemo(
-    () => pets.map((p) => ({ value: p.id, label: p.name })),
+    () => pets.map((p) => ({ value: p.id, label: petLabel(p) })),
     [pets],
   );
   const t = useTranslations("appointment");

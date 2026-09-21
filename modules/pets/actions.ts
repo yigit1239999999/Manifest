@@ -6,6 +6,7 @@ import { action, parse, type FormState } from "@/lib/action";
 import { petSchema } from "./schema";
 import { quickSearchPets } from "./queries";
 import { PAGE_SIZES } from "@/lib/pagination";
+import { ownerLabel, petLabel } from "@/lib/pet-label";
 import { requireSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
 import {
@@ -124,9 +125,9 @@ export async function searchPetsAction(
   return {
     options: items.map((p) => ({
       value: p.id,
-      label: `${p.name} · ${p.owner.firstName} ${p.owner.lastName}`,
+      label: petLabel({ name: p.name, ownerName: ownerLabel(p.owner) }),
       ownerId: p.ownerId,
-      ownerLabel: `${p.owner.firstName} ${p.owner.lastName}`,
+      ownerLabel: ownerLabel(p.owner),
     })),
     hasMore,
   };
