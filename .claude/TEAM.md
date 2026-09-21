@@ -5436,3 +5436,63 @@ paylaşılan zemine zarar veren.** Üçü de "yok" değil, ve üçünün de
 
 *(Geri alma aslında vardı — toast'ta, gerekçesiyle. pm tıklamadığı
 için göremedi, ve tıklamaması yine de doğruydu.)*
+
+### Ölçünün vekil olduğunu, ölçüyü verirken söyle
+
+value `EXPIRED`'ın tonunu bir ölçüm tetiğine bağladı ve **eşiği
+yüzdeyle vermeyi reddetti:**
+
+> *Uyduracağım bir sayı olurdu.*
+
+Yerine Deniz'in kendi cümlesinden **davranışsal** bir ölçü koydu:
+*uyarıya çıkarıldığında sabahki liste hâlâ **tek tek aranabilecek
+boyutta** kalıyor mu?*
+
+**Ve asıl kayda değer olan, ölçünün ne olmadığını yazması:**
+> Frekans bir **vekil ölçü.** Asıl bilmek istediğimiz, `EXPIRED`'ın
+> **gerçekten ulaşmamayla örtüşmesi** — ama onu ancak **Deniz arayıp
+> öğrendiğinde** bilebiliriz.
+
+> **Bir vekil ölçü, vekil olduğu yazılmazsa asıl ölçü sanılır** — ve
+> altı ay sonra kimse neyin yerine geçtiğini hatırlamaz.
+
+Ayrıca tetiğin **yönünü** düzeltti ve kendi hatasını yazdı: *"seninki
+kalıyor"* derken tonun hâlâ `attention` olduğunu sanıyordu, oysa
+dev-ui çoktan `quiet`'e indirmişti. Doğrusu **taban nötr, ölçüm
+"nadir" derse yükselir.** Ve *"kaza iyi tarafa düştü"* — asimetri
+kuralı zaten nötr tabanı destekliyor, **çünkü yersiz uyarının bedeli
+geri alınamaz.**
+
+### "Boş değil ve benzersiz" ile "şu kelimeyi söylüyor" arasındaki fark
+
+dev-ui'nin hâl testi on beş hâli sentetik değerlerle **çiziyordu**,
+ama yalnız **boş olmadıklarını ve birbirinden farklı olduklarını**
+doğruluyordu.
+
+> `delivered` **benzersiz bir cümle** üretip **"ulaştı" demeden**
+> testten geçebilirdi.
+
+Beş kabul hâli artık **veterinerin okuyacağı kelimelerle** doğrulanıyor
+— `delivered`'ın **tarihini** taşıdığı dahil, ki value'nun 1.
+kriterinin o yarısı **kelime testinin kör noktasıydı.**
+
+value'nun tespiti: *bu fark, bu paketin tamamının üstünde durduğu
+fark.* Bütün gün *"kelime kanıtını aşmasın"* dedik; bir test yalnız
+**kelimenin varlığını** ölçerse, **hangi kelime olduğunu** hiç
+sormuyor.
+
+### Erişilebilir ad, satırın sesli söylenişidir
+
+value aşı kartındaki kapatma düğmesinin ürün niyetini netleştirdi:
+
+> Erişilebilir ad, veterinerin o satırı **sesli söyleyeceği gibi**
+> olmalı — *"Zeytin'in karma aşısını kapat"*. On satırda **adsız on
+> "Kapat" düğmesi hiçbir şey demiyor.**
+
+Ve `/reminders`'daki `actionFor` kalıbının aynısı — **desen zaten
+üründe var, yeni bir şey icat edilmiyor.**
+
+Aynı turda dev-ui aynı düğmenin Türkçe adındaki **kelime
+tekrarını** kapattı (*"Karma aşı **aşı** satırını kapat"*). İkisi
+birlikte: **bir erişilebilir ad, hem tam hem doğru dilbilgisiyle
+kurulur** — ve ikisinin de kontrolü `messages.test.ts`'in dışında.
