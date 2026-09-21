@@ -64,6 +64,15 @@ export async function listReminders({
           channel: true,
           body: true,
           recipient: true,
+          // Delivery is a second question from sending, and the row's
+          // sentence turns on it: accepted by the operator is not the
+          // same as arrived, and "we have not heard yet" is not the
+          // same as "it did not arrive".
+          deliveryStatus: true,
+          deliveredAt: true,
+          // Read only in the fold, like `body`: the provider's own
+          // vocabulary, useful for tracing and never a sentence.
+          deliveryCode: true,
         },
       },
     },

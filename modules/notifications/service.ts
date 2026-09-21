@@ -15,7 +15,11 @@ import { normalizePhone } from "@/lib/phone";
 import { isPetSilenced } from "@/lib/pet-status";
 import { isReminderDue, isReminderNoticeDue, reminderNoticeDueAt } from "@/lib/whatsapp/schedule";
 import { composeAppointmentFor, composeReminderFor } from "@/lib/messaging/compose";
-import { getTransport, isChannelConfigured } from "@/lib/messaging/transports";
+import {
+  getTransport,
+  isChannelConfigured,
+  transportReportsDelivery,
+} from "@/lib/messaging/transports";
 import { failureScope } from "@/lib/messaging/failures";
 import { TransportError, type Channel, type FailureScope } from "@/lib/messaging/types";
 import { smsSegments } from "@/lib/messaging/sms/segments";
@@ -852,7 +856,22 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
  */
 export type ReminderDeliveryState =
   | { state: "scheduled"; sendAt: Date; channel: Channel }
-  | { state: "sent"; at: Date; channel: Channel }
+  /** The provider says it reached a handset. The only state that claims arrival. */
+  | { state: "delivered"; at: Date; channel: Channel }
+  /** Accepted, and the answer has not come back yet. A wait, not a failure. */
+  | { state: "sentAwaitingReport"; at: Date; channel: Channel }
+  /** Accepted, and it did not arrive. Same family as `noPhone`: reach for the phone. */
+  | { state: "undelivered"; at: Date; channel: Channel }
+  /**
+   * Accepted on a channel that has no report source at all.
+   *
+   * Kept apart from the wait above because nothing is being waited
+   * for: promising a report that can never come is the same defect as
+   * a silent row, seen from the other side.
+   */
+  | { state: "sentNoReportChannel"; at: Date; channel: Channel }
+  /** The validity period ran out. We do not know that it failed, only that we stopped hearing. */
+  | { state: "reportExpired"; at: Date; channel: Channel }
   | {
       state: "failed";
       at: Date;
@@ -878,7 +897,14 @@ export interface ReminderDeliveryRow {
   dueAt: Date;
   client: { phone: string | null; notificationsOptIn: boolean | null };
   pet?: { deceased: boolean; archivedAt: Date | null } | null;
-  messages: { status: string; createdAt: Date; error: string | null; channel: Channel }[];
+  messages: {
+    status: string;
+    createdAt: Date;
+    error: string | null;
+    channel: Channel;
+    deliveryStatus?: MessageDeliveryStatus;
+    deliveredAt?: Date | null;
+  }[];
 }
 
 /**
@@ -905,9 +931,29 @@ export function reminderDeliveryState(
   // MANUAL counts as sent for the same reason the sweep counts it: a
   // person carried the message out of the app by hand, and sending it
   // again would reach the owner twice.
-  const delivered = newestFirst.find((m) => m.status === "SENT" || m.status === "MANUAL");
-  if (delivered)
-    return { state: "sent", at: delivered.createdAt, channel: delivered.channel };
+  const accepted = newestFirst.find((m) => m.status === "SENT" || m.status === "MANUAL");
+  if (accepted) {
+    const at = accepted.deliveredAt ?? accepted.createdAt;
+    const channel = accepted.channel;
+    switch (accepted.deliveryStatus) {
+      case "DELIVERED":
+        return { state: "delivered", at, channel };
+      case "UNDELIVERED":
+        return { state: "undelivered", at: accepted.createdAt, channel };
+      case "EXPIRED":
+        return { state: "reportExpired", at: accepted.createdAt, channel };
+      default:
+        // UNKNOWN or PENDING. Which of the two it is says who we are
+        // waiting on, and neither is a failure -- but on a channel
+        // that will never report, waiting is not what is happening
+        // either, and saying so would invent a process we do not have.
+        return {
+          state: transportReportsDelivery(channel) ? "sentAwaitingReport" : "sentNoReportChannel",
+          at: accepted.createdAt,
+          channel,
+        };
+    }
+  }
 
   const failures = newestFirst.filter((m) => m.status === "FAILED");
   if (failures.length > 0)

@@ -27,9 +27,11 @@ vi.mock("@/lib/messaging/transports", () => ({
   getTransport: vi.fn(() => transport),
   isChannelConfigured: vi.fn(() => true),
   transportName: vi.fn(() => "netgsm"),
+  transportReportsDelivery: vi.fn(() => true),
 }));
 
 import { prisma } from "@/lib/prisma";
+import { transportReportsDelivery } from "@/lib/messaging/transports";
 import { AppError } from "@/lib/errors";
 import { TransportError } from "@/lib/messaging/types";
 import {
@@ -88,6 +90,7 @@ function appointment(overrides: Record<string, unknown> = {}) {
 // worse than no test.
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(transportReportsDelivery).mockReturnValue(true);
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-09-20T09:30:00.000Z"));
   vi.mocked(prisma.clinic.findUnique).mockResolvedValue(clinicRow as never);
@@ -669,16 +672,88 @@ describe("reminderDeliveryState", () => {
     const state = reminderDeliveryState(
       row({
         messages: [
-          { status: "SENT", createdAt: new Date("2026-09-18T06:00:00.000Z"), error: null, channel: "SMS" },
+          {
+            status: "SENT",
+            createdAt: new Date("2026-09-18T06:00:00.000Z"),
+            error: null,
+            channel: "SMS",
+            deliveryStatus: "DELIVERED",
+            deliveredAt: new Date("2026-09-18T06:01:00.000Z"),
+          },
         ],
       }),
       off,
     );
     expect(state).toEqual({
-      state: "sent",
-      at: new Date("2026-09-18T06:00:00.000Z"),
+      state: "delivered",
+      at: new Date("2026-09-18T06:01:00.000Z"),
       channel: "SMS",
     });
+  });
+
+  // Accepted by the operator is not arrived, and the row has to keep
+  // the two apart -- an undelivered message puts the vet in the same
+  // position as no phone number at all: pick up the phone.
+  it("tells arrival apart from acceptance, and a wait apart from a failure", () => {
+    const sentAt = new Date("2026-09-18T06:00:00.000Z");
+    const accepted = (extra: Record<string, unknown>) =>
+      reminderDeliveryState(
+        row({
+          messages: [{ status: "SENT", createdAt: sentAt, error: null, channel: "SMS", ...extra }],
+        }),
+        clinic,
+      );
+
+    expect(accepted({ deliveryStatus: "UNDELIVERED" })).toEqual({
+      state: "undelivered",
+      at: sentAt,
+      channel: "SMS",
+    });
+    // Nobody has asked yet, or the operator has not decided. Neither is
+    // a failure and the row must not read as one.
+    expect(accepted({ deliveryStatus: "UNKNOWN" })).toEqual({
+      state: "sentAwaitingReport",
+      at: sentAt,
+      channel: "SMS",
+    });
+    expect(accepted({ deliveryStatus: "PENDING" })).toEqual({
+      state: "sentAwaitingReport",
+      at: sentAt,
+      channel: "SMS",
+    });
+    // We know we stopped hearing; we do not know that it failed.
+    // Folding this into "undelivered" would claim a failure nobody
+    // established.
+    expect(accepted({ deliveryStatus: "EXPIRED" })).toEqual({
+      state: "reportExpired",
+      at: sentAt,
+      channel: "SMS",
+    });
+  });
+
+  // A channel with no report source at all. Saying "waiting for the
+  // delivery report" here would promise something that is never
+  // coming -- inventing a process we do not have, which is the silent
+  // row's defect seen from the other side.
+  it("promises no report on a channel that will never send one", () => {
+    vi.mocked(transportReportsDelivery).mockReturnValue(false);
+
+    const state = reminderDeliveryState(
+      row({
+        messages: [
+          {
+            status: "SENT",
+            createdAt: new Date("2026-09-18T06:00:00.000Z"),
+            error: null,
+            channel: "WHATSAPP",
+            deliveryStatus: "UNKNOWN",
+          },
+        ],
+      }),
+      clinic,
+    );
+
+    expect(state).toMatchObject({ state: "sentNoReportChannel", channel: "WHATSAPP" });
   });
 
   it("names the reason nothing will go, clinic-wide reasons first", () => {

@@ -36,6 +36,21 @@ export interface DeliveryReport {
 export interface MessageTransport {
   readonly channel: Channel;
   readonly name: string;
+  /**
+   * Whether anything will ever tell us what became of a message here.
+   *
+   * A capability, not a status, and the difference is what a screen is
+   * allowed to promise. On a channel with no report source every
+   * message stays UNKNOWN for ever, and a row saying "waiting for the
+   * delivery report" would be waiting for something that is never
+   * coming -- implying a process we do not have, which is the same
+   * defect as a silent row seen from the other side.
+   *
+   * Declared next to the transport rather than inferred from
+   * `reports` being present, because the day WhatsApp's webhook lands
+   * this flips in one place and every screen follows.
+   */
+  readonly reportsDelivery: boolean;
   isConfigured(): boolean;
   send(request: SendRequest): Promise<SendResult>;
   /**

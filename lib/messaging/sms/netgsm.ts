@@ -84,6 +84,8 @@ export const REPORT_RETENTION_DAYS = 90;
 export const netgsmTransport: MessageTransport = {
   channel: "SMS",
   name: "netgsm",
+  // Netgsm answers report queries for three months; see `reports` below.
+  reportsDelivery: true,
 
   isConfigured() {
     return (

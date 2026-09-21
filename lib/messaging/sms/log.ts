@@ -48,6 +48,9 @@ function pretendReport(providerId: string): DeliveryReport {
 export const logTransport: MessageTransport = {
   channel: "SMS",
   name: "log",
+  // A pretend operator that answers pretend reports, so the delivery
+  // screens are measurable before any account exists.
+  reportsDelivery: true,
   isConfigured() {
     return env.SMS_PROVIDER === "log";
   },
