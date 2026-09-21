@@ -61,7 +61,28 @@ const ALLOWED_PATHS = new Set([
  * refused: an unknown key is noise, not an attack, and discarding the
  * whole destination over one would send a vet back to the wrong screen.
  */
-const ALLOWED_PARAMS = new Set(["next", "ownerId", "petId", "clientId"]);
+const ALLOWED_PARAMS = new Set([
+  "next",
+  "ownerId",
+  "petId",
+  "clientId",
+  // What the vet had already typed into the picker when they asked for
+  // a record that is not there yet. It travels so the name is written
+  // once: retyping it is small, but the vet measured the version of
+  // this walk where nothing was carried and called the door a lie.
+  "name",
+]);
+
+/**
+ * How much typed text a link may carry.
+ *
+ * Long enough for "Ayşe Çelik" and for an animal's name with a note
+ * after it; short enough that the parameter cannot become a place to
+ * put something else. Truncated rather than refused -- a long name is
+ * a clumsy paste, not an attack, and dropping the whole errand over it
+ * would send the vet back to a form with nothing in it.
+ */
+const MAX_TYPED = 80;
 
 /**
  * How deep a chain may nest.
@@ -110,6 +131,11 @@ export function safeNext(raw: string | null | undefined, depth = 0): string | nu
       // cannot smuggle a bad link inside a good one.
       const nested = safeNext(value, depth + 1);
       if (nested) params.set("next", nested);
+      continue;
+    }
+    if (key === "name") {
+      const typed = value.slice(0, MAX_TYPED).trim();
+      if (typed) params.set("name", typed);
       continue;
     }
     params.set(key, value);
@@ -162,4 +188,32 @@ export function withCreated(
   const params = new URLSearchParams(query);
   params.set(key, id);
   return `${path}?${params.toString()}`;
+}
+
+/**
+ * Where a picker's create row goes: the form that makes the record,
+ * carrying both the errand and what had already been typed.
+ *
+ * The typed text is the half the vet notices. `?next=` already brought
+ * them back to the right form -- they said so: "the chain's memory is
+ * very good, I did not type anything twice" -- and this keeps that true
+ * one step earlier, at the name they had just written when they found
+ * the record was not there.
+ *
+ * `safeNext` is applied to the errand here rather than trusted, because
+ * this builds a link from a value that came off a page: the rule lives
+ * in one module, and a second copy of it is the one that would be wrong.
+ */
+export function createHref(
+  target: "/pets/new" | "/clients/new",
+  typed: string,
+  next?: string | null,
+): string {
+  const params = new URLSearchParams();
+  const errand = safeNext(next);
+  if (errand) params.set("next", errand);
+  const name = typed.slice(0, MAX_TYPED).trim();
+  if (name) params.set("name", name);
+  const query = params.toString();
+  return query ? `${target}?${query}` : target;
 }

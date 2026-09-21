@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 import { useLocale, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ import {
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import { searchPetsAction } from "@/modules/pets/actions";
 import { petLabel } from "@/lib/pet-label";
+import { createHref } from "@/lib/next-param";
 
 interface Props {
   visit?: Visit;
@@ -52,6 +54,7 @@ export function VisitForm({
   defaultPetId,
   defaultPetLabel,
 }: Props) {
+  const router = useRouter();
   const locale = useLocale();
   const petOptions = useMemo(
     () => pets.map((p) => ({ value: p.id, label: petLabel(p) })),
@@ -100,6 +103,22 @@ export function VisitForm({
             searchingLabel={tCommon("searching")}
             searchFailedLabel={tCommon("searchFailed")}
             hasMoreLabel={tCommon("searchMore")}
+            // The door that used to stand in front of this whole form
+            // when the clinic had no animals, moved inside the field
+            // that asks for one: "the dog is on the table, the owner is
+            // crying, and what I got was not a blank page but a door".
+            //
+            // Only on a new visit. The walk back is `?next=`, and an
+            // existing visit's own address is not somewhere a chain may
+            // resume (`ALLOWED_PATHS`), so offering it there would send
+            // the vet to the animal's page with the edit abandoned.
+            onCreate={
+              visit
+                ? undefined
+                : (typed) =>
+                    router.push(createHref("/pets/new", typed, "/visits/new"))
+            }
+            createLabel={(typed) => tPet("createNamed", { name: typed })}
           />
         </Field>
         <Field label={t("type")} error={state.fieldErrors?.type} required>

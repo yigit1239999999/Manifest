@@ -18,14 +18,53 @@ async function signUp(page: import("@playwright/test").Page, stamp: number) {
 // Each has to name the missing link and hand over the route that makes it;
 // which link differs, and a bill needs only a client.
 const guards = [
-  { path: "/pets/new", says: /a client comes first|önce müşteri gerekir/i, to: "/clients/new" },
   { path: "/invoices/new", says: /a client comes first|önce müşteri gerekir/i, to: "/clients/new" },
   { path: "/appointments/new", says: /a pet comes first|önce hayvan gerekir/i, to: "/pets/new" },
-  { path: "/visits/new", says: /a pet comes first|önce hayvan gerekir/i, to: "/pets/new" },
+];
+
+// `/visits/new` and `/pets/new` are deliberately NOT in that list any
+// more, and the difference is the vet's rule rather than an exception:
+// a precondition is said INSIDE the form when the form can satisfy it.
+// Those two screens now offer to make the missing record from whatever
+// is typed into their picker, so there is no dead end for a door to
+// stand in front of. The two above have no such box -- somebody who
+// walked in from the side really can go no further -- so their doors
+// are right and stay.
+const doorless = [
+  { path: "/visits/new", field: /^pet$|^hayvan$/i, typed: "Limon" },
+  { path: "/pets/new", field: /^owner$|^sahibi$/i, typed: "Ayşe Çelik" },
 ];
 
 test.describe("First run", () => {
-  test("every /new route names the record that is missing", async ({
+  // "The dog is on the table, the owner is crying, and what I got was
+  // not a blank page but a door." The card that sends an empty clinic to
+  // /visits/new promises the animal and the owner can be made on the
+  // way; two doors stood in front of that promise, and the box for the
+  // animal's name was on the third screen.
+  test("the screens the card promises open as forms, not as doors", async ({
+    page,
+  }) => {
+    await signUp(page, Date.now());
+
+    for (const screen of doorless) {
+      await page.goto(screen.path);
+      const main = page.getByRole("main");
+      const box = main.getByRole("combobox", { name: screen.field });
+      await expect(box).toBeVisible();
+      await expect(
+        main.getByText(/comes first|önce .* gerekir/i),
+      ).toHaveCount(0);
+
+      // The way out is inside the field: typed text is searched first,
+      // and the offer to create it sits under whatever was found.
+      await box.fill(screen.typed);
+      await expect(
+        main.getByRole("option", { name: new RegExp(screen.typed) }).last(),
+      ).toBeVisible();
+    }
+  });
+
+  test("every /new route that cannot help names the record that is missing", async ({
     page,
   }) => {
     await signUp(page, Date.now());
@@ -228,20 +267,28 @@ test.describe("First run", () => {
   }) => {
     await signUp(page, Date.now());
 
-    // Down: the visit needs an animal, the animal needs a client, and
-    // each step carries the one below it.
+    // Down: the vet types the animal's name into the visit, finds no
+    // such animal, and asks for one -- and the same again for its
+    // owner. Each step carries the address AND what was typed.
     await page.goto("/visits/new");
     const main = page.getByRole("main");
-    await main.getByRole("link", { name: /new pet|yeni hayvan/i }).click();
-    await expect(page).toHaveURL("/pets/new?next=%2Fvisits%2Fnew");
-    await main.getByRole("link", { name: /new client|yeni müşteri/i }).click();
-    await expect(page).toHaveURL(
-      "/clients/new?next=" + encodeURIComponent("/pets/new?next=%2Fvisits%2Fnew"),
-    );
+    await main.getByRole("combobox", { name: /^pet$|^hayvan$/i }).fill("Limon");
+    await main.getByRole("option", { name: /Limon/ }).last().click();
+    await expect(page).toHaveURL("/pets/new?next=%2Fvisits%2Fnew&name=Limon");
+    // Written once: the name is already in the animal form.
+    await expect(page.getByLabel(/^name$|^isim$/i)).toHaveValue("Limon");
+
+    await main
+      .getByRole("combobox", { name: /^owner$|^sahibi$/i })
+      .fill("Devrim Aksoy");
+    await main.getByRole("option", { name: /Devrim Aksoy/ }).last().click();
+    await expect(page).toHaveURL(/\/clients\/new\?.*name=Devrim\+Aksoy/);
+    // And again: the client form opens with the name split into it.
+    await expect(page.getByLabel(/first name|^ad$/i)).toHaveValue("Devrim");
+    await expect(page.getByLabel(/last name|soyad/i)).toHaveValue("Aksoy");
 
     // Up, one link: back on the animal form with the owner already in it.
-    await page.getByLabel(/first name|^ad$/i).fill("Devrim");
-    await page.getByLabel(/last name|soyad/i).fill("Aksoy");
+    await page.getByLabel(/phone|telefon/i).first().fill("0532 111 22 33");
     await page
       .getByRole("button", { name: /create client|müşteri oluştur/i })
       .click();

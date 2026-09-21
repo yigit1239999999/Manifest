@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { Client, Pet } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
@@ -18,6 +19,8 @@ import { createPetAction, updatePetAction } from "@/modules/pets/actions";
 import { toDateInput } from "@/lib/format";
 import { BREEDS } from "@/lib/breeds";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { createHref } from "@/lib/next-param";
+import { ownerLabel } from "@/lib/pet-label";
 
 interface Props {
   pet?: Pet;
@@ -25,6 +28,27 @@ interface Props {
   /** See `InvoiceForm`: true when the list was cut off at its cap. */
   ownersCapped?: boolean;
   defaultOwnerId?: string;
+  /**
+   * The name the vet had already typed into the picker that sent them
+   * here.
+   *
+   * The walk back carries the address (`?next=`) and now the content
+   * too: they wrote "Limon" into the visit's animal box, found no such
+   * animal, and asked for one to be made. Retyping it is small, but
+   * this is the errand the vet described as the difference between a
+   * door that annoys and a form that loses them.
+   */
+  defaultName?: string;
+  /**
+   * The address that brings the vet back to this form, as it stands,
+   * after making a client.
+   *
+   * Built by the page, because only the page knows the errand it is
+   * itself on: coming from a visit this is
+   * `/pets/new?next=/visits/new&name=Limon`, and the walk has to come
+   * back through here rather than to the animal list.
+   */
+  errand?: string;
   /**
    * The label for the selected owner (`pet.ownerId` or `defaultOwnerId`)
    * when that record is not in `owners`.
@@ -70,6 +94,8 @@ export function PetForm({
   owners,
   ownersCapped,
   defaultOwnerId,
+  defaultName,
+  errand,
   defaultOwnerLabel,
   customSpecies = [],
   clinicBreeds = [],
@@ -83,11 +109,13 @@ export function PetForm({
     () =>
       owners.map((o) => ({
         value: o.id,
-        label: `${o.firstName} ${o.lastName}`,
+        label: ownerLabel(o),
       })),
     [owners],
   );
+  const router = useRouter();
   const t = useTranslations("pet");
+  const tClient = useTranslations("client");
   const tSpecies = useTranslations("enum.species");
   const tSex = useTranslations("enum.sex");
   const tCommon = useTranslations("common");
@@ -154,7 +182,12 @@ export function PetForm({
   return (
     <ActionForm
       form={form}
-      focusFirstEmpty={Boolean(defaultOwnerId)}
+      focusFirstEmpty={Boolean(defaultOwnerId || defaultName)}
+      // This form sends the vet away mid-errand -- the owner box offers
+      // to make a client -- so what is already typed into it has to
+      // survive the trip, including the species and the name that
+      // arrived from the picker before them.
+      draftKey={pet ? `pet:${pet.id}` : "pet:new"}
       className="flex flex-col gap-8"
     >
       {/* Part-filled arrivals only: the chain a new clinic walks, or a
@@ -186,15 +219,30 @@ export function PetForm({
             searchingLabel={tCommon("searching")}
             searchFailedLabel={tCommon("searchFailed")}
             hasMoreLabel={tCommon("searchMore")}
+            // The second door, and the vet found it before we did:
+            // "where does the owner of the animal opened that way come
+            // from? It has to open from the same box, or you have taken
+            // one door away and left the other." Only on a new animal,
+            // for the reason `VisitForm` gives.
+            onCreate={
+              pet
+                ? undefined
+                : (typed) =>
+                    router.push(createHref("/clients/new", typed, errand))
+            }
+            createLabel={(typed) => tClient("createNamed", { name: typed })}
           />
         </Field>
 
         <Field label={t("name")} error={state.fieldErrors?.name} required>
           <Input
             name="name"
-            defaultValue={pet?.name}
+            defaultValue={pet?.name ?? defaultName ?? ""}
             required
-            autoFocus={!pet}
+            // Not when the name arrived already typed: the cursor
+            // belongs on the work that is left, which `focusFirstEmpty`
+            // works out (`action-form.tsx`).
+            autoFocus={!pet && !defaultName}
           />
         </Field>
 

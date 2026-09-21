@@ -159,6 +159,7 @@
     "previewNote": "An example clinic. This is how your panel will look once records start coming in."
   },
   "client": {
+    "createNamed": "Add \"{name}\" as a new client",
     "optionalDetails": "Optional details",
     "optionalDetailsHint": "You can fill these in later ({count} fields)",
     "title": "Clients",
@@ -225,6 +226,7 @@
     "phoneHint": "A client without a phone number cannot be sent reminders."
   },
   "pet": {
+    "createNamed": "Add \"{name}\" as a new animal",
     "title": "Pets",
     "one": "Pet",
     "subtitle": "All pets registered to your clinic.",

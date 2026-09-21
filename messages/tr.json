@@ -159,6 +159,7 @@
     "previewNote": "Örnek bir klinik. Kayıtlarınız girmeye başladığında paneliniz böyle görünecek."
   },
   "client": {
+    "createNamed": "+ \"{name}\" adıyla yeni müşteri aç",
     "optionalDetails": "İsteğe bağlı detaylar",
     "optionalDetailsHint": "Daha sonra da doldurabilirsiniz ({count} alan)",
     "title": "Müşteriler",
@@ -225,6 +226,7 @@
     "phoneHint": "Telefonsuz müşteriye hatırlatma gönderilemez."
   },
   "pet": {
+    "createNamed": "+ \"{name}\" adıyla yeni hayvan aç",
     "title": "Hayvanlar",
     "one": "Hayvan",
     "subtitle": "Kliniğinize kayıtlı tüm hayvanlar.",

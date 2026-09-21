@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeNext, withCreated } from "./next-param";
+import { createHref, safeNext, withCreated } from "./next-param";
 
 // `next` decides where a browser goes after a trusted action, which is
 // the shape of every open-redirect hole ever shipped. One module,
@@ -120,5 +120,44 @@ describe("withCreated", () => {
     // A bill needs no animal, so this cannot happen today. Going without
     // the id beats refusing to go.
     expect(withCreated("/invoices/new", "pet", "p-1")).toBe("/invoices/new");
+  });
+});
+
+// The typed name travels with the errand, so the vet writes it once.
+// They measured the version where the chain carried the address but not
+// the content and called it the difference between a door that annoys
+// and a note that loses them.
+describe("createHref", () => {
+  it("carries the errand and the name that was typed", () => {
+    expect(createHref("/pets/new", "Limon", "/visits/new")).toBe(
+      "/pets/new?next=%2Fvisits%2Fnew&name=Limon",
+    );
+  });
+
+  it("goes without an errand when there is none", () => {
+    expect(createHref("/clients/new", "Ayşe Çelik")).toBe(
+      "/clients/new?name=Ay%C5%9Fe+%C3%87elik",
+    );
+  });
+
+  // The whitelist is the same one every other link goes through: a
+  // destination nobody may resume at is dropped rather than carried.
+  it("refuses to carry an errand that is not ours", () => {
+    expect(createHref("/pets/new", "Limon", "https://ornek.test")).toBe(
+      "/pets/new?name=Limon",
+    );
+  });
+
+  it("truncates a name long enough to be something else", () => {
+    const long = "a".repeat(200);
+    const href = createHref("/pets/new", long);
+
+    expect(new URLSearchParams(href.split("?")[1]).get("name")).toHaveLength(80);
+  });
+
+  it("hands the name back through safeNext untouched", () => {
+    expect(safeNext("/pets/new?next=%2Fvisits%2Fnew&name=Limon")).toBe(
+      "/pets/new?next=%2Fvisits%2Fnew&name=Limon",
+    );
   });
 });

@@ -28,6 +28,18 @@ interface Props {
    * -- because this ends up deciding a redirect.
    */
   next?: string;
+  /**
+   * The name the vet had typed into the picker that sent them here,
+   * already split.
+   *
+   * The counter is writing down a person who is standing in front of
+   * them, so what was typed is a whole name: the page splits it at the
+   * first space and both halves are editable, because a guess in an
+   * editable box costs a keystroke and retyping the name costs the
+   * thing the vet complained about.
+   */
+  defaultFirstName?: string;
+  defaultLastName?: string;
 }
 
 // Three answers and not two, and the third is the one the counter
@@ -92,7 +104,12 @@ const CONSENT_HINTS: Record<ConsentAnswer, string> = {
   "": "consent.unansweredHint",
 };
 
-export function ClientForm({ client, next }: Props) {
+export function ClientForm({
+  client,
+  next,
+  defaultFirstName,
+  defaultLastName,
+}: Props) {
   const t = useTranslations("client");
   const tEnum = useTranslations("enum.contactMethod");
   const tCommon = useTranslations("common");
@@ -155,7 +172,7 @@ export function ClientForm({ client, next }: Props) {
           >
             <Input
               name="firstName"
-              defaultValue={client?.firstName}
+              defaultValue={client?.firstName ?? defaultFirstName ?? ""}
               autoComplete="given-name"
               required
             />
@@ -171,7 +188,7 @@ export function ClientForm({ client, next }: Props) {
           >
             <Input
               name="lastName"
-              defaultValue={client?.lastName ?? ""}
+              defaultValue={client?.lastName ?? defaultLastName ?? ""}
               autoComplete="family-name"
             />
           </Field>

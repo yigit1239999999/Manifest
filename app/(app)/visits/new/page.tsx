@@ -4,7 +4,6 @@ import { requireSession } from "@/lib/session";
 import { listClinicians } from "@/modules/staff/queries";
 import { can } from "@/lib/permissions";
 import { getPetLabel, listPets } from "@/modules/pets/queries";
-import { MissingLink } from "@/components/missing-link";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
@@ -33,25 +32,30 @@ export default async function NewVisitPage({
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <BackLink href="/visits" label={tCommon("back")} />
       <PageHeader title={t("new")} />
-      {pets.items.length === 0 ? (
-        <MissingLink need="pet" next="/visits/new" />
-      ) : (
-        <Card className="p-6">
-          <VisitForm
-            pets={pets.items.map((p) => ({
-              id: p.id,
-              name: p.name,
-              // `listPets` already loads the owner; dropping it here was
-              // how three of the four pickers lost it.
-              ownerName: ownerLabel(p.owner),
-            }))}
-            petsCapped={pets.hasMore}
-            vets={vets}
-            defaultPetId={petId}
-            defaultPetLabel={defaultPetLabel}
-          />
-        </Card>
-      )}
+      {/* The form, on the first morning as on every other one. This is
+          the screen the dashboard card sends an empty clinic to, having
+          promised that the animal and its owner can be made on the way
+          -- and what stood here was a door saying an animal has to
+          exist first, then a second door saying an owner does. "The dog
+          is on the table, the owner is crying, and what I got was not a
+          blank page but a door. Do not make me a liar."
+          The animal box keeps that promise now: it offers to make what
+          was typed into it, under whatever it found. */}
+      <Card className="p-6">
+        <VisitForm
+          pets={pets.items.map((p) => ({
+            id: p.id,
+            name: p.name,
+            // `listPets` already loads the owner; dropping it here was
+            // how three of the four pickers lost it.
+            ownerName: ownerLabel(p.owner),
+          }))}
+          petsCapped={pets.hasMore}
+          vets={vets}
+          defaultPetId={petId}
+          defaultPetLabel={defaultPetLabel}
+        />
+      </Card>
     </div>
   );
 }
