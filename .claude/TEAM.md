@@ -1836,3 +1836,22 @@ altı `event.kind === …` dalı giriyor. İkimiz de aynı yanlış sınıfı ü
 **Ve bu, "abartılmış şiddet" kuralının nedenini veriyor:** abartma çoğu
 zaman kötü niyet ya da acele değil, **yarım okumanın doğal sonucu** — ve
 yarım okuma, dosya uzunsa iki kişide birden olur.
+
+### Aramanın şekli, bulabileceğinin şeklini belirler
+
+dev'in kuralı, üç vakalık bir taramadan: deseni **"`??` ile başlayan yedek
+metinler"** diye tarif etseydi üçüncüsünü kaçıracaktı — `` `Fatura #${number}` ``
+bir yedek değil, **içine Türkçe kelime gömülmüş kurulmuş bir başlık.**
+
+> Doğru desen **"koda yazılmış, katalogdan gelmeyen her kullanıcı metni"** —
+> yani **kusurun tanımı**, kusurun bugünkü **sözdizimi** değil.
+
+Sözdizimiyle tarif edilen bir desen, aynı kusurun başka yazılışını
+görmez — ve *"taradım, temiz"* raporu üretir, ki bu aramamaktan kötüdür
+("bir şeyin var olması bakmayı durdurur").
+
+**dev'in düzeltme kararı da aynı ailede:** yedekleri **çevirmedi, kaldırdı.**
+Satır zaten rozet + saat + veterinerle okunuyordu, yani yedek hiçbir zaman
+gerekli değildi. Tip `string | null` oldu — **bir sonraki yedek artık
+derleme hatası.** Kusuru düzeltmek yerine **sınıfını imkânsız kılmak**
+(TEAM.md 4'ün en güçlü hâli).
