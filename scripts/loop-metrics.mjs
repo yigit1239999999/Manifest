@@ -92,6 +92,41 @@ await optional(
    FROM vaccinations WHERE "administeredAt" > now() - interval '90 days'`,
 );
 
+// R4a-1'in kesim tarihi: 7f64494, "Make the next vaccination date the second
+// question, and say what it does". Alanın formdaki yeri, sonuç satırı ve
+// öneri çipi o commit'le indi.
+const R4A1_CUTOFF = "2026-09-21T09:02:50Z";
+
+// Aynı oran, ama yalnızca kesimden SONRA oluşturulan kayıtlarda — ve
+// yanında kesimden önceki, artık donmuş küme.
+//
+// Yukarıdaki INPUT_FILL_RATE'in tek başına cevaplayamadığı soru bu.
+// O oran "son 90 gün" penceresinde canlı: payda da pay da her yeni kayıtla
+// kayıyor, ve aynı gün içinde üç kez ölçüldüğünde 1/10 → 1/10 → 2/11 okundu.
+// Altında kayan bir sayıya karşı "iş işe yaradı mı" sorulamaz.
+//
+// Daha önemlisi 20 ileriye dönük bir davranışı değiştiriyor: yeni bir kayıt
+// oluşturulurken alanın doldurulmasını kolaylaştırıyor, eski kayıtlara
+// dokunmuyor. Ömür boyu oran o eski kayıtlarla seyreltilir — yüz eskinin
+// yanında on yeni kayıt kusursuz çalışsa bile oran kıpırdamaz ve iş
+// "işe yaramadı" görünür. Kesimli ölçü tam da değiştirdiğimiz şeye bakıyor.
+//
+// `createdAt`, `administeredAt` değil: ölçtüğümüz şey kaydın ne zaman
+// girildiği, aşının ne zaman yapıldığı değil. Geriye dönük girilen bir dozun
+// uygulama tarihi kesimden önce olabilir; o kayıt yine de yeni formda
+// oluşturulmuştur ve bu ölçünün içindedir.
+await optional(
+  "INPUT_FILL_RATE_SINCE",
+  `SELECT '${R4A1_CUTOFF}' AS cutoff,
+          count(*) FILTER (WHERE "createdAt" > '${R4A1_CUTOFF}') AS after_total,
+          count(*) FILTER (WHERE "createdAt" > '${R4A1_CUTOFF}'
+                             AND "nextDueAt" IS NOT NULL) AS after_with_due,
+          count(*) FILTER (WHERE "createdAt" <= '${R4A1_CUTOFF}') AS before_total,
+          count(*) FILTER (WHERE "createdAt" <= '${R4A1_CUTOFF}'
+                             AND "nextDueAt" IS NOT NULL) AS before_with_due
+   FROM vaccinations`,
+);
+
 // Kapanış nedeni dağılımı: döngünün gerçekten kapandığı yer.
 await optional(
   "CLOSURE_REASONS",
