@@ -429,8 +429,18 @@ export default async function VisitPage({
                       visit reads the result here, and a confirmation
                       that lives on another page is one they will not go
                       to. Same condition, same one tap. */}
+                  {/* On its own line, clear of the result's text, and
+                      that is a touch-placement rule rather than a
+                      layout preference. Results are read one-handed on
+                      a phone between patients, so a control sitting in
+                      the flow of the text a thumb is dragging is a
+                      control that gets pressed by the drag. Size is
+                      not the question here; where it sits is.
+
+                      The read state keeps the same position so the row
+                      does not move when it changes. */}
                   {d.externalLab && d.result && (
-                    <span className="ms-2 inline-flex align-middle">
+                    <div className="mt-2">
                       {d.readAt ? (
                         <span className="text-xs text-muted-foreground">
                           {tDiag("readOnAnon", {
@@ -446,7 +456,7 @@ export default async function VisitPage({
                           />
                         )
                       )}
-                    </span>
+                    </div>
                   )}
                 </li>
               ))}

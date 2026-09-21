@@ -516,8 +516,15 @@ export default async function PetPage({
                           Afterwards the row says who read it and when,
                           so the state is visible rather than merely
                           gone from a list. */}
+                      {/* `mt-3`, not `mt-2`: results are read
+                          one-handed on a phone between patients, and a
+                          control immediately under the text a thumb is
+                          dragging is one the drag can press. The gap is
+                          the guard, not the target size -- and the read
+                          state keeps the same place so the row does not
+                          move when it changes. */}
                       {d.externalLab && d.result && (
-                        <div className="mt-2">
+                        <div className="mt-3">
                           {d.readAt ? (
                             <p className="text-xs text-muted-foreground">
                               {d.readBy?.name
