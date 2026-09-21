@@ -4900,3 +4900,63 @@ burada **ad var, işaret ettiği şey yok.**
 **Bir `aria-describedby`, işaret ettiği id'nin varlığıyla birlikte
 doğrulanır.** Öznitelikin var olması, bağlantının kurulduğunu
 göstermiyor.
+
+### Tartışmadan önce karşının sayısını kendi yönteminle yeniden üret
+
+ux, pm'in renk ölçümüne dayanarak bir token kararı verecekti. Karar
+vermeden önce **pm'in sayılarını kendi hesabıyla yeniden üretti** ve
+birebir tuttuğunu yazdı (`L*` 37,5 / 37,6 · açık temada
+`text-destructive` 7,10 · koyuda 64,0 / 76,7).
+
+> *"Yani **aynı yöntemi kullanıyoruz, tartışma tabanı sağlam.**"*
+
+Bugün defalarca *"hangi zemin"* diye sorduk; bu, aynı sorunun
+**yöntem** tarafı:
+
+> **İki kişi aynı sayıyı farklı yöntemle üretiyorsa, anlaşmazlıkları
+> sayıda değil yöntemdedir — ve hangisinin haklı olduğu hiç
+> anlaşılmaz.**
+
+Maliyeti birkaç dakika, kazancı bütün bir tartışmanın önlenmesi. ux
+bunu **tartışma başlamadan** yaptı.
+
+### Erişilebilirliği bozarak erişilebilirliği düzeltme
+
+Açık temada kırmızı ile amber'in **açıklığı** neredeyse aynıydı
+(L\* 37,5 / 37,6), yani renk körlüğünde ayrım çöküyordu (döteranopi
+ΔE **6,8**). İki yön vardı ve ux birini gerekçeyle eledi:
+
+- **amber'i açmak** → kontrastı 7,07'nin **altına** indirirdi
+- **kırmızıyı koyultmak** → kontrastı **yükseltiyor** (7,10 → 11,24)
+
+> *Amber'i açmak, **erişilebilirliği bozarak renk körlüğünü
+> düzeltmek** olurdu.*
+
+**Bir erişilebilirlik kusurunu düzeltirken ikincisini üretmemenin
+yolu, çözümün yönünü ölçmek** — iki yön de "farkı açıyor", biri
+başka bir ölçüyü düşürüyor.
+
+Ve lead'in şartına (*"hangisini feda ettiğini yaz"*) verdiği cevap
+kuralın kendisi: **kontrasttan hiçbir şey feda edilmedi** — biri
+iyileşti, öteki sabit kaldı; feda edilen şey **kırmızının
+parlaklığı**, yani tek başına bakıldığında bir tık daha az "alarm".
+Bedelin **adı** kondu, "yok" denmedi.
+
+Ayrıca bir **geri çekme noktası** verdi (`#7d281e`, aynanın yarısı),
+ve **dokunmadıklarını** tek tek saydı — koyu tema iki blokta
+duruyor, ikisine de dokunulmadı ama bir sonraki değişiklikte ikisi
+birden güncellenmeli.
+
+### Bir tonu eklerken kapsamını da ekle
+
+`Field`'a `warning` tonu eklenirken ux kuralı beraberinde yazdı:
+
+> **`warning` tonu yalnızca alanın KENDİ DEĞERİNE ilişkin bir engeli
+> anlatan `hint` için kullanılır — genel tavsiye için asla.**
+
+Ve kutu/ikon eklemeyi reddetti, gerekçesi dev-ui'nin itirazını
+tamamlıyor: *kutu+ikon kelime dağarcığı `Callout`'undur; onu bir
+alanın altına indirmek **alan başına mini bir Callout** üretir.*
+
+**Yeni bir varyant, kapsamı yazılmadan eklenirse her yere yayılır** —
+`Callout`'un bugün on altı çağrı yerinde yaşadığı şey buydu.
