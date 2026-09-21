@@ -682,9 +682,15 @@
       "title": "Page not found",
       "description": "There is no such address in the app. It may be mistyped, or the page may have been removed."
     },
+    "forbiddenPage": {
+      "title": "You do not have access to this page",
+      "description": "This section is for administrators only. Ask your clinic administrator if you need access."
+    },
     "recordNotFound": {
       "title": "Record not found",
-      "description": "This record may have been deleted, or it may belong to another clinic. Go back to the list and search again."
+      "description": "This record may have been deleted, or it may belong to another clinic.",
+      "descriptionWithList": "This record may have been deleted, or it may belong to another clinic. Go back to the list and search again.",
+      "backToList": "Back to {list}"
     },
     "tryAgain": "Try again",
     "goHome": "Go home",

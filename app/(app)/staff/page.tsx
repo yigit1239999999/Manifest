@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Plus, Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { listStaff } from "@/modules/staff/queries";
@@ -15,9 +15,9 @@ import { DataTable } from "@/components/ui/data-table";
 
 export default async function StaffPage() {
   const session = await requireSession();
-  if (!can(session.user.role, "users.manage")) {
-    redirect("/");
-  }
+  // Not a redirect: being told no is a state, and an unexplained
+  // relocation to the dashboard is not one.
+  if (!can(session.user.role, "users.manage")) return <ForbiddenState />;
 
   const [t, tRole, tCommon, staff] = await Promise.all([
     getTranslations("staff"),

@@ -682,9 +682,15 @@
       "title": "Sayfa bulunamadı",
       "description": "Aradığınız adres uygulamada yok. Adres yanlış yazılmış ya da sayfa kaldırılmış olabilir."
     },
+    "forbiddenPage": {
+      "title": "Bu sayfaya erişim yetkiniz yok",
+      "description": "Bu bölüm yalnızca yöneticiler içindir. Erişmeniz gerekiyorsa klinik yöneticinizle görüşünüz."
+    },
     "recordNotFound": {
       "title": "Kayıt bulunamadı",
-      "description": "Bu kayıt silinmiş olabilir ya da bu kliniğe ait olmayabilir. Listeye dönüp yeniden arayabilirsiniz."
+      "description": "Bu kayıt silinmiş olabilir ya da bu kliniğe ait olmayabilir.",
+      "descriptionWithList": "Bu kayıt silinmiş olabilir ya da bu kliniğe ait olmayabilir. Listeye dönüp yeniden arayabilirsiniz.",
+      "backToList": "{list} listesine dön"
     },
     "tryAgain": "Tekrar deneyin",
     "goHome": "Ana sayfa",

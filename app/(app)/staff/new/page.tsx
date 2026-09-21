@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
@@ -8,9 +8,7 @@ import { StaffForm } from "@/components/forms/staff-form";
 
 export default async function NewStaffPage() {
   const session = await requireSession();
-  if (!can(session.user.role, "users.manage")) {
-    redirect("/");
-  }
+  if (!can(session.user.role, "users.manage")) return <ForbiddenState />;
 
   const [t, tCommon] = await Promise.all([
     getTranslations("staff"),
