@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     clinic: { findUnique: vi.fn(), update: vi.fn() },
+    // Present only so the test below can prove nothing touches it.
+    invoice: { update: vi.fn(), updateMany: vi.fn() },
     auditLog: { create: vi.fn() },
   },
 }));
@@ -53,5 +55,18 @@ describe("setClinicCurrency", () => {
 
     expect(prisma.clinic.update).not.toHaveBeenCalled();
     expect(prisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  // The claim the whole of backlog 32 rests on, and the one nobody could
+  // check on screen for two releases because the settings dialog was not
+  // saving at all: changing the clinic's currency restates nothing. Every
+  // invoice carries the currency it was issued in, stamped at creation
+  // (`modules/invoices/service.ts`), so a clinic switching from dollars to
+  // lira does not silently re-price a year of billing.
+  it("does not touch a single invoice", async () => {
+    await setClinicCurrency({ currency: "TRY" }, ctx);
+
+    expect(prisma.invoice.update).not.toHaveBeenCalled();
+    expect(prisma.invoice.updateMany).not.toHaveBeenCalled();
   });
 });
