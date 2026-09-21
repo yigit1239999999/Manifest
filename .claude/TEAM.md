@@ -2816,6 +2816,28 @@ commit'le (`c921092`) kurtardı ve **geçmişi yeniden yazmadı** — dört ajan
 tek ağaca commit'lerken paylaşımlı tarihi düzeltmek, tamir ettiğinden
 fazlasına mal olurdu.
 
+> **⚠ BEŞ AYRI MEKANİZMA SAYILDI, ve sonuncusu KONTROLÜN KENDİSİNİ
+> deliyor.** dev-ui'nin sayımı:
+>
+> 1. **`git commit -- <yollar>`** indeksi **atlar** → çalışma ağacı gider.
+> 2. **Yolsuz `git commit`** indeksin **tamamını** alır → başkasının
+>    sahnelediği dosyalar seninkine karışır (`5db1e5f`).
+> 3. **Bayat özel indeks** → araya gireni geri alır.
+> 4. **Paylaşımlı indeks, kontrol ile commit ARASINDA değişir → KONTROL
+>    SÜRESİ DOLAR.** dev-ui `git add <altı yol>` koştu,
+>    `--cached --name-only` ile **tam o altısını doğruladı**, ve commit'i
+>    **ayrı bir kabuk çağrısında** attı; arada indeks değişti, commit
+>    **yedi dosya** taşıdı.
+>
+> **Dördüncüsü önemli çünkü `--cached --name-only` kuralını DELİYOR:**
+> kontrol doğruydu, **zamanı geçti.** Yani kural yanlış değil, **tek
+> başına yetmiyor** — ve bu, bugün *"koruma görüntüsü veren, korumayan"*
+> diye saydığımız ailenin **kontrol tarafındaki** yüzü.
+>
+> **Çare:** taze bir özel indeks + `add`, kontrol ve `commit` **TEK
+> KABUK ÇAĞRISINDA.** Aralarında geçen zaman sıfırsa indeks değişemez.
+> *Paylaşılan şey yalnızca indeksin İÇERİĞİ değil, ZAMANI da.*
+
 > **⚠ BU KURALI ÖNCE YANLIŞ MEKANİZMAYLA YAZDIM. dev-ui düzeltti:**
 > `5db1e5f`'te **ne `-a` ne `-A` kullanılmış.** Komut
 > `git add <tek yol> && git commit` idi — ve **yolsuz bir `git commit`
