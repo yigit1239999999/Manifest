@@ -2,15 +2,31 @@
 //
 // Usage: node --env-file=.env scripts/loop-metrics.mjs
 //
-// Every query here is a SELECT; the script never writes. It answers the
+// Nothing here touches stored data: every reported number comes from a
+// SELECT, and the only writes are the session-local temp table and
+// views set up below, which vanish with the connection. It answers the
 // questions the release is judged by (see .claude/BACKLOG.md, "Ölçüm
 // noktaları"): does the loop have input, does it deliver, does it close.
 // Queries that depend on columns we haven't shipped yet report "N/A"
 // instead of failing, so the script keeps working as the schema grows.
 import pg from "pg";
 
+// `DIRECT_URL` first, and not interchangeably with `DATABASE_URL`.
+//
+// `DATABASE_URL` is the pgbouncer endpoint in transaction mode: each
+// statement may be handed to a different server connection. The temporary
+// views below would then be created on one backend and the queries run on
+// another — which does not raise an error, it silently reads the
+// unfiltered tables and reports the synthetic clinic as real data. A
+// read-only script run by hand has no reason to go through a pooler.
+//
+// Measured while this was being written: seconds after `npm run db:seed`
+// wrote the state clinic through `DIRECT_URL`, the pooled endpoint still
+// answered `129 clinics / state clinic absent` for about a minute, then
+// caught up. Two endpoints disagreeing about whether a row exists is
+// enough on its own to read the numbers from one of them only.
 const client = new pg.Client({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
@@ -33,6 +49,80 @@ await client.connect();
 // found because ux almost filed "reminders go out a day early" from a
 // script with this exact shape; the reminders were fine.
 await client.query("SET TIME ZONE 'UTC'");
+
+// The state clinic is excluded from every number below, and says so.
+//
+// `scripts/seed-states.mjs` builds one clinic holding every state a screen
+// can be in — a void invoice, a deceased animal, a paid invoice in a
+// currency this clinic does not bill in. All of it is synthetic and none
+// of it is a measurement of anything. Counted here it would move every
+// baseline the team has agreed on, in one command.
+//
+// Done as temporary views rather than a WHERE on each of the fourteen
+// queries below. `pg_temp` comes first in the search path, so every
+// unqualified table name from here on reads the filtered version, and a
+// query added later is filtered without anyone remembering to. Fourteen
+// hand-written conditions would work until the fifteenth query.
+const STATE_CLINIC_NAME = "HÂL KLİNİĞİ";
+const stateClinic = await client.query(
+  `SELECT id FROM clinics WHERE name = $1`,
+  [STATE_CLINIC_NAME],
+);
+const excludedId = stateClinic.rows[0]?.id ?? null;
+
+if (excludedId) {
+  // The id goes into a temp table rather than into the view definitions.
+  // `CREATE VIEW` is a utility statement and takes no bind parameters —
+  // the first version passed `$1` and every run died on the first view
+  // with "bind message supplies 1 parameters, but prepared statement
+  // requires 0". Interpolating the id into the SQL would work and is the
+  // obvious repair; a one-row table keeps the value parameterised and, if
+  // the seed is ever missing, `NOT IN` over an empty table excludes
+  // nothing instead of silently excluding everything the way `<> NULL`
+  // would.
+  await client.query(`CREATE TEMP TABLE excluded_clinic (id text)`);
+  await client.query(`INSERT INTO excluded_clinic (id) VALUES ($1)`, [
+    excludedId,
+  ]);
+
+  // Every public table carrying `clinicId`, not only the ones read today,
+  // so the claim above — that a query added later is filtered — is true.
+  const scoped = [
+    "appointments", "audit_logs", "clients", "custom_species", "diagnostics",
+    "documents", "invoices", "message_logs", "notes", "pets", "prescriptions",
+    "reminders", "treatments", "users", "vaccinations", "visits",
+  ];
+  for (const table of scoped) {
+    await client.query(
+      `CREATE TEMP VIEW ${table} AS
+         SELECT * FROM public.${table}
+         WHERE "clinicId" NOT IN (SELECT id FROM pg_temp.excluded_clinic)`,
+    );
+  }
+  // Children without a clinic of their own, reached through their parent.
+  // `invoices` here is already the filtered view above.
+  await client.query(
+    `CREATE TEMP VIEW invoice_lines AS
+       SELECT l.* FROM public.invoice_lines l
+       JOIN invoices i ON i.id = l."invoiceId"`,
+  );
+  await client.query(
+    `CREATE TEMP VIEW payments AS
+       SELECT p.* FROM public.payments p
+       JOIN invoices i ON i.id = p."invoiceId"`,
+  );
+  await client.query(
+    `CREATE TEMP VIEW clinics AS
+       SELECT * FROM public.clinics
+       WHERE id NOT IN (SELECT id FROM pg_temp.excluded_clinic)`,
+  );
+}
+
+console.log(
+  excludedId
+    ? `EXCLUDED ["${STATE_CLINIC_NAME}" — synthetic, see scripts/seed-states.mjs]`
+    : `EXCLUDED [none — "${STATE_CLINIC_NAME}" not seeded]`,
+);
 
 await q(
   "VOLUME",
