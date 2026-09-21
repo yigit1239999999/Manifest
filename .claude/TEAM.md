@@ -466,6 +466,20 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    tutamadığın bir şeyi söylersen, onu geri aldığın gün kullanıcı
    **kaybettiğini** görür — ve bir daha o ekranın cümlelerine inanmaz.
 
+   **Kusurun nasıl DOĞDUĞU, ve bu kuralın önleyici yarısı** — cümleyi
+   yazan kişi kendi anlattı: *"O cümleyi **ben yazmıştım**, ve **iyi
+   niyetle** yazmıştım — **yapmayı planladığımız davranışı**
+   anlatıyordu."*
+
+   > **Kusur özensizlik değil: gelecek zamanı şimdiki zaman gibi
+   > yazmak.**
+
+   Kimse bilerek yalan cümle yazmıyor. Tasarımı bilen biri, **inecek**
+   olanı **inmiş** gibi tarif ediyor — ve o cümle, arkasındaki iş
+   gecikince tek başına ekranda kalıyor. Pratik önlem: bir cümle
+   yazarken *"bu bugün doğru mu"* diye sor, *"bu doğru olacak mı"* diye
+   değil.
+
    *Vaka:* ilk çalıştırma kartı *"hayvanı ve sahibini **yol üstünde**
    açarsınız"* diyordu ve ekran bunu yapmıyordu. **İki hekim de bunu
    yalan diye işaretledi**, biri kendi ağzıyla: *"beni yalancı
