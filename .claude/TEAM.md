@@ -5827,3 +5827,32 @@ girdinin yolu, sonra saklamada normalleştirme.**
 Ve bir ek tespit, ölçüyü değiştiriyor: *"96 boşluklu / 38 `+90` / 4
 düz"* dağılımı **bir veri kusuru değil, insanların yazdığı biçim.**
 Kusur, onu **olduğu gibi göstermemiz.**
+
+### Sahte görünen değer, sahte sayılan değer değildir
+
+Kaldırılan bir numaranın yerine konacak işareti seçerken dilsiz bir
+değer istedim (`000`) ve **ölçülmesini şart koştum.** dev ölçtü, ve
+karşılaştırma için *"bariz yer tutucu"* diye seçilebilecek bir
+değeri de denedi:
+
+```
+"000"          normalize: null       possible: false   telHref: null
+"0000000000"   normalize: 00000000   possible: true    telHref: tel:+00000000
+```
+
+**On sıfır, aranabilir sayılıyor.** Sekiz haneli bir "numara"ya
+normalleşiyor ve bir geçide öyle verilirdi.
+
+dev'in cümlesi: ***görünüş değil, hane sayısı karar veriyor.***
+İşaret *"bariz sahte görünsün"* diye seçilseydi, tam da kapatılmak
+istenen delik açık kalırdı — ve bunu **okuyarak değil, ölçerek**
+öğrendik.
+
+**Kural:** bir değeri *"zaten geçersizdir"* diye seçiyorsan, onu
+geçersiz kılanın **hangi kod** olduğunu ölç. Gözün geçersiz saydığı
+şey ile doğrulayıcının geçersiz saydığı şey aynı küme değil, ve
+aradaki fark tam olarak sessiz kusurun yaşadığı yer.
+
+Açık kalan hâli: `normalizePhone`'un sekiz hane alt sınırı *"anlamlı
+numara"* yerine geçiyor, yani bir müşterinin telefonuna
+`0000000000` yazan biri bugün **gönderilebilir** sayılıyor.
