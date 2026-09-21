@@ -250,7 +250,12 @@ export default async function AppointmentPage({
             <NotificationActions
               appointmentId={appointment.id}
               channel={preview.channel}
-              configured={preview.configured && preview.optedIn}
+              // `=== true`, not `?? false`: consent is three-valued now
+              // and the two states that are not "yes" reach here for
+              // different reasons. Coercing null to false would make the
+              // distinction unwritable at the one place it has to be
+              // made, and would read as if it had never existed.
+              configured={preview.configured && preview.optedIn === true}
               messages={[preview.confirmation, preview.reminder].map((m) => ({
                 kind: m.kind,
                 body: m.body,

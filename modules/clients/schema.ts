@@ -1,11 +1,11 @@
 import { z } from "zod";
 import {
-  checkbox,
   optionalEmail,
   optionalEnum,
   optionalPhone,
   optionalText,
   requiredText,
+  tristate,
 } from "@/lib/forms";
 
 export const CONTACT_METHODS = ["EMAIL", "PHONE", "SMS"] as const;
@@ -23,7 +23,11 @@ export const clientSchema = z.object({
   country: optionalText(80),
   preferredContact: optionalEnum(CONTACT_METHODS),
   preferredLanguage: optionalEnum(LANGUAGES),
-  notificationsOptIn: checkbox,
+  // Three states, not two: unanswered, yes, no. `checkbox` would collapse
+  // the first two -- see `tristate` in `lib/forms.ts`, and the
+  // `marketingOptIn` note just below, which is the same trap read from
+  // the other end.
+  notificationsOptIn: tristate,
   // No `marketingOptIn`. The column still exists and still holds the
   // consents that were collected, but it is not a field of this form any
   // more, and it must not become one by accident: an unticked checkbox

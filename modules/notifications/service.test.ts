@@ -361,6 +361,73 @@ describe("runReminderSweep", () => {
   });
 });
 
+// Consent is three-valued: null means nobody asked. Every path that can
+// reach an owner has to treat that as "no", and the three of them arrive
+// at it three different ways -- a thrown error, an early return, and a
+// database filter. That is three places to get it right and three places
+// for the next person to add a fourth without noticing.
+//
+// This was already true when the column became nullable; it is written
+// down here so that it stays a contract rather than a coincidence. A
+// migration that turns a hundred and thirty-eight `false`s into nulls
+// must not make a single message go out that would not have gone out the
+// day before.
+describe("a client nobody has asked", () => {
+  const unasked = () =>
+    appointment({ client: { ...appointment().client, notificationsOptIn: null } });
+
+  it("cannot be sent to by hand", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(unasked() as never);
+
+    await expect(
+      sendAppointmentMessage("a-1", "APPOINTMENT_CONFIRMATION", ctx),
+    ).rejects.toMatchObject({ messageKey: "error.notifications.optedOut" });
+    expect(transport.send).not.toHaveBeenCalled();
+  });
+
+  it("is not sent a confirmation when an appointment is booked", async () => {
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({
+      ...clinicRow,
+      settings: {
+        notifications: {
+          channel: "SMS",
+          whatsapp: { enabled: true, confirmOnBooking: true },
+        },
+      },
+    } as never);
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(unasked() as never);
+
+    await notifyAppointmentBooked("a-1", ctx);
+
+    expect(transport.send).not.toHaveBeenCalled();
+  });
+
+  it("is excluded by the sweep's own queries, not by a later check", async () => {
+    // Set here rather than inherited: the sweep's own describe sets the
+    // same three, and a test that only passes because an earlier block
+    // ran first passes for the wrong reason.
+    vi.mocked(prisma.clinic.findMany).mockResolvedValue([clinicRow] as never);
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([] as never);
+
+
+    // In the query for the same reason the dead-animal filter is: the
+    // automatic path reaches an owner with nobody watching, and a guard
+    // that lives after the read is a guard somebody can forget to call.
+    // `true` and not `{ not: false }`: the second would pick up exactly
+    // the clients this migration created.
+    await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
+
+    for (const mock of [prisma.appointment.findMany, prisma.reminder.findMany]) {
+      const where = vi.mocked(mock).mock.calls[0][0]?.where as Record<
+        string,
+        Record<string, unknown>
+      >;
+      expect(where.client.notificationsOptIn).toBe(true);
+    }
+  });
+});
+
 describe("parseNotificationSettings", () => {
   it("defaults to SMS with sensible reminder timing", () => {
     const s = parseNotificationSettings(undefined);

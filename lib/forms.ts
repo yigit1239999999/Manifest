@@ -217,6 +217,36 @@ export const checkbox = z
   .optional()
   .transform((v) => v === "on" || v === "true" || v === "1");
 
+/**
+ * A yes/no answer that may not have been given yet.
+ *
+ * `checkbox` above cannot carry one. An unticked box submits nothing, so
+ * "absent" and "no" arrive as the same request and the helper resolves
+ * them both to `false` -- correct for a switch, wrong for a question. On
+ * a column where null means "nobody asked", it means every edit of every
+ * client quietly records a refusal that nobody ever made.
+ *
+ * So: "true" is yes, "false" is no, and anything else -- including the
+ * field not being submitted at all -- is `undefined`, which Prisma reads
+ * as "do not write this column". Create leaves it null, update leaves
+ * whatever was there.
+ *
+ * The control above it has to be able to submit all three, which means a
+ * radio group or a three-way select rather than a checkbox. A checkbox
+ * wired to this helper is the old defect with a new spelling: it submits
+ * "true" or nothing, so a "no" can never come back.
+ *
+ * Same trap `marketingOptIn` is kept out of `clientSchema` to avoid (see
+ * the comment there): a key in the schema with no control on screen
+ * writes over the value on every submit. This helper is the other half
+ * of that lesson -- there the answer was to remove the key, here the
+ * column has three states and the answer is a field that can stay quiet.
+ */
+export const tristate = z
+  .string()
+  .optional()
+  .transform((v) => (v === "true" ? true : v === "false" ? false : undefined));
+
 export function toFieldErrors(error: ZodError): Record<string, string[]> {
   const fieldErrors: Record<string, string[]> = {};
   for (const issue of error.issues) {

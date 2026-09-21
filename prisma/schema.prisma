@@ -123,7 +123,20 @@ model Client {
   preferredLanguage  String?
   /// Per-client switch for automatic SMS/WhatsApp messages (appointments,
   /// reminders). Timing is a clinic setting; this is the client's consent.
-  notificationsOptIn Boolean        @default(false)
+  ///
+  /// Three states, and nothing may quietly turn one into another:
+  ///   null  - nobody has asked yet
+  ///   true  - the client agreed
+  ///   false - the client refused
+  ///
+  /// It used to be `Boolean @default(false)`, so a client born unasked was
+  /// recorded as having refused, on the day the record was created. The
+  /// two are not the same thing and only one of them is a fact: "not
+  /// asked" is work still to do, "refused" is an answer to respect. Both
+  /// sides of the column have to keep them apart - see the form field in
+  /// `modules/clients/schema.ts`, where an absent control must write
+  /// nothing rather than `false`.
+  notificationsOptIn Boolean?
   marketingOptIn     Boolean        @default(false)
   notes              String?
   archivedAt         DateTime?

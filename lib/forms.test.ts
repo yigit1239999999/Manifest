@@ -18,6 +18,7 @@ import {
   requiredInt,
   requiredText,
   toFieldErrors,
+  tristate,
 } from "./forms";
 
 describe("requiredText", () => {
@@ -192,6 +193,32 @@ describe("checkbox", () => {
   it("treats undefined / empty as false", () => {
     expect(checkbox.safeParse(undefined).data).toBe(false);
     expect(checkbox.safeParse("").data).toBe(false);
+  });
+});
+
+describe("tristate", () => {
+  // Three answers, and the third one is the whole reason the helper
+  // exists: a question that has not been put to anyone yet. `checkbox`
+  // above cannot hold it -- an unticked box and an unasked question
+  // reach the server as the same empty request, and reading both as
+  // `false` writes a refusal nobody made.
+  it("carries yes and no", () => {
+    expect(tristate.safeParse("true").data).toBe(true);
+    expect(tristate.safeParse("false").data).toBe(false);
+  });
+
+  it("says nothing when nothing was answered", () => {
+    // `undefined` and not `null`: Prisma writes null, and skips
+    // undefined. The distinction is the feature.
+    expect(tristate.safeParse(undefined).data).toBeUndefined();
+    expect(tristate.safeParse("").data).toBeUndefined();
+  });
+
+  it("does not accept a checkbox's answer", () => {
+    // "on" is what a checkbox sends. Treating it as yes would make the
+    // helper work with a control that can never send no, so consent
+    // could be given and never withdrawn.
+    expect(tristate.safeParse("on").data).toBeUndefined();
   });
 });
 
