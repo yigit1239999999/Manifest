@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  msg,
   optionalDateTime,
   optionalFloat,
   optionalInt,
@@ -8,6 +9,9 @@ import {
   requiredDateTime,
   requiredEnum,
   requiredId,
+  requiredPhone,
+  requiredText,
+  tristate,
 } from "@/lib/forms";
 import { VISIT_TYPES } from "@/modules/appointments/schema";
 
@@ -35,3 +39,81 @@ export const visitSchema = (locale: string) =>
   });
 
 export type VisitInput = z.infer<ReturnType<typeof visitSchema>>;
+
+/**
+ * The animal, and its owner, recorded in the same breath as the visit.
+ *
+ * The vet's sentence for why this exists: "a form has no order, a walk
+ * does." At the counter the owner is standing there and the animal is
+ * not on file; on the examination table the animal is in front of them
+ * and the owner is a name they have not asked for yet. The product
+ * asked for whichever one they did not have, first.
+ *
+ * So these are the fields that may be answered inside the visit form
+ * rather than on a screen of their own -- and the list is short on
+ * purpose. The vet was asked what else has to be captured while the
+ * animal is on the table and answered that there is nothing: "there is
+ * no field I would say you must ask me now or I can never enter it."
+ * Breed, birth date, sex, address, email and the surname are all
+ * absent for that reason, not by oversight, and adding one here is a
+ * decision about the vet's hands rather than about the schema.
+ */
+export const newOwnerSchema = z.object({
+  firstName: requiredText(1, 80, "client.firstName"),
+  // Absent is a fact, not an omission: the counter is not allowed to
+  // ask the lady who brings the street cat (`Client.lastName`).
+  lastName: optionalText(80),
+  // The clinic's only handle on the animal afterwards, and what every
+  // reminder is sent to.
+  phone: requiredPhone(40),
+  // Three states and nothing pre-selected. "Do not ask now" writes
+  // NOTHING -- `null`, the same value a client born unasked carries --
+  // because "I asked and got no answer" and "I never asked" change
+  // neither what the product sends nor what it has to ask again.
+  notificationsOptIn: tristate,
+});
+
+export const newPetSchema = z.object({
+  name: requiredText(1, 80, "pet.name"),
+  /** Built-in key, `custom:<id>`, or a typed name: see `resolveSpecies`. */
+  species: requiredText(1, 60, "pet.species"),
+  /** An owner already on file... */
+  ownerId: optionalText(40),
+  /** ...or one being written down in the same breath. Exactly one. */
+  owner: newOwnerSchema.optional(),
+});
+
+/**
+ * A visit that may be bringing its animal, and its animal's owner, with
+ * it.
+ *
+ * Deliberately a second schema rather than a loosened `visitSchema`:
+ * editing a visit can never create an animal, and a single schema that
+ * allowed it would have to be told which case it was in on every call.
+ */
+export const visitIntakeSchema = (locale: string) =>
+  visitSchema(locale)
+    .extend({
+      // Relaxed, and the refinement below is what keeps it honest.
+      petId: optionalText(40),
+      newPet: newPetSchema.optional(),
+    })
+    .superRefine((value, ctx) => {
+      if (!value.petId && !value.newPet) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["petId"],
+          message: msg("error.form.select", { field: "pet.one" }),
+        });
+      }
+      if (value.newPet && !value.newPet.ownerId && !value.newPet.owner) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["newPet", "ownerId"],
+          message: msg("error.form.select", { field: "pet.owner" }),
+        });
+      }
+    });
+
+export type NewPetInput = z.infer<typeof newPetSchema>;
+export type VisitIntakeInput = z.infer<ReturnType<typeof visitIntakeSchema>>;

@@ -171,12 +171,30 @@ describe("the permission a screen reads is the one a service enforces", () => {
         new RegExp(`^export (?:async )?function ${verb}[A-Za-z]*\\(`, "gm"),
       ),
     ];
-    // Two of them and the route no longer names one mutation; resolving it
-    // to the first would guess. Let the unresolved case fail instead.
-    if (declarations.length !== 1) return null;
-    const body = source.slice(declarations[0].index);
-    return (body.match(/requirePermission\([^,]+,\s*"([^"]+)"\)/)?.[1] ??
-      null) as Permission | null;
+    if (declarations.length === 0) return null;
+    // Every one of them, and they have to agree.
+    //
+    // It used to demand exactly one, on the grounds that two mutations
+    // mean the route no longer names a single one. Then a module got a
+    // second create path for real -- `createVisitWithIntake`, the visit
+    // that brings its animal with it -- and the question this test asks
+    // still had a well-defined answer: both demand `visits.write`, so
+    // that is what the link offers. What must not pass is two paths
+    // that DISAGREE, because then the link's promise depends on which
+    // one the form happens to call, and that is exactly the guess the
+    // old rule was refusing to make. So: collect, dedupe, and give up
+    // only when the answers differ.
+    const asked = new Set(
+      declarations.map(
+        (d) =>
+          source
+            .slice(d.index)
+            .match(/requirePermission\([^,]+,\s*"([^"]+)"\)/)?.[1] ?? "",
+      ),
+    );
+    if (asked.size !== 1) return null;
+    const [only] = [...asked];
+    return (only || null) as Permission | null;
   }
 
   const HREF = /href=(?:\{`([^`]*)`\}|"([^"]*)")/g;
