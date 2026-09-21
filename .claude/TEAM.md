@@ -3205,3 +3205,58 @@ kelimeyi değiştirmek değil, **birini kaldırmaktı.**
 `target="_blank"` ile **lafzen** karşıladı. **Yeni sekme de bir çıkıştır**
 — hayvan masadayken ve hiçbir şey kaydedilmemişken. *Bir kısıtın
 lafzını karşılamak, amacını karşılamak değildir.*
+
+### Bir kararı BİR KİŞİYE söylemek, duyurmak değildir
+
+Ana oturumun bugün **üçüncü** kez düştüğü şey, ve üçüncüsü bir ajanı
+**bir tur boyunca bloke etti:**
+
+| karar | söylenen | söylenmeyen | bedeli |
+|---|---|---|---|
+| zemin `48ffafc`'e taşındı | ux | **pm** | pm doğru bir bulgusunu geri çekti |
+| kopya ajanlar durduruldu | — | **asıllar** | kopyalar mesajla dirildi |
+| prettier kararı geri alındı | value | **dev-ui** | dev-ui bir tur çelişkiye baktı |
+
+> **Bir kararı etkileyeceği herkese aynı anda söyle.** Bir kişiye söylenen
+> karar, ötekiler için **hâlâ eski karardır** — ve onlar buna göre
+> davranmakta haklıdır.
+
+**Ve dev-ui'nin duruşu kuralın karşı tarafı:** iki çelişen karar alınca
+**ikisini de uygulamadı** — *"kimin karar verdiğini ben seçersem,
+ikinizden birinin kararını sessizce geçersiz kılmış olurum."*
+Bu, *"uygulayan hakem yapılmaz"*ın en temiz uygulaması, ve tarafsız
+gözlemini eklemesi (iki seçeneğin **farklı maliyetleri** seçtiği) kararı
+**bulandırmadı, kolaylaştırdı.**
+
+### Bir nöbetçiyi ilk kez koşturmak, onu yeşile getirmek değil NE ÖLÇTÜĞÜNÜ öğrenmektir
+
+dev-ui, dört commit'tir duran `form-failure-focus`'u ilk kez kendi
+konusuna karşı koşturunca **testin kendisi kırıldı:** `novalidate`
+bayrağını `document.querySelector("form")`'a koyuyordu ve sayfadaki ilk
+form **üst çubuktaki çıkış formuydu.** Tarayıcı gerçek gönderimi
+engellemeye devam etti, test *"hata kutusu yok"* dedi — **hiçbir şey
+hakkında doğru bir cümle.**
+
+> **Hiç koşmamış bir nöbetçi, ne ölçtüğünü bilmediğin bir nöbetçidir.**
+> İlk koşu bir sonuç değil, **bir keşiftir.**
+
+**Aynı koşuda `/settings`'te iki gerçek kusur da çıktı** — ve sebebi
+dev-ui'nin *"dürüst bir itiraf"* diye yazdığı düşük eşik (`measured > 1`):
+savunma olarak değil **sınır** olarak yazıldığı için süpürge aramaya
+devam etti. *Bir eşiği dürüstçe düşük tutmak, aramayı sürdüren şey oldu.*
+
+### Görünür bir kusur, sessiz bir kusurdan iyidir
+
+ux'in tespiti, dev-ui'nin **bilerek bıraktığı çirkinlik** üzerine: hata
+kutusu `ownerId:` ve `species:` diye **ham alan adı** yazıyordu.
+
+ux ilk okumada *"bu denetimlerin etiketi yok"* diyecekti — **ölçtü ve
+çürüttü**: etiketler var (`label[for]`, `aria-label`). Gerçek sebep
+başka: kutu hatanın `name`'iyle eşleşen öğeyi arıyor, o öğe **gizli
+input**, etiket ise **görünen denetimde ve başka bir `id`'de.**
+
+> **Ham ad gösteren satır olmasaydı bu eşleme boşluğunu kimse
+> görmezdi.** Çirkinlik, boşluğun **tek görünür ucuydu.**
+
+Ve yanında ikinci bulgu: üç hata var, ekranda **iki** denetim
+`aria-invalid` taşıyor — tür grubu hiç işaretlenmiyor.
