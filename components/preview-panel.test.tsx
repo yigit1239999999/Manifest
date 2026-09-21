@@ -111,4 +111,38 @@ describe("the panel a clinic sees before it has records", () => {
     // Real, readable titles: the information is in them.
     expect(container.textContent).toContain(tr.dashboard.sections.recentVisits);
   });
+
+  /**
+   * Two cards stay out, and the guard is here because their absence
+   * looks like an oversight.
+   *
+   * A placeholder under "revenue, last six months" sets up an
+   * expectation of an amount whatever is drawn beneath it, and this
+   * panel may say too little but not too much about money. The cost
+   * is real and accepted: the preview describes the panel
+   * incompletely, missing its two largest cards.
+   */
+  it("says nothing about money or volume", async () => {
+    const { container } = render(await PreviewPanel());
+    for (const title of [
+      tr.dashboard.sections.revenueLast6Months,
+      tr.dashboard.sections.visitsLast12Weeks,
+    ]) {
+      expect(container.textContent, `${title} sets up an expectation`)
+        .not.toContain(title);
+    }
+  });
+
+  // The order is the real panel's, and matching it is what lets a vet
+  // find their first visit in the place the grey draft had held.
+  it("keeps the order the real panel reads in", async () => {
+    const { container } = render(await PreviewPanel());
+    const shown = [...container.querySelectorAll("p")].map((p) => p.textContent);
+    expect(shown).toEqual([
+      tr.dashboard.sections.upcomingAppointments,
+      tr.dashboard.sections.recentVisits,
+      tr.dashboard.sections.petsBySpecies,
+      tr.dashboard.sections.upcomingVaccinations,
+    ]);
+  });
 });

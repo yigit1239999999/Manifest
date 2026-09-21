@@ -55,11 +55,31 @@ import { surface } from "@/components/ui/card";
 export async function PreviewPanel() {
   const t = await getTranslations("dashboard.sections");
 
+  // The real panel's own reading order, checked against it rather than
+  // chosen: appointments, visits, species, vaccinations last and full
+  // width (`app/(app)/page.tsx`). That order is the point of the whole
+  // panel -- the moment it exists for is a vet writing their first
+  // visit, coming back, and finding their own animal in the place the
+  // grey draft had held. That only happens if the places match.
+  //
+  // The two money-and-volume charts are DELIBERATELY ABSENT, and this
+  // is the note for whoever thinks the preview looks incomplete. A
+  // placeholder under "revenue, last six months" sets up an
+  // expectation of an amount no matter what is drawn beneath it, and
+  // the preview saying too little is safe where saying too much about
+  // money is not. `visitsLast12Weeks` is out for the same reason.
+  //
+  // It costs something and we are paying it knowingly: the preview
+  // describes the panel incompletely, missing its two largest cards.
+  // The skeleton already makes that trade -- four list-shaped cards
+  // for a panel that has charts -- and matching the skeleton exactly
+  // is what buys the measurable thing, which is no layout jump. A
+  // soft incompleteness is not worth a hard gain.
   const titles = [
     t("upcomingAppointments"),
     t("recentVisits"),
-    t("upcomingVaccinations"),
     t("petsBySpecies"),
+    t("upcomingVaccinations"),
   ];
 
   return (
