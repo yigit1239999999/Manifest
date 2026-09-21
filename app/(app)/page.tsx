@@ -377,8 +377,20 @@ export default async function DashboardPage() {
                     key={v.id}
                     className="flex items-center justify-between gap-2 rounded-control px-2 py-2"
                   >
+                    {/* The animal is a link for the same reason it is one on a
+                        reminder row: somebody reading which vaccinations
+                        are overdue wants to go to the animal, and the card
+                        was making them find it by hand. Half of what this
+                        card is for is getting them there.
+
+                        Both lists on this page, not just the one that was
+                        reported: the same gap, and one linked card beside
+                        one unlinked card is a worse answer than neither. */}
                     <span className="text-sm font-medium">
-                      {v.pet.name} · {v.name}
+                      <Link href={`/pets/${v.pet.id}`} className="hover:underline">
+                        {v.pet.name}
+                      </Link>{" "}
+                      · {v.name}
                     </span>
                     <span className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">
@@ -424,7 +436,10 @@ export default async function DashboardPage() {
                         evidence the field was nullable; defensive code had
                         become the documentation. */}
                     <span className="text-sm font-medium">
-                      {v.pet.name} · {v.name}
+                      <Link href={`/pets/${v.pet.id}`} className="hover:underline">
+                        {v.pet.name}
+                      </Link>{" "}
+                      · {v.name}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {formatDate(fmt, v.nextDueAt)}

@@ -128,7 +128,7 @@
     },
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
     "overdueVaccinationsDismiss": "Kapat",
-    "overdueVaccinationsDismissName": "{pet} · {vaccine} aşı satırını kapat",
+    "overdueVaccinationsDismissName": "{pet} · {vaccine} satırını kapat",
     "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
     "overdueVaccinationsUndo": "Geri al"
   },

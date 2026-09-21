@@ -311,3 +311,63 @@ describe("which states the list shouts about", () => {
     expect(WEIGHT.reportExpired).toBe(WEIGHT.sent);
   });
 });
+
+/**
+ * The five accepted states, drawn, with the words a vet will read.
+ *
+ * value asked for this by name and gave the reason: the whole promise of
+ * the package is that the day a real account is connected, nothing has
+ * to change. If the "arrived" row is first seen in production, every
+ * wording or alignment problem in it is found on a real customer's
+ * screen — and test mode deliberately cannot show these five, because
+ * showing them there would be a lie (`logTransport` answers with a
+ * synthetic report).
+ *
+ * So the screen does not lie and the test rig does, which is the right
+ * way round. Synthetic props, real sentences.
+ */
+describe("the five things that can have happened to an accepted message", () => {
+  const drawn = async (state: ReminderDeliveryStateName) => {
+    const { container, unmount } = render(await ReminderDeliveryLine(props(state)));
+    const text = container.textContent ?? "";
+    unmount();
+    return text;
+  };
+
+  // Criterion 1: it says arrived, AND it carries the time it arrived.
+  // The date half is the part a wording test would miss.
+  it("says a message arrived, and when", async () => {
+    const text = await drawn("delivered");
+    expect(text).toMatch(/Ulaştı/);
+    expect(text).toMatch(/30 Eyl 2026/);
+  });
+
+  it("says a wait is a wait, and does not call it an arrival", async () => {
+    const text = await drawn("awaitingReport");
+    expect(text).toMatch(/bekleniyor/);
+    expect(text).not.toMatch(/Ulaştı/);
+  });
+
+  it("says a message did not arrive, and why it is worth a phone call", async () => {
+    const text = await drawn("undelivered");
+    expect(text).toMatch(/Ulaşmadı/);
+    expect(text).toMatch(/erişilemedi/);
+  });
+
+  // Neither outcome: we stopped hearing. Both words are refused here,
+  // which is the pair this state exists to keep apart.
+  it("reports the silence without calling it either outcome", async () => {
+    const text = await drawn("reportExpired");
+    expect(text).toMatch(/Teslim raporu gelmedi/);
+    expect(text).not.toMatch(/Ulaştı|Ulaşmadı/);
+  });
+
+  // Criterion 5: on a channel with no report source this is everything
+  // we will ever know, so it promises no wait. A WhatsApp clinic would
+  // otherwise read "awaiting the report" every day, forever.
+  it("stops at 'sent' where no report is ever coming", async () => {
+    const text = await drawn("sent");
+    expect(text).toMatch(/Gönderildi/);
+    expect(text).not.toMatch(/bekleniyor/);
+  });
+});
