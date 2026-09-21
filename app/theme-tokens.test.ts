@@ -503,3 +503,108 @@ describe("a layout that depends on its container does not read the screen", () =
     expect(source).toContain("@container");
   });
 });
+
+// TEAM.md #31 says new code writes direction logically — `ms`/`me`, `ps`/`pe`,
+// `start`/`end` — and that converting what came before is a separate job
+// nobody has asked for. The rule held: the components written since it was
+// set contain none.
+//
+// This test is not here to enforce a rule that is already holding. It is
+// here because of how we learned that it held: by counting the leftovers
+// by hand, twice, and getting a different answer each time. The note that
+// recorded the measurement said "two remaining uses"; the real figure is
+// the list below. A number in a comment rots, a list in a test does not,
+// and #32c asks for a rule to be measured every release — this makes that
+// measurement free and repeatable rather than another hand count.
+//
+// The list is a CEILING, not an inventory. Deleting one of these is meant
+// to be silent and free; adding any new one anywhere fails. A list that
+// claimed these exist would break on a legitimate deletion, teach nothing
+// by breaking, and get loosened rather than updated.
+//
+// NOT CHECKED, so that the next reader knows where this stops looking:
+//   - inline `style={{ marginLeft }}` and anything computed at runtime;
+//     this reads class names in the source and nothing else.
+//   - class names assembled from fragments (`` `m${side}-2` ``).
+//   - `.ts` files and tests.
+//   - logical-direction bugs. A `ms-*` pointing the wrong way is still
+//     wrong and this says nothing about it.
+//   - CSS in `globals.css`.
+describe("new code writes direction logically", () => {
+  const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+
+  /**
+   * Every use predating TEAM.md #31, by file. Each entry is a ceiling: the
+   * file may contain these and fewer, never more and never others.
+   *
+   * Emptying a line is the point. When one reaches zero, delete the line.
+   */
+  const PREDATING: Record<string, readonly string[]> = {
+    "app/(app)/appointments/[id]/page.tsx": ["ml-2", "ml-2"],
+    "app/(auth)/layout.tsx": ["right-4"],
+    "components/command-palette.tsx": ["ml-2", "ml-auto", "ml-auto"],
+    "components/notification-actions.tsx": ["ml-2"],
+    "components/search-form.tsx": ["left-3", "pl-9"],
+    "components/sidebar.tsx": ["border-r"],
+    "components/timeline.tsx": ["ml-2"],
+    "components/ui/combobox.tsx": ["left-0", "pr-9", "right-0", "right-2"],
+    "components/ui/select.tsx": ["pr-9", "right-3"],
+  };
+
+  const PHYSICAL =
+    /(?<![\w-])-?(m[lr]-[\w.[\]%/-]+|p[lr]-[\w.[\]%/-]+|border-[lr](?:-[\w.[\]%/-]+)?|rounded-[lr][lrte]?(?:-[\w.[\]%/-]+)?|left-[\w.[\]%/-]+|right-[\w.[\]%/-]+|text-left|text-right|float-left|float-right)(?![\w-])/g;
+
+  function componentFiles(dir: string, out: string[] = []): string[] {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) componentFiles(path, out);
+      else if (entry.name.endsWith(".tsx") && !entry.name.includes(".test."))
+        out.push(path);
+    }
+    return out;
+  }
+
+  /** Comments discuss the rule by name; only code can break it. */
+  function code(source: string): string {
+    return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  }
+
+  function found(): Record<string, string[]> {
+    const result: Record<string, string[]> = {};
+    for (const dir of ["app", "components"]) {
+      for (const file of componentFiles(`${projectRoot}${dir}`)) {
+        const uses = code(readFileSync(file, "utf8")).match(PHYSICAL);
+        if (uses) result[file.slice(projectRoot.length)] = uses.sort();
+      }
+    }
+    return result;
+  }
+
+  it("scans something, so an empty scan cannot pass", () => {
+    expect(Object.keys(PREDATING).length).toBeGreaterThan(5);
+    expect(Object.keys(found()).length).toBeGreaterThan(0);
+  });
+
+  it("adds no physical direction class anywhere", () => {
+    const added: string[] = [];
+    for (const [file, uses] of Object.entries(found())) {
+      const budget = [...(PREDATING[file] ?? [])];
+      for (const use of uses) {
+        const at = budget.indexOf(use);
+        if (at === -1) added.push(`${file} ${use}`);
+        else budget.splice(at, 1);
+      }
+    }
+    expect(added).toEqual([]);
+  });
+
+  it("recognises a physical class, and leaves the logical ones alone", () => {
+    // Without this the rule could be inverted and still pass.
+    const physical = (s: string) => (s.match(PHYSICAL) ?? []).length;
+    expect(physical('className="ml-2"')).toBe(1);
+    expect(physical('className="-mr-6 pl-9 text-right border-l"')).toBe(4);
+    expect(physical('className="ms-2 pe-9 text-end border-s"')).toBe(0);
+    // Not directions: the scale shares the shape of the prefix.
+    expect(physical('className="p-3 m-1 border-2 text-sm rounded-pill"')).toBe(0);
+  });
+});
