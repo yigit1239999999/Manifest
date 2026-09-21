@@ -71,18 +71,20 @@ interface Props {
   hiddenBuiltIns?: HiddenSpecies[];
   /** Reads after the name on the chip: "· turned off for this clinic". */
   hiddenQualifier?: string;
-  /**
-   * A way to turn it back on, for the people who may.
-   *
-   * Passed only when the reader has the permission, so the component
-   * holds no rule about who may do what — absent means absent. It opens
-   * in a new tab on purpose: the animal is on the table and the form is
-   * unsaved, and sending a vet to Settings mid-examination would cost
-   * more than the setting is worth.
-   */
-  enableHref?: string;
-  enableLabel?: string;
 }
+
+// There is deliberately no way to turn the species back on from here,
+// and it was tried. A link at the end of the note called "Open in
+// settings" opened nothing — it went to Settings and left the vet to
+// find the species themselves, which is a control named after a result
+// it does not produce. Naming it honestly ("Go to species settings")
+// made it word for word the standing `manageLabel` link below the
+// chips, two links to one place stacked on top of each other. And the
+// moment it appears is the moment a vet should not be going to
+// Settings at all: the animal is on the table and the form is unsaved.
+//
+// The standing link is still there, under the chips, behind the same
+// permission. Nothing is lost by not offering it twice.
 
 export function SpeciesPicker({
   name,
@@ -98,8 +100,6 @@ export function SpeciesPicker({
   manageLabel,
   hiddenBuiltIns,
   hiddenQualifier,
-  enableHref,
-  enableLabel,
 }: Props) {
   const [value, setValue] = React.useState(defaultValue);
   const [added, setAdded] = React.useState<SpeciesChoice[]>(() =>
@@ -133,9 +133,7 @@ export function SpeciesPicker({
   function hiddenMatch(text: string) {
     const needle = fold(text.trim());
     if (!needle) return undefined;
-    return hiddenBuiltIns?.find((s) =>
-      s.names.some((n) => fold(n) === needle),
-    );
+    return hiddenBuiltIns?.find((s) => s.names.some((n) => fold(n) === needle));
   }
 
   function commitDraft() {
@@ -161,7 +159,10 @@ export function SpeciesPicker({
     setAdded((prev) =>
       prev.some((o) => o.value === hidden.value)
         ? prev
-        : [...prev, { value: hidden.value, label: hidden.label, icon: hidden.value }],
+        : [
+            ...prev,
+            { value: hidden.value, label: hidden.label, icon: hidden.value },
+          ],
     );
     select(hidden.value);
     setDraft("");
@@ -325,19 +326,7 @@ export function SpeciesPicker({
         // Says what happened and, as carefully, what did not. No word
         // here may read as "turned on" or "enabled": the animal got a
         // species, the clinic's setting is exactly where it was.
-        <p className="text-xs text-muted-foreground">
-          {chosenHidden.note}{" "}
-          {enableHref && enableLabel && (
-            <Link
-              href={enableHref}
-              target="_blank"
-              rel="noopener"
-              className="underline underline-offset-2 hover:text-foreground"
-            >
-              {enableLabel}
-            </Link>
-          )}
-        </p>
+        <p className="text-xs text-muted-foreground">{chosenHidden.note}</p>
       )}
 
       {manageHref && manageLabel && (

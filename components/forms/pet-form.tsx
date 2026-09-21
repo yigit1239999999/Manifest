@@ -55,8 +55,6 @@ interface Props {
   hiddenBuiltIns?: HiddenSpecies[];
   hiddenQualifier?: string;
   /** Only for a reader who may change the setting; absent means absent. */
-  enableHref?: string;
-  enableLabel?: string;
   /** Link to the species settings page, only for users who may manage it. */
   manageHref?: string;
 }
@@ -72,8 +70,6 @@ export function PetForm({
   enabledSpecies = SPECIES,
   hiddenBuiltIns,
   hiddenQualifier,
-  enableHref,
-  enableLabel,
   manageHref,
 }: Props) {
   const ownerOptions = useMemo(
@@ -201,8 +197,6 @@ export function PetForm({
             manageLabel={manageHref ? t("manageSpecies") : undefined}
             hiddenBuiltIns={hiddenBuiltIns}
             hiddenQualifier={hiddenQualifier}
-            enableHref={enableHref}
-            enableLabel={enableLabel}
           />
         </Field>
 

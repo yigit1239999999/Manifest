@@ -181,7 +181,11 @@ describe("typing the name of a species the clinic turned off", () => {
   ])("reads %s as the built-in %s", (typed, key) => {
     const { container } = pickerWithHidden();
     type(typed);
-    fireEvent.click(screen.getByRole("button", { name: new RegExp(HIDDEN.find((h) => h.value === key)!.label) }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: new RegExp(HIDDEN.find((h) => h.value === key)!.label),
+      }),
+    );
 
     expect(
       (container.querySelector('input[type="hidden"]') as HTMLInputElement)
@@ -233,47 +237,33 @@ describe("typing the name of a species the clinic turned off", () => {
     expect(stops()[0]).toHaveTextContent("Kedi");
   });
 
-  it("offers no way out of the form when the reader may not change settings", () => {
-    pickerWithHidden();
+  it("offers one way to Settings, not two", () => {
+    // There was a second link, at the end of the note, and it was
+    // removed rather than renamed. Called "Open in settings" it opened
+    // nothing — it went to Settings and left the vet to find the
+    // species — and named honestly it read word for word like the
+    // standing link three lines below it. The moment it appeared was
+    // also the moment a vet should not be leaving the form: the animal
+    // is on the table and nothing is saved.
+    pickerWithHidden({ manageHref: "/settings", manageLabel: "Türleri yönet" });
     type("Kedi");
     fireEvent.click(screen.getByRole("button", { name: /Kedi/ }));
 
-    expect(screen.queryByRole("link", { name: /Ayarlarda aç/ })).toBeNull();
+    expect(screen.getAllByRole("link").map((a) => a.textContent)).toEqual([
+      "Türleri yönet",
+    ]);
   });
 
-  it("does not say the same words twice in the same picker", () => {
-    // Both links go to /settings: the standing one under the chips,
-    // and the one at the end of the note. They were handed the same
-    // label, so a reader who may manage settings saw "Manage species"
-    // twice, one under the other, with no way to tell what the second
-    // one was for. The inline one says what it does to *this* species;
-    // the standing one names the section.
-    pickerWithHidden({
-      manageHref: "/settings",
-      manageLabel: "Türleri yönet",
-      enableHref: "/settings",
-      enableLabel: "Ayarlarda aç",
-    });
+  it("puts no link in the note at all", () => {
+    // Including for a reader who may change settings: the standing
+    // link is the one place that offer lives, so it cannot appear in
+    // one state and vanish in another.
+    pickerWithHidden({ manageHref: "/settings", manageLabel: "Türleri yönet" });
     type("Kedi");
     fireEvent.click(screen.getByRole("button", { name: /Kedi/ }));
 
-    const labels = screen.getAllByRole("link").map((a) => a.textContent);
-    expect(labels).toEqual(["Ayarlarda aç", "Türleri yönet"]);
-    expect(new Set(labels).size).toBe(labels.length);
-  });
-
-  it("opens the setting in a new tab for the reader who may", () => {
-    // The animal is on the table and the form is unsaved. A link that
-    // navigates away costs more than the setting is worth.
-    pickerWithHidden({
-      enableHref: "/settings/species",
-      enableLabel: "Ayarlarda aç",
-    });
-    type("Kedi");
-    fireEvent.click(screen.getByRole("button", { name: /Kedi/ }));
-
-    const link = screen.getByRole("link", { name: "Ayarlarda aç" });
-    expect(link).toHaveAttribute("target", "_blank");
+    const note = screen.getByText(/yerleşik bir tür/);
+    expect(note.querySelector("a")).toBeNull();
   });
 
   it("still makes a custom species out of a name nothing matches", () => {

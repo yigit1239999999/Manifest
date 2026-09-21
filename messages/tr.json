@@ -228,7 +228,6 @@
     "newSpecies": "Yeni tür",
     "newSpeciesHint": "Listede yoksa kendi türünüzü ekleyin. Kliniğinize kaydedilir, tekrar yazmanız gerekmez.",
     "newSpeciesPlaceholder": "Tür adı (örn. Kirpi)",
-    "openSpeciesSettings": "Ayarlarda aç",
     "hiddenSpeciesQualifier": "bu klinikte kapalı",
     "hiddenSpeciesNote": "{species} yerleşik bir tür. Bu klinikte kapalı, ama bu hayvan için kullanıldı.",
     "optionalDetails": "İsteğe bağlı detaylar",
