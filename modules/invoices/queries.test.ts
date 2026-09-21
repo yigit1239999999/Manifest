@@ -1,15 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { invoiceLine: { findFirst: vi.fn() } },
+  prisma: {
+    invoiceLine: { findFirst: vi.fn() },
+    invoice: { findFirst: vi.fn() },
+  },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { getInvoiceForVisit } from "./queries";
+import { getInvoiceById, getInvoiceForVisit } from "./queries";
 
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(prisma.invoiceLine.findFirst).mockResolvedValue(null);
+  vi.mocked(prisma.invoice.findFirst).mockResolvedValue(null);
 });
 
 // A visit billed twice is two demands for the same money, and the
@@ -66,5 +70,24 @@ describe("the invoice a visit already has", () => {
     // has no invoice" is an ordinary answer, and the page turns it into
     // an offer to make one.
     expect(await getInvoiceForVisit("clinic-1", "v-1")).toBeNull();
+  });
+});
+
+// ux asked for the link in both directions: a visit says which invoice
+// it went to, and an invoice says which visit it came from. The second
+// half is a read — without it `visitId` is a column that gets filled
+// and never shown, which on screen is the same as not having it.
+describe("what an invoice says about where its lines came from", () => {
+  it("loads each line's visit, not just its animal", async () => {
+    await getInvoiceById("clinic-1", "inv-1");
+
+    const args = vi.mocked(prisma.invoice.findFirst).mock.calls[0][0];
+    const lines = (args?.include as Record<string, { include?: object }>).lines;
+
+    // On the line and not on the invoice: an invoice can gather
+    // several visits, and a single link in the header would have to
+    // pick one of them and be wrong about the rest.
+    expect(lines.include).toHaveProperty("visit");
+    expect(args?.include).not.toHaveProperty("visit");
   });
 });

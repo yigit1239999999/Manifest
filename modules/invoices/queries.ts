@@ -74,6 +74,16 @@ export async function getInvoiceById(clinicId: string, id: string) {
         orderBy: { createdAt: "asc" },
         include: {
           pet: { select: { id: true, name: true } },
+          // The other half of ux's condition: an invoice says which
+          // visit it came from, not only a visit which invoice it went
+          // to. Without it `visitId` is a column that is filled and
+          // never shown, which is indistinguishable from not having it.
+          //
+          // On the line and not on the invoice, because that is where
+          // a visit is named: an invoice can gather several visits, and
+          // a single link in the header would have to pick one of them
+          // and be wrong about the rest.
+          visit: { select: { id: true, visitedAt: true, type: true } },
         },
       },
       payments: { orderBy: { paidAt: "desc" } },

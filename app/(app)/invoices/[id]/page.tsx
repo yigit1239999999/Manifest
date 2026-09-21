@@ -16,7 +16,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatDateTime, formatMoney } from "@/lib/format";
+import Link from "next/link";
+import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 
 export default async function InvoicePage({
   params,
@@ -123,7 +124,31 @@ export default async function InvoicePage({
               <tbody className="divide-y divide-border">
                 {invoice.lines.map((l) => (
                   <tr key={l.id}>
-                    <td className="px-4 py-3">{l.description}</td>
+                    <td className="px-4 py-3">
+                      {l.description}
+                      {/* The other half of the two-way link: a visit
+                          says which invoice it went to, and here the
+                          invoice says which visit it came from. On the
+                          line and not in the header, because an invoice
+                          can gather several visits and one link up there
+                          would have to pick one and be wrong about the
+                          rest.
+
+                          Shape and wording are ux's; this is the
+                          smallest honest version so the column is not
+                          filled and invisible, which is the same as not
+                          having it. */}
+                      {l.visit && (
+                        <Link
+                          href={`/visits/${l.visit.id}`}
+                          className="mt-0.5 block text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                        >
+                          {t("fromVisit", {
+                            date: formatDate(fmt, l.visit.visitedAt),
+                          })}
+                        </Link>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-end tabular-nums">{l.quantity}</td>
                     <td className="px-4 py-3 text-end tabular-nums">
                       {formatMoney(fmt, l.unitPriceCents, currency)}
