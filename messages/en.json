@@ -264,7 +264,8 @@
       "historyEmpty": "No messages sent for this appointment yet.",
       "messageSent": "{channel} sent.",
       "optedOut": "Notification messages are disabled for this client. Nothing is sent automatically; if needed you can still open the message in WhatsApp and send it by hand.",
-      "cancelledNotice": "This appointment is cancelled, so the confirmation and reminder messages are no longer offered. Tell the client yourself if they have not been informed."
+      "cancelledNotice": "This appointment is cancelled, so the confirmation and reminder messages are no longer offered. Tell the client yourself if they have not been informed.",
+      "completedNotice": "This appointment is complete, so confirmation and reminder messages are no longer offered."
     },
     "today": "Today",
     "previousDay": "Previous day",
@@ -682,7 +683,8 @@
       "noPhone": "The client has no phone number on file.",
       "notConfigured": "The message channel is not configured.",
       "optedOut": "Notification messages are disabled for this client.",
-      "sendFailed": "The message could not be sent. Please try again later."
+      "sendFailed": "The message could not be sent. Please try again later.",
+      "appointmentClosed": "This appointment is closed, so no message can be sent for it."
     },
     "validation": {
       "ownerNotInClinic": "This owner isn't in your clinic.",

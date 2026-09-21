@@ -264,7 +264,8 @@
       "historyEmpty": "Bu randevu için henüz mesaj gönderilmedi.",
       "messageSent": "{channel} gönderildi.",
       "optedOut": "Bu müşteri için bildirim mesajları pasif. Otomatik mesaj gönderilmez; gerekirse mesajı WhatsApp'ta açarak elle iletebilirsiniz.",
-      "cancelledNotice": "Bu randevu iptal edildiği için onay ve hatırlatma mesajları artık sunulmuyor. Müşteri bilgilendirilmediyse lütfen kendiniz haber veriniz."
+      "cancelledNotice": "Bu randevu iptal edildiği için onay ve hatırlatma mesajları artık sunulmuyor. Müşteri bilgilendirilmediyse lütfen kendiniz haber veriniz.",
+      "completedNotice": "Bu randevu tamamlandığı için onay ve hatırlatma mesajları artık sunulmuyor."
     },
     "today": "Bugün",
     "previousDay": "Önceki gün",
@@ -682,7 +683,8 @@
       "noPhone": "Müşterinin kayıtlı telefon numarası yok.",
       "notConfigured": "Mesaj kanalı bağlantısı yapılandırılmamış.",
       "optedOut": "Bu müşteri için bildirim mesajları pasif.",
-      "sendFailed": "Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin."
+      "sendFailed": "Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin.",
+      "appointmentClosed": "Bu randevu kapandığı için mesaj gönderilemez."
     },
     "validation": {
       "ownerNotInClinic": "Bu sahip bu klinikte bulunamadı.",

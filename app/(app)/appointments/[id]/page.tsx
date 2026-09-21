@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDateTime, formatDuration } from "@/lib/format";
-import { previewAppointmentMessages } from "@/modules/notifications/service";
+import {
+  isAppointmentClosed,
+  previewAppointmentMessages,
+} from "@/modules/notifications/service";
 import { listMessagesForAppointment } from "@/modules/notifications/queries";
 import {
   logManualMessageAction,
@@ -50,8 +53,9 @@ export default async function AppointmentPage({
     ]);
   if (!appointment) notFound();
 
-  const cancelled =
-    appointment.status === "CANCELLED" || appointment.status === "NO_SHOW";
+  // The service decides what "closed" means; the screen only reflects it,
+  // so the card cannot offer a send the server would refuse.
+  const closed = preview?.closed ?? isAppointmentClosed(appointment.status);
 
   return (
     <div className="flex flex-col gap-6">
@@ -123,12 +127,14 @@ export default async function AppointmentPage({
               {t("notifications.notConfigured", { channel: tChannel(preview.channel) })}
             </p>
           )}
-          {cancelled ? (
-            // A cancelled appointment must not offer to confirm it or to
-            // remind the client to come — there is no message here that is
-            // true any more.
+          {closed ? (
+            // A cancelled, missed or finished appointment must not offer to
+            // confirm it or to remind the client to come — there is no
+            // message here that is true any more.
             <p className="text-sm text-muted-foreground">
-              {t("notifications.cancelledNotice")}
+              {appointment.status === "COMPLETED"
+                ? t("notifications.completedNotice")
+                : t("notifications.cancelledNotice")}
             </p>
           ) : !preview?.confirmation.recipient ? (
             <p className="text-sm text-muted-foreground">{t("notifications.noPhone")}</p>

@@ -111,6 +111,22 @@ async function loadAppointment(clinicId: string, id: string) {
   });
 }
 
+/**
+ * Statuses after which an appointment's confirmation and reminder are no
+ * longer true: it was cancelled, the client did not come, or the visit is
+ * already over. "Randevunuz oluşturulmuştur" for any of these is a wrong
+ * message, and a wrong message costs more trust than a missing one.
+ */
+export const CLOSED_APPOINTMENT_STATUSES = [
+  "CANCELLED",
+  "NO_SHOW",
+  "COMPLETED",
+] as const;
+
+export function isAppointmentClosed(status: string): boolean {
+  return (CLOSED_APPOINTMENT_STATUSES as readonly string[]).includes(status);
+}
+
 export interface ComposedMessage {
   channel: Channel;
   kind: AppointmentMessageKind;
@@ -167,6 +183,10 @@ export async function previewAppointmentMessages(clinicId: string, appointmentId
   return {
     channel,
     configured: isChannelConfigured(channel),
+    // The page asks the service rather than reading the status itself, so
+    // what the screen offers and what the server accepts cannot drift.
+    closed: isAppointmentClosed(appointment.status),
+    status: appointment.status,
     optedIn: appointment.client.notificationsOptIn,
     confirmation: composeFor(appointment, "APPOINTMENT_CONFIRMATION", clinic),
     reminder: composeFor(appointment, "APPOINTMENT_REMINDER", clinic),
@@ -276,6 +296,8 @@ export async function sendAppointmentMessage(
     getClinicMessagingProfile(ctx.clinicId),
   ]);
   if (!appointment || !clinic) throw notFound("appointment", appointmentId);
+  if (isAppointmentClosed(appointment.status))
+    throw new AppError("VALIDATION_FAILED", "error.notifications.appointmentClosed");
   if (!appointment.client.notificationsOptIn)
     throw new AppError("VALIDATION_FAILED", "error.notifications.optedOut");
   return deliver(clinic, appointmentTarget(appointment, kind, clinic), ctx.userId);
@@ -293,6 +315,10 @@ export async function logManualMessage(
     getClinicMessagingProfile(ctx.clinicId),
   ]);
   if (!appointment || !clinic) throw notFound("appointment", appointmentId);
+  // Logging a manual send is a claim that this message went out; it must not
+  // be possible to record one the app itself would refuse to send.
+  if (isAppointmentClosed(appointment.status))
+    throw new AppError("VALIDATION_FAILED", "error.notifications.appointmentClosed");
   const composed = composeFor(appointment, kind, clinic, "WHATSAPP");
   if (!composed.recipient) throw new AppError("VALIDATION_FAILED", "error.notifications.noPhone");
   return prisma.messageLog.create({

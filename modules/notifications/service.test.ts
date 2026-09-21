@@ -24,7 +24,11 @@ vi.mock("@/lib/messaging/transports", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
-import { attemptsExhausted, sendAppointmentMessage } from "./service";
+import {
+  attemptsExhausted,
+  logManualMessage,
+  sendAppointmentMessage,
+} from "./service";
 import { parseNotificationSettings } from "./settings";
 
 const ctx = { clinicId: "clinic-1", userId: "u-1", userName: "Vet", userRole: "ADMIN" };
@@ -43,6 +47,7 @@ const clinicRow = {
 function appointment(overrides: Record<string, unknown> = {}) {
   return {
     id: "a-1",
+    status: "SCHEDULED",
     startsAt: new Date("2026-09-20T11:30:00.000Z"),
     durationMinutes: 30,
     type: "VACCINATION",
@@ -104,6 +109,49 @@ describe("sendAppointmentMessage", () => {
     expect(prisma.messageLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ status: "FAILED", error: "sender_title_not_registered" }),
     });
+  });
+
+  // A cancelled, missed or finished appointment has no true confirmation
+  // and no reminder worth sending; one wrong message costs the clinic more
+  // than a missing one.
+  it.each(["CANCELLED", "NO_SHOW", "COMPLETED"])(
+    "refuses to send for a %s appointment",
+    async (status) => {
+      vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+        appointment({ status }) as never,
+      );
+      await expect(
+        sendAppointmentMessage("a-1", "APPOINTMENT_CONFIRMATION", ctx),
+      ).rejects.toMatchObject({
+        messageKey: "error.notifications.appointmentClosed",
+      });
+      expect(transport.send).not.toHaveBeenCalled();
+    },
+  );
+
+  it("still sends for an appointment that is going ahead", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      appointment({ status: "CONFIRMED" }) as never,
+    );
+    transport.send.mockResolvedValue({ providerId: "job-43" });
+
+    await expect(
+      sendAppointmentMessage("a-1", "APPOINTMENT_REMINDER", ctx),
+    ).resolves.toMatchObject({ status: "SENT" });
+  });
+
+  // Recording a manual send claims the message went out; it must not be
+  // possible for one the app itself would refuse.
+  it("refuses to log a manual send for a closed appointment", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      appointment({ status: "CANCELLED" }) as never,
+    );
+    await expect(
+      logManualMessage("a-1", "APPOINTMENT_CONFIRMATION", ctx),
+    ).rejects.toMatchObject({
+      messageKey: "error.notifications.appointmentClosed",
+    });
+    expect(prisma.messageLog.create).not.toHaveBeenCalled();
   });
 
   it("is admin/staff only", async () => {
