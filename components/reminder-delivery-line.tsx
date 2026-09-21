@@ -1,4 +1,4 @@
-import { AlertCircle, BellOff, Check, Clock } from "lucide-react";
+import { AlertCircle, BellOff, Check, CheckCheck, Clock } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { formatDateTime } from "@/lib/format";
@@ -35,14 +35,22 @@ import { cn } from "@/lib/utils";
  * kept, because otherwise it lives on one receptionist's personal phone and
  * dies with her handset, but it is kept without congratulating anyone.
  *
- * NAMING RULE, and it holds even after this component changes hands: `SENT`
- * means the provider accepted the message, and nothing more. The Turkish
- * word is "Gönderildi" and the English is "Sent" — never "Ulaştı",
- * "İletildi", "Delivered" or "Bildirildi". We have no delivery report; when
- * `deliveredAt` arrives, "Ulaştı" is born as a SECOND and separate word
- * beside this one. A word must not imply a guarantee we do not hold yet,
- * and the breach will not be in this file — it will be in somebody six
- * months from now changing a string because it "reads better".
+ * NAMING RULE, and the delivery report has now made it load-bearing rather
+ * than hypothetical. `SENT` means the provider accepted the message and
+ * nothing more: "Gönderildi" / "Sent". `DELIVERED` means a report says it
+ * reached a handset: "Ulaştı" / "Delivered". The second word was promised
+ * months ago as a SEPARATE word for exactly this day, and it may appear in
+ * exactly one state.
+ *
+ * The rule now cuts both ways. "Ulaşmadı" belongs only to `undelivered`,
+ * where a report actually said so; `reportExpired` may not borrow it,
+ * because claiming a failure we cannot demonstrate is the same sin as
+ * claiming a success we cannot demonstrate. "İletildi" is banned outright
+ * in both directions -- it reads as either one.
+ *
+ * The breach will not be in a sentence anybody writes deliberately. It
+ * will be in somebody six months from now changing a string because it
+ * reads better, which is why the test enforces it per key.
  *
  * The clinic's own master switch is deliberately NOT a state here. When it
  * is off nothing on the list can be sent, which is one fact about the
@@ -64,8 +72,28 @@ export const REMINDER_DELIVERY_STATES = [
    * sweep rather than at a time we can name.
    */
   "dueNow",
-  /** The provider accepted it. Accepted, not delivered — see the naming rule. */
+  /**
+   * The provider accepted it, on a channel that will never report back.
+   * Everything we are ever going to know about this message.
+   */
   "sent",
+  /** A report says it reached a handset. The ONLY state that says "arrived". */
+  "delivered",
+  /** Accepted, and the report has not come back yet. A wait, not a failure. */
+  "awaitingReport",
+  /**
+   * Accepted, and it did not arrive. Same work as `noPhone` -- reach for
+   * the phone -- which is why it sits in that family rather than with the
+   * provider rejections.
+   */
+  "undelivered",
+  /**
+   * The validity period ran out with no answer. NOT a failure: we do not
+   * know that it failed, only that we stopped hearing. Folding this into
+   * `undelivered` would claim a failure we cannot demonstrate, which is
+   * the naming rule below running in the other direction.
+   */
+  "reportExpired",
   /** Rejected, and the sweep will try again. */
   "failedRetrying",
   /** Rejected, and no automatic attempt is left. Only a person can move it. */
@@ -103,6 +131,10 @@ export type ReminderDeliveryStateName =
 export type ReminderDeliveryLineProps =
   | { state: "scheduled"; sendAt: Date; channel: string }
   | { state: "dueNow"; channel: string }
+  | { state: "delivered"; at: Date; channel: string }
+  | { state: "awaitingReport"; at: Date; channel: string }
+  | { state: "undelivered"; at: Date; channel: string }
+  | { state: "reportExpired"; at: Date; channel: string }
   | {
       state: "sent";
       at: Date;
@@ -150,6 +182,16 @@ const WEIGHT: Record<ReminderDeliveryStateName, keyof typeof TONE> = {
   scheduled: "quiet",
   dueNow: "quiet",
   sent: "quiet",
+  delivered: "quiet",
+  // A wait is not news. The row says what is known and asks for nothing,
+  // because there is nothing to do but let the report arrive.
+  awaitingReport: "quiet",
+  // Sent and not arrived: the vet picks up the phone, same as `noPhone`.
+  undelivered: "attention",
+  // Not a failure and not nothing. Nobody can say whether it arrived, so
+  // the judgement is the vet's -- and a judgement they have to make is
+  // the definition of something worth looking at.
+  reportExpired: "attention",
   failedRetrying: "alert",
   failedExhausted: "alert",
   failedClinic: "alert",
@@ -167,6 +209,12 @@ const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
   scheduled: Clock,
   dueNow: Clock,
   sent: Check,
+  // Two ticks for arrival against one for acceptance, which is the one
+  // piece of messaging iconography every owner of a phone already reads.
+  delivered: CheckCheck,
+  awaitingReport: Clock,
+  undelivered: AlertCircle,
+  reportExpired: AlertCircle,
   failedRetrying: AlertCircle,
   failedExhausted: AlertCircle,
   failedClinic: AlertCircle,
@@ -220,6 +268,14 @@ export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
         });
       case "sent":
         return t(props.testMode ? "sentTestMode" : "sent", {
+          at: formatDateTime(fmt, props.at),
+          channel: props.channel,
+        });
+      case "delivered":
+      case "awaitingReport":
+      case "undelivered":
+      case "reportExpired":
+        return t(props.state, {
           at: formatDateTime(fmt, props.at),
           channel: props.channel,
         });

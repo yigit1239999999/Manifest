@@ -34,6 +34,10 @@ const SAMPLE: Record<ReminderDeliveryStateName, ReminderDeliveryLineProps> = {
   scheduled: { state: "scheduled", sendAt: AT, channel: "SMS" },
   dueNow: { state: "dueNow", channel: "SMS" },
   sent: { state: "sent", at: AT, channel: "SMS" },
+  delivered: { state: "delivered", at: AT, channel: "SMS" },
+  awaitingReport: { state: "awaitingReport", at: AT, channel: "SMS" },
+  undelivered: { state: "undelivered", at: AT, channel: "SMS" },
+  reportExpired: { state: "reportExpired", at: AT, channel: "SMS" },
   failedRetrying: { state: "failedRetrying", at: AT, attempts: 1 },
   failedExhausted: { state: "failedExhausted", attempts: 3 },
   failedClinic: { state: "failedClinic", at: AT },
@@ -157,14 +161,62 @@ describe("a failure explains itself in plain words", () => {
  * written into a badge label, a banner or the appointment history would
  * pass.
  */
-describe("sent is not delivered", () => {
+describe("sent is not delivered, and silence is not failure", () => {
+  const delivery = (m: typeof tr | typeof en) =>
+    m.reminder.delivery as unknown as Record<string, string>;
+
+  /**
+   * "Arrived" may be said in exactly one state, and only now that there
+   * is a report behind it. This word was deliberately withheld for
+   * months so that it would mean something on the day it appeared.
+   */
   it.each([
-    ["tr", tr, /ulaştı|iletildi|bildirildi/i],
-    ["en", en, /delivered|received|reached/i],
-  ] as const)("never claims delivery in %s", (locale, messages, banned) => {
-    for (const [key, value] of Object.entries(messages.reminder.delivery)) {
-      expect(value, `${locale}.${key} implies a delivery report we do not have`)
-        .not.toMatch(banned);
+    ["tr", tr, /ulaştı/i],
+    ["en", en, /\bdelivered\b/i],
+  ] as const)("claims arrival in %s only where a report says so", (loc, m, word) => {
+    for (const [key, value] of Object.entries(delivery(m))) {
+      if (key === "delivered") continue;
+      expect(value, `${loc}.${key} claims an arrival it cannot show`).not.toMatch(word);
+    }
+    expect(delivery(m).delivered).toMatch(word);
+  });
+
+  /**
+   * And the rule runs backwards too, which is the half that is easy to
+   * lose. `reportExpired` means we stopped hearing, not that it failed;
+   * borrowing "did not arrive" there would claim a failure we cannot
+   * demonstrate, which is the same sin as claiming a success we cannot
+   * demonstrate. Without this the two states fold back together through
+   * the wording while the code still has them apart.
+   */
+  it.each([
+    ["tr", tr, /ulaşmadı/i],
+    ["en", en, /not received|undelivered/i],
+  ] as const)("claims failure in %s only where a report says so", (loc, m, word) => {
+    for (const [key, value] of Object.entries(delivery(m))) {
+      if (key === "undelivered") continue;
+      expect(value, `${loc}.${key} claims a failure it cannot show`).not.toMatch(word);
+    }
+    expect(delivery(m).undelivered).toMatch(word);
+  });
+
+  // Banned outright, in both languages and every state: these read as
+  // either "we sent it" or "they got it", and a word that can mean both
+  // is the one word this distinction cannot afford.
+  //
+  // This fired once on "the number could not be reached" -- a phrase
+  // about the NUMBER, not about delivery, and unambiguous to any
+  // reader. The sentence was reworded to "unreachable" and the guard
+  // kept, the same call as the last time one of these tripped on a
+  // sentence of ours: a narrow guard that occasionally asks for a
+  // different word is worth keeping, and one widened until it can tell
+  // context is a guard nobody can reason about.
+  it.each([
+    ["tr", tr, /iletildi|bildirildi/i],
+    ["en", en, /\breceived by\b|\breached\b/i],
+  ] as const)("never uses a word that reads both ways in %s", (loc, m, word) => {
+    for (const [key, value] of Object.entries(delivery(m))) {
+      expect(value, `${loc}.${key} is ambiguous between sent and arrived`).not.toMatch(word);
     }
   });
 });

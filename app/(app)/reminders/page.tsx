@@ -199,11 +199,42 @@ export default async function RemindersPage({
         return delivery.sendAt.getTime() <= now
           ? { state: "dueNow", channel: tChannel(delivery.channel) }
           : { ...delivery, channel: tChannel(delivery.channel) };
-      case "sent":
+      // Five ways a message can have been accepted, and in test mode all
+      // five collapse into one.
+      //
+      // `logTransport` writes to a file and now also answers with a
+      // synthetic delivery report, so on this ground a row can reach
+      // `delivered` without anything having left the app. "Ulaştı" there
+      // would be the worst version of the claim this whole naming rule
+      // exists to prevent -- not a word reaching past its evidence, but a
+      // word with no evidence underneath it at all. The same goes for
+      // "Ulaşmadı": a fake report cannot fail either.
+      case "delivered":
+      case "sentAwaitingReport":
+      case "undelivered":
+      case "sentNoReportChannel":
+      case "reportExpired":
+        if (testMode)
+          return {
+            state: "sent",
+            at: delivery.at,
+            channel: tChannel(delivery.channel),
+            testMode: true,
+          };
         return {
-          ...delivery,
+          // `sentNoReportChannel` says "Sent" and stops, because that is
+          // everything this channel will ever tell us -- no wait is
+          // promised, since no report is coming. The wording is the plain
+          // `sent` one, which is why it maps onto that state rather than
+          // carrying a sentence of its own.
+          state:
+            delivery.state === "sentNoReportChannel"
+              ? "sent"
+              : delivery.state === "sentAwaitingReport"
+                ? "awaitingReport"
+                : delivery.state,
+          at: delivery.at,
           channel: tChannel(delivery.channel),
-          testMode,
         };
     }
     // Not a `default:` branch, on purpose. A tenth state added to
