@@ -8,9 +8,23 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/modules/reminders/actions", () => ({
   createReminderAction: async () => ({}),
 }));
+// Both actions answer with a pair now — what they found, and whether
+// that was all of it. Only the server can answer the second, and the
+// picker's "there is more" note depends on it.
 const { searchClients, searchPets } = vi.hoisted(() => ({
-  searchClients: vi.fn(async () => [] as { value: string; label: string }[]),
-  searchPets: vi.fn(async () => [] as { value: string; label: string }[]),
+  searchClients: vi.fn(async () => ({
+    options: [] as { value: string; label: string }[],
+    hasMore: false,
+  })),
+  searchPets: vi.fn(async () => ({
+    options: [] as {
+      value: string;
+      label: string;
+      ownerId: string;
+      ownerLabel: string;
+    }[],
+    hasMore: false,
+  })),
 }));
 vi.mock("@/modules/clients/actions", () => ({
   searchClientsAction: searchClients,
@@ -124,7 +138,10 @@ describe("reaching a record the handed list does not contain", () => {
   // record that is on neither list.
   it("asks the server, and keeps showing what the page already sent", async () => {
     vi.useFakeTimers();
-    searchClients.mockResolvedValue([{ value: "c-9", label: "Zeynep Yılmaz" }]);
+    searchClients.mockResolvedValue({
+      options: [{ value: "c-9", label: "Zeynep Yılmaz" }],
+      hasMore: false,
+    });
     renderForm({ clientsCapped: true });
 
     const input = picker(/müşteri/i);

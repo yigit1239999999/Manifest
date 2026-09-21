@@ -77,7 +77,18 @@ interface Props {
    * to look for a name it would recognise but cannot spell. Server hits
    * are appended after them, minus the ones already on show.
    */
-  onSearch?: (term: string) => Promise<ComboOption[]>;
+  /**
+   * Answers with what it found AND whether that was all of it.
+   *
+   * The pair rather than an array, because only the server knows: the
+   * component used to infer "there is more" by comparing what came
+   * back against the cap, which is the same fact in two places and
+   * wrong in the ordinary case — three matches for "sa" were all three
+   * matches, and the picker said records were missing anyway.
+   */
+  onSearch?: (
+    term: string,
+  ) => Promise<{ options: ComboOption[]; hasMore: boolean }>;
   /**
    * The server had more than it returned.
    *
@@ -161,6 +172,10 @@ export function Combobox({
   // where opening put it; the second one moves.
   const [moved, setMoved] = React.useState(false);
   const [remote, setRemote] = React.useState<ComboOption[]>([]);
+  // What the last answer said about itself. `null` until the server
+  // has answered at all; read only while a search is on screen, the
+  // same way `remote` is.
+  const [remoteHasMore, setRemoteHasMore] = React.useState<boolean | null>(null);
   // Three things can be true while nothing is on screen, and the list
   // said "No results." to all of them: the server has not been asked
   // yet, it has been asked and has not answered, and it answered with
@@ -234,7 +249,8 @@ export function Combobox({
       onSearch(query)
         .then((found) => {
           if (!live) return;
-          setRemote(found);
+          setRemote(found.options);
+          setRemoteHasMore(found.hasMore);
           setActive(0);
           setMoved(false);
           setStatus("idle");
@@ -365,7 +381,21 @@ export function Combobox({
   // So: the warning whenever the list is short of the clinic, the
   // instruction whenever the server has not been asked yet, and both
   // together in the state where both are true.
-  const showCapNote = hasMore && Boolean(hasMoreLabel);
+  // While a search is on screen, the note follows the SERVER's answer
+  // about that search, not the cap the handed list was cut at. They
+  // are different questions -- "this clinic has more clients than the
+  // fifty you were given" and "your search matched more than I
+  // returned" -- and answering the second with the first is how "sa"
+  // came back with three matches under a line saying records were
+  // missing.
+  //
+  // Read only above the threshold, following the same rule the list
+  // itself follows here: nothing is cleared on the way down, because
+  // nothing below the threshold reads it. Clearing it in an effect
+  // would be a second way for the two to disagree.
+  const effectiveHasMore =
+    readyToSearch && remoteHasMore !== null ? remoteHasMore : hasMore;
+  const showCapNote = effectiveHasMore && Boolean(hasMoreLabel);
   const showSearchHint = belowThreshold && Boolean(searchHintLabel);
 
   const rows: Array<{

@@ -102,8 +102,9 @@ export async function searchPetsAction(
    * which is right for a form where the animal is the first question.
    */
   ownerId?: string,
-): Promise<
-  {
+): Promise<{
+  /** See `searchClientsAction` for why this is a pair and not an array. */
+  options: {
     value: string;
     label: string;
     /**
@@ -117,20 +118,24 @@ export async function searchPetsAction(
      */
     ownerId: string;
     ownerLabel: string;
-  }[]
-> {
+  }[];
+  hasMore: boolean;
+}> {
   const session = await requireSession();
   requirePermission(session.user.role ?? "", "pets.read");
-  const rows = await quickSearchPets(
+  const { items, hasMore } = await quickSearchPets(
     session.user.clinicId,
     term,
     PAGE_SIZES.SEARCH_RESULTS,
     ownerId,
   );
-  return rows.map((p) => ({
-    value: p.id,
-    label: `${p.name} · ${p.owner.firstName} ${p.owner.lastName}`,
-    ownerId: p.ownerId,
-    ownerLabel: `${p.owner.firstName} ${p.owner.lastName}`,
-  }));
+  return {
+    options: items.map((p) => ({
+      value: p.id,
+      label: `${p.name} · ${p.owner.firstName} ${p.owner.lastName}`,
+      ownerId: p.ownerId,
+      ownerLabel: `${p.owner.firstName} ${p.owner.lastName}`,
+    })),
+    hasMore,
+  };
 }

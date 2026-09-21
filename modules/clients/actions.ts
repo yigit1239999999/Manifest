@@ -94,18 +94,42 @@ export const restoreClientAction = action(
  * returns data to a component rather than a result to a form. Session and
  * permission are still checked, which is what the wrapper was giving it.
  */
-export async function searchClientsAction(
-  term: string,
-): Promise<{ value: string; label: string }[]> {
+/**
+ * Why a pair and not an array.
+ *
+ * The picker shows a note when the list it has is not all there is.
+ * With a bare array it could only guess, by comparing the length to
+ * the cap -- the same fact written in two places, disagreeing the day
+ * the cap moves. Worse, the guess was wrong in the ordinary case: a
+ * search for "sa" matching three clients showed all three AND told the
+ * vet records were missing.
+ *
+ * dev-ui tried silencing the note and reverted it in one sentence:
+ * replacing a known lie with an unknown one is not progress, and this
+ * direction is worse -- "there is more" keeps a vet searching, "that is
+ * all" stops them.
+ *
+ * So the server says whether it truncated, because the server is the
+ * only one that knows. `listClients` has answered this question this
+ * way since it was written; this is the search path catching up, not a
+ * new idea.
+ */
+export async function searchClientsAction(term: string): Promise<{
+  options: { value: string; label: string }[];
+  hasMore: boolean;
+}> {
   const session = await requireSession();
   requirePermission(session.user.role ?? "", "clients.read");
-  const rows = await quickSearchClients(
+  const { items, hasMore } = await quickSearchClients(
     session.user.clinicId,
     term,
     PAGE_SIZES.SEARCH_RESULTS,
   );
-  return rows.map((c) => ({
-    value: c.id,
-    label: `${c.firstName} ${c.lastName}`,
-  }));
+  return {
+    options: items.map((c) => ({
+      value: c.id,
+      label: `${c.firstName} ${c.lastName}`,
+    })),
+    hasMore,
+  };
 }

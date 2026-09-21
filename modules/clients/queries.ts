@@ -133,11 +133,19 @@ export async function quickSearchClients(
   // parameter's type is the literal 5 and the picker cannot ask for 20.
   take: number = PAGE_SIZES.COMMAND_PALETTE,
 ) {
-  if (term.length < 2) return [];
-  return prisma.client.findMany({
+  if (term.length < 2) return { items: [], hasMore: false };
+  // Reads one row past the cap and throws it away, the same way
+  // `listClients` does. That row is the whole answer to "is this all of
+  // them": without it a search that returned exactly the cap and a
+  // search that returned everything are the same array, and the picker
+  // has to guess. It guessed by comparing the length to the cap, which
+  // is the same fact written in two places -- and the two disagree the
+  // day the cap moves.
+  const rows = await prisma.client.findMany({
     where: buildClientWhere({ clinicId, search: term }),
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    take,
+    take: take + 1,
     select: { id: true, firstName: true, lastName: true, email: true },
   });
+  return { items: rows.slice(0, take), hasMore: rows.length > take };
 }

@@ -100,7 +100,7 @@ describe("searching a combobox against the server", () => {
   ];
 
   function searchable(props: Record<string, unknown> = {}) {
-    const onSearch = vi.fn(async () => MATCHES);
+    const onSearch = vi.fn(async () => ({ options: MATCHES, hasMore: false }));
     const view = render(
       <Combobox
         name="clientId"
@@ -146,7 +146,7 @@ describe("searching a combobox against the server", () => {
   });
 
   it("says there is nothing only after actually looking", async () => {
-    const onSearch = vi.fn(async () => []);
+    const onSearch = vi.fn(async () => ({ options: [], hasMore: false }));
     const { input } = searchable({ onSearch });
     fireEvent.focus(input);
     await type(input, "Ayş");
@@ -171,7 +171,15 @@ describe("searching a combobox against the server", () => {
   });
 
   it("tells the user what to do, not how many were cut", async () => {
-    const { input } = searchable({ hasMore: true });
+    // The server answers that it truncated, which is what the note is
+    // about once a search is on screen. It used to be enough to set the
+    // `hasMore` PROP here, because the note followed the cap the handed
+    // list was cut at — so a search matching three clients showed all
+    // three under a line saying records were missing. The prop still
+    // answers the other question (the handed list is short of the
+    // clinic); this test is about the search.
+    const onSearch = vi.fn(async () => ({ options: MATCHES, hasMore: true }));
+    const { input } = searchable({ hasMore: true, onSearch });
     fireEvent.focus(input);
     await type(input, "Ayşe");
 
@@ -193,7 +201,7 @@ describe("searching a combobox against the server", () => {
   });
 
   it("says nothing about more when there is nothing to show yet", async () => {
-    const onSearch = vi.fn(async () => []);
+    const onSearch = vi.fn(async () => ({ options: [], hasMore: false }));
     const { input } = searchable({ onSearch, hasMore: true });
     fireEvent.focus(input);
     await type(input, "Ayş");
@@ -286,7 +294,7 @@ describe("what the server finds and what the page already sent", () => {
   ];
 
   function searchable(props: Record<string, unknown> = {}) {
-    const onSearch = vi.fn(async () => FOUND);
+    const onSearch = vi.fn(async () => ({ options: FOUND, hasMore: false }));
     const view = render(
       <Combobox
         name="clientId"
@@ -372,12 +380,49 @@ describe("what the server finds and what the page already sent", () => {
   });
 
   it("switches the note once the server has actually answered", async () => {
-    const { input } = searchable();
+    // Truncated on the server's own say-so: see the note in "tells the
+    // user what to do". What is being tested here is which of the two
+    // sentences is on screen, not which question decides it.
+    const onSearch = vi.fn(async () => ({ options: FOUND, hasMore: true }));
+    const { input } = searchable({ onSearch });
     fireEvent.focus(input);
     await type(input, "Ayşe");
 
     expect(screen.getByText("Yazmaya devam edin.")).toBeInTheDocument();
     expect(screen.queryByText("En az iki harf yazın.")).toBeNull();
+  });
+
+  it("stops claiming there is more once the server says there is not", async () => {
+    // The defect this pair was introduced for. The handed list IS
+    // capped — `hasMore` is set on the component — but the search that
+    // is on screen matched three clients and returned all three. Under
+    // the old rule the note appeared anyway, so a vet who had found
+    // everything was told records were missing and kept typing.
+    //
+    // The two questions are different and only the server can answer
+    // the second: "this clinic has more clients than the fifty you
+    // were handed" is not "your search matched more than I returned".
+    const onSearch = vi.fn(async () => ({ options: FOUND, hasMore: false }));
+    const { input } = searchable({ hasMore: true, onSearch });
+    fireEvent.focus(input);
+    await type(input, "Ayşe");
+
+    expect(screen.queryByText("Yazmaya devam edin.")).toBeNull();
+  });
+
+  it("goes back to the handed list's own answer when the search is cleared", async () => {
+    // Below the threshold there is no search to describe, so the note
+    // returns to what it says about the list the page handed over —
+    // which is still short of the clinic. A server answer that
+    // outlived its query would be the stale-value defect wearing this
+    // feature's clothes.
+    const onSearch = vi.fn(async () => ({ options: FOUND, hasMore: false }));
+    const { input } = searchable({ hasMore: true, onSearch });
+    fireEvent.focus(input);
+    await type(input, "Ayşe");
+    await type(input, "");
+
+    expect(screen.getByText("Yazmaya devam edin.")).toBeInTheDocument();
   });
 
   it("can still name a record it reached through the server", async () => {
@@ -487,7 +532,7 @@ describe("the note reaches the input it is about", () => {
       <Combobox
         name="clientId"
         options={HANDED}
-        onSearch={async () => []}
+        onSearch={async () => ({ options: [], hasMore: false })}
         hasMore
         searchHintLabel="En az iki harf yazın."
         noResultsLabel="Sonuç yok."
@@ -557,7 +602,11 @@ describe("what the list says while it has nothing to show", () => {
 
   const HANDED = [{ value: "c1", label: "Ayşe Kara" }];
 
-  function searchable(onSearch: (t: string) => Promise<ComboOption[]>) {
+  function searchable(
+    onSearch: (
+      t: string,
+    ) => Promise<{ options: ComboOption[]; hasMore: boolean }>,
+  ) {
     const view = render(
       <Combobox
         name="clientId"
@@ -574,9 +623,10 @@ describe("what the list says while it has nothing to show", () => {
   }
 
   it("says it is looking, not that there is nothing", async () => {
-    let release: (v: ComboOption[]) => void = () => {};
+    type Answer = { options: ComboOption[]; hasMore: boolean };
+    let release: (v: Answer) => void = () => {};
     const { input } = searchable(
-      () => new Promise<ComboOption[]>((resolve) => (release = resolve)),
+      () => new Promise<Answer>((resolve) => (release = resolve)),
     );
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: "zzz" } });
@@ -588,7 +638,7 @@ describe("what the list says while it has nothing to show", () => {
     expect(screen.queryByText("Sonuç yok.")).toBeNull();
 
     await act(async () => {
-      release([]);
+      release({ options: [], hasMore: false });
     });
     // And once it has answered, "nothing" is the honest word.
     expect(screen.getByText("Sonuç yok.")).toBeInTheDocument();
@@ -609,7 +659,7 @@ describe("what the list says while it has nothing to show", () => {
   });
 
   it("still says to type more before anything has been asked", async () => {
-    const onSearch = vi.fn(async () => []);
+    const onSearch = vi.fn(async () => ({ options: [], hasMore: false }));
     const { input } = searchable(onSearch);
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: "z" } });
@@ -641,7 +691,7 @@ describe("the note when the list is short of the clinic", () => {
           { value: "c1", label: "Ayşe Kara" },
           { value: "c2", label: "Mehmet Kaya" },
         ]}
-        onSearch={async () => []}
+        onSearch={async () => ({ options: [], hasMore: false })}
         hasMore
         searchHintLabel="En az iki harf yazın."
         hasMoreLabel="Tüm kayıtlar gösterilmiyor."

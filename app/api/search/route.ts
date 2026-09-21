@@ -19,5 +19,10 @@ export async function GET(req: Request) {
     quickSearchPets(session.user.clinicId, q),
   ]);
 
-  return NextResponse.json({ clients, pets });
+  // Only the rows. Both queries now also report whether they truncated,
+  // which the pickers need and the palette does not use yet: saying
+  // "there is more" here would be a new sentence on a surface nobody
+  // has designed it for. Deliberately unchanged behaviour, not an
+  // oversight — the pair is available the day the palette wants it.
+  return NextResponse.json({ clients: clients.items, pets: pets.items });
 }

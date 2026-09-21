@@ -58,7 +58,11 @@ describe("quickSearchClients, the way past the cap", () => {
     // either way: two would start disagreeing about what "matches" means.
     await quickSearchClients("clinic-1", "yıl", 20);
 
-    expect(callOf()?.take).toBe(20);
+    // 21, not 20: the extra row is read and discarded so the answer can
+    // say whether it was truncated. See `listClients`, which has read
+    // one past its cap since it was written — this is the search path
+    // catching up.
+    expect(callOf()?.take).toBe(21);
   });
 
   it("returns nothing below two characters rather than everybody", async () => {
@@ -68,7 +72,7 @@ describe("quickSearchClients, the way past the cap", () => {
     // so an empty array here is unambiguous.
     const rows = await quickSearchClients("clinic-1", "y", 20);
 
-    expect(rows).toEqual([]);
+    expect(rows).toEqual({ items: [], hasMore: false });
     expect(prisma.client.findMany).not.toHaveBeenCalled();
   });
 
@@ -142,7 +146,7 @@ describe("searching for a name typed without Turkish letters", () => {
     // trigram index cannot help a term shorter than three characters.
     const rows = await quickSearchClients("clinic-1", "a");
 
-    expect(rows).toEqual([]);
+    expect(rows.items).toEqual([]);
     expect(prisma.client.findMany).not.toHaveBeenCalled();
   });
 });

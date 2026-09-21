@@ -164,11 +164,18 @@ export async function quickSearchPets(
    */
   ownerId?: string,
 ) {
-  if (term.length < 2) return [];
-  return prisma.pet.findMany({
+  if (term.length < 2) return { items: [], hasMore: false };
+  // Reads one row past the cap and throws it away, the same way
+  // `listPets` does. That row is the whole answer to "is this all of
+  // them": without it a search that returned exactly the cap and a
+  // search that returned everything are the same array, and the picker
+  // has to guess. It guessed by comparing the length to the cap, which
+  // is the same fact written in two places -- and the two disagree the
+  // day the cap moves.
+  const rows = await prisma.pet.findMany({
     where: buildPetWhere({ clinicId, search: term, ownerId }),
     orderBy: { name: "asc" },
-    take,
+    take: take + 1,
     select: {
       id: true,
       name: true,
@@ -177,6 +184,7 @@ export async function quickSearchPets(
       owner: { select: { firstName: true, lastName: true } },
     },
   });
+  return { items: rows.slice(0, take), hasMore: rows.length > take };
 }
 
 /**

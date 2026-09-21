@@ -102,13 +102,19 @@ export function ReminderForm({
   const searchPets = useCallback(
     async (term: string) => {
       const found = await searchPetsAction(term, clientId || undefined);
-      for (const p of found) {
+      for (const p of found.options) {
         searchedOwners.current.set(p.value, {
           value: p.ownerId,
           label: p.ownerLabel,
         });
       }
-      return found.map(({ value, label }) => ({ value, label }));
+      return {
+        options: found.options.map(({ value, label }) => ({ value, label })),
+        // Passed through rather than recomputed: whether the search was
+        // truncated is the server's answer about its own query, and the
+        // owner map above does not change it.
+        hasMore: found.hasMore,
+      };
     },
     [clientId],
   );
