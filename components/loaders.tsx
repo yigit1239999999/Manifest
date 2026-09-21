@@ -78,6 +78,57 @@ export function CardSkeleton({
   );
 }
 
+/**
+ * The shape of a form route while it loads.
+ *
+ * Eleven list and detail routes had a `loading.tsx`; none of the eleven form
+ * routes did, although the form routes are the ones that fetch a clinic's
+ * clients and animals before they can draw a picker. On a slow link the walk
+ * a new clinic makes -- `/visits/new` to `/pets/new` to `/clients/new` --
+ * was a blank screen at every step, on the three screens where the vet is
+ * least sure what is supposed to happen next.
+ *
+ * `fields` and `wide` are here for the reason `ListSkeleton` takes `action`
+ * and `filter`: a skeleton that settles into a different layout is not a
+ * hint but a wrong answer, and the eye starts over. Visits and invoices are
+ * the wide pair (`max-w-4xl`); the field count is the number of controls
+ * above the fold, not the whole form, because the fold is all the skeleton
+ * is ever on screen for.
+ */
+export function FormSkeleton({
+  fields = 4,
+  wide = false,
+}: {
+  fields?: number;
+  wide?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "mx-auto flex w-full flex-col gap-6",
+        wide ? "max-w-4xl" : "max-w-3xl",
+      )}
+    >
+      {/* `BackLink`, then the title: both are drawn by the page itself and
+          are the first things to settle, so leaving them out would make the
+          card jump down as the form arrives. */}
+      <Skeleton className="h-4 w-16" />
+      <Skeleton className="h-7 w-48" />
+      <Card className="flex flex-col gap-6 p-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {Array.from({ length: fields }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-2">
+              <Skeleton className="h-2.5 w-20" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          ))}
+        </div>
+        <Skeleton className="h-9 w-32" />
+      </Card>
+    </div>
+  );
+}
+
 /** The title and subtitle every route opens with (`PageHeader`). */
 export function HeaderSkeleton({ action = false }: { action?: boolean }) {
   return (

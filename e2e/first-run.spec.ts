@@ -154,4 +154,77 @@ test.describe("First run", () => {
       expect(overflow, `sideways scroll in ${locale}`).toBeLessThanOrEqual(0);
     }
   });
+
+  // The chain walked down and then back up again, which is the half that
+  // was missing: before `?next=`, every save landed on the new record's
+  // own page and the vet had to remember the errand and navigate back --
+  // two manual steps in an eight-screen walk, taken on the day they know
+  // the product least.
+  test("a record made mid-errand comes back to the form that needed it", async ({
+    page,
+  }) => {
+    await signUp(page, Date.now());
+
+    // Down: the visit needs an animal, the animal needs a client, and
+    // each step carries the one below it.
+    await page.goto("/visits/new");
+    const main = page.getByRole("main");
+    await main.getByRole("link", { name: /new pet|yeni hayvan/i }).click();
+    await expect(page).toHaveURL("/pets/new?next=%2Fvisits%2Fnew");
+    await main.getByRole("link", { name: /new client|yeni müşteri/i }).click();
+    await expect(page).toHaveURL(
+      "/clients/new?next=" + encodeURIComponent("/pets/new?next=%2Fvisits%2Fnew"),
+    );
+
+    // Up, one link: back on the animal form with the owner already in it.
+    await page.getByLabel(/first name|^ad$/i).fill("Devrim");
+    await page.getByLabel(/last name|soyad/i).fill("Aksoy");
+    await page
+      .getByRole("button", { name: /create client|müşteri oluştur/i })
+      .click();
+    await expect(page).toHaveURL(/\/pets\/new\?.*ownerId=/);
+    await expect(page.getByLabel(/^owner$|^sahibi$/i)).toHaveValue(
+      "Devrim Aksoy",
+    );
+
+    // Up, the last link: back on the visit form with the animal in it,
+    // named the way every other picker names one.
+    await page.getByLabel(/^name$|^isim$/i).fill("Zeytin");
+    await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
+    await page.getByLabel(/^sex$|^cinsiyet$/i).selectOption("FEMALE");
+    await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
+    await expect(page).toHaveURL(/\/visits\/new\?.*petId=/);
+    await expect(page.getByLabel(/^pet$|^hayvan$/i)).toHaveValue(
+      "Zeytin · Devrim Aksoy",
+    );
+  });
+
+  // The same errand from the one screen that asks for a client rather
+  // than an animal -- and the one that calls it something else. A bill
+  // reads `clientId` where the animal form reads `ownerId`, so handing
+  // both back under one name left this picker empty: the defect the
+  // errand exists to close, moved one screen along.
+  test("a bill gets the client back under the name it reads", async ({
+    page,
+  }) => {
+    await signUp(page, Date.now());
+
+    await page.goto("/invoices/new");
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: /new client|yeni müşteri/i })
+      .click();
+    await expect(page).toHaveURL("/clients/new?next=%2Finvoices%2Fnew");
+
+    await page.getByLabel(/first name|^ad$/i).fill("Selin");
+    await page.getByLabel(/last name|soyad/i).fill("Kaya");
+    await page
+      .getByRole("button", { name: /create client|müşteri oluştur/i })
+      .click();
+
+    await expect(page).toHaveURL(/\/invoices\/new\?.*clientId=/);
+    await expect(page.getByLabel(/^client$|^müşteri$/i)).toHaveValue(
+      "Selin Kaya",
+    );
+  });
 });
