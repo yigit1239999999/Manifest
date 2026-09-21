@@ -168,13 +168,11 @@ export function ClientForm({ client, next }: Props) {
             label={t("lastName")}
             error={state.fieldErrors?.lastName}
             hint={t("lastNameHint")}
-            required
           >
             <Input
               name="lastName"
               defaultValue={client?.lastName ?? ""}
               autoComplete="family-name"
-              required
             />
           </Field>
         </div>
@@ -186,12 +184,14 @@ export function ClientForm({ client, next }: Props) {
           label={t("phone")}
           error={state.fieldErrors?.phone}
           hint={t("phoneHint")}
+          required
         >
           <Input
             name="phone"
             type="tel"
             defaultValue={client?.phone ?? ""}
             autoComplete="tel"
+            required
           />
         </Field>
       </FormSection>
@@ -406,7 +406,7 @@ export function ClientForm({ client, next }: Props) {
       <div className="flex items-center justify-end gap-3">
         <span className="text-xs text-muted-foreground">
           {tCommon("requiredFields", {
-            fields: [t("firstName"), t("lastName")].join(", "),
+            fields: [t("firstName"), t("phone")].join(", "),
           })}
         </span>
         <SubmitButton>{client ? t("update") : t("create")}</SubmitButton>

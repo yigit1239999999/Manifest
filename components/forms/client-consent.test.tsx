@@ -185,3 +185,46 @@ describe("the consequence is announced, not only printed", () => {
     ).toBeNull();
   });
 });
+
+/**
+ * Which boxes the form insists on, checked against what the server will
+ * actually refuse.
+ *
+ * The two halves moved together and in opposite directions: the surname
+ * stopped being required and the phone started. The vet's account is the
+ * whole reason and it is about the quality of what gets stored, not
+ * about convenience -- "I do not know the surname of the lady who
+ * brings the stray, and it would be rude to ask; but if I do not take
+ * her number I will never find that animal again. Force the surname and
+ * I will type a full stop, and the record is rubbish."
+ *
+ * Asserted on the rendered form because the browser is what stops the
+ * reader, and a `required` marker that disagrees with
+ * `modules/clients/schema.ts` fails in the worse direction either way:
+ * a form that submits and is refused by the server, or a form that
+ * blocks on a field the server would have accepted.
+ */
+describe("what the counter has to fill in", () => {
+  it("insists on the name and the number, and on nothing else", () => {
+    const { container } = renderForm();
+
+    const required = [...container.querySelectorAll("[required]")]
+      .map((el) => el.getAttribute("name"))
+      .filter((n): n is string => Boolean(n));
+
+    expect(new Set(required)).toEqual(new Set(["firstName", "phone"]));
+  });
+
+  it("does not insist on the consent answer", () => {
+    const { container } = renderForm();
+
+    // "If you force me I will tick one at random, and that means
+    // messaging someone who never agreed." A forced answer here is
+    // worse than no answer, because it cannot be told from a real one.
+    for (const radio of container.querySelectorAll(
+      'input[name="notificationsOptIn"]',
+    )) {
+      expect(radio).not.toHaveAttribute("required");
+    }
+  });
+});
