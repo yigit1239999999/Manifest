@@ -114,7 +114,7 @@ describe("blockedReminders", () => {
       }),
     ] as never);
 
-    expect(await blockedReminders("clinic-1")).toEqual({ items: [], total: 0 });
+    expect(await blockedReminders("clinic-1")).toMatchObject({ items: [], total: 0 });
   });
 
   // The class this guards is narrower than "not blocked", and value
@@ -142,7 +142,61 @@ describe("blockedReminders", () => {
       reminder({ id: "r-twin", messages: accepted("UNKNOWN", "SUPPRESSED") }),
     ] as never);
 
-    expect(await blockedReminders("clinic-1")).toEqual({ items: [], total: 0 });
+    expect(await blockedReminders("clinic-1")).toMatchObject({ items: [], total: 0 });
+  });
+
+  // Two questions, one call, and the names are shared because a click
+  // on the dashboard number filters the tab to exactly these rows.
+  //
+  // The test that separates the groups is whether the number can reach
+  // zero this week: "tried and did not arrive" can, "nobody asked this
+  // owner" cannot, and a number that cannot reach zero stops being
+  // read.
+  it("separates what was tried from what was never sent", async () => {
+    const failedTimes = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        status: "FAILED",
+        createdAt: new Date(`2026-09-1${i + 1}T08:00:00.000Z`),
+        error: "message_too_long_or_invalid",
+        channel: "SMS",
+      }));
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+      reminder({ id: "r-undelivered", messages: [
+        { status: "SENT", createdAt: new Date("2026-09-20T06:00:00.000Z"), error: null, channel: "SMS", deliveryStatus: "UNDELIVERED" },
+      ] }),
+      reminder({ id: "r-exhausted", messages: failedTimes(3) }),
+      // The sweep will try this one again tonight: not this morning's
+      // work, and not in either group.
+      reminder({ id: "r-retrying", messages: failedTimes(1) }),
+      reminder({ id: "r-unasked", client: { ...reminder().client, notificationsOptIn: null } }),
+    ] as never);
+
+    const { items, total, unreachedTotal, blockedTotal } = await blockedReminders("clinic-1");
+
+    expect(items.map((i) => [i.id, i.reason, i.group])).toEqual([
+      ["r-undelivered", "undelivered", "unreached"],
+      ["r-exhausted", "failedExhausted", "unreached"],
+      ["r-unasked", "neverAsked", "blocked"],
+    ]);
+    expect([total, unreachedTotal, blockedTotal]).toEqual([3, 2, 1]);
+  });
+
+  // Exhaustion is the sweep's own count: a failure we caused does not
+  // spend an attempt, so three duplicate blocks are not "given up on".
+  it("does not call a reminder exhausted on failures of our own making", async () => {
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+      reminder({
+        id: "r-ours",
+        messages: Array.from({ length: 3 }, (_, i) => ({
+          status: "FAILED",
+          createdAt: new Date(`2026-09-1${i + 1}T08:00:00.000Z`),
+          error: "duplicate_send_blocked",
+          channel: "SMS",
+        })),
+      }),
+    ] as never);
+
+    expect((await blockedReminders("clinic-1")).unreachedTotal).toBe(0);
   });
 
   it("asks only for the days the sweep can act on", async () => {

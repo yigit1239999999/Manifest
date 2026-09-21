@@ -660,6 +660,27 @@ export const DUPLICATE_SUPPRESSION_WINDOW_MS = 24 * 3_600_000;
  * - Three failures: stop, and let someone look at it.
  * - Failed recently: wait, the attempt is not lost.
  */
+/**
+ * The failures that count against a reminder's three attempts.
+ *
+ * One definition, used by the sweep's decision and by the sentence on
+ * the row, because they are the same fact: whether anything automatic
+ * will try again. They had drifted -- `847e569` stopped our own
+ * duplicate blocks from spending attempts in the sweep and left the
+ * row computing exhaustion from every failure, so a reminder could
+ * read "no further attempts" while the sweep was still going to try.
+ *
+ * `PRODUCT` failures are ours: the provider refused a repeat of a
+ * message it had just accepted, which is evidence the first one went,
+ * not a reason to give up on this one.
+ */
+export function spentAttempts(
+  messages: { status: string; error?: string | null }[],
+): number {
+  return messages.filter((m) => m.status === "FAILED" && failureScope(m.error) !== "PRODUCT")
+    .length;
+}
+
 export function automaticSendBlock(
   messages: { status: string; createdAt: Date; error?: string | null }[],
   now: Date,
@@ -691,8 +712,7 @@ export function automaticSendBlock(
   // against an unapproved sender title are equally futile, but a
   // banner is already saying so on the screen: that abandonment is
   // visible, and this one was not.
-  const spent = failures.filter((m) => failureScope(m.error) !== "PRODUCT");
-  if (spent.length >= MAX_AUTOMATIC_ATTEMPTS) return "attemptsExhausted";
+  if (spentAttempts(messages) >= MAX_AUTOMATIC_ATTEMPTS) return "attemptsExhausted";
   if (failures.length === 0) return null;
 
   const lastFailure = Math.max(...failures.map((m) => m.createdAt.getTime()));
@@ -1146,8 +1166,10 @@ export function reminderDeliveryState(
       attempts: failures.length,
       // Derived here and not on the screen: the threshold is the sweep's
       // rule, and a copy of it in a component is a second place to
-      // change when it moves.
-      exhausted: failures.length >= MAX_AUTOMATIC_ATTEMPTS,
+      // change when it moves. Counted the sweep's way too -- our own
+      // duplicate blocks do not spend attempts, so a row must not say
+      // "no further attempts" while the sweep is still going to try.
+      exhausted: spentAttempts(reminder.messages) >= MAX_AUTOMATIC_ATTEMPTS,
       scope: failureScope(failures[0].error),
       channel: failures[0].channel,
     };

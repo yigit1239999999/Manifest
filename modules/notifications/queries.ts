@@ -42,13 +42,40 @@ const BLOCKED_STATES = [
   "disabled",
 ] as const;
 
-export type BlockedReminderReason = (typeof BLOCKED_STATES)[number];
+/**
+ * Tried, and it did not arrive.
+ *
+ * A different group from the one above and the reason is what a vet
+ * does about it: these end in picking up the phone today, where the
+ * others end in tidying a record. The test that separates them is
+ * whether the number can reach zero this week -- `optedOut` never
+ * can, `neverAsked` erodes over months, and a number that cannot
+ * reach zero stops being read.
+ *
+ * `failedExhausted` and not every failure: a reminder the sweep will
+ * try again tonight is not work for this morning. Exhaustion is the
+ * sweep's own count (`spentAttempts`), so our duplicate blocks do not
+ * push a row into this group.
+ */
+const UNREACHED_STATES = ["undelivered", "failedExhausted"] as const;
+
+export type BlockedReminderReason =
+  | (typeof BLOCKED_STATES)[number]
+  | (typeof UNREACHED_STATES)[number];
+
+/**
+ * Which question a row answers, named because both sides need the
+ * same word: the dashboard counts `unreached`, and clicking that
+ * count filters the tab to exactly those rows.
+ */
+export type ReminderProblemGroup = "unreached" | "blocked";
 
 export interface BlockedReminder {
   id: string;
   title: string;
   dueAt: Date;
   reason: BlockedReminderReason;
+  group: ReminderProblemGroup;
   /**
    * The number, raw, because four of the six reasons end in a phone
    * call -- and a list that shows a problem while sending the work to
@@ -80,9 +107,16 @@ export interface BlockedReminder {
 export async function blockedReminders(
   clinicId: string,
   { now = new Date(), take = PAGE_SIZES.LIST }: { now?: Date; take?: number } = {},
-): Promise<{ items: BlockedReminder[]; total: number }> {
+): Promise<{
+  items: BlockedReminder[];
+  total: number;
+  /** Tried and did not arrive: the dashboard's number. */
+  unreachedTotal: number;
+  /** Never sent, and will not be: the tab's other half. */
+  blockedTotal: number;
+}> {
   const clinic = await getClinicMessagingProfile(clinicId);
-  if (!clinic) return { items: [], total: 0 };
+  if (!clinic) return { items: [], total: 0, unreachedTotal: 0, blockedTotal: 0 };
 
   const { from, to } = reminderNoticeWindow(now, clinic.notifications.whatsapp.reminders);
   const rows = await prisma.reminder.findMany({
@@ -104,12 +138,28 @@ export async function blockedReminders(
   for (const row of rows) {
     const state = reminderDeliveryState(row, clinic);
     if (!state) continue;
-    if (!(BLOCKED_STATES as readonly string[]).includes(state.state)) continue;
+
+    // A failure the sweep has given up on is work; one it will retry
+    // tonight is not, and neither is anything it has not tried yet.
+    const reason: BlockedReminderReason | null =
+      state.state === "failed"
+        ? state.exhausted
+          ? "failedExhausted"
+          : null
+        : (BLOCKED_STATES as readonly string[]).includes(state.state) ||
+            (UNREACHED_STATES as readonly string[]).includes(state.state)
+          ? (state.state as BlockedReminderReason)
+          : null;
+    if (!reason) continue;
+
     blocked.push({
       id: row.id,
       title: row.title,
       dueAt: row.dueAt,
-      reason: state.state as BlockedReminderReason,
+      reason,
+      group: (UNREACHED_STATES as readonly string[]).includes(reason)
+        ? "unreached"
+        : "blocked",
       client: {
         id: row.client.id,
         firstName: row.client.firstName,
@@ -120,5 +170,13 @@ export async function blockedReminders(
     });
   }
 
-  return { items: blocked.slice(0, take), total: blocked.length };
+  return {
+    items: blocked.slice(0, take),
+    total: blocked.length,
+    // Counted over everything found, not over the capped rows: a
+    // badge that shrinks when the list is cut describes a different
+    // set than the one it sits on.
+    unreachedTotal: blocked.filter((b) => b.group === "unreached").length,
+    blockedTotal: blocked.filter((b) => b.group === "blocked").length,
+  };
 }
