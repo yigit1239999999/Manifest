@@ -43,6 +43,7 @@ export async function Timeline({
 }) {
   const t = await getTranslations("timeline");
   const tEnum = await getTranslations("enum");
+  const tNote = await getTranslations("note");
   const fmt = await getFormatContext();
 
   if (events.length === 0) {
@@ -106,11 +107,13 @@ export async function Timeline({
                         {event.title}
                       </p>
                       {event.kind === "note" && event.pinned && (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-600"
-                          aria-label="pinned"
-                        >
-                          <Pin className="size-3" />
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-warning">
+                          <Pin className="size-3" aria-hidden="true" />
+                          {/* Was `aria-label="pinned"`: an English word in
+                              the code, on a Turkish screen, and invisible to
+                              anyone reading the page rather than hearing it.
+                              The catalogue already had the word. */}
+                          <span className="sr-only">{tNote("pinned")}</span>
                         </span>
                       )}
                     </div>

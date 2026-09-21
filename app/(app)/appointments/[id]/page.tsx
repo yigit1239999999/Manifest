@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
 import { Badge } from "@/components/ui/badge";
+import { Callout } from "@/components/ui/callout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Card,
@@ -124,9 +125,7 @@ export default async function AppointmentPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {preview && !preview.optedIn && (
-            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
-              {t("notifications.optedOut")}
-            </p>
+            <Callout variant="warning">{t("notifications.optedOut")}</Callout>
           )}
           {preview && preview.optedIn && !preview.configured && (
             <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">

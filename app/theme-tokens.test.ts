@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -341,5 +341,69 @@ describe("filled surfaces are readable in both themes", () => {
       contrastRatio(shipped, light.get("--bg")!),
       "…while clearing AA on the page background, which is why it was missed",
     ).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+// --- No raw palette colours ----------------------------------------------
+// The tokens above are only worth measuring if the app actually uses them.
+// `text-amber-700` on a dark card is not a token that failed, it is a token
+// that was bypassed: Tailwind's palette has no dark variant, so anything
+// painted from it looks the same in both themes and is unreachable from
+// `globals.css`. Two survived the first sweep and were found months later,
+// in a timeline pin and an appointment notice.
+
+describe("the app paints from role tokens only", () => {
+  // Resolved from this file, not from the working directory, so the rule
+  // does not quietly scan nothing when the runner is started elsewhere.
+  const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+  const roots = ["app", "components", "lib"].map((d) => `${projectRoot}${d}`);
+  const palette =
+    "slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|" +
+    "emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose";
+  const rawColour = new RegExp(
+    `\\b(text|bg|border|ring|fill|stroke|from|to|via|divide|outline|shadow)-(${palette})-[0-9]{2,3}\\b`,
+  );
+
+  /** Every .ts/.tsx file under `roots`, except this one. */
+  function sourceFiles(dir: string, out: string[] = []): string[] {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) sourceFiles(path, out);
+      else if (/\.tsx?$/.test(entry.name) && !path.endsWith("theme-tokens.test.ts")) {
+        out.push(path);
+      }
+    }
+    return out;
+  }
+
+  it("uses no Tailwind palette colour anywhere", () => {
+    const files = roots.flatMap((root) => sourceFiles(root));
+    // A scan that found nothing to scan would pass for the wrong reason.
+    expect(files.length).toBeGreaterThan(50);
+
+    const offenders: string[] = [];
+    {
+      for (const file of files) {
+        readFileSync(file, "utf8")
+          .split("\n")
+          .forEach((line, i) => {
+            const hit = rawColour.exec(line);
+            if (hit) {
+              offenders.push(`${file.slice(projectRoot.length)}:${i + 1} ${hit[0]}`);
+            }
+          });
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("recognises the colours that actually shipped", () => {
+    // Without this the rule could be silently inverted and still pass.
+    expect(rawColour.test('className="text-amber-700"')).toBe(true);
+    expect(rawColour.test('className="bg-amber-500/10"')).toBe(true);
+    expect(rawColour.test('className="text-warning"')).toBe(false);
+    expect(rawColour.test('className="bg-destructive/10"')).toBe(false);
+    // Not a colour: the spacing and sizing scales share the shape.
+    expect(rawColour.test('className="border-b-2"')).toBe(false);
   });
 });
