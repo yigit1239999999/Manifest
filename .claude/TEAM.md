@@ -5768,3 +5768,35 @@ pm'in yan notu, kendi başına bir tuzak: aynı yedi rotaya `curl` ile
 bakınca **hepsi 307** dönüyordu — oturumsuz yönlendirme. *"Tarayıcı
 olmasa 'hepsi sağlam' derdim."* Bir duman kontrolü, **oturum
 açmadan** yapılırsa duman kontrolü değildir.
+
+### `tsc` kaynağı okur, sunulan istemciyi değil
+
+dev-ui *"yedi commit öndeyim, hiçbiri ekranda görülmedi"* derken
+ekranın **kendisi ayakta değildi** — ve kırılan sayfa tam olarak
+kendi işinin dayandığı sayfaydı.
+
+Kapıları temizdi ve temiz olmaya devam ediyordu, çünkü:
+
+> `tsc` **derlenmiş istemciyi değil kaynağı** okuyor.
+
+Kaynakta `SUPPRESSED` vardı, sunulan derlemenin Prisma istemcisinde
+yoktu, ve aradaki boşluk hiçbir kapının baktığı yerde değildi.
+
+**Kural:** yeşil kapılar *"yazdığım kod tutarlı"* der, *"sunulan şey
+çalışıyor"* demez. İkincisinin tek kanıtı **o derlemeye tarayıcıdan
+bakmaktır** — ve bu, `1 undefined` ailesinin dördüncü üyesi:
+**kontrol çalıştı, baktığı katman olayın olduğu katman değildi.**
+
+### Ölçüm sürerken hedefi oynatma
+
+dev-ui'nin elinde bağlanmaya hazır bir iş vardı ve **commit
+etmedi**, gerekçesiyle:
+
+> *Tazeleme `f21aeee` ile koştu ve pm ölçmek üzere. Şimdi commit
+> etmek **ölçülen hedefi oynatmak** olur.*
+
+Bu turda o çarkın bedelini defalarca ödedik: pm bir ölçümü tohum
+araya girdiği için çöpe attı, bir başkasını bayat derlemede yaptı.
+**Bekleyen iş ucuz, geçersiz ölçüm pahalı** — ve pahalı olan taraf
+bekleyen kişinin değil, ölçen kişinin hanesine yazılıyor, o yüzden
+bekleme kararını **işi elinde tutanın** vermesi gerekiyor.
