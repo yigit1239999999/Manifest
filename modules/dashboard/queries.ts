@@ -93,7 +93,13 @@ export async function dashboardInsights(
           AND i.status IN ('SENT','PARTIAL')
           AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
       )::int AS outstanding_invoices,
-      (SELECT COALESCE(SUM(i."totalCents"), 0) FROM "invoices" i
+      -- What is still owed, not what was billed: a partly paid invoice owes
+      -- its remainder. GREATEST keeps an overpaid invoice from cancelling
+      -- another client's debt, the same way the invoice page floors at zero.
+      (SELECT COALESCE(SUM(GREATEST(i."totalCents" - COALESCE(paid.cents, 0), 0)), 0) FROM "invoices" i
+        LEFT JOIN LATERAL (
+          SELECT SUM(p."amountCents") AS cents FROM "payments" p WHERE p."invoiceId" = i.id
+        ) paid ON TRUE
         WHERE i."clinicId" = ${clinicId}
           AND i.status IN ('SENT','PARTIAL')
           AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
