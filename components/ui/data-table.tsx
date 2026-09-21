@@ -40,8 +40,14 @@ export type Column<Row> = {
    * the secondary columns are hidden and what matters rides along inside
    * the first cell. Hiding a column is only honest when its content is
    * still reachable somewhere.
+   *
+   * Pick the threshold against the width of the *container*, not the
+   * viewport. The sidebar goes from 64px to 240px at `md`, so the content
+   * column is 462px wide at 768 and was 669px at 767 — the page gets
+   * wider and the table gets 207px poorer at the same instant. A column
+   * revealed at `md` is revealed exactly when the room for it disappears.
    */
-  hideBelow?: "sm" | "md";
+  hideBelow?: "sm" | "md" | "lg";
   align?: "start" | "end";
   /**
    * A column of figures: money, counts, measurements.
@@ -72,6 +78,7 @@ export type Column<Row> = {
 const hideClass = {
   sm: "hidden sm:table-cell",
   md: "hidden md:table-cell",
+  lg: "hidden lg:table-cell",
 } as const;
 
 export function DataTable<Row>({

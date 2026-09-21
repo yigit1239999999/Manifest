@@ -57,7 +57,13 @@ import { describe, expect, it } from "vitest";
 
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 
-const ORDER = ["sm", "md"] as const;
+// `lg` joined the list when `/staff` moved its columns there: the
+// sidebar widens at `md`, so a column revealed at `md` is revealed at the
+// exact moment the room for it disappears. The scan is a closed set of
+// breakpoints and silently skips a page whose `hideBelow` it does not
+// recognise — so widening `hideBelow` without widening this is how the
+// check stops checking, with every test still green.
+const ORDER = ["sm", "md", "lg"] as const;
 type Breakpoint = (typeof ORDER)[number];
 
 function pages(dir: string, out: string[] = []): string[] {
@@ -84,14 +90,14 @@ describe("a stand-in outlives the columns it stands in for", () => {
     for (const file of files) {
       const source = readFileSync(file, "utf8");
 
-      const dropped = [...source.matchAll(/hideBelow:\s*"(sm|md)"/g)].map(
+      const dropped = [...source.matchAll(/hideBelow:\s*"(sm|md|lg)"/g)].map(
         (m) => m[1] as Breakpoint,
       );
       if (dropped.length === 0) continue;
 
       // The stand-in: a block inside the table that disappears once the
       // columns are back. There is at most one per list today.
-      const standIn = source.match(/className="[^"]*\b(sm|md):hidden\b[^"]*"/);
+      const standIn = source.match(/className="[^"]*\b(sm|md|lg):hidden\b[^"]*"/);
       if (!standIn) continue;
 
       const last = ORDER[Math.max(...dropped.map((b) => ORDER.indexOf(b)))];
@@ -111,16 +117,30 @@ describe("a stand-in outlives the columns it stands in for", () => {
   it("recognises the shapes it reads", () => {
     // Both halves are regexes over source, which is the kind of thing
     // that quietly stops matching.
-    expect(/hideBelow:\s*"(sm|md)"/.exec('hideBelow: "md",')?.[1]).toBe("md");
+    expect(/hideBelow:\s*"(sm|md|lg)"/.exec('hideBelow: "md",')?.[1]).toBe(
+      "md",
+    );
+    // Every member of ORDER is reachable by both regexes, so adding one
+    // to the type without adding it here cannot pass.
+    for (const bp of ORDER) {
+      expect(
+        /hideBelow:\s*"(sm|md|lg)"/.exec(`hideBelow: "${bp}",`)?.[1],
+      ).toBe(bp);
+      expect(
+        /className="[^"]*\b(sm|md|lg):hidden\b[^"]*"/.exec(
+          `className="mt-1 ${bp}:hidden"`,
+        )?.[1],
+      ).toBe(bp);
+    }
     expect(
-      /className="[^"]*\b(sm|md):hidden\b[^"]*"/.exec(
+      /className="[^"]*\b(sm|md|lg):hidden\b[^"]*"/.exec(
         'className="mt-1 flex text-xs md:hidden"',
       )?.[1],
     ).toBe("md");
     // `sm:not-sr-only` is not a hide, and `hidden sm:table-cell` is the
     // column's own class rather than a stand-in's.
     expect(
-      /className="[^"]*\b(sm|md):hidden\b[^"]*"/.test(
+      /className="[^"]*\b(sm|md|lg):hidden\b[^"]*"/.test(
         'className="sr-only sm:not-sr-only"',
       ),
     ).toBe(false);

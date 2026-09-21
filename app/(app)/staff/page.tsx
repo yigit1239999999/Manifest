@@ -68,8 +68,13 @@ export default async function StaffPage() {
                       `wrap-anywhere` lives here and not on a column of its
                       own: an address is one unbreakable token, and in a
                       45px column it became twenty-six lines. Narrow enough
-                      to fit and unreadable is not a fix. */}
-                  <div className="mt-1 flex flex-col gap-0.5 text-xs font-normal text-muted-foreground sm:hidden">
+                      to fit and unreadable is not a fix.
+
+                      `lg:hidden`, matching the columns above it. The
+                      pairing is the whole point: if this line ever stops
+                      at a different width than the columns start, the
+                      email is either printed twice or nowhere. */}
+                  <div className="mt-1 flex flex-col gap-0.5 text-xs font-normal text-muted-foreground lg:hidden">
                     <span className="wrap-anywhere">{member.email}</span>
                     <span>{tRole(member.role)}</span>
                   </div>
@@ -79,14 +84,14 @@ export default async function StaffPage() {
             {
               key: "email",
               header: t("email"),
-              hideBelow: "sm",
+              hideBelow: "lg",
               cellClassName: "text-muted-foreground",
               cell: (member) => member.email,
             },
             {
               key: "role",
               header: t("role"),
-              hideBelow: "sm",
+              hideBelow: "lg",
               cellClassName: "text-muted-foreground",
               cell: (member) => tRole(member.role),
             },
