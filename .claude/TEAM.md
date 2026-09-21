@@ -4827,3 +4827,76 @@ düşüyor) ve karar ölçülebilir hâle geldi.
 
 **Bir kararın ne kadar sağlam olduğu, kararın kendisi kadar
 kaydedilir** — bugün bunun üçüncü biçimi.
+
+### `MM` — bayat sahnelemenin tek okumalık işareti
+
+dev commit'ledikten sonra `git status` şunu gösterdi:
+
+```
+MM lib/action.ts
+MM modules/reminders/actions.ts
+```
+
+**Paylaşımlı indeks, dev'in dört dosyasının commit ÖNCESİ blob'larını
+tutuyordu.** O anda yolsuz bir `git commit` çalıştıran biri
+`ddc30a8`'i **geri alırdı** — `e333e24` kazasının **ters
+yönden** aynısı.
+
+Bugüne kadarki korumamız `git diff --cached --name-only` idi ve
+**hangi dosyaya dokunulduğunu** söylüyordu; bu, **o dosyanın bayat
+olduğunu** söylüyor:
+
+> **İlk sütun sahnelenen, ikinci sütun çalışma ağacı. `MM` ikisinin
+> AYRIŞTIĞI demek — ve paylaşımlı bir indekste bu neredeyse her
+> zaman bayat sahnelemedir.**
+
+**Alışkanlık, iki tarafa da:** commit'ten **hemen sonra**
+`git reset -q`, ve `git status` `MM` gösteriyorsa **dur.**
+
+Bu, bugünkü paylaşımlı-ağaç ailesinin dördüncü ve en ucuz üyesi:
+önceki üçü ne olduğunu **sonradan** anlatıyordu, bu **o anda** tek
+harfle söylüyor.
+
+### Maskeleme, kaydın kendisini kör edebilir
+
+dev-ui gövde açılırına `MessageLog.recipient`'ı **maskesiz** koymayı
+önerdi ve lead onayladı. Üç gerekçenin ikisi yeterliydi:
+
+- Bir kaydın işi **14 ay sonra** *"siz hiç aramadınız ki"* diyen
+  sahibe cevap vermekse, **maskeli bir numara o kaydın kanıt
+  değerini düşürür** — hangi numaraya gittiğini söylemeyen bir
+  kayıt, tam da anlaşmazlıkta işe yaramayan kayıttır.
+- **Gönderilen numara, satırdaki güncel numaradan farklı
+  olabilir** (müşteri numarasını değiştirmişse). **O fark tam
+  olarak görülmesi gereken şey** — Pamuk vakasının çekirdeği — ve
+  maskelenirse görünmez.
+
+> **Maskeleme burada güvenlik değil, kaydın kendisini kör etmek
+> olurdu.**
+
+Ve yeni bir maruziyet de açmıyor: ham numara **zaten aynı ekranda**,
+satırda, tıklanabilir. dev'in eklediği gözlem de bu yönde: *maskelemek
+tek ekranda iki ayrı gizlilik kuralı bırakırdı.*
+
+**Kural: bir alanı maskelemeden önce, o alanın o ekrandaki İŞİNİ
+sor.** Gösterim ile kanıt farklı işlerdir.
+
+### Bağlantı var, ucu boşta
+
+pm, bugün inen form uyarısında buldu: müşteri combobox'ında
+`aria-describedby="…-note"` **var**, ama **o id'de eleman yok.**
+Uyarıyı taşıyan `div`'in id'si hiç yok.
+
+Yani **uyarı ekran okuyucuya hiç ulaşmıyor**, ve görsel kullanıcı
+etkilenmiyor — yani **sessizce yanlış.**
+
+İronisi kayda değer: dev-ui aynı turda `Callout`'ta **on altı çağrı
+yerinde** bu sınıfı kökten kapattı. Orada kutunun **adı** yoktu;
+burada **ad var, işaret ettiği şey yok.**
+
+> *"Var ama korumuyor"* ailesinin dokuzuncu vakası — ve ilk kez
+> **aynı gün yazılmış** bir kodda.
+
+**Bir `aria-describedby`, işaret ettiği id'nin varlığıyla birlikte
+doğrulanır.** Öznitelikin var olması, bağlantının kurulduğunu
+göstermiyor.
