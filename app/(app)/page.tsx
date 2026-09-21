@@ -14,6 +14,7 @@ import { requireSession } from "@/lib/session";
 import { dashboardInsights } from "@/modules/dashboard/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
@@ -198,9 +199,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {insights.upcomingAppointments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {t("empty.appointments")}
-              </p>
+              <EmptyState size="inline" title={t("empty.appointments")} />
             ) : (
               <ul className="flex flex-col gap-1">
                 {insights.upcomingAppointments.map((a) => (
@@ -231,7 +230,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {insights.recentVisits.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("empty.visits")}</p>
+              <EmptyState size="inline" title={t("empty.visits")} />
             ) : (
               <ul className="flex flex-col gap-1">
                 {insights.recentVisits.map((v) => (
@@ -283,9 +282,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {insights.upcomingVaccinations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {t("empty.vaccinations")}
-              </p>
+              <EmptyState size="inline" title={t("empty.vaccinations")} />
             ) : (
               <ul className="flex flex-col gap-1">
                 {insights.upcomingVaccinations.map((v) => (
