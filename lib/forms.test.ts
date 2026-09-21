@@ -10,6 +10,7 @@ import {
   optionalFloat,
   optionalInt,
   optionalMoneyCents,
+  requiredMoneyCents,
   optionalText,
   requiredEmail,
   requiredEnum,
@@ -117,20 +118,46 @@ describe("optionalFloat / optionalInt / requiredInt", () => {
   });
 });
 
-describe("optionalMoneyCents", () => {
+describe("money helpers", () => {
   it("converts decimal money into integer cents", () => {
-    const r = optionalMoneyCents.safeParse("12.50");
+    const r = optionalMoneyCents().safeParse("12.50");
     expect(r.success && r.data).toBe(1250);
   });
 
   it("accepts comma as decimal separator", () => {
-    const r = optionalMoneyCents.safeParse("12,50");
+    const r = optionalMoneyCents().safeParse("12,50");
     expect(r.success && r.data).toBe(1250);
   });
 
   it("blank value is null", () => {
-    const r = optionalMoneyCents.safeParse("");
+    const r = optionalMoneyCents().safeParse("");
     expect(r.success && r.data).toBeNull();
+  });
+
+  // The bug this rule exists for: a whole-lira amount used to be stored as
+  // its own cent count, so 500 became 5,00.
+  it("reads a whole amount as units, not as cents", () => {
+    const r = requiredMoneyCents().safeParse("500");
+    expect(r.success && r.data).toBe(50_000);
+  });
+
+  it("reads a thousands separator instead of dividing by a thousand", () => {
+    const r = requiredMoneyCents().safeParse("1.234,56");
+    expect(r.success && r.data).toBe(123456);
+  });
+
+  it("bounds are expressed in cents", () => {
+    expect(requiredMoneyCents({ minCents: 1 }).safeParse("0").success).toBe(false);
+    expect(requiredMoneyCents({ maxCents: 10_000 }).safeParse("100").success).toBe(true);
+    expect(requiredMoneyCents({ maxCents: 10_000 }).safeParse("100,01").success).toBe(
+      false,
+    );
+  });
+
+  it("rejects an unreadable amount instead of storing a guess", () => {
+    expect(requiredMoneyCents().safeParse("").success).toBe(false);
+    expect(requiredMoneyCents().safeParse("abc").success).toBe(false);
+    expect(requiredMoneyCents().safeParse("-5").success).toBe(false);
   });
 });
 
@@ -157,7 +184,7 @@ describe("fields the form never rendered", () => {
     expect(optionalDateTime.safeParse(undefined).data).toBeNull();
     expect(optionalFloat().safeParse(undefined).data).toBeNull();
     expect(optionalInt().safeParse(undefined).data).toBeNull();
-    expect(optionalMoneyCents.safeParse(undefined).data).toBeNull();
+    expect(optionalMoneyCents().safeParse(undefined).data).toBeNull();
   });
 
   it("required helpers report a missing key as required", () => {

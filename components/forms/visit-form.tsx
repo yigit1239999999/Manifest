@@ -1,7 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { Pet, User, Visit } from "@/generated/prisma/client";
+import { centsToInputValue } from "@/lib/money";
 import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
+  const locale = useLocale();
   const t = useTranslations("visit");
   const tCommon = useTranslations("common");
   const tType = useTranslations("enum.visitType");
@@ -190,9 +192,12 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
         <Field label={t("totalCost")} error={state.fieldErrors?.totalCents}>
           <Input
             name="totalCents"
-            placeholder="0.00"
+            inputMode="decimal"
+            placeholder={centsToInputValue(locale, 0)}
             defaultValue={
-              visit?.totalCents != null ? (visit.totalCents / 100).toFixed(2) : ""
+              visit?.totalCents != null
+                ? centsToInputValue(locale, visit.totalCents)
+                : ""
             }
           />
         </Field>

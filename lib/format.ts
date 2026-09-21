@@ -407,11 +407,3 @@ export function formatMoney(
     minimumFractionDigits: 2,
   }).format(amount);
 }
-
-export function parseMoneyInput(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const parsed = Number.parseFloat(trimmed.replace(",", "."));
-  if (!Number.isFinite(parsed)) return null;
-  return Math.round(parsed * 100);
-}

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
+import { centsToInputValue } from "@/lib/money";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
@@ -30,6 +31,10 @@ interface Props {
 
 export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) {
   const t = useTranslations("invoice");
+  const locale = useLocale();
+  // The hint is written the way this locale writes money, so nobody guesses
+  // whether the field wants "1234.50" or "1.234,50".
+  const amountPlaceholder = centsToInputValue(locale, 0);
   const tCommon = useTranslations("common");
   const tStatus = useTranslations("enum.invoiceStatus");
   const tClient = useTranslations("client");
@@ -90,7 +95,7 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
       </div>
 
       <Field label={t("tax")} error={state.fieldErrors?.taxCents}>
-        <Input name="taxCents" placeholder="0.00" />
+        <Input name="taxCents" inputMode="decimal" placeholder={amountPlaceholder} />
       </Field>
 
       <div className="flex flex-col gap-3">
@@ -119,13 +124,9 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
             <Input
               name={`lines[${i}].unitPriceCents`}
               placeholder={t("unitPrice")}
+              inputMode="decimal"
               value={line.unitPrice}
-              onChange={(e) => {
-                const cents = Math.round(
-                  Number((e.target.value || "0").replace(",", ".")) * 100,
-                );
-                updateLine(i, { unitPrice: String(cents) });
-              }}
+              onChange={(e) => updateLine(i, { unitPrice: e.target.value })}
               required={i === 0}
             />
             {lines.length > 1 && (

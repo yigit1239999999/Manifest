@@ -9,6 +9,7 @@
 // translation key (e.g. "pet.owner") so labels stay localised too.
 
 import { z, type ZodError } from "zod";
+import { MAX_MONEY_CENTS, parseMoneyToCents } from "./money";
 
 /** Marker prefix for an encoded, not-yet-translated message. */
 export const MESSAGE_PREFIX = "@t:";
@@ -161,21 +162,33 @@ function integerMsg(opts: { min?: number; max?: number }): string {
   return msg("error.form.integer");
 }
 
-export const optionalMoneyCents = trim
-  .refine((v) => {
-    if (v === "") return true;
-    const n = Number(v.replace(",", "."));
-    return Number.isFinite(n) && n >= 0 && n < 10_000_000;
-  }, msg("error.form.amount"))
-  .transform((v) => (v === "" ? null : Math.round(Number(v.replace(",", ".")) * 100)));
+// Money never converts itself: `parseMoneyToCents` is the only place text
+// becomes cents, and both bounds below are expressed in cents too, so a
+// caller cannot mix the two units by accident.
+interface MoneyOpts {
+  /** Smallest accepted amount in cents. Defaults to 0. */
+  minCents?: number;
+  /** Largest accepted amount in cents. */
+  maxCents?: number;
+}
 
-export const requiredMoneyCents = trim
-  .refine((v) => {
-    if (v === "") return false;
-    const n = Number(v.replace(",", "."));
-    return Number.isFinite(n) && n >= 0 && n < 10_000_000;
-  }, msg("error.form.amount"))
-  .transform((v) => Math.round(Number(v.replace(",", ".")) * 100));
+const centsInRange = (cents: number | null, opts: MoneyOpts): boolean =>
+  cents != null &&
+  cents >= (opts.minCents ?? 0) &&
+  cents <= (opts.maxCents ?? MAX_MONEY_CENTS);
+
+export const optionalMoneyCents = (opts: MoneyOpts = {}) =>
+  trim
+    .refine(
+      (v) => v === "" || centsInRange(parseMoneyToCents(v), opts),
+      msg("error.form.amount"),
+    )
+    .transform((v) => (v === "" ? null : parseMoneyToCents(v)!));
+
+export const requiredMoneyCents = (opts: MoneyOpts = {}) =>
+  trim
+    .refine((v) => centsInRange(parseMoneyToCents(v), opts), msg("error.form.amount"))
+    .transform((v) => parseMoneyToCents(v)!);
 
 export const checkbox = z
   .string()

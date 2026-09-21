@@ -26,7 +26,7 @@ export const visitSchema = z.object({
   heartRateBpm: optionalInt({ min: 0, max: 1000 }),
   respiratoryRateBpm: optionalInt({ min: 0, max: 500 }),
   followupAt: optionalDateTime,
-  totalCents: optionalMoneyCents,
+  totalCents: optionalMoneyCents(),
 });
 
 export type VisitInput = z.infer<typeof visitSchema>;

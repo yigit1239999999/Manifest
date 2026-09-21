@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { centsToInputValue } from "@/lib/money";
 import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ export function PaymentForm({
   invoiceId: string;
   remainingCents: number;
 }) {
+  const locale = useLocale();
   const t = useTranslations("invoice");
   const tMethod = useTranslations("enum.paymentMethod");
   const tCommon = useTranslations("common");
@@ -40,7 +42,10 @@ export function PaymentForm({
       <Field label={t("payment.amount")} error={state.fieldErrors?.amountCents} required>
         <Input
           name="amountCents"
-          placeholder={String(Math.max(0, remainingCents))}
+          inputMode="decimal"
+          // The outstanding amount, written the way this locale writes money:
+          // the old hint showed raw cents and taught people to type them.
+          placeholder={centsToInputValue(locale, Math.max(0, remainingCents))}
           required
         />
       </Field>
