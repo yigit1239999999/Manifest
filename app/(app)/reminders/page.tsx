@@ -422,7 +422,14 @@ export default async function RemindersPage({
                     // which does nothing when pressed. `basis-full` keeps
                     // the label with the row it describes and the actions
                     // together below it.
-                    className="basis-full sm:basis-auto"
+                    // `basis-full` puts it on its own line while the
+                    // cluster wraps; `w-fit` stops it filling that line.
+                    // Without the second half the pill stretched to 260 of
+                    // the card's 294px -- a full-width grey band around
+                    // one word, visually heavier than the buttons under
+                    // it. pm measured it; the first half of this fix
+                    // created it.
+                    className="basis-full w-fit sm:basis-auto"
                   />
                   {/* No permission guard: `reminders.write` is held by
                       every role in the matrix, so a guard here could never

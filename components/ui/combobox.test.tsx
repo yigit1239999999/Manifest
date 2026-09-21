@@ -583,6 +583,32 @@ describe("the note reaches the input it is about", () => {
     fireEvent.focus(input);
     expect(input.getAttribute("aria-describedby")).toBeNull();
   });
+
+  // The note is rendered inside the open list, so with the list shut
+  // the id pointed at nothing. pm found it by looking the id up and
+  // getting null -- a dangling reference is not merely inert, it is
+  // indistinguishable from a description that failed to be written,
+  // and the caller's own error id was riding in the same attribute.
+  it("points at no note while the list is shut", () => {
+    const { input } = render_();
+    fireEvent.focus(input);
+    // Open: the note exists and is pointed at.
+    expect(input.getAttribute("aria-describedby")).not.toBeNull();
+
+    fireEvent.focusOut(input, { relatedTarget: null });
+    // Shut: the note is gone from the document, so its id goes too.
+    expect(input.getAttribute("aria-describedby")).toBeNull();
+  });
+
+  it("keeps the caller's description when the note's id leaves", () => {
+    // The two ids ride in the same attribute, so dropping one must not
+    // drop the other: `Field` puts the validation error in here.
+    const { input } = render_({ "aria-describedby": "field-error" });
+    fireEvent.focus(input);
+    fireEvent.focusOut(input, { relatedTarget: null });
+
+    expect(input.getAttribute("aria-describedby")).toBe("field-error");
+  });
 });
 
 // Four things can be true while the list is empty and three of them

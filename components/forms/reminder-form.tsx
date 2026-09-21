@@ -10,7 +10,6 @@ import { Combobox, type ComboOption } from "@/components/ui/combobox";
 import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Callout } from "@/components/ui/callout";
 import { SubmitButton } from "@/components/submit-button";
 import { REMINDER_TYPES } from "@/modules/reminders/schema";
 import { createReminderAction } from "@/modules/reminders/actions";
@@ -256,9 +255,26 @@ export function ReminderForm({
       form={form}
       className="grid gap-4 sm:grid-cols-2"
     >
+      {/* The warning rides on the client field rather than in a box of
+          its own, and that is a correction rather than a preference.
+          As a `Callout` it sat 320px below the picker -- under the date
+          field, past two others -- and nothing tied the two together:
+          pm looked up what the picker claimed to be described by and
+          found no such element. A notice about a choice has to be
+          reachable from the control that made it, and `Field`'s `hint`
+          is already wired to `aria-describedby` and already tested.
+
+          The cost is the warning colour, and it is a real cost. Raised
+          with ux rather than settled here: the fix for it is a tone on
+          `Field`, not a second box that repeats what this one says. */}
       <Field
         label={tClient("one")}
         error={state.fieldErrors?.clientId}
+        hint={
+          unreachable
+            ? `${t(`unreachable.${unreachable}`)} ${t("unreachable.savedAnyway")}`
+            : undefined
+        }
         required
       >
         {/* See `InvoiceForm`: searchable only once the list is short of
@@ -370,18 +386,6 @@ export function ReminderForm({
           required
         />
       </Field>
-      {/* Under the two pickers, before the fields that describe the work:
-          the answer belongs next to the question that produced it, and a
-          notice below the save button is read after the decision it was
-          meant to inform. `live`, because it appears in response to a
-          choice rather than as part of the first paint. */}
-      {unreachable && (
-        <div className="sm:col-span-2">
-          <Callout variant="warning" live>
-            {t(`unreachable.${unreachable}`)} {t("unreachable.savedAnyway")}
-          </Callout>
-        </div>
-      )}
       <div className="sm:col-span-2">
         {/* The same field is an internal note under four of the five
             types and the message itself under the fifth: the templates

@@ -446,8 +446,16 @@ export function Combobox({
         // Joined, not replaced. `Field` passes the error and the hint
         // in here, and overwriting them to announce the note would
         // trade a validation message for a footnote.
+        // `open &&`, because the note only exists while the list is
+        // open: it is rendered inside that block. Without it the input
+        // pointed at an id that was not in the document whenever the
+        // list was shut, which is a promise of an explanation that is
+        // not there -- and pm found exactly that, by looking up the id
+        // and getting null. A dangling reference is not merely inert:
+        // it is indistinguishable, from the outside, from a
+        // description that failed to be written.
         aria-describedby={
-          [describedBy, showNote ? noteId : undefined]
+          [describedBy, open && showNote ? noteId : undefined]
             .filter(Boolean)
             .join(" ") || undefined
         }

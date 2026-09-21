@@ -348,6 +348,27 @@ describe("warning that this reminder cannot reach anyone", () => {
   // right often enough to be trusted and absent when it matters is worse
   // than no warning at all, which is why `searchClientsAction` carries
   // consent and number with every hit.
+  // pm measured the previous shape and found it unreachable: the notice
+  // sat 320px below the picker, past the date field, and the picker's
+  // `aria-describedby` pointed at an element that was not in the
+  // document. A vet using a screen reader chose a client and heard
+  // nothing. The notice is on the field now, through the same `hint`
+  // channel the title field uses.
+  it("reaches the client field itself, not just the layout", () => {
+    renderForm();
+    choose(/müşteri/i, "Mehmet Kaya");
+
+    const input = picker(/müşteri/i);
+    const ids = (input.getAttribute("aria-describedby") ?? "").split(" ");
+    const described = ids
+      .map((id) => (id ? document.getElementById(id) : null))
+      .filter(Boolean);
+    expect(described.length).toBeGreaterThan(0);
+    expect(
+      described.some((el) => el!.textContent?.includes("hiç sorulmamış")),
+    ).toBe(true);
+  });
+
   it("works for a client reached through the search", async () => {
     searchClients.mockResolvedValue({
       options: [
