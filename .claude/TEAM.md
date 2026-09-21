@@ -400,6 +400,17 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    git commit
    ```
 
+   **İkinci yarısı, `dev-ui`'den ve kaybı yaşayan taraftan:**
+   **paylaşımlı bir dosyadaki düzenlemeyi başka iş yaparken elde
+   tutma.** O iki dizeyi yazıp başka bir bileşene geçmek, yarım saat
+   boyunca `messages/*.json`'da commit edilmemiş iş bırakmak demekti —
+   *"o checkout bulmasaydı başka bir şey bulacaktı."* Paylaşımlı dosyaya
+   dokunan, **kendi işi bitmeden** o dosyayı commit eder.
+
+   İkisi birlikte kuralın tamamı: **sahnelenen her yolu tanı, ve
+   paylaşımlı dosyayı elde tutma.** Birincisi silmeyi, ikincisi
+   silinmeyi önlüyor.
+
    **Ve kuralın yazılma sebebi, uyarının neden yetmediği:** ana oturum
    *"commit'ten önce `git diff --cached --stat` oku"* kuralını aynı gün
    koydu, başkasına yazdırdı, **kendisi çalıştırdı** — ve çıktıda duran
