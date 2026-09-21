@@ -5856,3 +5856,28 @@ aradaki fark tam olarak sessiz kusurun yaşadığı yer.
 Açık kalan hâli: `normalizePhone`'un sekiz hane alt sınırı *"anlamlı
 numara"* yerine geçiyor, yani bir müşterinin telefonuna
 `0000000000` yazan biri bugün **gönderilebilir** sayılıyor.
+
+### Türetilmiş sayı, türetmede görünmeyen terim yüzünden şaşar
+
+Combobox listesini kısaltırken *"8 × 32 = 256, `max-h-64` de 256,
+demek ki kaydırma kalkar"* dedim ve bunu **kazancın gerekçesi**
+yaptım — dört pikseli savunan şey buydu.
+
+dev-ui ölçtü: **`max-h-64` 256px ama `p-1` onun 8'ini yiyor**
+(border-box, aynı eleman), yani kullanılabilir yükseklik **248.**
+8 × 32 = 256 → hâlâ **8px taşıyor.** Taşma 40'tan 8'e indi,
+**sıfırlanmadı.**
+
+Yani değişiklik yine iyi, ama **gerekçem yanlıştı** — ve gerekçeyi
+ben *"eşik geçiyor"* diye satmıştım.
+
+dev-ui'nin tespiti kuralın kendisi: **bugün üçüncü kez, türetilmiş
+bir sayı türetmede görünmeyen bir terim yüzünden şaştı** —
+dev-ui'nin 118 karakteri, benim 8 × 32'm, pm'in geçiş süresi.
+
+**Kural:** bir sayıyı iki sabiti çarparak/karşılaştırarak elde
+ediyorsan, o sayı **ölçülmüş değildir** — arada iç boşluk, kenarlık,
+satır yüksekliği, kutu modeli gibi görünmeyen bir terim olabilir.
+Türetme bir **hipotez** verir; kanıtı ekranda ya da hesaplanmış
+değerde durur. Ve aritmetiği **dosyaya yaz**, yoksa bir dahaki kişi
+aynı umutla aynı çarpımı yapar.
