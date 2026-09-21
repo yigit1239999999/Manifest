@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PAGE_SIZES } from "@/lib/pagination";
+import { DUPLICATE_SUPPRESSION_WINDOW_MS } from "@/modules/notifications/service";
 
 /**
  * A reminder that still counts as work: created and waiting, or sent and
@@ -21,7 +22,7 @@ export async function listReminders({
   statuses?: string[];
   take?: number;
 }) {
-  return prisma.reminder.findMany({
+  const reminders = await prisma.reminder.findMany({
     where: {
       clinicId,
       status: { in: statuses as never },
@@ -77,7 +78,107 @@ export async function listReminders({
       },
     },
   });
+
+  return withSuppressedPartners(clinicId, reminders);
 }
+
+/**
+ * Names the message that went in place of one held back.
+ *
+ * The fold can say "this did not go, the same words did" from the
+ * suppressed row alone. What it cannot say from that row is WHICH
+ * piece of work sent them, and a vet looking at two reminders for one
+ * animal wants exactly that.
+ *
+ * Matched on recipient and body, which is the same pair the sweep
+ * decides suppression from. Deriving the link any other way would put
+ * two mechanisms on one fact, and the day they disagree the row names
+ * the wrong message.
+ *
+ * Only an unambiguous match is used, and that is the whole of the
+ * correctness argument. dev-ui's objection was that matching produces
+ * a guess: with three reminders composing one text, which one went?
+ * The answer is that the dedupe permits exactly one to go, so within
+ * the window there is exactly one accepted message carrying that text
+ * -- and it knows its own reminder. Where that does not hold (history
+ * from before the dedupe, a partner older than the window), there is
+ * no single answer and the row says nothing rather than the nearest
+ * thing. A row that declines to say is better than one that says
+ * wrongly; this session removed several sentences for being the
+ * second kind.
+ *
+ * Bounded in time by the sweep's own suppression window, and that is
+ * not an optimisation. Unbounded, the match looked at the clinic's
+ * whole history -- and a vaccination reminder is annual, so next year
+ * the same owner and animal compose the same words again. The year
+ * after that there would be two accepted messages carrying that text,
+ * the answer would become ambiguous, and the row would fall silent
+ * for good. Safe, and cumulative: the feature would go out by itself
+ * and nothing anywhere would say why.
+ *
+ * The window comes from the same constant the sweep decides with,
+ * because the guarantee that makes the match a fact is the dedupe's,
+ * and a guarantee has a duration as well as a shape. Measured from
+ * the oldest suppressed message rather than from now: a message held
+ * back twenty hours ago had a partner up to a window before THAT.
+ *
+ * One extra query for the page, and only when something was actually
+ * suppressed: the pairs are collected first and asked for together,
+ * rather than a lookup per row.
+ */
+async function withSuppressedPartners<
+  T extends { messages: { status: string; recipient: string; body: string; createdAt: Date }[] },
+>(clinicId: string, reminders: T[]) {
+  const pairs = new Map<string, { recipient: string; body: string }>();
+  let oldestSuppressed: Date | null = null;
+  for (const reminder of reminders)
+    for (const message of reminder.messages)
+      if (message.status === "SUPPRESSED") {
+        pairs.set(`${message.recipient}|${message.body}`, {
+          recipient: message.recipient,
+          body: message.body,
+        });
+        if (!oldestSuppressed || message.createdAt < oldestSuppressed)
+          oldestSuppressed = message.createdAt;
+      }
+  if (pairs.size === 0)
+    return reminders.map((r) => ({
+      ...r,
+      messages: r.messages.map((m) => ({ ...m, sentInstead: null as SentInstead })),
+    }));
+
+  const accepted = await prisma.messageLog.findMany({
+    where: {
+      clinicId,
+      status: { in: ["SENT", "MANUAL"] },
+      createdAt: {
+        gte: new Date(oldestSuppressed!.getTime() - DUPLICATE_SUPPRESSION_WINDOW_MS),
+      },
+      OR: [...pairs.values()],
+    },
+    select: { recipient: true, body: true, reminder: { select: { id: true, title: true } } },
+  });
+
+  // Ambiguity is resolved by refusing to answer, not by picking one.
+  const byPair = new Map<string, SentInstead | "ambiguous">();
+  for (const row of accepted) {
+    if (!row.reminder) continue;
+    const key = `${row.recipient}|${row.body}`;
+    byPair.set(key, byPair.has(key) ? "ambiguous" : row.reminder);
+  }
+
+  return reminders.map((r) => ({
+    ...r,
+    messages: r.messages.map((m) => {
+      if (m.status !== "SUPPRESSED") return { ...m, sentInstead: null as SentInstead };
+      const found = byPair.get(`${m.recipient}|${m.body}`);
+      return { ...m, sentInstead: found && found !== "ambiguous" ? found : null };
+    }),
+  }));
+}
+
+/** The reminder whose message went in place of a suppressed one. */
+export type SentInstead = { id: string; title: string } | null;
 
 export async function countOpenReminders(clinicId: string) {
   return prisma.reminder.count({
