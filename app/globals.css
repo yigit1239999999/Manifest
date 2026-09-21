@@ -242,3 +242,20 @@
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* The row a vet has just created, marked for a couple of seconds.
+ *
+ * Written by hand rather than as a `data-[spotlight]:bg-accent` utility
+ * on the element, and not because the utility was wrong: it is a
+ * transient STATE mark, the same family as the focus outline, and the
+ * focus rule lives here for the same reason. One line in the same file
+ * as the token it reads, verifiable in a browser without knowing which
+ * utilities a build happened to generate.
+ *
+ * Background only. The row's text colours carry its own meaning --
+ * muted, warning, destructive -- and repainting all of them for two
+ * seconds would make the row say something different while it is being
+ * pointed at. The fade is `transition-colors`, on the row itself. */
+[data-spotlight] {
+  background-color: var(--accent);
+}

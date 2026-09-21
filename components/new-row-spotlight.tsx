@@ -5,8 +5,17 @@ import { Announcer } from "@/components/ui/announcer";
 
 /** How long the row stays tinted before fading back. */
 const HOLD_MS = 2000;
-/** Give up looking for the row after this; the list is server-rendered. */
-const WAIT_MS = 3000;
+/**
+ * Give up looking for the row after this.
+ *
+ * Generous on purpose. The list is re-rendered from the server, and the
+ * first version of this waited three seconds on animation frames, which
+ * is a guess about somebody else's round trip dressed up as a timeout:
+ * fine against a warm local database, silently nothing against a cold
+ * one. Waiting is cheap here -- an observer that finds nothing costs a
+ * disconnect -- and giving up early costs the whole feature, quietly.
+ */
+const WAIT_MS = 15000;
 
 /**
  * Take the reader to the row that was just created, and say what it says.
@@ -56,21 +65,13 @@ export function NewRowSpotlight({
 
   React.useEffect(() => {
     if (!rowId) return;
-    let cancelled = false;
     let holdTimer: ReturnType<typeof setTimeout> | undefined;
-    const startedAt = Date.now();
+    let giveUpTimer: ReturnType<typeof setTimeout> | undefined;
+    let observer: MutationObserver | undefined;
 
-    // The list is re-rendered from the server after the save, so the row
-    // is not in the document yet when this runs. Poll on animation frames
-    // rather than guessing a delay: a fixed wait is either too short on a
-    // slow response or a visible pause on a fast one.
-    const look = () => {
-      if (cancelled) return;
-      const row = document.getElementById(rowId);
-      if (!row) {
-        if (Date.now() - startedAt < WAIT_MS) requestAnimationFrame(look);
-        return;
-      }
+    const take = (row: HTMLElement) => {
+      observer?.disconnect();
+      if (giveUpTimer) clearTimeout(giveUpTimer);
       const reduced = window.matchMedia?.(
         "(prefers-reduced-motion: reduce)",
       ).matches;
@@ -90,11 +91,28 @@ export function NewRowSpotlight({
         delete row.dataset.spotlight;
       }, HOLD_MS);
     };
-    requestAnimationFrame(look);
+
+    // The row is not in the document yet: the list is re-rendered from
+    // the server after the save. Watch for it rather than polling on a
+    // deadline -- an observer answers the moment it arrives, however
+    // long that takes, where a timeout has to guess how long is
+    // reasonable and is wrong in one direction or the other.
+    const existing = document.getElementById(rowId);
+    if (existing) {
+      take(existing);
+    } else {
+      observer = new MutationObserver(() => {
+        const row = document.getElementById(rowId);
+        if (row) take(row);
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      giveUpTimer = setTimeout(() => observer?.disconnect(), WAIT_MS);
+    }
 
     return () => {
-      cancelled = true;
+      observer?.disconnect();
       if (holdTimer) clearTimeout(holdTimer);
+      if (giveUpTimer) clearTimeout(giveUpTimer);
       // A second save while the first is still lit: hand the tint over
       // rather than leaving two rows claiming to be the new one.
       const previous = document.getElementById(rowId);

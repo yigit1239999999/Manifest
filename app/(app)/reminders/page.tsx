@@ -358,7 +358,6 @@ export default async function RemindersPage({
                 className={cn(
                   surface,
                   "flex flex-col gap-3 p-4 transition-colors sm:flex-row sm:items-start sm:justify-between",
-                  "data-[spotlight]:bg-accent",
                 )}
               >
                 <div className="flex min-w-0 flex-col">

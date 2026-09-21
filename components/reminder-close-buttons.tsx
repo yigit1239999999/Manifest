@@ -61,8 +61,14 @@ export function ReminderCloseButtons({
   dismissName: string;
   reopenName: string;
 }) {
+  // One cluster that does not come apart. At 390px the row wrapped into
+  // three pieces -- "Send now, Done" and then "Dismiss" alone on the
+  // line below -- which reads as an orphan rather than as a pair, and
+  // splits a group in the middle of itself. A cluster breaks at a seam
+  // in the meaning or not at all: "Send now" reaches outside the clinic,
+  // these two close the work, and the seam is between them.
   return (
-    <>
+    <div className="flex items-center gap-2">
       {acknowledge && (
         <RowAction
           action={acknowledge}
@@ -90,7 +96,7 @@ export function ReminderCloseButtons({
           icon={<RotateCcw />}
         />
       )}
-    </>
+    </div>
   );
 }
 

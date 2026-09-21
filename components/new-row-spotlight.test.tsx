@@ -40,13 +40,19 @@ function placeRow(id: string, sentence: string) {
   return li;
 }
 
-const settle = () => act(() => void vi.advanceTimersByTime(50));
+// `MutationObserver` delivers on a microtask, which fake timers do not
+// flush, so the queue has to be drained as well as the clock advanced.
+const settle = async () =>
+  act(async () => {
+    vi.advanceTimersByTime(50);
+    await Promise.resolve();
+  });
 
 describe("pointing at the row that was just created", () => {
-  it("scrolls to it, tints it, and reads its own sentence", () => {
+  it("scrolls to it, tints it, and reads its own sentence", async () => {
     const row = placeRow("reminder-r1", "Gönderilecek: 2 Eki 09:00 · SMS");
     const { container } = render(<NewRowSpotlight rowId="reminder-r1" />);
-    settle();
+    await settle();
 
     expect(row.scrollIntoView).toHaveBeenCalledWith({
       block: "nearest",
@@ -63,10 +69,10 @@ describe("pointing at the row that was just created", () => {
 
   // It must not stay. Otherwise the third reminder is written with the
   // first one still lit, and a permanent mark is not a mark.
-  it("lets the tint go, and keeps the sentence available", () => {
+  it("lets the tint go, and keeps the sentence available", async () => {
     const row = placeRow("reminder-r1", "Gönderilecek: 2 Eki 09:00 · SMS");
     const { container } = render(<NewRowSpotlight rowId="reminder-r1" />);
-    settle();
+    await settle();
     expect(row.dataset.spotlight).toBe("");
 
     act(() => void vi.advanceTimersByTime(2500));
@@ -77,45 +83,47 @@ describe("pointing at the row that was just created", () => {
   // The list is re-rendered from the server after the save, so the row is
   // not in the document when this first runs. A fixed delay would be too
   // short on a slow response and a visible pause on a fast one.
-  it("waits for a row the server has not sent yet", () => {
+  it("waits for a row the server has not sent yet", async () => {
     render(<NewRowSpotlight rowId="reminder-late" />);
-    settle();
+    await settle();
 
     const row = placeRow("reminder-late", "Gönderilmeyecek: telefon yok.");
-    settle();
+    await settle();
 
     expect(row.dataset.spotlight).toBe("");
     expect(row.scrollIntoView).toHaveBeenCalled();
   });
 
-  it("gives up rather than searching forever", () => {
+  it("gives up rather than searching forever", async () => {
     render(<NewRowSpotlight rowId="reminder-never" />);
-    act(() => void vi.advanceTimersByTime(4000));
+    // Past the 15s cap: the observer is disconnected and a row
+    // arriving afterwards is no longer anybody's news.
+    act(() => void vi.advanceTimersByTime(16000));
 
     const row = placeRow("reminder-never", "Gönderilecek.");
-    settle();
+    await settle();
     expect(row.dataset.spotlight).toBeUndefined();
   });
 
   // Two rows both claiming to be the new one is worse than neither: the
   // mark stops meaning "this is the one you just wrote".
-  it("hands the tint over on a second save", () => {
+  it("hands the tint over on a second save", async () => {
     const first = placeRow("reminder-a", "Gönderilecek: 2 Eki.");
     const second = placeRow("reminder-b", "Gönderilmeyecek: onay yok.");
     const view = render(<NewRowSpotlight rowId="reminder-a" />);
-    settle();
+    await settle();
     expect(first.dataset.spotlight).toBe("");
 
     view.rerender(<NewRowSpotlight rowId="reminder-b" />);
-    settle();
+    await settle();
     expect(first.dataset.spotlight).toBeUndefined();
     expect(second.dataset.spotlight).toBe("");
   });
 
-  it("does nothing at all before anything has been saved", () => {
+  it("does nothing at all before anything has been saved", async () => {
     const row = placeRow("reminder-r1", "Gönderilecek.");
     const { container } = render(<NewRowSpotlight rowId={null} />);
-    settle();
+    await settle();
 
     expect(row.scrollIntoView).not.toHaveBeenCalled();
     expect(row.dataset.spotlight).toBeUndefined();
@@ -124,7 +132,7 @@ describe("pointing at the row that was just created", () => {
 
   // Someone who has asked not to be moved around still gets taken there;
   // what they do not get is the journey.
-  it("skips the animation when motion is not wanted", () => {
+  it("skips the animation when motion is not wanted", async () => {
     window.matchMedia = ((query: string) => ({
       matches: true,
       media: query,
@@ -133,7 +141,7 @@ describe("pointing at the row that was just created", () => {
     })) as unknown as typeof window.matchMedia;
     const row = placeRow("reminder-r1", "Gönderilecek.");
     render(<NewRowSpotlight rowId="reminder-r1" />);
-    settle();
+    await settle();
 
     expect(row.scrollIntoView).toHaveBeenCalledWith({
       block: "nearest",
