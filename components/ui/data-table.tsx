@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 //     corners but also silently *clips* a wide table on a narrow screen.
 //     Six of the seven had no responsive handling at all, so on a phone the
 //     last columns were cut off with no way to reach them (TEAM.md #27).
-//     `overflow-x-auto` keeps the corners and lets the table scroll.
+//     `overflow-x-auto` keeps the corners and lets the table scroll, with
+//     `min-w-0` so that it is allowed to be narrower than its own content.
 //   - money columns were right-aligned with `text-right`, a physical
 //     direction (TEAM.md #31). `align: "end"` emits `text-end`. They also
 //     had proportional figures, so the digits above the last one did not
@@ -89,7 +90,14 @@ export function DataTable<Row>({
   caption?: string;
 }) {
   return (
-    <div className={cn("overflow-x-auto", surface)}>
+    // `min-w-0` is not decoration: this sits in a `flex flex-col` page
+    // container, and a flex item whose content cannot shrink refuses to be
+    // narrower than that content — so the scroll container grows instead of
+    // scrolling, and the whole page scrolls sideways with it. It showed up
+    // on `/staff` first because that is the only list with five columns and
+    // an unbreakable e-mail address in one of them, but the defect belongs
+    // here and would have found the next list eventually (TEAM.md #4, #27).
+    <div className={cn("min-w-0 overflow-x-auto", surface)}>
       <table className="w-full text-sm">
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead className="bg-muted/50 text-start text-xs uppercase tracking-wide text-muted-foreground">

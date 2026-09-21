@@ -98,7 +98,14 @@ export default async function InvoicePage({
                 It stays hand-written because a `footer` slot and a "no
                 card" variant, one call site each, would be a shared
                 component told to stop sharing (TEAM.md #30). */}
-            <table className="w-full text-sm">
+            {/* Its own scroll container, for the same reason `DataTable`
+                has one: four columns of figures do not fit a 390px card,
+                and without this the page scrolled sideways instead of the
+                table. `min-w-0` lets the box be narrower than its content;
+                `min-w-sm` keeps the columns from collapsing into an
+                unreadable stack before the scroll takes over. */}
+            <div className="min-w-0 overflow-x-auto">
+              <table className="w-full min-w-sm text-sm">
               <thead className="bg-muted/50 text-start text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 text-start font-medium">{t("description")}</th>
@@ -147,7 +154,8 @@ export default async function InvoicePage({
                   </td>
                 </tr>
               </tfoot>
-            </table>
+              </table>
+            </div>
             {invoice.notes && (
               <p className="mx-4 mt-4 rounded-control bg-muted/40 p-3 text-sm">
                 {invoice.notes}

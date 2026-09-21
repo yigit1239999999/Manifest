@@ -78,6 +78,21 @@ describe("DataTable", () => {
       expect(wrapper.className.split(/\s+/)).not.toContain("overflow-hidden");
     });
 
+    it("is allowed to be narrower than the table inside it", () => {
+      // `overflow-x-auto` on its own is not enough. The wrapper is a flex
+      // item of the page's `flex flex-col`, and a flex item refuses by
+      // default to be narrower than its content — so instead of scrolling,
+      // the wrapper grew and took the whole page sideways with it. pm
+      // measured it on /staff at 390px: the document was 752px wide and
+      // the "New staff member" button was off the screen.
+      //
+      // Only /staff showed it, because it is the one list with five
+      // columns and an unbreakable e-mail address in one of them. The
+      // defect was never /staff's.
+      const { container } = table();
+      expect(container.firstElementChild!.className).toContain("min-w-0");
+    });
+
     it("hides a column from both the header and the body, or from neither", () => {
       // Hiding only one of the two shifts every cell one column across.
       const { container } = table();
