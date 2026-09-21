@@ -2942,3 +2942,77 @@ Satır olarak silindiler; burada yalnızca kaydı duruyor.
 - **Tema tokenları** — üç tema bloğunda parite testle sabitlendi;
   `--warning` ve `--destructive` WCAG AA'ya çekildi, yüzey × tema başına
   ölçüldü ve bilinen-bozuk değerin **kaldığını** iddia eden negatif test kondu.
+
+## Zanaat turu — ux'in beş maddesi (ertelendi, sahibinin kararı)
+
+Sahibi 21 Eylül akşamı onboarding'i tek konu ilan edip bütün ekibi
+durdurdu: *"nerdeyse herkes dursun, sadece onboarding'i nasıl iyi
+yaparız'a bakalım."* Aynı mesajda bu turu adıyla kurtardı: *"ux'in zanaat
+turu da güzeldi onu da backlog'a al sonradan."* Yani bu liste kapsam
+kesilirken düşen bir "iyileştirme" değil, **ertelenmiş bir karar**.
+
+Sıralama `ux`'e ait ve gerekçesi sıranın kendisinde: 1, 2, 4 ve 5 **eksik
+ifade**; 3 ise **kusur** — ekranda bir şey zıplıyor ve bunun hiçbir
+gerekçesi yok. O yüzden üçüncü madde, tur yeniden açıldığında baştan
+başlar.
+
+1. **Tipografiye rol vermek** — `--text-page/section/body/meta/eyebrow`,
+   taşıyıcıları `PageHeader` · `Card` · `FormSection` · `DescriptionList`,
+   26 sayfa. Bugün aynı iş olan bölüm başlığı **beş ayrı biçimde**
+   yazılmış (`Card` 18px, `FormSection` 14px, ikisi de `<h3>`).
+   `globals.css`'teki yarıçap yorumu bu hastalığın ilacını zaten yazmış,
+   ama tipografiye uygulanmamış. İki kısıt bağlayıcı: **gövde metni
+   büyümeyecek**, **kayıt satırı yoğunluğu düşmeyecek**.
+
+2. **Kart ağırlığının işe bağlanması** — pano + altı liste ekranı. Bir
+   kartın görsel ağırlığı, ne sıklıkla bir karar taşıdığına bağlansın.
+   Sınavı `ux`'in ikiye ayırdığı ölçütün ikinci yarısı: **olgu sayısı
+   düşmeyecek — biçim değişebilir, sayı değişemez.** Ölçülebilir hâli:
+   "Hepsini göster" açıldığında dört olgunun dördü de görünüyor mu.
+   (Zanaat maketi dört boş kartı tek sessiz satıra indiriyor; kart sayısı
+   düşüyor ama kaybolan olgu yok — tek ölçüt olsaydı bu iş kalmaması
+   gereken bir sınavdan kalırdı.)
+
+3. **Düzen kararlılığı: iskelet yer ayırsın** — pano + dört form rotası +
+   kendi `loading.tsx`'i olmayan altı form rotası. Üç ayrı vaka, üç ayrı
+   çare, ve ayrım olmadan iş yanlış yapılır:
+   - **Pano:** iskeletin *üstüne* blok geliyor → üst kenar dahil her şey
+     **166 px** iniyor. Çare: yer eklemek.
+   - **Dört form rotası** (`visits/new` 396→1060, `appointments/new`
+     326→646, `pets/new` 396→797, `invoices/new` 326→784): iskeletin
+     **içi** eksik → üst kenar duruyor, alt kenar **320–664 px** uzuyor.
+     En güçlü gerekçe `pm`'in: gönderim düğmesi kartın en altında, yani
+     iskelet *"Kaydet buraya gelecek"* diyor ve düğme yarım ekran aşağıda
+     beliriyor. Bir iskeletin verebileceği en kötü söz bu — yalnız yanlış
+     değil, **yanlış yere davet ediyor.**
+   - **Altı form rotası** (`clients/new`, `staff/new`, dört `[id]/edit`):
+     üst segmentin **liste** iskeletini miras alıyorlar — `/clients/new`'e
+     giderken avatarlı bir müşteri listesi çıkıyor, sonra yerine form
+     geliyor. Hem şekil hem yükseklik tutmuyor.
+
+   Ölçüt **iki yönlü**: her rotada `|dy| ≤ 8 px`. Tek yönlü olsaydı
+   `fields` sayısını körlemesine büyütmek aynı kusurun aynası olurdu,
+   içerik bu sefer yukarı zıplardı.
+
+   **Yasak madde:** hiçbir yere geçiş eklenmeyecek. Geçiş bu sıçramayı
+   *gizler* — kusur durur, görünmez olur.
+
+   Kalıcı yarısı bir test: **iskelet alan sayısı ↔ formdaki görünür alan
+   sayısı**. `fields={6}` elle yazılmış bir sayı; bugün ayarlansa altı ay
+   sonra yeniden kayar. Ölçüm davranışı sınar, test kaymayı.
+
+4. **Satır ritmi** — tabloda 44px, panel kartında 36px; bugün karışık.
+
+5. **Hareketin uygulanması** — `--animate-in` tokenları var, **yalnız üç
+   yerde** kullanılıyor.
+
+**Bu listenin kendi teşhisi:** beşi de bugün beşinci kez görülen biçimin
+örneği — *yazılmış ama yayılmamış kural*. Kural `components/loaders.tsx`'in
+kendi yorumunda duruyor: *"bir rotanın taşımadığı denetimleri gösteren
+iskelet bir ipucu değil, **yanlış cevaptır**."* Komşu dosyada uygulanmamış.
+Tur yeniden açıldığında asıl iş maddeleri tek tek düzeltmek değil, kuralı
+yayacak taşıyıcıyı (token + bileşen + test) koymak.
+
+**Açık kalan tek ölçüm:** kendi iskeleti olan dört rotada *şekil* doğru,
+ama pano dışındaki yüksekliklerin hepsi ölçüldü; ölçülmemiş olan, altı
+mirasçı rotanın sayıları. Tur açılınca ilk iş o.
