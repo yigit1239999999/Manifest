@@ -1595,6 +1595,11 @@ satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzel
 1. **Hangi commit'te?** Rapor hash taşır. Zemin değişince o zeminde alınmış
    **açık** ölçümler işaretlenir. *(pm'in aynı turdaki iki raporu: hash'li
    olan tuttu, hash'siz olan doğru bir bulguyu iptal etti.)*
+   **Ve pm'in eklemesi — bu maddenin en pahalı yarısı:** bir **yöntem**
+   hatası bulunduğunda, o yöntemle alınmış **bütün açık bulgular** yeniden
+   ölçülür. pm'in üç geri çekmesi **tek bir araç hatasından** geldi ve
+   üçüncüsü neredeyse atlanıyordu. Tek tek bulguyu düzeltmek yetmez; **hata
+   yöntemdeyse hasat da hatalıdır.**
 2. **Hangi zeminde?** Dev sunucusu mu, üretim derlemesi mi, temiz mi kirli
    mi. **Zemini değiştiren, ölçen HERKESE söyler.** Ve zemin **lehine**
    yanıldığında hiçbir alarm çalmaz — *"bulamadım" en az "buldum" kadar
@@ -1604,9 +1609,13 @@ satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzel
 4. **Isıtıldı mı?** İlk koşu JIT maliyetini tek boyuta yığar. dev-ui ısıtmasız
    **258 ms** gördü, ısıtmalı **11 ms**; pm ısıtma turunu ayrı tuttu. *İki
    bağımsız yerde aynı önlem — bu madde o yüzden burada.*
-5. **Noktalar nereden seçildi?** Genişlikler **koddan türetilir, cihazdan
-   değil**: her bildirilen eşiğin hemen altı ve hemen üstü. İki nokta bir
-   bandı kapsamaz; üç de kapsamaz.
+5. **Noktalar nereden seçildi?** **İki kapsam, ikisi de geçerli:**
+   **tablo/eşik ölçümünde türetilir** — her bildirilen `hideBelow`'un hemen
+   altı ve hemen üstü (639/640, 767/768); iki nokta bir bandı kapsamaz, üç
+   de kapsamaz. **Genel sayfa turunda sabit set makul** ve **700px** o bandın
+   temsilcisi olarak sete girdi. *Sabit setle tablo eşiği aranırsa kaçar;
+   türetmeyle genel tarama yapılırsa gereksiz pahalılaşır.* Hangi kapsamda
+   olduğun yazılır.
 6. **Görünürlük neyle ölçüldü?** **Geometriyle, metinle değil.**
    `textContent` gizli alt elemanları toplar, `getBoundingClientRect`
    `content-visibility: hidden` altında eski geometri döndürür, `next-intl`
@@ -1955,3 +1964,37 @@ Bu, 30b'nin (*"karar doğru, gerekçe çürük"*) **uygulayıcı tarafındaki**
 yüzü. Ve 32k'nın sınırını çiziyor: *"uygulayan hakem yapılmaz"* iki tasarım
 **sesi** çeliştiğinde geçerlidir; **tek bir sesin kuralı ile örneği**
 çeliştiğinde uygulayan susmaz, kuralı izler ve bildirir.
+
+### Bir kabul kriteri HÂL BAŞINA sınanır
+
+19 *"her ekranın beş hâli var"* der; bu, onun **kabul kriteri tarafındaki**
+karşılığı ve bugüne kadar yazılmamıştı. value'nun kendi kriterini
+düzeltmesinden:
+
+Kriter *"aynı cümle `aria-label`'ın sonunda da olacak"*tı ve **dolu hâl için
+doğruydu** — orada grafik görsel, özet **tek kanal.** **Boş hâlde yanlıştı:**
+`role="img"` yok, gizlenecek dekoratif çubuk yok, dipnot **zaten düz metin
+olarak erişilebilirlik ağacında**; `aria-label` eklemek **statik bir bölgeye
+ikinci kanal** kurmak olurdu (30).
+
+> **Aynı kriter iki hâlde iki farklı şey ister.** Bir hâlde zorunlu olan,
+> başka hâlde **fazlalıktır** — ve fazlalık da bir kusurdur.
+
+pm'in teşhisi çerçevenin kendisi: **dolu hâlin mantığı boş hâle taşındı.**
+Beş hâl tasarlanıyorsa, kabul kriteri de beş kez sorulur.
+
+### Kararı, tarafı kolay olan verdirir
+
+dev-ui'nin `??` vakalarına eklemesi, ve ux'in kuralının **mekanizmasını**
+veriyor: `v.pet?.name ?? "?"` ve `clinic?.name ?? "Your clinic"` —
+
+> İkisinde de **tipi düzeltmek yerine metin uydurmak kolaydı**: metin **tek
+> satır**, tip daraltması **başka dosyada.**
+
+Yani kusuru doğuran şey yanlış bir karar değil, **kararın alınmadığı bir
+an** — iki yoldan biri o an ucuzdu. Bu, dev-ui'nin *"kazancı ölçtüm, kaybı
+ölçmedim"* notunun akrabası: **ölçülmeyen taraf gibi, zor olan taraf da
+sessizce kaybeder.**
+
+Pratik sonucu: bir `??` yazarken *"bu kolay olduğu için mi burada?"* sorusu,
+*"bu doğru mu?"* sorusundan **daha ayırt edici** çıkıyor.
