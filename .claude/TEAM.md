@@ -3661,3 +3661,92 @@ kanıtla katalog **park edildi**, tutar kolonu **geçti** — fark
 
 > Frekansı bilinmeyen bir mekanizma: küçükse yap ve bak, büyükse
 > bekle ve ölç.
+
+### Zemin iki katmanlıdır: KOD zemini ve VERİ zemini
+
+ux beşinci turun ortasında oturumdan düştü ve hayvan "Kayıt bulunamadı"
+oldu. Doğru refleksle `SERVED_COMMIT.txt`'e baktı: **kod zemini
+değişmemişti.** Sebep başkaydı — **veritabanı yeniden tohumlanmıştı**,
+aynı iki hayvan **farklı kimliklerle**.
+
+**Kod zemini için üç katmanlı kaydımız var; veri zemini için hiçbir
+şey yoktu.** Ve bir `db:seed`, oturumları düşürüp kimlikleri
+değiştirirken **kimseye haber vermiyor** — ölçen kişi, ölçtüğü şeyin
+altından kaydığını ancak ekran garipleştiğinde anlıyor.
+
+**Protokol — `SEEDED.txt`, `SERVED_COMMIT.txt`'in yanında**
+(`/Users/yigitsonbahar/Manifest-prod/`, çünkü ölçen zaten oraya
+bakıyor):
+
+```
+seeded_at: 2026-09-21 16:48
+by:        dev
+clinic:    HÂL KLİNİĞİ  34/34
+note:      oturumlar düştü, kayıt kimlikleri YENİ
+```
+
+**Kural, kod zemininin aynısı:** *ölçüm raporunun ilk satırı hangi
+commit ve hangi derleme zamanı* idi — buna **hangi tohumlama** eklenir.
+Turun başında okunan damga, turun sonunda **değişmişse ölçüm
+geçersizdir**; kod değişmemiş olması yetmez.
+
+**Ve tohumlayan haber verir.** Damgayı yazmak makinenin işi, turun
+ortasında birinin ölçtüğünü bilmek insanın işi — `db:seed` bir
+tazeleme kadar bölücüdür ve bugüne kadar öyle sayılmadı.
+
+### Şeklini belirlemeden önce çağrı yerini oku
+
+dev-ui, kendisine bırakılan bir tasarım kararını **beklerken** çağrı
+yerini okudu ve üç şey buldu; **biri kararın kendisini değiştiriyor:**
+
+- Satır tavanı **100**, 200 değil (`PER_DAY = 100`, tek gün; "tüm
+  tarihler" `PAGE_SIZES.DEFAULT = 25` ile sayfalanıyor). pm'in
+  ihtiyatı **cinsinden** doğruydu, büyüklüğünden değil.
+- **Oluşturma maliyeti yok:** sayfa sunucu bileşeni (`"use client"`
+  yok), satır başına tarih karşılaştırması tarayıcıya hiç ulaşmıyor.
+  Sorunun teknik yarısı kapandı.
+- **Ve kimsenin adlandırmadığı asıl tasarım baskısı:** tek gün
+  kipinde **geçmiş bir güne** bakarken o günün her açık randevusu
+  gecikmiştir — işaret **100 satırın 100'ünde** çıkabilir. *Her satırda
+  olan işaret bilgi taşımaz* — ux'in "her şeyin bağırdığı palet"
+  savının aynısı.
+
+Yani soru *"işaret nasıl görünsün"* değil, **"hangi bağlamda hiç
+çıksın"**.
+
+**Bugün bu sıralamanın bedelini üç kez ödedik** (ux'in duran bağlantı
+maddesi, dev-ui'nin `role="alert"` isteği, `role="group"` üzerinde
+geçersiz `aria-invalid`) — üçünde de şekil, çağrı yeri tam
+görünmeden belirlenmişti ve her biri bir gidiş-geliş tutturdu.
+
+> **Şekil belirlenmeden önce çağrı yeri okunur.** Uygulayan taraf,
+> beklerken bunu yapıp **kararı değiştirebilecek sayıyı** öne
+> koyabilir; bu, karara müdahale değil, kararı ucuzlatmaktır.
+
+### "Karar doğruydu, doğrulanışı eksikti" ≠ "karar yanlıştı"
+
+dev-ui, kendi getirdiği prettier düzeltmesinin **payını** düzeltti:
+yanlış üçüncü gerekçe kararı değiştirmiyordu, onu **yanlış sebeple
+güvenli** gösteriyordu.
+
+ux'in `role="alert"` hakkında kurduğu ayrımın aynısı. Üç ayrı şey:
+
+| | ne yanlış | ne yapılır |
+|---|---|---|
+| karar yanlış | sonuç | geri al |
+| **doğrulama eksik** | **gerekçe** | **gerekçeyi düzelt, karar kalsın** |
+| gerekçe fazla | güven | fazlasını düşür |
+
+**Bir gerekçenin çürümesi kararı çürütmez** — ama çürüğü tutmak, bir
+sonraki tartışmada kararı savunulamaz yapar.
+
+### "Paketin kalan maddeleri sende" bir liste değildir
+
+value, dev-ui'yi bir tur boşta bıraktı: *"paketin kalan maddeleri"*
+dedi, listeyi vermedi. dev-ui **iş uydurmadı, sordu** — doğru davranış,
+ve value hatayı kabul edip ağaca bakarak dört maddeyi tek tek verdi
+(satır numaralarıyla).
+
+**İş veren taraf, işi sayarak verir.** Alan taraf saymak zorunda
+kalıyorsa iki risk birden doğar: yanlış işi yapmak, ve **hiç iş
+yapmamak**. İkincisi bugün oldu.
