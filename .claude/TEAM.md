@@ -3388,3 +3388,49 @@ baktı. *Tek koşu "yeşil, bitti" olurdu.*
 sorgulamak için *"dikkatli ol"* değil, şu ikisi:
 1. **Sonuç, birinin tarifiyle çelişiyorsa.**
 2. **Sonuç anlamsızsa** (`yok`, sabit bir sayı, her şeyde aynı değer).
+
+### Nöbetçi listesi de, dedektör listesi de GEÇMİŞ DİKKATİ kodlar
+
+İki ayrı yerde aynı kör nokta, ve bağlantıyı kurmak kayda değer:
+
+| liste | neyi kodluyor | kör noktası |
+|---|---|---|
+| `loop-metrics.mjs` dedektörleri | **birinin ölçmeyi düşündüğü** sorular | düşünülmemiş soru **hiç sorulmuyor** |
+| `e2e/*.spec.ts` nöbetçileri | **birinin aramayı düşündüğü** kusurlar | aranmayan kusur **hiç yakalanmıyor** |
+
+**Kanıtı somut:** ux bugün **elle iki yatay taşma** buldu — `/staff`'ta
+413 px, tür çipinde **76 px**. Üç nöbetçimiz var ve **hiçbiri yatay
+taşma aramıyor**: `touch-targets` hedef boyutu ölçüyor, `focus-ring`
+odak işareti, `form-failure-focus` odak yerini.
+
+**Ve bu sınıfın neden elle bulunduğu ayrıca önemli:** içerik
+**kesilmiyor** (`overflow-x: visible`), sayfa kayıyor — yani **ekran
+görüntüsünde sorun yokmuş gibi duruyor.** Gözle bakan da yakalamıyor;
+yakalayan tek şey `scrollWidth > innerWidth`.
+
+> **Bir nöbetçi listesi "neyi koruduğumuzun" listesi değil, "neyi
+> korumayı DÜŞÜNDÜĞÜMÜZÜN" listesidir.** Aradaki fark, elle bulunan her
+> kusurda görünür: *bunu hangi nöbetçi arıyordu?* Cevap "hiçbiri" ise,
+> bulgu bir kusur **ve** bir kapsam boşluğudur.
+
+**Pratik hâli:** elle bulunan her kusur iki kalem doğurur — **kusurun
+kendisi** ve **onu arayacak satır.** ux ikisini de açtı (dev-ui'ye
+süpürge satırı, pm'e ayrı kontrol), ve ikincisi olmadan üçüncü yatay
+taşmayı yine elle bulacaktık.
+
+### "Eklememe" de bir tasarım kararıdır ve gerekçesi yazılır
+
+ux, hata özetinin **kendi odak işareti olmadığını** ölçtü
+(`outline: 2px none`) ve **doğru olduğunu söyledi:**
+
+> Kutu bir Tab durağı değil, oraya Tab'lanarak gelinmiyor; **halka
+> koymak onu işletilebilir gibi gösterir.** Görsel sinyal zaten
+> **kutunun belirmesi.**
+
+Atlama bağlantısında kullandığı gerekçenin aynısı (*odak göstergesi
+öğenin var olması*). **Bir süpürge bunu kusur sayardı** — ve sayması
+yanlış olurdu.
+
+**Yani bir nöbetçinin kırmızısı, bir tasarım kararının yokluğu
+anlamına gelmez.** Kararın yazılı olması, bir sonraki turda birinin
+onu "eksik" diye kapatmasını engelliyor — bugün üçüncü kez.
