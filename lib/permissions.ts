@@ -123,6 +123,16 @@ const PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     "visits.read",
     "appointments.read",
     "appointments.write",
+    // Typing in a laboratory report is transcription, and reception
+    // already does it -- on paper, into a file. Routing it through a
+    // technician costs nothing and adds a handover, which is what the
+    // case that prompted all of this actually was: everybody did
+    // their job and the work fell in the gap between two of them.
+    //
+    // Safe because the dangerous half is a different key:
+    // `diagnostics.interpret` keeps the written opinion and the read
+    // marker with the person who decides.
+    "diagnostics.write",
     "notes.write",
     "reminders.write",
     "invoices.read",

@@ -104,7 +104,6 @@ export default async function VisitPage({
   const billedAs = await getInvoiceForVisit(clinicId, visit.id);
   const canAddPrescription = can(session.user.role, "prescriptions.write");
   const canAddTreatment = can(session.user.role, "treatments.write");
-  const canAddDiagnostic = can(session.user.role, "diagnostics.write");
 
   // Needs the animal's species, so it follows the load rather than joining
   // it. See `/pets/[id]`, which renders the same form.
@@ -424,17 +423,17 @@ export default async function VisitPage({
               ))}
             </ul>
           )}
-          {canAddDiagnostic && (
-            <details className="rounded-control border border-dashed border-border p-3 text-sm">
-              <summary className="cursor-pointer font-medium">
-                <Plus className="me-1 inline size-3.5" />
-                {tDiag("new")}
-              </summary>
-              <div className="mt-3">
-                <DiagnosticForm petId={visit.petId} visitId={visit.id} />
-              </div>
-            </details>
-          )}
+          {/* No permission check: see the pet page. Every role may
+              enter a result, so a guard here would refuse nobody. */}
+          <details className="rounded-control border border-dashed border-border p-3 text-sm">
+            <summary className="cursor-pointer font-medium">
+              <Plus className="me-1 inline size-3.5" />
+              {tDiag("new")}
+            </summary>
+            <div className="mt-3">
+              <DiagnosticForm petId={visit.petId} visitId={visit.id} />
+            </div>
+          </details>
         </CardContent>
       </Card>
     </div>

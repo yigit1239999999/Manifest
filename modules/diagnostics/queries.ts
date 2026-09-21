@@ -3,6 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { zonedParts, zonedTimeToUtc } from "@/lib/whatsapp/schedule";
 
+/**
+ * The animal's results, including who has read each one.
+ *
+ * The reader's name is here because this is the screen the result's
+ * text is on, and the vet reads results on a phone between patients:
+ * the button that says "I have seen this" has to be where the words
+ * are, and the sentence beside it ("seen by X") needs a name rather
+ * than a second round trip to find one. A result page that makes you
+ * go somewhere else to close the loop is a loop that stays open.
+ */
 export async function listDiagnosticsForPet(
   clinicId: string,
   petId: string,
@@ -12,6 +22,7 @@ export async function listDiagnosticsForPet(
     where: { clinicId, petId },
     orderBy: { performedAt: "desc" },
     take,
+    include: { readBy: { select: { id: true, name: true } } },
   });
 }
 

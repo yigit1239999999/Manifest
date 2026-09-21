@@ -106,6 +106,24 @@ describe("who may say a result has been read", () => {
     } as never);
   });
 
+  // Reception types the report in; that is transcription. What they
+  // cannot do is say a vet has seen it, or write the opinion -- the
+  // two halves were split precisely so this permission could be given
+  // without giving those.
+  it("refuses a receptionist the marker and the opinion, not the typing", async () => {
+    const reception = { ...ctx, userRole: "RECEPTIONIST", userId: "rec-1" };
+
+    await expect(markDiagnosticRead("d-1", reception)).rejects.toBeInstanceOf(AppError);
+    await expect(
+      createDiagnostic({ ...validInput, interpretation: "Grade II" }, reception),
+    ).rejects.toBeInstanceOf(AppError);
+
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    vi.mocked(prisma.diagnostic.create).mockResolvedValue({ id: "d-9", name: "CBC", type: "BLOOD" } as never);
+
+    await expect(createDiagnostic(validInput, reception)).resolves.toBeDefined();
+  });
+
   it("refuses a technician, who may still enter the result itself", async () => {
     await expect(markDiagnosticRead("d-1", ctx)).rejects.toBeInstanceOf(AppError);
     expect(prisma.diagnostic.update).not.toHaveBeenCalled();

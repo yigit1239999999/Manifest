@@ -125,7 +125,6 @@ export default async function PetPage({
   const canAddVaccination = can(session.user.role, "vaccinations.write");
   const canAddPrescription = can(session.user.role, "prescriptions.write");
   const canAddTreatment = can(session.user.role, "treatments.write");
-  const canAddDiagnostic = can(session.user.role, "diagnostics.write");
   // No `canAddNote`. Every role holds `notes.write`, so the guard I wrote
   // here could never have refused anyone — it only told the next reader
   // that some role is turned away, which is not true (TEAM.md #30).
@@ -503,17 +502,21 @@ export default async function PetPage({
                   ))}
                 </ul>
               )}
-              {canAddDiagnostic && (
-                <details className="rounded-control border border-dashed border-border p-3 text-sm">
-                  <summary className="cursor-pointer font-medium">
-                    <Plus className="me-1 inline size-3.5" />
-                    {tDiag("new")}
-                  </summary>
-                  <div className="mt-3">
-                    <DiagnosticForm petId={pet.id} />
-                  </div>
-                </details>
-              )}
+              {/* No permission check: every role may enter a result
+                  now that reception can transcribe a laboratory
+                  report, so a guard here would refuse nobody. The
+                  half that is restricted is a different key --
+                  `diagnostics.interpret` keeps the written opinion
+                  and the read marker with the person who decides. */}
+              <details className="rounded-control border border-dashed border-border p-3 text-sm">
+                <summary className="cursor-pointer font-medium">
+                  <Plus className="me-1 inline size-3.5" />
+                  {tDiag("new")}
+                </summary>
+                <div className="mt-3">
+                  <DiagnosticForm petId={pet.id} />
+                </div>
+              </details>
             </CardContent>
           </Card>
         </div>
