@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render } from "@testing-library/react";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { NewRowSpotlight } from "@/components/new-row-spotlight";
 
 /**
@@ -87,6 +89,8 @@ describe("pointing at the row that was just created", () => {
     render(<NewRowSpotlight rowId="reminder-late" />);
     await settle();
 
+    // Well past every deadline this component has been given so far.
+    act(() => void vi.advanceTimersByTime(20000));
     const row = placeRow("reminder-late", "Gönderilmeyecek: telefon yok.");
     await settle();
 
@@ -96,9 +100,12 @@ describe("pointing at the row that was just created", () => {
 
   it("gives up rather than searching forever", async () => {
     render(<NewRowSpotlight rowId="reminder-never" />);
-    // Past the 15s cap: the observer is disconnected and a row
-    // arriving afterwards is no longer anybody's news.
-    act(() => void vi.advanceTimersByTime(16000));
+    // Past the cap, which bounds the row that never arrives -- a
+    // reminder saved under the "closed" filter goes into a list this
+    // page is not showing -- and NOT how slow a server may be. pm
+    // measured a real row landing at 17.4s, which is why the previous
+    // 15s answer was the same mistake a second time.
+    act(() => void vi.advanceTimersByTime(61000));
 
     const row = placeRow("reminder-never", "Gönderilecek.");
     await settle();
@@ -147,5 +154,32 @@ describe("pointing at the row that was just created", () => {
       block: "nearest",
       behavior: "auto",
     });
+  });
+});
+
+/**
+ * The attribute and the rule that paints it have to exist together.
+ *
+ * pm found both halves broken at once and the pair is the lesson: the
+ * component set an attribute nothing styled, and the utility that would
+ * have styled it was not in the stylesheet at all. A test reading class
+ * names would have passed on both. This one reads the two ends and
+ * checks they meet.
+ *
+ * It asserts the CSS by looking in `globals.css`, which is only possible
+ * because the rule was moved there by hand (ux). While it lived as a
+ * `data-[spotlight]:bg-accent` utility on the element, whether it
+ * existed depended on what a build chose to generate — unknowable from
+ * here, and, as it turned out, wrong.
+ *
+ * WHAT IT DOES NOT CHECK: that the browser paints anything. It checks
+ * that the attribute this component writes is the attribute the
+ * stylesheet selects on. Only a browser can do the rest.
+ */
+describe("the mark and the rule that paints it", () => {
+  it("styles the attribute the component actually sets", async () => {
+    const css = await readFile(resolve("app/globals.css"), "utf8");
+    // The same string the component writes via `row.dataset.spotlight`.
+    expect(css).toMatch(/\[data-spotlight\]\s*\{[^}]*background-color/);
   });
 });

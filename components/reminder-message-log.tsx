@@ -79,8 +79,22 @@ export async function ReminderMessageLog({
             <p className="whitespace-pre-wrap rounded-control bg-muted/40 p-2 text-foreground">
               {m.body}
             </p>
+            {/* `+` and nothing else. `MessageLog.recipient` is stored
+                in E.164 digits, and pm found it sitting on the same
+                screen as the row's `0532 000 00 00` -- the same number
+                in two shapes, with the harder-to-read one in the place
+                a vet goes to ask "did it reach the right number".
+
+                Grouping it would read better and would be a guess: the
+                clinic's calling code can be any of eight here, and
+                "+90 532 000 00 00" spacing is wrong for most of them.
+                The `+` at least says out loud that this is the
+                international form of the number above, which is the
+                one thing the two shapes have to agree on. A real
+                per-country formatter is worth having and is not this
+                commit. */}
             <p className="text-muted-foreground">
-              {t("recipient")}: {m.recipient}
+              {t("recipient")}: +{m.recipient}
             </p>
             {m.error && (
               <p className="text-muted-foreground">

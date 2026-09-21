@@ -6,16 +6,24 @@ import { Announcer } from "@/components/ui/announcer";
 /** How long the row stays tinted before fading back. */
 const HOLD_MS = 2000;
 /**
- * Give up looking for the row after this.
+ * Stop watching for a row that is never coming.
  *
- * Generous on purpose. The list is re-rendered from the server, and the
- * first version of this waited three seconds on animation frames, which
- * is a guess about somebody else's round trip dressed up as a timeout:
- * fine against a warm local database, silently nothing against a cold
- * one. Waiting is cheap here -- an observer that finds nothing costs a
- * disconnect -- and giving up early costs the whole feature, quietly.
+ * This is NOT a budget for how slow the server may be, and the
+ * distinction is the whole history of this constant. It was three
+ * seconds of animation frames, then fifteen seconds of observation, and
+ * pm then measured the row arriving at SEVENTEEN POINT FOUR -- so the
+ * second guess would have failed exactly like the first, and for the
+ * same reason: a deadline on someone else's round trip is a guess
+ * wearing a timeout's clothes.
+ *
+ * The observer needs no deadline for slowness; it answers whenever the
+ * row lands. What it needs a stop for is the row that never lands at
+ * all -- a reminder saved while the "closed" filter is on goes straight
+ * into a list this page is not showing. This bounds that case and
+ * nothing else, which is why it is a minute rather than a number tuned
+ * against a server.
  */
-const WAIT_MS = 15000;
+const WAIT_MS = 60000;
 
 /**
  * Take the reader to the row that was just created, and say what it says.
