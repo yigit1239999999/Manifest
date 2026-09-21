@@ -149,6 +149,11 @@ export default async function ClientPage({
                   // value, which is right for a missing phone number
                   // and wrong here, so the third state is a string
                   // like the other two.
+                  // A fact, in the words a vet would use, and nothing
+                  // about our plumbing. The three read flat on purpose:
+                  // "not asked yet" is work still on the list, not a
+                  // reproach, and the same tone rules the count of
+                  // unasked clients when that lands (ux, value).
                   value: t(
                     client.notificationsOptIn === true
                       ? "consent.granted"

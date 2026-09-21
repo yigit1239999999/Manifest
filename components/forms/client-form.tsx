@@ -56,10 +56,13 @@ interface Props {
 // all, which is how "not asked" stays distinct from "refused" all the
 // way to the column.
 //
-// Deliberately not `required`. The vet's reason is the whole design:
-// "if you force me I will tick one at random, and that means messaging
-// someone who never agreed." A forced answer here is worse than no
-// answer, because it is indistinguishable from a real one.
+// Deliberately not `required`, and deliberately not pre-selected. The
+// vet's reason covers the first: "if you force me I will tick one at
+// random, and that means messaging someone who never agreed." A forced
+// answer is worse than no answer, because it cannot be told from a real
+// one. The second is ux's and is the same thought one step further --
+// a default IS a light kind of forcing, and unasked is not one of the
+// three answers. It is the absence of one.
 const CONSENT_ANSWERS = ["true", "false", ""] as const;
 
 // What is behind the fold, named rather than counted by hand.
@@ -147,12 +150,19 @@ export function ClientForm({
   );
 
   const consentNoteId = useId();
-  const [consent, setConsent] = useState<"true" | "false" | "">(
+  // Four values for three radios, and the fourth is "nobody has touched
+  // this yet". `null` leaves every radio clear; `""` is the reader
+  // choosing to put the question off. Both reach the column as no value
+  // at all, and that is not a loss: postponing is a fact about the
+  // minute, not about the client. What the extra value buys is the
+  // difference on screen between a question nobody has reached and one
+  // somebody has decided to leave.
+  const [consent, setConsent] = useState<ConsentAnswer | null>(
     client?.notificationsOptIn === true
       ? "true"
       : client?.notificationsOptIn === false
         ? "false"
-        : "",
+        : null,
   );
 
   return (
@@ -300,7 +310,7 @@ export function ClientForm({
             id={consentNoteId}
             className="mt-2 text-xs text-muted-foreground"
           >
-            {t(CONSENT_HINTS[consent])}
+            {t(CONSENT_HINTS[consent ?? ""])}
           </p>
         </fieldset>
 

@@ -60,24 +60,23 @@ describe("the client's notification consent", () => {
     ).not.toBeChecked();
     expect(screen.getByText(consent.unansweredHint)).toBeInTheDocument();
 
-    // "Not asked" is now a radio of its own, and it starts selected.
+    // Three radios, and none of them selected on arrival.
     //
-    // This reverses what stood here, so the old reason is worth keeping:
-    // making the absence of an answer selectable was said to give the
-    // clinic two ways to record the same nothing. That is still true of
-    // the STORED value -- both write null, and the schema is what keeps
-    // them one -- but it was never true of the reader. An empty radio
-    // group reads as a form somebody has not finished, not as a state
-    // somebody recorded, and the vet said what an unfinished-looking
-    // control does at the counter: "if you force me I will tick one at
-    // random, and that means messaging someone who never agreed."
+    // The third exists so that putting the question off is something a
+    // reader can DO rather than something they leave behind -- the
+    // vet's case is "sometimes I cannot ask, the animal is in a bad way
+    // and the owner is crying". It does not start selected, because a
+    // default is a light kind of forcing and unasked is not one of the
+    // three answers; it is the absence of one.
     //
-    // So the third radio does not add a stored state. It stops the one
-    // we already had from looking like a mistake.
-    expect(
-      screen.getByRole("radio", { name: answer.unanswered }),
-    ).toBeChecked();
+    // Both an untouched form and the third radio reach the column as
+    // null, and that is not two ways of recording one thing. The
+    // difference lives on screen: a question nobody reached against a
+    // question somebody decided to leave.
     expect(screen.getAllByRole("radio")).toHaveLength(3);
+    for (const radio of screen.getAllByRole("radio")) {
+      expect(radio).not.toBeChecked();
+    }
   });
 
   it("tells the vet what a yes buys, not only what a no costs", () => {

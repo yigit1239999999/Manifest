@@ -186,18 +186,18 @@
     "preferredLanguage": "Preferred language",
     "preferredLanguageHint": "Messages sent to this client are written in this language.",
     "consent": {
-      "label": "Notification consent",
+      "label": "Vaccination and check-up messages",
       "unanswered": "Not asked yet",
-      "legend": "May we send reminder messages?",
+      "legend": "May we send vaccination and check-up messages?",
       "granted": "Gave consent",
       "declined": "Declined",
       "unansweredHint": "Not asked yet. No automatic messages are sent to this client until an answer is recorded.",
       "grantedHint": "Appointment confirmations, reminders and vaccination notices are sent to this client.",
       "declinedHint": "No automatic messages are sent to this client.",
       "answer": {
-        "granted": "Yes, consented",
-        "declined": "No, declined",
-        "unanswered": "Not asked"
+        "granted": "Yes",
+        "declined": "No",
+        "unanswered": "Not now"
       }
     },
     "notes": "Notes",

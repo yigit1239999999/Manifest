@@ -186,18 +186,18 @@
     "preferredLanguage": "Tercih edilen dil",
     "preferredLanguageHint": "Bu müşteriye gönderilen mesajlar bu dilde yazılır.",
     "consent": {
-      "label": "Bildirim izni",
+      "label": "Aşı ve kontrol mesajları",
       "unanswered": "Henüz sorulmadı",
-      "legend": "Hatırlatma mesajı gönderebilir miyiz?",
+      "legend": "Aşı ve kontrol mesajı gönderebilir miyiz?",
       "granted": "İzin verdi",
-      "declined": "İzin vermedi",
+      "declined": "İstemiyor",
       "unansweredHint": "Henüz sorulmadı. Cevap kaydedilene kadar bu müşteriye otomatik mesaj gönderilmez.",
       "grantedHint": "Randevu onayı, hatırlatma ve aşı bildirimleri bu müşteriye gönderilir.",
       "declinedHint": "Bu müşteriye otomatik mesaj gönderilmez.",
       "answer": {
-        "granted": "Evet, izin verdi",
-        "declined": "Hayır, istemiyor",
-        "unanswered": "Sorulmadı"
+        "granted": "Evet",
+        "declined": "Hayır",
+        "unanswered": "Şimdi sorma"
       }
     },
     "notes": "Notlar",
