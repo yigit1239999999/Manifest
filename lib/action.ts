@@ -29,6 +29,21 @@ export type FormState = {
   error?: string;
   success?: boolean;
   /**
+   * The record a create action just made, when the page has to find it
+   * again among rows it did not order.
+   *
+   * Deliberately not part of `values`: that is the submission echoed
+   * back so a failed form can refill itself, it is filtered by
+   * `submittedValues`, and an id in there would be indistinguishable
+   * from something the user typed.
+   *
+   * The alternative was for the screen to guess -- "the row created in
+   * the last ten seconds" -- which highlights a row for everyone who
+   * happens to reload inside that window: the right answer arrived at
+   * for a reason that is not true.
+   */
+  createdId?: string;
+  /**
    * What the user submitted, echoed back so the form can refill itself after
    * a failed validation (React resets uncontrolled inputs once the action
    * returns). Sensitive fields are stripped — see `submittedValues`.

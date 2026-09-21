@@ -28,6 +28,27 @@ describe("listReminders", () => {
     expect(include?.client?.select).toMatchObject({ phone: true });
   });
 
+  it("carries what was written and where it went, for the fold", async () => {
+    // Read from `MessageLog`, never from `Reminder.status`: the status
+    // is the vet's decision about the work, these rows are what the
+    // provider was actually handed. The fold shows the message text and
+    // the number it went to, which is the only place either appears.
+    await listReminders({ clinicId: "clinic-1" });
+
+    const include = callOf()?.include as
+      | { messages?: { where?: unknown; select?: Record<string, unknown> } }
+      | undefined;
+    expect(include?.messages?.where).toEqual({ kind: "REMINDER_DUE" });
+    expect(include?.messages?.select).toMatchObject({
+      status: true,
+      createdAt: true,
+      error: true,
+      channel: true,
+      body: true,
+      recipient: true,
+    });
+  });
+
   it("shows the statuses that still count as work, oldest due first", async () => {
     // `SENT` belongs here: a reminder that went out has not closed, the
     // animal has not come back. The dashboard card reads the same constant,

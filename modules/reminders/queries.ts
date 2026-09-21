@@ -53,7 +53,18 @@ export async function listReminders({
       messages: {
         where: { kind: "REMINDER_DUE" },
         orderBy: { createdAt: "desc" },
-        select: { status: true, createdAt: true, error: true, channel: true },
+        // `body` and `recipient` are for the fold under the row: what
+        // was written and where it went. They are not rendered in the
+        // list itself, and a reminder carries at most one success or
+        // three failures, so the rows do not grow with the clinic.
+        select: {
+          status: true,
+          createdAt: true,
+          error: true,
+          channel: true,
+          body: true,
+          recipient: true,
+        },
       },
     },
   });
