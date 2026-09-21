@@ -160,7 +160,10 @@ describe("the permission a screen reads is the one a service enforces", () => {
   }
 
   /** The permission `createX`/`updateX` demands, read from the service. */
-  function servicePermission(section: string, kind: "new" | "edit") {
+  function servicePermission(
+    section: string,
+    kind: "new" | "edit",
+  ): Permission | null {
     const verb = kind === "new" ? "create" : "update";
     const source = readFileSync(`${modulesDir}/${section}/service.ts`, "utf8");
     const declarations = [
@@ -172,7 +175,8 @@ describe("the permission a screen reads is the one a service enforces", () => {
     // to the first would guess. Let the unresolved case fail instead.
     if (declarations.length !== 1) return null;
     const body = source.slice(declarations[0].index);
-    return body.match(/requirePermission\([^,]+,\s*"([^"]+)"\)/)?.[1] ?? null;
+    return (body.match(/requirePermission\([^,]+,\s*"([^"]+)"\)/)?.[1] ??
+      null) as Permission | null;
   }
 
   const HREF = /href=(?:\{`([^`]*)`\}|"([^"]*)")/g;
@@ -209,36 +213,39 @@ describe("the permission a screen reads is the one a service enforces", () => {
     expect(unresolved.map((o) => `${routeOf(o.file)} -> ${o.href}`)).toEqual([]);
   });
 
-  // One link is allowed to go unasked, and the exemption carries its own
-  // expiry date below rather than a promise to remember.
-  //
-  // `/pets/new` shows "no clients yet — add one" when the clinic is empty.
-  // The page itself is already behind `pets.write`, and no role in the
-  // matrix holds `pets.write` without `clients.write`, so a guard here
-  // would be a condition that cannot be false: dead code that tells the
-  // next reader a case exists when it does not (TEAM.md #30).
-  const EXEMPT = new Set(["pets/new/page.tsx -> /clients/new"]);
+  /** The permission a page's own gate demands, if it has one. */
+  function pageGuard(source: string): Permission | null {
+    return (source.match(/!can\([^,]+,\s*"([^"]+)"\)/)?.[1] ?? null) as
+      | Permission
+      | null;
+  }
 
-  it("the one exemption still has nothing to catch", () => {
-    // The reason above is a measurement, and measurements go stale. If a
-    // role is ever given `pets.write` without `clients.write`, the empty
-    // state starts offering that role a door it cannot open, and this
-    // fails here instead of in front of them.
-    const stranded = ROLES.filter(
-      (role) => can(role, "pets.write") && !can(role, "clients.write"),
-    );
-
-    expect(stranded).toEqual([]);
-  });
+  /** Roles that get as far as rendering this page. */
+  function rolesReaching(source: string): readonly UserRole[] {
+    const guard = pageGuard(source);
+    return guard ? ROLES.filter((role) => can(role, guard)) : ROLES;
+  }
 
   it("every screen asks about that permission before offering the route", () => {
+    // The rule is not "every link is guarded" — that one has to be argued
+    // out of the way with an exemption list the first time it is wrong, and
+    // an exemption list is the same trap as a word list: it gets longer,
+    // and nobody remembers why any entry is in it.
+    //
+    // The rule is that nobody sees a link they cannot use. So the question
+    // is asked of the permission matrix: is there a role that gets as far
+    // as this page and does not hold what the link needs? `/pets/new` links
+    // to `/clients/new` unguarded and is not a defect, because the page
+    // itself is behind `pets.write` and every role holding that holds
+    // `clients.write` too — a guard there would be a condition that cannot
+    // be false (TEAM.md #30). No exception is written down for it; the
+    // matrix says so, and on the day the matrix stops saying so this turns
+    // red by itself. That is the part a list could never do.
     const offenders = offers.filter((offer) => {
-      if (EXEMPT.has(`${routeOf(offer.file)} -> ${offer.href}`)) return false;
       const permission = servicePermission(offer.section, offer.kind);
-      return (
-        permission !== null &&
-        !new RegExp(`can\\([^)]*"${permission}"\\)`).test(offer.source)
-      );
+      if (permission === null) return false;
+      if (new RegExp(`can\\([^)]*"${permission}"\\)`).test(offer.source)) return false;
+      return rolesReaching(offer.source).some((role) => !can(role, permission));
     });
 
     expect(
@@ -250,12 +257,19 @@ describe("the permission a screen reads is the one a service enforces", () => {
     ).toEqual([]);
   });
 
-  // Still out of scope, and the line matters: this pairs a page with a
-  // permission, not a *button* with one. A page holding both `pets.write`
-  // and a link to `/pets/new` passes even if the link is rendered under the
-  // other check it happens to hold. Catching that needs the render tree, and
-  // the failure that actually happened twice is the one caught here — the
-  // permission nobody read.
+  // Three things this deliberately does not check, so that a green run is
+  // not read as more than it is:
+  //
+  //   - it pairs a *page* with a permission, not a *button*. A page holding
+  //     both `pets.write` and a link to `/pets/new` passes even if the link
+  //     renders under some other check it happens to hold. Catching that
+  //     needs the render tree; the failure that actually happened twice is
+  //     the one caught here, the permission nobody read.
+  //   - it reads the route's permission, not the page's other actions. The
+  //     forms that post from a detail page are a separate check below.
+  //   - it proves nothing about the server. That the service still enforces
+  //     the permission it declares is the service tests' job; this only
+  //     keeps the screen honest about it.
 });
 
 describe("the write routes themselves", () => {
