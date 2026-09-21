@@ -37,6 +37,7 @@ export default async function EditVisitPage({
           visit={visit}
           pets={pets.items.map((p) => ({ id: p.id, name: p.name }))}
           petsCapped={pets.hasMore}
+          defaultPetLabel={visit.pet.name}
           vets={vets}
         />
       </Card>

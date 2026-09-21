@@ -25,6 +25,17 @@ interface Props {
   /** See `InvoiceForm`: true when the list was cut off at its cap. */
   ownersCapped?: boolean;
   defaultOwnerId?: string;
+  /**
+   * The label for the selected owner (`pet.ownerId` or `defaultOwnerId`)
+   * when that record is not in `owners`.
+   *
+   * The list is capped (`lib/pagination.ts`), so an id that comes from
+   * the record being edited, or from a link that carried one, can sit
+   * outside it. Passed unconditionally: a label that matches an option
+   * changes nothing, and a missing one leaves a required field looking
+   * empty over a hidden input that is not.
+   */
+  defaultOwnerLabel?: string;
   /** Clinic-defined species (beyond the built-in enum). */
   customSpecies?: { id: string; name: string }[];
   /** Breeds this clinic already used, keyed by species ("DOG" | "custom:<id>"). */
@@ -40,6 +51,7 @@ export function PetForm({
   owners,
   ownersCapped,
   defaultOwnerId,
+  defaultOwnerLabel,
   customSpecies = [],
   clinicBreeds = [],
   enabledSpecies = SPECIES,
@@ -132,6 +144,7 @@ export function PetForm({
             required
             options={ownerOptions}
             defaultValue={pet?.ownerId ?? defaultOwnerId ?? ""}
+            defaultLabel={defaultOwnerLabel}
             placeholder={tCommon("searchOrType")}
             noResultsLabel={tCommon("noResults")}
             onSearch={ownersCapped ? searchClientsAction : undefined}

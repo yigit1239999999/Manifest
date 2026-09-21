@@ -95,6 +95,18 @@ export async function getClientById(clinicId: string, id: string) {
   });
 }
 
+/**
+ * Just enough of one client to label it in a picker. See `getPetLabel`
+ * in `modules/pets/queries.ts` for why a picker needs this at all.
+ */
+export async function getClientLabel(clinicId: string, id: string) {
+  const client = await prisma.client.findFirst({
+    where: { id, clinicId },
+    select: { firstName: true, lastName: true },
+  });
+  return client ? `${client.firstName} ${client.lastName}` : undefined;
+}
+
 export async function countClients(clinicId: string) {
   return prisma.client.count({ where: { clinicId, archivedAt: null } });
 }

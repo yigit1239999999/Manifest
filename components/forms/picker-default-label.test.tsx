@@ -1,0 +1,118 @@
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
+import tr from "@/messages/tr.json";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("@/modules/visits/actions", () => ({
+  createVisitAction: async () => ({}),
+  updateVisitAction: async () => ({}),
+}));
+vi.mock("@/modules/appointments/actions", () => ({
+  createAppointmentAction: async () => ({}),
+  updateAppointmentAction: async () => ({}),
+}));
+vi.mock("@/modules/pets/actions", () => ({
+  createPetAction: async () => ({}),
+  updatePetAction: async () => ({}),
+  searchPetsAction: async () => [],
+}));
+vi.mock("@/modules/clients/actions", () => ({
+  searchClientsAction: async () => [],
+}));
+vi.mock("@/modules/invoices/actions", () => ({ createInvoiceAction: async () => ({}) }));
+
+import { VisitForm } from "@/components/forms/visit-form";
+import { AppointmentForm } from "@/components/forms/appointment-form";
+import { PetForm } from "@/components/forms/pet-form";
+import { InvoiceForm } from "@/components/forms/invoice-form";
+
+// A picker is handed the clinic's first `PAGE_SIZES.DROPDOWN` records, so
+// the record a form opens on can sit outside the list it was given: the
+// 87th animal of a 120-animal clinic, or an owner reached from a link.
+//
+// The field then rendered *empty* while the hidden input still carried the
+// id — a required field that looks unanswered above a form that submits
+// happily, and a vet who retypes the animal they already chose. The half
+// that fixes it is here, at the call sites, and it is the half that can go
+// missing without anything turning red: `Combobox` grew `defaultLabel`
+// first and nothing passed it for a day (TEAM.md: a prop with no call site
+// is not a feature). These four assertions are the call sites.
+
+const wrap = (ui: React.ReactNode) =>
+  render(
+    <NextIntlClientProvider locale="tr" messages={tr}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+
+/** What the user sees in the picker, not what the form will submit. */
+const shown = (name: RegExp) =>
+  (screen.getByRole("combobox", { name }) as HTMLInputElement).value;
+
+/** What the form will submit for `name`. */
+const submitted = (container: HTMLElement, name: string) =>
+  container.querySelector<HTMLInputElement>(`input[type="hidden"][name="${name}"]`)
+    ?.value;
+
+const VETS = [{ id: "u-1", name: "Dr. Ayşe Demir" }];
+
+describe("a record the picker's list does not contain", () => {
+  it("shows the animal a visit is already about", () => {
+    const { container } = wrap(
+      <VisitForm
+        visit={{ id: "v-1", petId: "p-87", vetId: "u-1" } as never}
+        pets={[{ id: "p-1", name: "Karabaş" }]}
+        petsCapped
+        vets={VETS}
+        defaultPetLabel="Boncuk"
+      />,
+    );
+
+    expect(shown(/hayvan/i)).toBe("Boncuk");
+    expect(submitted(container, "petId")).toBe("p-87");
+  });
+
+  it("shows the animal an appointment is already about", () => {
+    wrap(
+      <AppointmentForm
+        appointment={{ id: "a-1", petId: "p-87", vetId: "u-1" } as never}
+        pets={[{ id: "p-1", name: "Karabaş" }]}
+        petsCapped
+        vets={VETS}
+        defaultPetLabel="Boncuk"
+      />,
+    );
+
+    expect(shown(/hayvan/i)).toBe("Boncuk");
+  });
+
+  it("shows the owner an animal already belongs to", () => {
+    wrap(
+      <PetForm
+        pet={{ id: "p-1", name: "Boncuk", ownerId: "c-87" } as never}
+        owners={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]}
+        ownersCapped
+        defaultOwnerLabel="Zeynep Yıldız"
+      />,
+    );
+
+    expect(shown(/sahibi/i)).toBe("Zeynep Yıldız");
+  });
+
+  it("shows the client a new invoice was opened for", () => {
+    // The only one of the four that never has a record to read the name
+    // off: the id arrives in the URL, so the page has to look it up.
+    wrap(
+      <InvoiceForm
+        clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]}
+        clientsCapped
+        defaultClientId="c-87"
+        defaultClientLabel="Zeynep Yıldız"
+      />,
+    );
+
+    expect(shown(/müşteri/i)).toBe("Zeynep Yıldız");
+  });
+});

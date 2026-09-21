@@ -37,6 +37,7 @@ export default async function EditAppointmentPage({
           appointment={appointment}
           pets={pets.items.map((p) => ({ id: p.id, name: p.name }))}
           petsCapped={pets.hasMore}
+          defaultPetLabel={appointment.pet.name}
           vets={vets}
         />
       </Card>

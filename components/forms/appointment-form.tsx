@@ -28,6 +28,17 @@ interface Props {
   petsCapped?: boolean;
   vets: Pick<User, "id" | "name">[];
   defaultPetId?: string;
+  /**
+   * The label for the selected animal (`appointment.petId` or
+   * `defaultPetId`) when that record is not in `pets`.
+   *
+   * The list is capped (`lib/pagination.ts`), so an id that comes from
+   * the record being edited, or from a link that carried one, can sit
+   * outside it. Passed unconditionally: a label that matches an option
+   * changes nothing, and a missing one leaves a required field looking
+   * empty over a hidden input that is not.
+   */
+  defaultPetLabel?: string;
 }
 
 export function AppointmentForm({
@@ -36,6 +47,7 @@ export function AppointmentForm({
   petsCapped,
   vets,
   defaultPetId,
+  defaultPetLabel,
 }: Props) {
   const petOptions = useMemo(
     () => pets.map((p) => ({ value: p.id, label: p.name })),
@@ -71,6 +83,7 @@ export function AppointmentForm({
             required
             options={petOptions}
             defaultValue={appointment?.petId ?? defaultPetId ?? ""}
+            defaultLabel={defaultPetLabel}
             placeholder={tCommon("searchOrType")}
             noResultsLabel={tCommon("noResults")}
             onSearch={petsCapped ? searchPetsAction : undefined}

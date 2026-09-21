@@ -94,9 +94,23 @@ export const markDeceasedAction = action(
  * search spans owners by definition, and two animals called Karabaş are
  * indistinguishable without it.
  */
-export async function searchPetsAction(
-  term: string,
-): Promise<{ value: string; label: string }[]> {
+export async function searchPetsAction(term: string): Promise<
+  {
+    value: string;
+    label: string;
+    /**
+     * The owner, alongside the label rather than only inside it.
+     *
+     * A picker that narrows another one — pick the animal, the client
+     * fills itself in — needs the owner as data it can set, and a
+     * controlled client picker needs the owner's *name* to display what
+     * it was given. Parsing them back out of the label would make the
+     * separator between them load-bearing.
+     */
+    ownerId: string;
+    ownerLabel: string;
+  }[]
+> {
   const session = await requireSession();
   requirePermission(session.user.role ?? "", "pets.read");
   const rows = await quickSearchPets(
@@ -107,5 +121,7 @@ export async function searchPetsAction(
   return rows.map((p) => ({
     value: p.id,
     label: `${p.name} · ${p.owner.firstName} ${p.owner.lastName}`,
+    ownerId: p.ownerId,
+    ownerLabel: `${p.owner.firstName} ${p.owner.lastName}`,
   }));
 }

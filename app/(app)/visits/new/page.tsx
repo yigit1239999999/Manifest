@@ -3,7 +3,7 @@ import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
 import { listClinicians } from "@/modules/staff/queries";
 import { can } from "@/lib/permissions";
-import { listPets } from "@/modules/pets/queries";
+import { getPetLabel, listPets } from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
@@ -17,11 +17,14 @@ export default async function NewVisitPage({
   const session = await requireSession();
   if (!can(session.user.role, "visits.write")) return <ForbiddenState />;
   const { petId } = await searchParams;
-  const [t, tCommon, pets, vets] = await Promise.all([
+  const [t, tCommon, pets, vets, defaultPetLabel] = await Promise.all([
     getTranslations("visit"),
     getTranslations("common"),
     listPets({ clinicId: session.user.clinicId }),
     listClinicians(session.user.clinicId),
+    // Only when a link carried an animal: that animal may sit past
+    // the picker's cap, and then the field renders empty (`getPetLabel`).
+    petId ? getPetLabel(session.user.clinicId, petId) : undefined,
   ]);
 
   return (
@@ -34,6 +37,7 @@ export default async function NewVisitPage({
           petsCapped={pets.hasMore}
           vets={vets}
           defaultPetId={petId}
+          defaultPetLabel={defaultPetLabel}
         />
       </Card>
     </div>

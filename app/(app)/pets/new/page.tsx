@@ -5,7 +5,7 @@ import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getEnabledSpecies } from "@/modules/species/queries";
-import { listClients } from "@/modules/clients/queries";
+import { getClientLabel, listClients } from "@/modules/clients/queries";
 import {
   listClinicBreedOptions,
   listCustomSpecies,
@@ -25,16 +25,27 @@ export default async function NewPetPage({
   const session = await requireSession();
   if (!can(session.user.role, "pets.write")) return <ForbiddenState />;
   const { ownerId } = await searchParams;
-  const [t, tCommon, tClient, owners, customSpecies, clinicBreeds, enabledSpecies] =
-    await Promise.all([
-      getTranslations("pet"),
-      getTranslations("common"),
-      getTranslations("client"),
-      listClients({ clinicId: session.user.clinicId }),
-      listCustomSpecies(session.user.clinicId),
-      listClinicBreedOptions(session.user.clinicId),
-      getEnabledSpecies(session.user.clinicId),
-    ]);
+  const [
+    t,
+    tCommon,
+    tClient,
+    owners,
+    customSpecies,
+    clinicBreeds,
+    enabledSpecies,
+    defaultOwnerLabel,
+  ] = await Promise.all([
+    getTranslations("pet"),
+    getTranslations("common"),
+    getTranslations("client"),
+    listClients({ clinicId: session.user.clinicId }),
+    listCustomSpecies(session.user.clinicId),
+    listClinicBreedOptions(session.user.clinicId),
+    getEnabledSpecies(session.user.clinicId),
+    // Only when a link carried an owner: that owner may sit past
+    // the picker's cap, and then the field renders empty (`getClientLabel`).
+    ownerId ? getClientLabel(session.user.clinicId, ownerId) : undefined,
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -61,6 +72,7 @@ export default async function NewPetPage({
             }))}
             ownersCapped={owners.hasMore}
             defaultOwnerId={ownerId}
+            defaultOwnerLabel={defaultOwnerLabel}
             customSpecies={customSpecies}
             clinicBreeds={clinicBreeds}
             enabledSpecies={enabledSpecies}

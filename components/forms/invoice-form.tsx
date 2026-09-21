@@ -38,6 +38,16 @@ interface Props {
    */
   clientsCapped?: boolean;
   defaultClientId?: string;
+  /**
+   * The label for `defaultClientId` when that record is not in `clients`.
+   *
+   * The list is capped (`lib/pagination.ts`), so an id that comes from
+   * the record being edited, or from a link that carried one, can sit
+   * outside it. Passed unconditionally: a label that matches an option
+   * changes nothing, and a missing one leaves a required field looking
+   * empty over a hidden input that is not.
+   */
+  defaultClientLabel?: string;
   defaultNumber?: string;
 }
 
@@ -45,6 +55,7 @@ export function InvoiceForm({
   clients,
   clientsCapped,
   defaultClientId,
+  defaultClientLabel,
   defaultNumber,
 }: Props) {
   const t = useTranslations("invoice");
@@ -91,6 +102,7 @@ export function InvoiceForm({
             required
             options={clientOptions}
             defaultValue={defaultClientId ?? ""}
+            defaultLabel={defaultClientLabel}
             placeholder={tCommon("searchOrType")}
             noResultsLabel={tCommon("noResults")}
             onSearch={clientsCapped ? searchClientsAction : undefined}

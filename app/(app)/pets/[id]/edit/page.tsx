@@ -48,6 +48,7 @@ export default async function EditPetPage({
             lastName: o.lastName,
           }))}
           ownersCapped={owners.hasMore}
+          defaultOwnerLabel={`${pet.owner.firstName} ${pet.owner.lastName}`}
           customSpecies={customSpecies}
           clinicBreeds={clinicBreeds}
           enabledSpecies={enabledSpecies}

@@ -148,9 +148,30 @@ export async function quickSearchPets(
       id: true,
       name: true,
       species: true,
+      ownerId: true,
       owner: { select: { firstName: true, lastName: true } },
     },
   });
+}
+
+/**
+ * Just enough of one animal to label it in a picker.
+ *
+ * A picker is handed the clinic's first `DROPDOWN` records, so an id that
+ * arrives from somewhere else — `/visits/new?petId=` followed from the
+ * animal's own page — may not be among them. Without the name the field
+ * renders empty while the hidden input still carries the id, which reads
+ * as "nothing is selected" over a form that will happily submit.
+ *
+ * Two columns and a primary key lookup, run only when such an id is
+ * actually present.
+ */
+export async function getPetLabel(clinicId: string, id: string) {
+  const pet = await prisma.pet.findFirst({
+    where: { id, clinicId },
+    select: { name: true },
+  });
+  return pet?.name;
 }
 
 /** Clinic-defined species, alphabetical — feeds the species combobox. */
