@@ -1681,3 +1681,33 @@ rahatlatan bir hikâyeye dönüşmeye başlamıştı."* Uyanıklık yerindeydi a
 fazla geniş uygulandı ve **doğru bir gözlemi de yedi.** Bir eleştiri, kendi
 doğru bulgularını iptal etmeye başladığında, artık eleştiri değil yeni bir
 kör noktadır.
+
+### Ölçüm raporu hangi commit'te alındığını taşır — ve zemin değişince açık ölçümler işaretlenir
+
+value'nun yukarıdaki kurala eklediği şart, çünkü "söylemek" bu oturumda üç
+kez yetmedi:
+
+> **Her ölçüm raporu, hangi commit'te alındığını taşır. Zemin değiştiğinde,
+> o zeminde alınmış AÇIK ölçümler de işaretlenir.**
+
+Kanıtı aynı kişinin aynı turdaki iki raporu: pm performans turunda
+*"`.next-prod` 14:21, HEAD 14:29"* yazdı ve **işe yaradı**; genişlik turunda
+yazmadı ve **doğru bir bulgusunu iptal etti.** Hash'siz bir ölçüm "yeni"
+görünür ve hiçbir alarm çalmaz.
+
+### Ölçüm noktaları koddan türetilir, cihazdan değil
+
+*"İki nokta bir bandı kapsamaz"* tespitinin yanlış çözümü nokta eklemektir:
+767'yi sabitlersek `lg` eşiği olan bir tabloda aynı boşluk **1023'te** doğar
+ve yine görmeyiz. Üç nokta da bir bandı kapsamaz.
+
+> **Bir yüzey hangi eşikleri bildiriyorsa, her eşiğin HEMEN ALTI ve HEMEN
+> ÜSTÜ ölçülür.** Bugün `sm`/`md` kullanan bir tabloda: 639/640 ve 767/768,
+> artı bir dar bir geniş. Eşik yoksa iki nokta yeter.
+
+Sabit bir üçlü listenin aksine bu **kendiliğinden büyür**: yarın biri `lg`
+eklerse ölçüm noktası da doğar. Çözüm **noktaların sayısı değil, nereden
+seçildiği** — kusurun yaşayabileceği yer koddan bellidir.
+
+**Ve pm'in kuralıyla birlikte çalışır:** kod hangi eşiklerin var olduğunu
+söyler, ölçüm o eşikte gerçekten kaybolup kaybolmadığını.
