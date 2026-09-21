@@ -14,6 +14,7 @@ import { REMINDER_STATUSES } from "@/modules/reminders/schema";
 import {
   acknowledgeReminderAction,
   dismissReminderAction,
+  reopenReminderAction,
 } from "@/modules/reminders/actions";
 import { listClients } from "@/modules/clients/queries";
 import { listPets } from "@/modules/pets/queries";
@@ -222,19 +223,33 @@ export default async function RemindersPage({
                       caught this one — I had written the guard by copying
                       the page next door, which is exactly the habit that
                       test exists for. */}
-                  {OPEN_REMINDER_STATUSES.includes(r.status as never) && (
-                  <ReminderCloseButtons
+                  {OPEN_REMINDER_STATUSES.includes(r.status as never) ? (
+                    <ReminderCloseButtons
                       acknowledge={acknowledgeReminderAction.bind(null, r.id)}
                       dismiss={dismissReminderAction.bind(null, r.id)}
                       acknowledgeLabel={t("acknowledge")}
                       dismissLabel={t("dismiss")}
+                      reopenLabel={t("reopen")}
                       // Ten rows carry ten buttons reading "Done". Named
                       // by the reminder they belong to, they stop being
                       // ten identical announcements (TEAM.md #26).
-                      acknowledgeName={t("acknowledgeFor", {
-                        title: r.title,
-                      })}
+                      acknowledgeName={t("acknowledgeFor", { title: r.title })}
                       dismissName={t("dismissFor", { title: r.title })}
+                      reopenName={t("reopenFor", { title: r.title })}
+                    />
+                  ) : (
+                    // A row closed by mistake has to have a way back, or
+                    // the two buttons above it are one-way doors and the
+                    // confirmation we decided not to ask for was the only
+                    // thing standing in front of them.
+                    <ReminderCloseButtons
+                      reopen={reopenReminderAction.bind(null, r.id)}
+                      acknowledgeLabel={t("acknowledge")}
+                      dismissLabel={t("dismiss")}
+                      reopenLabel={t("reopen")}
+                      acknowledgeName={t("acknowledgeFor", { title: r.title })}
+                      dismissName={t("dismissFor", { title: r.title })}
+                      reopenName={t("reopenFor", { title: r.title })}
                     />
                   )}
                 </div>

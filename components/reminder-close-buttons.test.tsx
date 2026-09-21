@@ -21,8 +21,10 @@ function rowFor(title: string) {
       dismiss={noop}
       acknowledgeLabel="Tamam"
       dismissLabel="Kapat"
+      reopenLabel="Geri aç"
       acknowledgeName={`${title}: tamamlandı olarak işaretle`}
       dismissName={`${title}: gerek kalmadı`}
+      reopenName={`${title}: geri aç`}
     />,
   );
 }
@@ -66,6 +68,42 @@ describe("closing a reminder", () => {
       .getAllByRole("button")
       .map((b) => b.getAttribute("aria-label"));
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("offers the way back on a closed row, and only there", () => {
+    // The reason there is no confirmation in front of the two buttons
+    // above: a row closed by mistake can be reopened. Before this existed
+    // that was true of the service and not of anyone using the app, which
+    // is the same gap archiving had to close the expensive way.
+    const open = render(
+      <ReminderCloseButtons
+        acknowledge={noop}
+        dismiss={noop}
+        acknowledgeLabel="Tamam"
+        dismissLabel="Kapat"
+        reopenLabel="Geri aç"
+        acknowledgeName="a"
+        dismissName="b"
+        reopenName="c"
+      />,
+    );
+    expect(open.container.querySelectorAll("form")).toHaveLength(2);
+    expect(open.queryByRole("button", { name: "c" })).toBeNull();
+    open.unmount();
+
+    const closed = render(
+      <ReminderCloseButtons
+        reopen={noop}
+        acknowledgeLabel="Tamam"
+        dismissLabel="Kapat"
+        reopenLabel="Geri aç"
+        acknowledgeName="a"
+        dismissName="b"
+        reopenName="c"
+      />,
+    );
+    expect(closed.container.querySelectorAll("form")).toHaveLength(1);
+    expect(closed.getByRole("button", { name: "c" })).toBeInTheDocument();
   });
 
   it("submits each action from its own form, so one pending state is one button", () => {

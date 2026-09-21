@@ -493,6 +493,8 @@
     "dueAt": "Due at",
     "acknowledge": "Mark done",
     "dismiss": "Dismiss",
+    "reopen": "Reopen",
+    "reopenFor": "{title}: reopen",
     "emptyHint": "Reminders you create (vaccination due, check-up, follow-up) are listed here until you close them.",
     "statusFilter": "Status",
     "filterOpen": "Open",

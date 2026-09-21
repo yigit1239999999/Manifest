@@ -1,8 +1,8 @@
-import { Check, X } from "lucide-react";
+import { Check, RotateCcw, X } from "lucide-react";
 import { SubmitButton } from "@/components/submit-button";
 
 /**
- * The two ways a reminder stops being work.
+ * The two ways a reminder stops being work, and the one way back.
  *
  * Deliberately two buttons and not a dialog asking which: there are exactly
  * two answers here, and a dialog to choose between two is a second click
@@ -17,20 +17,34 @@ import { SubmitButton } from "@/components/submit-button";
  *
  * Plain forms rather than handlers, so a row still closes with JavaScript
  * off and so each button gets its own pending state.
+ *
+ * `reopen` is what makes the rest of this true. "Both are undone by the
+ * status changing again" was a claim about the service, not about anyone
+ * using the app: until this existed, a reminder closed by mistake was
+ * closed for good, and the argument for skipping the confirmation rested
+ * on a way back that only the database had. Archiving learned the same
+ * thing the expensive way (backlog 39).
  */
 export function ReminderCloseButtons({
   acknowledge,
   dismiss,
+  reopen,
   acknowledgeLabel,
   dismissLabel,
+  reopenLabel,
   acknowledgeName,
   dismissName,
+  reopenName,
 }: {
-  acknowledge: (formData: FormData) => Promise<unknown>;
-  dismiss: (formData: FormData) => Promise<unknown>;
+  /** Absent on a closed row, where the only move left is to reopen it. */
+  acknowledge?: (formData: FormData) => Promise<unknown>;
+  dismiss?: (formData: FormData) => Promise<unknown>;
+  /** Absent on an open row, which has nothing to come back from. */
+  reopen?: (formData: FormData) => Promise<unknown>;
   /** What the button reads, which is short because the row is dense. */
   acknowledgeLabel: string;
   dismissLabel: string;
+  reopenLabel: string;
   /**
    * What the button is called to a screen reader, which is not short.
    *
@@ -41,21 +55,38 @@ export function ReminderCloseButtons({
    */
   acknowledgeName: string;
   dismissName: string;
+  reopenName: string;
 }) {
   return (
     <>
-      <form action={acknowledge as (formData: FormData) => Promise<void>}>
-        <SubmitButton variant="secondary" size="sm" aria-label={acknowledgeName}>
-          <Check />
-          {acknowledgeLabel}
-        </SubmitButton>
-      </form>
-      <form action={dismiss as (formData: FormData) => Promise<void>}>
-        <SubmitButton variant="ghost" size="sm" aria-label={dismissName}>
-          <X />
-          {dismissLabel}
-        </SubmitButton>
-      </form>
+      {acknowledge && (
+        <form action={acknowledge as (formData: FormData) => Promise<void>}>
+          <SubmitButton
+            variant="secondary"
+            size="sm"
+            aria-label={acknowledgeName}
+          >
+            <Check />
+            {acknowledgeLabel}
+          </SubmitButton>
+        </form>
+      )}
+      {dismiss && (
+        <form action={dismiss as (formData: FormData) => Promise<void>}>
+          <SubmitButton variant="ghost" size="sm" aria-label={dismissName}>
+            <X />
+            {dismissLabel}
+          </SubmitButton>
+        </form>
+      )}
+      {reopen && (
+        <form action={reopen as (formData: FormData) => Promise<void>}>
+          <SubmitButton variant="ghost" size="sm" aria-label={reopenName}>
+            <RotateCcw />
+            {reopenLabel}
+          </SubmitButton>
+        </form>
+      )}
     </>
   );
 }
