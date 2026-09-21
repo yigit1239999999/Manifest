@@ -652,11 +652,19 @@ export function Combobox({
                   className={cn(
                     // A line above it, because this row does something
                     // the rows over it do not: it leaves the screen.
+                    //
+                    // The icon is `shrink-0` for the same reason every
+                    // button in the product sets it: this row's label
+                    // carries a name the vet just typed, so at 390px it
+                    // is the longest string in the list and flex pays
+                    // for that out of the only child that cannot give
+                    // -- a 16px square squashed to a sliver, next to
+                    // the text that explains it.
                     "mt-1 flex cursor-pointer items-center gap-2 rounded-control border-t border-border px-2.5 pb-1.5 pt-2 text-sm font-medium text-primary",
                     active === i && "bg-accent text-accent-foreground",
                   )}
                 >
-                  <Plus className="size-4" />
+                  <Plus className="size-4 shrink-0" />
                   {createLabel ? createLabel(query.trim()) : `+ "${query.trim()}"`}
                 </li>
               ) : row.kind === "add" ? (
@@ -675,7 +683,7 @@ export function Combobox({
                     active === i && "bg-accent text-accent-foreground",
                   )}
                 >
-                  <Plus className="size-4" />
+                  <Plus className="size-4 shrink-0" />
                   {addLabel ? addLabel(query) : `+ "${query}"`}
                 </li>
               ) : (

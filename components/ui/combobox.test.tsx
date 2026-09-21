@@ -976,3 +976,45 @@ describe("the second line of a highlighted row", () => {
     }
   });
 });
+
+/**
+ * The two rows that carry a typed name, at 390px.
+ *
+ * "Create Devrim Aksoy" is the longest string the list ever holds,
+ * because the vet just typed part of it. Both rows lay the icon and the
+ * label out with flex, and flex takes the space it needs out of
+ * whichever child will give: a `size-4` icon with no `shrink-0` is
+ * squashed to a sliver beside the text that explains it.
+ *
+ * `buttonVariants` sets `[&_svg]:shrink-0` on every button in the
+ * product for exactly this. These two rows are not buttons and did not
+ * inherit it.
+ */
+describe("the rows that offer to create what was typed", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("keep the icon square when the label is long", () => {
+    const view = render(
+      <Combobox
+        name="petId"
+        options={[]}
+        onCreate={() => {}}
+        createLabel={(typed) => `"${typed}" adıyla yeni hayvan aç`}
+      />,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Devrim Aksoy" } });
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    const icons = view.container.querySelectorAll("li svg");
+    expect(icons.length).toBeGreaterThan(0);
+    for (const icon of icons) {
+      expect(icon.getAttribute("class")).toContain("shrink-0");
+    }
+  });
+});
