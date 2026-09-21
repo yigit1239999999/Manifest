@@ -381,3 +381,75 @@ describe("what the server finds and what the page already sent", () => {
     ).toBe("c-far");
   });
 });
+
+describe("a picker whose selection the form holds", () => {
+  // Two pickers that answer each other cannot each keep their own copy:
+  // choosing the animal fills in its owner, and submitting clears both.
+  // The value is a pair rather than an id because the owner being filled
+  // in is very often not on the capped fifty the page sent down, and an
+  // id the picker cannot name opens a blank required field over a full
+  // hidden input.
+  const AYSE = { value: "c-1", label: "Ayşe Demir" };
+  const MEHMET = { value: "c-2", label: "Mehmet Kaya" };
+
+  it("shows the name the form is holding, cap or no cap", () => {
+    render(<Combobox name="clientId" options={[]} value={AYSE} />);
+    expect(screen.getByRole("combobox")).toHaveValue("Ayşe Demir");
+  });
+
+  it("hands back both halves, so the form can hold them", () => {
+    const onValueChange = vi.fn();
+    render(
+      <Combobox
+        name="clientId"
+        options={[AYSE, MEHMET]}
+        value={null}
+        onValueChange={onValueChange}
+      />,
+    );
+    fireEvent.focus(screen.getByRole("combobox"));
+    fireEvent.mouseDown(screen.getByText("Mehmet Kaya"));
+
+    expect(onValueChange).toHaveBeenCalledWith("c-2", MEHMET);
+  });
+
+  it("follows the form when the value moves from elsewhere", () => {
+    const { rerender } = render(
+      <Combobox name="clientId" options={[]} value={null} />,
+    );
+    expect(screen.getByRole("combobox")).toHaveValue("");
+
+    rerender(<Combobox name="clientId" options={[]} value={AYSE} />);
+    expect(screen.getByRole("combobox")).toHaveValue("Ayşe Demir");
+    expect(screen.getByDisplayValue("c-1")).toBeInTheDocument();
+  });
+
+  it("empties when the form empties, which is what reset needs", () => {
+    const { container, rerender } = render(
+      <Combobox name="clientId" options={[]} value={AYSE} />,
+    );
+    rerender(<Combobox name="clientId" options={[]} value={null} />);
+
+    expect(screen.getByRole("combobox")).toHaveValue("");
+    expect(
+      (container.querySelector('input[type="hidden"]') as HTMLInputElement)
+        .value,
+    ).toBe("");
+  });
+
+  it("leaves the text alone while it is being typed", () => {
+    // The sync is guarded on the value, not run every render: the form
+    // re-renders on every keystroke of every other field, and the text
+    // under the cursor belongs to whoever is typing until they stop.
+    const view = render(
+      <Combobox name="clientId" options={[AYSE, MEHMET]} value={AYSE} />,
+    );
+    const input = screen.getByRole("combobox");
+    fireEvent.change(input, { target: { value: "Meh" } });
+    view.rerender(
+      <Combobox name="clientId" options={[AYSE, MEHMET]} value={AYSE} />,
+    );
+
+    expect(input).toHaveValue("Meh");
+  });
+});

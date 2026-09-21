@@ -92,6 +92,11 @@ export default async function RemindersPage({
               id: p.id,
               name: p.name,
               ownerId: p.ownerId,
+              // Sent with the animal because the two lists are capped
+              // independently: a listed animal's owner is not
+              // necessarily one of the listed clients, and the form
+              // fills the client in from the animal.
+              ownerName: `${p.owner.firstName} ${p.owner.lastName}`,
             }))}
             clientsCapped={clients.hasMore}
             petsCapped={pets.hasMore}

@@ -23,6 +23,22 @@ interface Props {
   options: ComboOption[];
   defaultValue?: string;
   /**
+   * The selection, when the caller holds it.
+   *
+   * Pass this and the picker stops keeping its own: the form owns the
+   * value and can change it from outside, which is what a form with two
+   * pickers that answer each other needs — choosing the animal fills in
+   * its owner, and clearing the form clears both.
+   *
+   * A pair rather than an id, and the type is the point. A caller
+   * pushing a value in has to be able to name it: the list on screen is
+   * a capped fifty and the owner being filled in may not be on it, so an
+   * id alone would leave a blank field over a full hidden input — the
+   * state `defaultLabel` exists to prevent. Making the label impossible
+   * to omit is cheaper than a rule saying not to.
+   */
+  value?: ComboOption | null;
+  /**
    * The label for `defaultValue`, when it cannot be found in `options`.
    *
    * On an edit screen the picker is handed a capped list — fifty animals
@@ -73,7 +89,17 @@ interface Props {
   minSearchChars?: number;
   searchHintLabel?: string;
   hasMoreLabel?: string;
-  onValueChange?: (value: string) => void;
+  /**
+   * `option` is null when the text was typed rather than chosen — free
+   * text, or a custom value. A controlled caller stores the pair.
+   */
+  onValueChange?: (value: string, option: ComboOption | null) => void;
+  // Injected by `Field`, which points the control at whichever message is
+  // on screen. Named props rather than a spread: `Field` clones its child
+  // with these two, and a picker that quietly drops them is a required
+  // field whose error a screen reader never reaches (TEAM.md #26).
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean | "true" | "false";
   className?: string;
 }
 
@@ -117,6 +143,7 @@ export function Combobox({
   options,
   defaultValue = "",
   defaultLabel,
+  value: controlledValue,
   placeholder,
   id,
   required,
@@ -130,15 +157,21 @@ export function Combobox({
   searchHintLabel,
   hasMoreLabel,
   onValueChange,
+  "aria-describedby": describedBy,
+  "aria-invalid": invalid,
   className,
 }: Props) {
-  const initialLabel = freeText
-    ? defaultValue
-    : (options.find((o) => o.value === defaultValue)?.label ??
-      defaultLabel ??
-      (defaultValue && allowCustom ? defaultValue : ""));
+  const controlled = controlledValue !== undefined;
+  const initialLabel = controlled
+    ? (controlledValue?.label ?? "")
+    : freeText
+      ? defaultValue
+      : (options.find((o) => o.value === defaultValue)?.label ??
+        defaultLabel ??
+        (defaultValue && allowCustom ? defaultValue : ""));
 
-  const [value, setValue] = React.useState(defaultValue);
+  const [ownValue, setOwnValue] = React.useState(defaultValue);
+  const value = controlled ? (controlledValue?.value ?? "") : ownValue;
   const [display, setDisplay] = React.useState(initialLabel);
   const [open, setOpen] = React.useState(false);
   const [active, setActive] = React.useState(0);
@@ -163,10 +196,27 @@ export function Combobox({
   // is nowhere and blanks a field whose hidden input is still full — the
   // state `defaultLabel` exists to prevent, arrived at from the other
   // side.
-  const [chosen, setChosen] = React.useState<ComboOption | null>(() =>
+  const [ownChosen, setOwnChosen] = React.useState<ComboOption | null>(() =>
     defaultValue ? { value: defaultValue, label: initialLabel } : null,
   );
+  const chosen = controlled ? (controlledValue ?? null) : ownChosen;
   const listId = React.useId();
+
+  // Follow the caller when it moves the value from outside — picking an
+  // animal fills in its owner, submitting clears both. Adjusted during
+  // render rather than in an effect, which would paint the stale name
+  // for a frame first; same pattern as `action-form.tsx`.
+  //
+  // Guarded on the value rather than run on every render, because the
+  // text under the cursor belongs to whoever is typing until they stop.
+  const [seenValue, setSeenValue] = React.useState(value);
+  if (seenValue !== value) {
+    setSeenValue(value);
+    if (controlled) {
+      setDisplay(controlledValue?.label ?? "");
+      setTyped(false);
+    }
+  }
 
   const query = display.trim();
   const searching = Boolean(onSearch);
@@ -243,21 +293,22 @@ export function Combobox({
     }
   }
 
-  function commitValue(next: string, label: string) {
-    setValue(next);
-    setChosen(next ? { value: next, label } : null);
+  function commitValue(next: string, label: string, known: boolean) {
+    const option = next ? { value: next, label } : null;
+    setOwnValue(next);
+    setOwnChosen(option);
     setDisplay(label);
     setOpen(false);
     setTyped(false);
-    onValueChange?.(next);
+    onValueChange?.(next, known ? option : null);
   }
 
   function selectOption(option: ComboOption) {
-    commitValue(option.value, option.label);
+    commitValue(option.value, option.label, true);
   }
 
   function selectCustom() {
-    commitValue(query, query);
+    commitValue(query, query, false);
   }
 
   function handleInput(text: string) {
@@ -269,8 +320,8 @@ export function Combobox({
     // rather than settle: the highlight is already where typing put it.
     setMoved(true);
     if (freeText) {
-      setValue(text);
-      onValueChange?.(text);
+      setOwnValue(text);
+      onValueChange?.(text, null);
     }
   }
 
@@ -281,10 +332,16 @@ export function Combobox({
     setTyped(false);
     if (freeText) return;
     if (exact) {
-      if (exact.value !== value) commitValue(exact.value, exact.label);
+      if (exact.value !== value) commitValue(exact.value, exact.label, true);
       else setDisplay(exact.label);
     } else if (allowCustom && query) {
-      if (query !== value) commitValue(query, query);
+      if (query !== value) commitValue(query, query, false);
+    } else if (!required && !query && value) {
+      // Emptying an optional picker empties it. Reverting instead would
+      // mean an optional field that cannot be un-answered once answered:
+      // the reminder's animal is optional, and "actually, never mind
+      // which animal" has to be sayable.
+      commitValue("", "", true);
     } else {
       // Revert to the last committed selection.
       setDisplay(labelFor(value) ?? (allowCustom ? value : ""));
@@ -333,6 +390,8 @@ export function Combobox({
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
+        aria-describedby={describedBy}
+        aria-invalid={invalid}
         aria-activedescendant={open && rows[active] ? `${listId}-${active}` : undefined}
         autoComplete="off"
         required={required}

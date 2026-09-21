@@ -45,7 +45,6 @@
     "optional": "isteğe bağlı",
     "required": "zorunlu",
     "requiredFields": "Zorunlu alanlar: {fields}",
-    "listCapped": "Liste ilk {count} kayıtla sınırlı; aradığınız kayıt görünmüyorsa henüz buradan seçilemiyor.",
     "yes": "Evet",
     "no": "Hayır",
     "all": "Tümü",
