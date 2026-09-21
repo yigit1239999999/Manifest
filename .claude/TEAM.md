@@ -2067,3 +2067,53 @@ söylüyor" çekirdeğini kaybetti (1. ve 2. parça indi), geriye yalnızca
 kesilebilir olan parça kaldı ve o da başka bir pakete oturdu.
 **Bir paket eksildi, hiçbir iş eksilmedi** — paket, işin evidir; işin
 kendisi değil.
+
+### "Es" kararı TEK MESAJDA ve TEK CÜMLEYLE gelir
+
+Üç kesim çakışmasının (v0.2.0, v0.4.0, v0.6.0) iki sebebi vardı ve **ikisi de
+düzeltildi:**
+
+- **Ana oturum:** kesimi value'nun onayından **önce** yapıyordu. Artık
+  kesim "es"i **bekler.**
+- **value:** *"es henüz değil"* deyip **hemen ardından** eksik listesini
+  ayrı mesajlarda gönderiyordu; **karar çok parçalıydı** ve kesim anına
+  yetişmiyordu.
+
+> **Kararın kendisi bölünmez:** *"es"* ya da *"es değil, çünkü X — şu inince
+> derim."* Gerekçeler, listeler ve ölçümler ayrı mesajlarda kalabilir;
+> **kararı taşıyan cümle tek başına ve tek mesajda gider.**
+
+Genel hâli: **bir kapıyı açan ya da kapatan cümle, kendi mesajını hak eder.**
+Bir karar bir rapora gömüldüğünde okuyan onu **rapor** sanır.
+
+### Zemin değişince işaretlenen şey bir İŞ AZALTMASI da olabilir
+
+Kuralı *"o zeminde alınmış açık ÖLÇÜMLER işaretlenir"* diye yazmıştık. İki
+genişleme geldi, ikisi de vakadan:
+
+1. **Bir KABUL de işaretlenir** (ux) — ve daha tehlikelidir, çünkü kabul bir
+   kapıyı kapatır.
+2. **Hâlâ AÇIK sanılan bir bulgu da bir ölçümdür** (value). ux'in en büyük
+   klavye maddesi (`a:focus-visible` boşluğu) `802d4a4`'te kapanmıştı; ux
+   onu hâlâ açık sanıyordu çünkü ölçtüğü derlemede yoktu.
+
+**Yani zemin işaretlemesi her zaman iş ARTIRMAZ — bu kez azalttı.** Kuralın
+akılda kalan yüzü *"ölçümün şüpheli olabilir"*; ikinci yüzü **"bulgun çoktan
+kapanmış olabilir"**, ve o yüz aranmazsa kapanmış bir işin peşinde tur
+harcanır.
+
+### Savunulabilir ama YAZILMAMIŞ bir tasarım, birleştirilmeye davet eder
+
+ux'in girdi odak hâli kararından: girdilerin `ring-ring/30` + `border-ring`
+kombinasyonu **üçüncü** bir odak sistemi gibi görünüyor, ama savunulabilir —
+girdinin zaten kenarlığı var, odakta işaret o kenarlık, halka ikincil.
+
+**Karar: değiştirme, GEREKÇEYİ YAZ.** Sebebi ux'in kendi itirafı:
+
+> *"Yazılı olmadığı için bir sonraki okuyan tutarsızlık sanıp birleştirecek.
+> **Ben de az kalsın öyle yapıyordum.**"*
+
+**Tutarlılık taraması, gerekçesi yazılmamış her bilinçli istisnayı kusur
+olarak okur** — ve o istisnayı yazan kişi bile, aradan zaman geçince aynı
+taramayı yapar. Yani bir istisnanın gerekçesi, istisnanın **kendisinin
+parçasıdır**; onsuz istisna değil, **kusur** olarak yaşar.
