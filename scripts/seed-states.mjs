@@ -198,6 +198,32 @@ export const STATES = [
   { id: "clinical.diagnostic", covers: "a diagnostic test" },
 ];
 
+/**
+ * A wall-clock time that says which clock it is on.
+ *
+ * `toISOString().slice(0, 16).replace("T", " ")` produced a UTC time
+ * dressed as a local one: no `Z`, no offset, nothing to tell a reader
+ * which zone it was. Beside `SERVED_COMMIT.txt`, which writes local
+ * time, the two ground files sat three hours apart — so "the seed ran
+ * before the build" could be read off two correct files and be false.
+ * Exactly the failure a ground file exists to prevent.
+ *
+ * ux's repair, taken over mine: do not match the neighbour's zone,
+ * carry the offset. Matching a zone sets the same trap on the next
+ * machine; an offset misleads nobody. Local, because the reader's
+ * clock and the file beside it are both local, and `+03:00` makes it
+ * comparable rather than guessable.
+ */
+function localStamp(date) {
+  // "sv-SE" is the shortest route to "YYYY-MM-DD HH:MM" in local time;
+  // no locale-dependent word or order comes out of it.
+  const local = date.toLocaleString("sv-SE").slice(0, 16);
+  const minutes = -date.getTimezoneOffset();
+  const sign = minutes < 0 ? "-" : "+";
+  const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+  return `${local}${sign}${pad(minutes / 60)}:${pad(minutes % 60)}`;
+}
+
 const DAY = 86_400_000;
 
 /**
@@ -650,12 +676,19 @@ export async function buildStateClinic(db) {
   // the stamp has to belong to the thing that actually changed. It goes
   // in the state clinic's own settings, so the seed that writes it also
   // deletes it, and it cannot outlive the data it describes.
+  const seededAt = new Date();
   await db.query(
     `UPDATE clinics SET settings = settings || $2::jsonb WHERE id = $1`,
     [
       clinic.id,
       JSON.stringify({
-        seed: { at: new Date().toISOString(), states: produced.length },
+        // ISO-8601 with its `Z`, because this one is read by a
+        // program (`scripts/loop-metrics.mjs`). The same instant goes
+        // into SEEDED.txt as local time with an offset, because that
+        // one is read by a person standing next to SERVED_COMMIT.txt.
+        // Two notations, one instant, and both say which clock they
+        // are on.
+        seed: { at: seededAt.toISOString(), states: produced.length },
       }),
     ],
   );
@@ -708,7 +741,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         `# Tur BAŞINDA ve SONUNDA oku. Değiştiyse ÖLÇÜM GEÇERSİZ —\n` +
         `# kodun değişmemiş olması yetmez.\n` +
         `#\n` +
-        `seeded_at: ${new Date().toISOString().slice(0, 16).replace("T", " ")}\n` +
+        `seeded_at: ${localStamp(new Date())}\n` +
         `clinic:    ${STATE_CLINIC_NAME}  ${produced.length}/${STATES.length}\n` +
         `login:     ${STATE_CLINIC_LOGIN.email} / ${STATE_CLINIC_LOGIN.password}\n` +
         `note:      oturumlar düştü, kayıt kimlikleri YENİ\n`,
