@@ -548,6 +548,7 @@
     "recordPayment": "Record payment",
     "void": "Void invoice",
     "payment": {
+      "title": "Payments",
       "amount": "Amount",
       "remaining": "Outstanding: {amount}",
       "payFull": "Pay in full",

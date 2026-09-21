@@ -204,7 +204,7 @@ export default async function InvoicePage({
           {invoice.payments.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Payments</CardTitle>
+                <CardTitle>{t("payment.title")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="flex flex-col gap-1.5 text-sm">

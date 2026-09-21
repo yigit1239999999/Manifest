@@ -548,6 +548,7 @@
     "recordPayment": "Ödeme kaydet",
     "void": "Faturayı iptal et",
     "payment": {
+      "title": "Ödemeler",
       "amount": "Tutar",
       "remaining": "Kalan borç: {amount}",
       "payFull": "Tamamını öde",
