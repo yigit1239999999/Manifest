@@ -407,7 +407,8 @@
       "remindersDaysBefore": "Kaç gün önce (0 = aynı gün)",
       "timezone": "Klinik saat dilimi",
       "timezoneHint": "Mesajlardaki tarih ve saatler bu saat dilimine göre yazılır.",
-      "providerConnected": "{channel} bağlantısı aktif ({transport}). Mesajlar otomatik gönderilir.",
+      "providerConnected": "{channel} bağlantısı aktif ({transport}).",
+      "providerConnectedSending": "Zamanlanmış mesajlar bu bağlantıdan gönderilir.",
       "providerMissing": "{channel} bağlantısı henüz yapılmadı; otomatik mesaj gönderilmez. Bu süre içinde mesajlar randevu sayfasından kopyalanıp elle iletilir. Bağlantıyı uygulama içinden kuramazsınız, klinik yöneticinizin sağlayıcı bilgilerini tanımlaması gerekir.",
       "preview": "Mesaj önizlemesi",
       "previewConfirmation": "Onay mesajı",
@@ -530,14 +531,20 @@
     "delivery": {
       "scheduled": "Gönderilecek: {at} · {channel}",
       "sent": "Gönderildi: {at} · {channel}",
-      "failed": "Gönderilemedi: {at} · {attempts, plural, one {1 deneme} other {# deneme}} · {error}",
-      "failedNoReason": "Gönderilemedi: {at} · {attempts, plural, one {1 deneme} other {# deneme}}",
-      "optedOut": "Gönderilmeyecek: müşteri bildirim mesajlarına onay vermemiş.",
+      "failedRetrying": "Gönderilemedi. {attempts, plural, one {1 deneme} other {# deneme}} yapıldı, son deneme {at}. Otomatik olarak tekrar denenecek.",
+      "failedExhausted": "{attempts, plural, other {# kez}} denendi, operatör kabul etmedi. Son deneme {at}. Elle gönderebilirsiniz.",
+      "failedClinic": "Gönderilemedi. Son deneme {at}. Sebebi yukarıda yazıyor.",
+      "optedOut": "Gönderilmeyecek: müşteri bildirim onayı vermemiş.",
+      "neverAsked": "Gönderilmeyecek: bildirim onayı hiç sorulmamış.",
       "noPhone": "Gönderilmeyecek: müşterinin kayıtlı telefon numarası yok.",
       "notConfigured": "Gönderilmeyecek: {channel} bağlantısı henüz yapılmadı.",
-      "disabled": "Gönderilmeyecek: bildirimler kapalı.",
+      "petSilenced": "Gönderilmeyecek: hayvan vefat etmiş ya da arşivlenmiş.",
       "openSettings": "Bildirim ayarları",
       "askAdmin": "Klinik yöneticinizle görüşünüz."
+    },
+    "banner": {
+      "disabled": "Otomatik mesajlar kapalı. Bu listedeki hiçbir hatırlatma gönderilmeyecek.",
+      "clinicFailure": "Bildirim gönderimi durdu: {reason}"
     }
   },
   "invoice": {
@@ -724,6 +731,15 @@
     "messageChannel": {
       "SMS": "SMS",
       "WHATSAPP": "WhatsApp"
+    },
+    "messageFailure": {
+      "invalid_credentials_or_ip": "Sağlayıcı kullanıcı bilgileri kabul edilmedi.",
+      "sender_title_not_registered": "Gönderici başlığı sağlayıcıda onaylı değil.",
+      "iys_controlled_sending_not_allowed": "İYS izin kontrolü gönderime izin vermiyor.",
+      "iys_brand_missing": "İYS marka tanımı eksik.",
+      "invalid_parameters": "Sağlayıcı isteği kabul etmedi.",
+      "sending_limit_exceeded": "Sağlayıcı gönderim limiti aşıldı.",
+      "sms_not_configured": "SMS bağlantısı tanımlı değil."
     },
     "messageStatus": {
       "SENT": "Gönderildi",

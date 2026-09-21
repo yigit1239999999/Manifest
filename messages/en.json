@@ -407,7 +407,8 @@
       "remindersDaysBefore": "Days before (0 = same day)",
       "timezone": "Clinic timezone",
       "timezoneHint": "Dates and times in messages use this timezone.",
-      "providerConnected": "{channel} is connected ({transport}). Messages are sent automatically.",
+      "providerConnected": "{channel} is connected ({transport}).",
+      "providerConnectedSending": "Scheduled messages go out over this connection.",
       "providerMissing": "{channel} is not connected yet, so nothing is sent automatically. Until then, messages are copied from the appointment page and sent by hand. The connection cannot be set up from inside the app; your clinic administrator has to configure the provider.",
       "preview": "Message preview",
       "previewConfirmation": "Confirmation",
@@ -530,14 +531,20 @@
     "delivery": {
       "scheduled": "Will be sent: {at} · {channel}",
       "sent": "Sent: {at} · {channel}",
-      "failed": "Could not be sent: {at} · {attempts, plural, one {1 attempt} other {# attempts}} · {error}",
-      "failedNoReason": "Could not be sent: {at} · {attempts, plural, one {1 attempt} other {# attempts}}",
-      "optedOut": "Will not be sent: the client has not consented to notification messages.",
+      "failedRetrying": "Could not be sent. {attempts, plural, one {1 attempt} other {# attempts}} so far, the last at {at}. It will be tried again automatically.",
+      "failedExhausted": "Tried {attempts, plural, other {# times}}, the operator refused. Last attempt {at}. You can send it by hand.",
+      "failedClinic": "Could not be sent. Last attempt {at}. The reason is shown above.",
+      "optedOut": "Will not be sent: the client has not given notification consent.",
+      "neverAsked": "Will not be sent: notification consent has never been asked for.",
       "noPhone": "Will not be sent: the client has no phone number on record.",
       "notConfigured": "Will not be sent: {channel} is not connected yet.",
-      "disabled": "Will not be sent: notifications are switched off.",
+      "petSilenced": "Will not be sent: the animal has died or been archived.",
       "openSettings": "Notification settings",
       "askAdmin": "Ask your clinic administrator."
+    },
+    "banner": {
+      "disabled": "Automatic messages are switched off. No reminder on this list will be sent.",
+      "clinicFailure": "Message sending has stopped: {reason}"
     }
   },
   "invoice": {
@@ -724,6 +731,15 @@
     "messageChannel": {
       "SMS": "SMS",
       "WHATSAPP": "WhatsApp"
+    },
+    "messageFailure": {
+      "invalid_credentials_or_ip": "The provider rejected the account credentials.",
+      "sender_title_not_registered": "The sender title is not approved with the provider.",
+      "iys_controlled_sending_not_allowed": "İYS consent control is blocking sending.",
+      "iys_brand_missing": "The İYS brand entry is missing.",
+      "invalid_parameters": "The provider rejected the request.",
+      "sending_limit_exceeded": "The provider's sending limit has been reached.",
+      "sms_not_configured": "SMS is not connected."
     },
     "messageStatus": {
       "SENT": "Sent",

@@ -35,6 +35,7 @@ import {
   type ReminderDeliveryLineProps,
 } from "@/components/reminder-delivery-line";
 import { ReminderSendNowButton } from "@/components/reminder-send-now-button";
+import { NotificationBlockedBanner } from "@/components/notification-blocked-banner";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -74,13 +75,14 @@ export default async function RemindersPage({
         ? [...CLOSED_REMINDER_STATUSES]
         : [...REMINDER_STATUSES];
 
-  const [t, tType, tStatus, tCommon, tChannel, clinic, reminders, clients, pets] =
+  const [t, tType, tStatus, tCommon, tChannel, tFailure, clinic, reminders, clients, pets] =
     await Promise.all([
       getTranslations("reminder"),
       getTranslations("enum.reminderType"),
       getTranslations("enum.reminderStatus"),
       getTranslations("common"),
       getTranslations("enum.messageChannel"),
+      getTranslations("enum.messageFailure"),
       // What the clinic has switched on, which decides whether any of
       // these rows will ever be sent at all. The switch defaults to off,
       // so until now every clinic's reminders sat here reading "Pending"
@@ -104,23 +106,64 @@ export default async function RemindersPage({
     ? "/settings"
     : undefined;
 
+  // Said once, above the list, instead of on every row. The master switch
+  // being off is one fact about the clinic; printed per row it becomes a
+  // hundred identical sentences pointing at the same single setting.
+  const messagingOff = clinic
+    ? !clinic.notifications.whatsapp.enabled ||
+      !clinic.notifications.whatsapp.reminders.enabled
+    : false;
+
+  const deliveries = clinic
+    ? reminders.map((r) => reminderDeliveryState(r, clinic))
+    : [];
+  // An unapproved sender title or spent credit fails every message the
+  // clinic sends. One wrong setting, one sentence: the reason is named
+  // here and the rows only report that they did not go.
+  //
+  // `error` here is the transport's stable code, not the provider's free
+  // text, so it can be translated instead of printed raw
+  // (`lib/messaging/failures.ts`). A code with no scope never reaches
+  // this branch, which is why there is no fallback sentence to invent.
+  const clinicFailure = deliveries.find(
+    (d) => d?.state === "failed" && d.scope === "CLINIC" && d.error,
+  );
+
   /**
-   * The service's answer, with the channel turned into a label.
+   * The service's answer, turned into what the row shows.
    *
-   * A pure mapping and nothing more: every decision about what a row's
-   * delivery state *is* belongs to `reminderDeliveryState`, so the list
-   * and the server action cannot drift into offering a send the server
-   * would refuse.
+   * A mapping and nothing more: every decision about what a row's delivery
+   * state *is* belongs to `reminderDeliveryState`, so the list and the
+   * server action cannot drift into offering a send the server would
+   * refuse. What is decided here is only how much of that answer belongs
+   * on the row rather than in the banner above it.
+   *
+   * `null` for the two clinic-wide cases. The master switch is in the
+   * banner. A clinic-scope rejection is in the banner too -- it is one
+   * wrong setting, and repeating its reason on forty rows is what sends a
+   * vet off to phone forty owners about something no owner did -- but the
+   * row still says the message did not go, because that is what this list
+   * is for.
    */
   function lineProps(
     delivery: NonNullable<ReminderDeliveryState>,
-  ): ReminderDeliveryLineProps {
+  ): ReminderDeliveryLineProps | null {
     switch (delivery.state) {
-      case "optedOut":
-      case "noPhone":
-        return { state: delivery.state };
       case "disabled":
-        return { state: "disabled", settingsHref };
+        return null;
+      case "optedOut":
+      case "neverAsked":
+      case "noPhone":
+      case "petSilenced":
+        return { state: delivery.state };
+      case "failed":
+        return delivery.scope === "CLINIC"
+          ? { state: "failedClinic", at: delivery.at }
+          : {
+              state: delivery.exhausted ? "failedExhausted" : "failedRetrying",
+              at: delivery.at,
+              attempts: delivery.attempts,
+            };
       default:
         return { ...delivery, channel: tChannel(delivery.channel) };
     }
@@ -129,6 +172,30 @@ export default async function RemindersPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")} />
+
+      {/* Above the form as well as the list, because a reminder created
+          while this is true will not be sent either.
+
+          One banner at a time, and the switch wins when both apply. The
+          clinic-scope failure is the more urgent of the two while sending
+          is on, because money and a sender reputation are being spent on
+          rejected messages. With the switch off nothing is being attempted
+          at all, so that failure is a record of the past and "nothing goes
+          out" is the fact the vet has to act on first. */}
+      {messagingOff ? (
+        <NotificationBlockedBanner settingsHref={settingsHref}>
+          {t("banner.disabled")}
+        </NotificationBlockedBanner>
+      ) : (
+        clinicFailure?.state === "failed" &&
+        clinicFailure.error && (
+          <NotificationBlockedBanner settingsHref={settingsHref}>
+            {t("banner.clinicFailure", {
+              reason: tFailure(clinicFailure.error as never),
+            })}
+          </NotificationBlockedBanner>
+        )
+      )}
 
       <Card>
         <CardHeader>
@@ -202,7 +269,7 @@ export default async function RemindersPage({
         )
       ) : (
         <ul className="flex flex-col gap-2">
-          {reminders.map((r) => {
+          {reminders.map((r, i) => {
             // Three states, not two. No number at all shows nothing —
             // not a dash, not an empty separator (TEAM.md #21). A number
             // we cannot parse still shows, as plain text: it is the vet's
@@ -210,7 +277,8 @@ export default async function RemindersPage({
             // does nothing when tapped promises what it cannot do
             // (TEAM.md #33). Only a number we can dial becomes a link.
             const dial = telHref(r.client.phone);
-            const delivery = clinic ? reminderDeliveryState(r, clinic) : null;
+            const delivery = deliveries[i];
+            const line = delivery && lineProps(delivery);
             return (
               <li
                 key={r.id}
@@ -274,7 +342,7 @@ export default async function RemindersPage({
                       badge beside it cannot say: "Pending" reads the same
                       for a reminder going out tomorrow morning and for one
                       that will never go out at all. */}
-                  {delivery && <ReminderDeliveryLine {...lineProps(delivery)} />}
+                  {line && <ReminderDeliveryLine {...line} />}
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <StatusBadge
@@ -302,7 +370,8 @@ export default async function RemindersPage({
                       reminders actually go out never arrives. */}
                   {delivery &&
                     (delivery.state === "scheduled" ||
-                      delivery.state === "failed") && (
+                      (delivery.state === "failed" &&
+                        delivery.scope !== "CLINIC")) && (
                       <ReminderSendNowButton
                         action={sendReminderNowAction.bind(null, r.id)}
                         label={t("sendNow")}

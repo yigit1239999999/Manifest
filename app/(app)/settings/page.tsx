@@ -125,6 +125,17 @@ export default async function SettingsPage() {
                 channel: t(`notifications.channel_${channel}`),
                 transport: transport ?? "",
               })}
+              {/* The second half is conditional because the first half only
+                  knows about the transport. It used to end "...messages are
+                  sent automatically", two lines above a notice inside the
+                  form reading "no message is sent on its own" — the same
+                  card contradicting itself, and the true one was the one
+                  further down. A connected provider is a fact this box owns;
+                  whether anything goes out belongs to the master switch, and
+                  a claim may not be wider than the thing it is drawn from. */}
+              {profile.notifications.whatsapp.enabled && (
+                <> {t("notifications.providerConnectedSending")}</>
+              )}
             </p>
           )}
           <NotificationSettingsForm

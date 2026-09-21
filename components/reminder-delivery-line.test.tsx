@@ -6,7 +6,7 @@ import tr from "@/messages/tr.json";
 import en from "@/messages/en.json";
 
 // The component is a server component: it reads its own translations and the
-// clinic's clock rather than taking eight strings as props. Both of those are
+// clinic's clock rather than taking ten strings as props. Both of those are
 // request-scoped lookups, so the test supplies them and then renders the
 // resolved element.
 vi.mock("next-intl/server", () => ({
@@ -27,23 +27,20 @@ import {
 const AT = new Date("2026-09-30T06:00:00Z");
 
 // One sample per state, and the compiler is the thing that keeps this
-// complete: `Record` over the state names means an eighth state added to
-// the component leaves this map failing to typecheck rather than leaving a
+// complete: `Record` over the state names means a new state added to the
+// component leaves this map failing to typecheck rather than leaving a
 // branch untested.
 const SAMPLE: Record<ReminderDeliveryStateName, ReminderDeliveryLineProps> = {
   scheduled: { state: "scheduled", sendAt: AT, channel: "SMS" },
   sent: { state: "sent", at: AT, channel: "SMS" },
-  failed: {
-    state: "failed",
-    at: AT,
-    channel: "SMS",
-    error: "Gönderici adı onay bekliyor",
-    attempts: 3,
-  },
+  failedRetrying: { state: "failedRetrying", at: AT, attempts: 1 },
+  failedExhausted: { state: "failedExhausted", at: AT, attempts: 3 },
+  failedClinic: { state: "failedClinic", at: AT },
   optedOut: { state: "optedOut" },
+  neverAsked: { state: "neverAsked" },
   noPhone: { state: "noPhone" },
   notConfigured: { state: "notConfigured", channel: "SMS" },
-  disabled: { state: "disabled", settingsHref: "/settings" },
+  petSilenced: { state: "petSilenced" },
 };
 
 const props = (state: ReminderDeliveryStateName) => SAMPLE[state];
@@ -58,9 +55,9 @@ const props = (state: ReminderDeliveryStateName) => SAMPLE[state];
  * the page still renders, the types still check, and a vet still cannot
  * tell the two apart.
  *
- * Walking `REMINDER_DELIVERY_STATES` rather than listing the seven is what
- * makes it hold for the eighth: a state added without a sentence renders an
- * empty line, and an empty line is the failure this catches.
+ * Walking `REMINDER_DELIVERY_STATES` rather than listing the ten is what
+ * makes it hold for the eleventh: a state added without a sentence renders
+ * an empty line, and an empty line is the failure this catches.
  */
 describe("the delivery sentence", () => {
   it("gives every state its own non-empty sentence", async () => {
@@ -77,47 +74,80 @@ describe("the delivery sentence", () => {
       unmount();
     }
   });
+});
 
-  it("carries the provider's own words when a send failed", async () => {
-    render(await ReminderDeliveryLine(props("failed")));
-    // Not a generic "delivery failed": the reason is the only part that
-    // tells the clinic whether to wait, to call the provider, or to fix a
-    // number.
-    expect(screen.getByText(/Gönderici adı onay bekliyor/)).toBeInTheDocument();
-    expect(screen.getByText(/3 deneme/)).toBeInTheDocument();
-  });
+/**
+ * `null` and `false` are not the same answer and must not become the same
+ * sentence. The column's own comment says so — "nobody has asked yet" /
+ * "agreed" / "refused", and both sides of it have to keep them apart — and
+ * until now every reader of the column collapsed them.
+ *
+ * The vet's job differs, which is the whole reason it matters: a client who
+ * refused is a client to leave alone, and a client nobody asked is a phone
+ * call. "If I knew, I would pick up the phone."
+ */
+describe("consent has three values, not two", () => {
+  it("tells a refusal apart from a question never asked", async () => {
+    const refused = render(await ReminderDeliveryLine(props("optedOut")));
+    expect(refused.container.textContent).toMatch(/onayı vermemiş/);
+    refused.unmount();
 
-  it("says nothing rather than inventing a reason when the provider gave none", async () => {
-    render(
-      await ReminderDeliveryLine({ ...SAMPLE.failed, error: null } as ReminderDeliveryLineProps),
-    );
-    expect(screen.getByText(/Gönderilemedi/)).toBeInTheDocument();
-    expect(screen.queryByText(/Gönderici adı/)).not.toBeInTheDocument();
+    render(await ReminderDeliveryLine(props("neverAsked")));
+    expect(screen.getByText(/hiç sorulmamış/)).toBeInTheDocument();
   });
 });
 
 /**
- * The switch that turns the whole feature off is the one state whose fix is
- * on another page, and `settings.manage` is not a permission every role has.
- * So the sentence never disappears — hiding it would leave a receptionist
- * with a reminder that quietly does nothing — and only the link does
- * (TEAM.md #30e: say where to go without claiming who the page belongs to).
+ * The row never prints what the provider said.
+ *
+ * `MessageLog.error` holds raw transport text, and Netgsm's catalogue reads
+ * like "30 - Hatalı kullanıcı adı". The reviewing vet's rule was "long is
+ * fine, riddles are not", which also rules out our own first attempt at a
+ * short phrase: "given up on" only raises the question of who gave up.
  */
-describe("notifications switched off", () => {
-  it("points at the settings page for a role that can open it", async () => {
-    render(await ReminderDeliveryLine(props("disabled")));
-    expect(
-      screen.getByRole("link", { name: tr.reminder.delivery.openSettings }),
-    ).toHaveAttribute("href", "/settings");
+describe("a failure explains itself in plain words", () => {
+  it("says what was tried and what happens next while attempts remain", async () => {
+    render(await ReminderDeliveryLine(props("failedRetrying")));
+    expect(screen.getByText(/tekrar denenecek/)).toBeInTheDocument();
   });
 
-  it("still states the reason, and says who to ask, without the link", async () => {
-    render(
-      await ReminderDeliveryLine({ state: "disabled", settingsHref: undefined }),
-    );
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
-    expect(screen.getByText(/bildirimler kapalı/)).toBeInTheDocument();
-    expect(screen.getByText(/yöneticinizle/)).toBeInTheDocument();
+  it("says the attempts are spent, and that a person can still send it", async () => {
+    render(await ReminderDeliveryLine(props("failedExhausted")));
+    const text = screen.getByText(/operatör kabul etmedi/);
+    expect(text).toBeInTheDocument();
+    expect(text.textContent).toMatch(/Elle gönderebilirsiniz/);
+  });
+
+  // A wrong sender title fails every message the clinic sends. Printing its
+  // reason on each row turns one setting into forty rows of the same riddle
+  // and sends the vet off to phone forty owners about something no owner
+  // did. The row reports the fact; the banner above carries the reason once.
+  it("keeps a clinic-wide reason off the row", async () => {
+    render(await ReminderDeliveryLine(props("failedClinic")));
+    expect(screen.getByText(/Gönderilemedi/)).toBeInTheDocument();
+    expect(screen.queryByText(/operatör kabul etmedi/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * `SENT` means the provider accepted the message. It does not mean the owner
+ * received it, and we have no delivery report that could say so.
+ *
+ * Written as a test and not only as a comment because the breach will not be
+ * in the sentence anyone writes deliberately — it will be in somebody
+ * changing a string six months from now because it "reads better". When
+ * `deliveredAt` exists, "Ulaştı" is born as a second and separate word and
+ * this test is amended on purpose rather than tripped over.
+ */
+describe("sent is not delivered", () => {
+  it.each([
+    ["tr", tr, /ulaştı|iletildi|bildirildi/i],
+    ["en", en, /delivered|received|reached/i],
+  ] as const)("never claims delivery in %s", (locale, messages, banned) => {
+    for (const [key, value] of Object.entries(messages.reminder.delivery)) {
+      expect(value, `${locale}.${key} implies a delivery report we do not have`)
+        .not.toMatch(banned);
+    }
   });
 });
 
@@ -126,17 +156,15 @@ describe("notifications switched off", () => {
  * (TEAM.md #32b), and measured on the *rendered* sentence rather than on the
  * stored string — the stored one counts ICU syntax nobody ever sees.
  *
- * Measured here, on the sentences whose length is ours: English is the
- * longer language on this surface, at 80 characters ("Will not be sent:
- * notifications are switched off. Ask your clinic administrator.") against
- * Turkish's 68. So the English row is the one to look at when this changes.
- *
  * The bound is 118 and it is derived, not picked: a 390px viewport leaves
  * 358px inside the row's `p-4`, and at `text-xs` that is about 59
  * characters, so 118 is two rendered lines. Two is what a delivery sentence
- * may take; three turns a list of ten reminders into a page of prose. The
- * failure sentence is excluded because its length belongs to the provider
- * and it is the one line allowed to run on.
+ * may take; three turns a list of ten reminders into a page of prose.
+ *
+ * Nothing is excluded from the bound any more. It used to exempt the
+ * failure sentence because its length was the provider's; now the row
+ * writes its own words there, so its length is ours and it is measured
+ * like the rest.
  */
 describe("longest translation, measured", () => {
   const rendered = (locale: "tr" | "en", messages: typeof tr | typeof en) => {
@@ -144,11 +172,11 @@ describe("longest translation, measured", () => {
       locale,
       messages,
       namespace: "reminder.delivery",
-    });
+    }) as unknown as (key: string, values: Record<string, unknown>) => string;
     const values = { at: "30 Eyl 2026 09:00", channel: "WhatsApp", attempts: 3 };
-    return (["scheduled", "sent", "optedOut", "noPhone", "notConfigured"] as const)
-      .map((k) => t(k, values).length)
-      .concat(t("disabled").length + 1 + t("askAdmin").length);
+    return Object.keys(messages.reminder.delivery)
+      .filter((k) => k !== "openSettings" && k !== "askAdmin")
+      .map((k) => t(k, values).length);
   };
 
   it("keeps both languages inside two rendered lines at 390px", () => {
@@ -156,9 +184,9 @@ describe("longest translation, measured", () => {
     expect(Math.max(...rendered("en", en))).toBeLessThanOrEqual(118);
   });
 
-  // The claim in the comment above, under test rather than written down and
-  // left to rot (TEAM.md #30g). Whoever makes the Turkish sentences the
-  // longer ones fails here and updates the note in the same commit.
+  // Measured, not assumed, and asserted rather than written in a comment
+  // and left to rot (TEAM.md #30g). Whoever makes the Turkish sentences the
+  // longer ones fails here and updates the claim in the same commit.
   it("finds English the longer language on this surface", () => {
     expect(Math.max(...rendered("en", en))).toBeGreaterThan(
       Math.max(...rendered("tr", tr)),
