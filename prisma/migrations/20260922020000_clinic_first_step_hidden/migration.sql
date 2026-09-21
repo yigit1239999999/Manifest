@@ -1,0 +1,32 @@
+-- Closing the first-step card on the dashboard.
+--
+-- The card asks for the one link of the mandatory chain that is
+-- missing, and it disappears by itself the moment that link exists. So
+-- a clinic that is working never meets this column. The clinic that
+-- does is the one being asked something it has decided not to do --
+-- and a prompt that cannot go away is read once, ignored twice and
+-- then stops being read at all, which is the failure the card itself
+-- exists to prevent. A card that can be closed keeps its meaning; one
+-- that cannot spends it.
+--
+-- A timestamp rather than a boolean, for the same reason
+-- `dueDismissedAt` is one: "nobody has closed it" and "somebody closed
+-- it, on this day, and can put it back" are three facts, and a boolean
+-- stores one of them. Null is both the state of every clinic that
+-- exists today and the state a clinic returns to when it undoes this,
+-- so undo is a write of null and not a second column.
+--
+-- No back-fill and no default: absence is the honest record for a
+-- decision nobody has made yet.
+--
+-- No index. It is read by primary key, in the row the dashboard
+-- already loads for the clinic's name and currency
+-- (`modules/clinics/queries.ts`), and it is never a filter: no query
+-- asks "which clinics closed the card". If one ever does -- counting
+-- them would say something real about the card -- it is a scan of one
+-- narrow row per clinic and still not worth an index.
+--
+-- Idempotent: safe to run against a database that already has it.
+
+ALTER TABLE "clinics"
+  ADD COLUMN IF NOT EXISTS "firstStepHiddenAt" TIMESTAMP(3);

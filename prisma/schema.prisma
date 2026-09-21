@@ -18,19 +18,24 @@ datasource db {
 // ===========================================================================
 
 model Clinic {
-  id         String   @id @default(cuid())
-  name       String
-  email      String?
-  phone      String?
-  address    String?
-  city       String?
-  postalCode String?
-  country    String?
-  timezone   String   @default("Europe/Istanbul")
-  currency   String   @default("TRY")
-  settings   Json?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                String    @id @default(cuid())
+  name              String
+  email             String?
+  phone             String?
+  address           String?
+  city              String?
+  postalCode        String?
+  country           String?
+  timezone          String    @default("Europe/Istanbul")
+  currency          String    @default("TRY")
+  settings          Json?
+  /// When somebody closed the first-step card on the dashboard. Null
+  /// means nobody has, which is how a clinic that has never seen it and
+  /// a clinic that wants it back are the same state. See
+  /// `setFirstStepHidden`.
+  firstStepHiddenAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   users         User[]
   clients       Client[]
