@@ -17,6 +17,22 @@ import { test, expect, type Page } from "@playwright/test";
 //
 // Only labels that wrap a control: a label sitting beside a text input
 // is not a target, and counting it would turn this into noise.
+//
+// WHAT THIS CANNOT SEE, and it is not a small gap.
+//
+// It signs up a fresh clinic, so it measures an empty one. Both
+// sideways-scroll defects found today were data-dependent and invisible
+// without records: the dashboard chart only overflows once there are
+// bars to draw, and the species suggestion chip only exists once a
+// clinic has a species switched off. pm ran a 17-route sweep against an
+// empty clinic on the same build, minutes from the run that found the
+// dashboard at 140px, and reported every route clean. Both runs were
+// correct.
+//
+// So a green run here means "clean on an empty clinic" and nothing
+// more. The state clinic is where this ought to point, and pointing it
+// there needs a way in that is not `/sign-up` — which is pm's and
+// value's to decide, not something to fake here.
 
 const MIN = 24;
 
@@ -91,11 +107,21 @@ test.describe("Tap targets", () => {
       // one measures target size and the other measures focus marks.
       // The most visible defect on a narrow screen had no guard at
       // all.
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - window.innerWidth,
-      );
-      if (overflow > 0) {
-        offenders.push(`${route}: page scrolls sideways by ${overflow}px`);
+      const sideways = await page.evaluate(() => {
+        const measured =
+          document.documentElement.scrollWidth - window.innerWidth;
+        // `scrollWidth` alone is not enough, and pm caught it: once
+        // this turn it read exactly `innerWidth` and the page still
+        // scrolled. So ask the page to move and see whether it does.
+        window.scrollTo(900, 0);
+        const moved = window.scrollX;
+        window.scrollTo(0, 0);
+        return { measured, moved };
+      });
+      if (sideways.measured > 0 || sideways.moved > 0) {
+        offenders.push(
+          `${route}: page scrolls sideways (scrollWidth +${sideways.measured}px, scrollX ${sideways.moved})`,
+        );
       }
 
       expect(

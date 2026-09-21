@@ -181,7 +181,19 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* `[&>*]:min-w-0`, the same fix as the four detail pages in
+          `462af2e` and found the same way — by measuring, not by
+          reading. A grid item's `min-width` is `auto`, so it refuses
+          to be narrower than its own min-content, and the card grew
+          to 450px inside a 294px column: pm measured 140px of
+          sideways page scroll at 390px.
+
+          Only when the chart has bars to draw. On an empty clinic
+          the card says "no visits yet" and everything fits, so a
+          sweep signing up a fresh clinic reports this route clean —
+          which is exactly what pm's did, on the same build, minutes
+          apart from the run that found it. */}
+      <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader>
             <CardTitle>{t("sections.visitsLast12Weeks")}</CardTitle>
