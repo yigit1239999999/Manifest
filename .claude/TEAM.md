@@ -1669,6 +1669,22 @@ satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzel
    kontrast elde ettiler — o düğmede `outline-style: none`, işaret
    `box-shadow`. **Ölçülen özellik, işaretin gerçekten taşındığı özellik
    olmalı**; yoksa ölçüm doğru çalışır ve **var olmayan bir şeyi** ölçer.
+
+   **Ve sekizinci yakalamadan gelen ayrım — hangi SORU, hangi ARAÇ:**
+
+   > **Görünürlük için GEOMETRİ, odaklanabilirlik için DAVRANIŞ.**
+   > `.focus()` denenmeden odaklanabilirlik ölçülmez.
+
+   ux Tab sırasını `getBoundingClientRect` ile süzüp **27 durak** saydı;
+   kapalı `<details>` içindeki dokuz alan da sayılmıştı, çünkü o çağrı
+   `content-visibility: hidden` altında **eski geometriyi** döndürüyor.
+   Davranışla ölçünce doğrusu **18** çıktı — ve kapalı bölümün klavye
+   tarafında da gerçekten kapalı olması **olumlu bulgu** olarak eklendi.
+   **Kayda değer olan:** bu tuzağı bu oturumda ux'in kendisi keşfetmişti
+   ve yine düştü — çünkü dersi *"görünürlük"* başlığına yazmıştı, soru
+   ise *"odaklanabilirlik"*ti. **Bir ders, yazıldığı kategoriden başka
+   bir kategoriye kendiliğinden geçmez** — bu yüzden liste artık aracı
+   tuzak başına değil **soru başına** adlandırıyor.
 7. **Veri, o hâli üretebiliyor mu?** value'nun genelleştirmesi:
    **bir hâlin doğrulanması, o hâli üretebilen veri gerektirir — veri hâli
    üretemiyorsa ölçüm "temiz" demez, "ÖLÇÜLEMEDİ" der.**
