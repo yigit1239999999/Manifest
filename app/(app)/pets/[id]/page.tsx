@@ -16,7 +16,6 @@ import { listVaccinationsForPet } from "@/modules/vaccinations/queries";
 import { listPrescriptionsForPet } from "@/modules/prescriptions/queries";
 import { listTreatmentsForPet } from "@/modules/treatments/queries";
 import { listDiagnosticsForPet } from "@/modules/diagnostics/queries";
-import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
@@ -73,7 +72,6 @@ export default async function PetPage({
     prescriptions,
     treatments,
     diagnostics,
-    currency,
     staff,
   ] = await Promise.all([
     getPetById(clinicId, id),
@@ -93,7 +91,6 @@ export default async function PetPage({
     listPrescriptionsForPet(clinicId, id, 20),
     listTreatmentsForPet(clinicId, id, 20),
     listDiagnosticsForPet(clinicId, id, 20),
-    getClinicCurrency(clinicId),
     listStaff(clinicId),
   ]);
 
@@ -411,7 +408,7 @@ export default async function PetPage({
         <h2 className="mb-3 text-base font-semibold text-foreground">
           {tTimeline("title")}
         </h2>
-        <Timeline events={timeline} currency={currency} />
+        <Timeline events={timeline} />
       </div>
     </div>
   );

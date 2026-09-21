@@ -406,7 +406,10 @@ export function relativeTime(
 export function formatMoney(
   target: FormatTarget,
   cents: number | null | undefined,
-  currency = "USD",
+  // Required, with no default on purpose: a default meant every call site
+  // that forgot to pass the clinic's currency printed dollars, correctly
+  // formatted and completely wrong. Forgetting it is now a build error.
+  currency: string,
 ): string {
   const amount = (cents ?? 0) / 100;
   return new Intl.NumberFormat(intlLocale(localeOf(target)), {

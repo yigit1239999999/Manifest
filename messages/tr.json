@@ -317,6 +317,20 @@
   "settings": {
     "title": "Ayarlar",
     "subtitle": "Kliniğinizin çalışma şeklini buradan ayarlayın.",
+    "clinic": {
+      "title": "Klinik",
+      "hint": "Kliniğinizin temel bilgileri ve para birimi.",
+      "currency": "Para birimi",
+      "currencyHint": "Her fatura kesildiği para birimini taşır. Bu ayar yalnızca bundan sonra kesilecekleri etkiler.",
+      "currency_TRY": "₺ Türk lirası (TRY)",
+      "currency_USD": "$ ABD doları (USD)",
+      "currency_EUR": "€ Euro (EUR)",
+      "currency_GBP": "£ İngiliz sterlini (GBP)",
+      "currencyConfirmTitle": "Para birimi {currency} olarak değiştirilsin mi?",
+      "currencyConfirmBody": "Bundan sonra kesilecek faturalar bu para biriminde olur. {count, plural, one {Kayıtlı 1 faturanız} other {Kayıtlı # faturanız}} kendi para biriminde kalır ve öyle görünmeye devam eder. Gösterim örneği: {example}",
+      "saved": "Klinik ayarları kaydedildi.",
+      "save": "Kaydet"
+    },
     "species": {
       "title": "Görünen türler",
       "hint": "Hayvan formunda hangi türlerin listeleneceğini seçin. Az ve alakalı tür, daha hızlı kayıt sağlar. Kapattığınız türlerdeki mevcut hayvanlar etkilenmez.",

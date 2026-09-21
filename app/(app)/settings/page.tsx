@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { SPECIES } from "@/modules/pets/schema";
@@ -25,22 +26,28 @@ import { SpeciesIcon } from "@/components/species-icon";
 import { NotificationSettingsForm } from "@/components/forms/notification-settings-form";
 import { setNotificationSettingsAction } from "@/modules/notifications/actions";
 import { getClinicMessagingProfile } from "@/modules/notifications/settings";
+import { countClinicInvoices, getClinicSettings } from "@/modules/clinics/queries";
+import { setClinicCurrencyAction } from "@/modules/clinics/actions";
+import { ClinicSettingsForm } from "@/components/forms/clinic-settings-form";
 import { isChannelConfigured, transportName } from "@/lib/messaging/transports";
 import { composeAppointmentFor } from "@/lib/messaging/compose";
 import { smsSegments } from "@/lib/messaging/sms/segments";
 
 export default async function SettingsPage() {
   const session = await requireSession();
-  if (!can(session.user.role, "settings.manage")) redirect("/");
+  if (!can(session.user.role, "settings.manage")) return <ForbiddenState />;
 
-  const [t, tSpecies, enabled, customs, profile] = await Promise.all([
-    getTranslations("settings"),
-    getTranslations("enum.species"),
-    getEnabledSpecies(session.user.clinicId),
-    listCustomSpeciesWithUsage(session.user.clinicId),
-    getClinicMessagingProfile(session.user.clinicId),
-  ]);
-  if (!profile) redirect("/");
+  const [t, tSpecies, enabled, customs, profile, clinic, invoiceCount] =
+    await Promise.all([
+      getTranslations("settings"),
+      getTranslations("enum.species"),
+      getEnabledSpecies(session.user.clinicId),
+      listCustomSpeciesWithUsage(session.user.clinicId),
+      getClinicMessagingProfile(session.user.clinicId),
+      getClinicSettings(session.user.clinicId),
+      countClinicInvoices(session.user.clinicId),
+    ]);
+  if (!profile || !clinic) redirect("/");
 
   const channel = profile.notifications.channel;
   const configured = isChannelConfigured(channel);
@@ -63,6 +70,23 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")} />
+
+      {/* First card on the page: what the clinic *is*, before what it
+          sends. The time zone and country join it in 29b, so the shape does
+          not change then. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("clinic.title")}</CardTitle>
+          <CardDescription>{t("clinic.hint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ClinicSettingsForm
+            action={setClinicCurrencyAction}
+            currency={clinic.currency}
+            invoiceCount={invoiceCount}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

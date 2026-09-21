@@ -7,7 +7,6 @@ import { requireSession } from "@/lib/session";
 import { getClientById } from "@/modules/clients/queries";
 import { clientTimeline } from "@/modules/timeline/queries";
 import { archiveClientAction } from "@/modules/clients/actions";
-import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
@@ -34,7 +33,7 @@ export default async function ClientPage({
   const { id } = await params;
   const session = await requireSession();
 
-  const [client, t, tCommon, tNav, tTimeline, timeline, currency] =
+  const [client, t, tCommon, tNav, tTimeline, timeline] =
     await Promise.all([
       getClientById(session.user.clinicId, id),
       getTranslations("client"),
@@ -42,7 +41,6 @@ export default async function ClientPage({
       getTranslations("nav"),
       getTranslations("timeline"),
       clientTimeline(session.user.clinicId, id),
-      getClinicCurrency(session.user.clinicId),
     ]);
 
   if (!client) notFound();
@@ -161,7 +159,7 @@ export default async function ClientPage({
         <h2 className="mb-3 text-base font-semibold text-foreground">
           {tTimeline("title")}
         </h2>
-        <Timeline events={timeline} currency={currency} />
+        <Timeline events={timeline} />
       </div>
     </div>
   );

@@ -317,6 +317,20 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Tune how your clinic works.",
+    "clinic": {
+      "title": "Clinic",
+      "hint": "Your clinic's basics and its currency.",
+      "currency": "Currency",
+      "currencyHint": "Every invoice carries the currency it was issued in. This setting only affects the ones issued from now on.",
+      "currency_TRY": "₺ Turkish lira (TRY)",
+      "currency_USD": "$ US dollar (USD)",
+      "currency_EUR": "€ Euro (EUR)",
+      "currency_GBP": "£ Pound sterling (GBP)",
+      "currencyConfirmTitle": "Change the currency to {currency}?",
+      "currencyConfirmBody": "Invoices issued from now on will be in this currency. {count, plural, one {Your 1 recorded invoice} other {Your # recorded invoices}} stay in their own currency and keep reading that way. Example: {example}",
+      "saved": "Clinic settings saved.",
+      "save": "Save"
+    },
     "species": {
       "title": "Visible species",
       "hint": "Which species should the pet form list? Fewer, relevant species mean faster intake. Existing pets of hidden species are unaffected.",

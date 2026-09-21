@@ -27,7 +27,7 @@ model Clinic {
   postalCode String?
   country    String?
   timezone   String   @default("Europe/Istanbul")
-  currency   String   @default("USD")
+  currency   String   @default("TRY")
   settings   Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -581,6 +581,12 @@ model Invoice {
   clientId      String
   client        Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   number        String
+  /**
+   * The currency this invoice was issued in, copied from the clinic at the
+   * time. Reading a finished invoice through the clinic's *current* setting
+   * would silently restate last year's totals the day someone changes it.
+   */
+  currency      String
   status        InvoiceStatus @default(DRAFT)
   issuedAt      DateTime      @default(now())
   dueAt         DateTime?

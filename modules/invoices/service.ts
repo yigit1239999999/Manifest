@@ -26,6 +26,14 @@ export async function createInvoice(input: InvoiceInput, ctx: ActionContext) {
   });
   if (existing) throw conflict("error.conflict.invoiceDuplicate");
 
+  // Stamped now, not read later: the invoice keeps the currency it was
+  // issued in even after the clinic changes its setting.
+  const clinic = await prisma.clinic.findUnique({
+    where: { id: ctx.clinicId },
+    select: { currency: true },
+  });
+  if (!clinic) throw notFound("clinic", ctx.clinicId);
+
   const subtotal = lineTotals(input.lines);
   const tax = input.tax ?? 0;
   const total = subtotal + tax;
@@ -44,6 +52,7 @@ export async function createInvoice(input: InvoiceInput, ctx: ActionContext) {
           clinicId: ctx.clinicId,
           clientId: input.clientId,
           number: input.number,
+          currency: clinic.currency,
           status: input.status,
           dueAt: input.dueAt,
           notes: input.notes,

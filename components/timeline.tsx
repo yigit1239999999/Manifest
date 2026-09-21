@@ -34,13 +34,11 @@ const KIND_ICONS = {
   invoice: Receipt,
 } as const;
 
-export async function Timeline({
-  events,
-  currency = "USD",
-}: {
-  events: TimelineEvent[];
-  currency?: string;
-}) {
+// The only money on the timeline is an invoice total, and an invoice
+// carries the currency it was issued in — so this component no longer takes
+// a currency at all. The prop it used to take defaulted to USD, which
+// printed dollars for any caller that forgot it.
+export async function Timeline({ events }: { events: TimelineEvent[] }) {
   const t = await getTranslations("timeline");
   const tEnum = await getTranslations("enum");
   const tNote = await getTranslations("note");
@@ -138,7 +136,7 @@ export async function Timeline({
                         ? ` · ${event.author.name}`
                         : ""}
                       {event.kind === "invoice"
-                        ? ` · ${formatMoney(fmt, event.totalCents, currency)}`
+                        ? ` · ${formatMoney(fmt, event.totalCents, event.currency)}`
                         : ""}
                     </p>
                     {event.summary && (

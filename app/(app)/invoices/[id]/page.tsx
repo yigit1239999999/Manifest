@@ -4,7 +4,6 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { getInvoiceById } from "@/modules/invoices/queries";
 import { voidInvoiceAction } from "@/modules/invoices/actions";
-import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PaymentForm } from "@/components/forms/payment-form";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
@@ -26,15 +25,18 @@ export default async function InvoicePage({
   const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
-  const [invoice, t, tCommon, tStatus, tMethod, currency] = await Promise.all([
+  const [invoice, t, tCommon, tStatus, tMethod] = await Promise.all([
     getInvoiceById(session.user.clinicId, id),
     getTranslations("invoice"),
     getTranslations("common"),
     getTranslations("enum.invoiceStatus"),
     getTranslations("enum.paymentMethod"),
-    getClinicCurrency(session.user.clinicId),
   ]);
   if (!invoice) notFound();
+
+  // The invoice's own currency, not the clinic's current setting: changing
+  // the setting must not restate an invoice that was issued in another one.
+  const currency = invoice.currency;
 
   const paidSoFar = invoice.payments.reduce((s, p) => s + p.amountCents, 0);
   const remaining = invoice.totalCents - paidSoFar;

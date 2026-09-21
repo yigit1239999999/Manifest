@@ -79,6 +79,8 @@ export type TimelineEvent =
       summary: string | null;
       status: string;
       totalCents: number;
+      /** The invoice's own currency; see Invoice.currency. */
+      currency: string;
     };
 
 interface TimelineArgs {
@@ -251,6 +253,7 @@ async function collectTimeline({
       summary: i.notes ?? null,
       status: i.status,
       totalCents: i.totalCents,
+      currency: i.currency,
     })),
   ];
 

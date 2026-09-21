@@ -8,6 +8,7 @@ vi.mock("@/lib/prisma", () => {
       update: vi.fn(),
     },
     client: { findFirst: vi.fn() },
+    clinic: { findUnique: vi.fn() },
     payment: {
       create: vi.fn(),
       aggregate: vi.fn(),
@@ -78,6 +79,7 @@ describe("createInvoice", () => {
   it("computes subtotal/total and persists clinicId", async () => {
     vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "client-1" } as never);
     vi.mocked(prisma.invoice.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({ currency: "TRY" } as never);
     vi.mocked(prisma.invoice.create).mockResolvedValue({ id: "inv-1", clientId: "client-1" } as never);
 
     const input = {
@@ -98,6 +100,9 @@ describe("createInvoice", () => {
         subtotalCents: 5000,
         taxCents: 500,
         totalCents: 5500,
+        // Stamped from the clinic at issue time, so changing the setting
+        // later cannot restate this invoice.
+        currency: "TRY",
       }),
       include: { lines: true },
     });

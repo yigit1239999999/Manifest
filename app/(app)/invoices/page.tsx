@@ -5,7 +5,6 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { listInvoicesPage } from "@/modules/invoices/queries";
 import { INVOICE_STATUSES } from "@/modules/invoices/schema";
-import { getClinicCurrency } from "@/modules/clinics/queries";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
@@ -24,7 +23,7 @@ export default async function InvoicesPage({
   const session = await requireSession();
   const { page: pageParam, status } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
-  const [t, tCommon, tStatus, tClient, result, currency] = await Promise.all([
+  const [t, tCommon, tStatus, tClient, result] = await Promise.all([
     getTranslations("invoice"),
     getTranslations("common"),
     getTranslations("enum.invoiceStatus"),
@@ -34,7 +33,6 @@ export default async function InvoicesPage({
       statuses: status ? [status] : null,
       page,
     }),
-    getClinicCurrency(session.user.clinicId),
   ]);
 
   return (
@@ -121,7 +119,7 @@ export default async function InvoicesPage({
                 header: t("total"),
                 align: "end",
                 cellClassName: "font-medium",
-                cell: (inv) => formatMoney(fmt, inv.totalCents, currency),
+                cell: (inv) => formatMoney(fmt, inv.totalCents, inv.currency),
               },
               {
                 key: "status",
