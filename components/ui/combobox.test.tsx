@@ -259,3 +259,125 @@ describe("a selection outside the capped list", () => {
     expect(screen.getByRole("combobox")).toHaveValue("Animal 3");
   });
 });
+
+describe("what the server finds and what the page already sent", () => {
+  // The search used to take the list over: with `onSearch` attached the
+  // picker rendered `remote` and nothing else, so the fifty records the
+  // page had already sent down were invisible until two letters were
+  // typed, and after that only the server's answers were on show. A
+  // clinic of sixty lost the ability to *look* — fine for a name you can
+  // spell, useless for the one you would recognise.
+  const HANDED = [
+    { value: "c-local", label: "Ayşe Kara" },
+    { value: "c-other", label: "Mehmet Kaya" },
+  ];
+  const FOUND = [
+    { value: "c-far", label: "Ayşe Yılmaz" },
+    { value: "c-local", label: "Ayşe Kara" },
+  ];
+
+  function searchable(props: Record<string, unknown> = {}) {
+    const onSearch = vi.fn(async () => FOUND);
+    const view = render(
+      <Combobox
+        name="clientId"
+        options={HANDED}
+        onSearch={onSearch}
+        hasMore
+        searchHintLabel="En az iki harf yazın."
+        noResultsLabel="Sonuç yok."
+        hasMoreLabel="Yazmaya devam edin."
+        {...props}
+      />,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    return { ...view, input, onSearch };
+  }
+
+  const labels = () =>
+    screen.getAllByRole("option").map((o) => o.textContent?.trim());
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  async function type(input: Element, text: string) {
+    fireEvent.change(input, { target: { value: text } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+  }
+
+  it("shows the handed list before anything has been typed", () => {
+    const { input } = searchable();
+    fireEvent.focus(input);
+    expect(labels()).toEqual(["Ayşe Kara", "Mehmet Kaya"]);
+  });
+
+  it("puts the instruction under the list, not in its place", () => {
+    const { input } = searchable();
+    fireEvent.focus(input);
+
+    const note = screen.getByText("En az iki harf yazın.");
+    expect(note.getAttribute("role")).toBe("presentation");
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+  });
+
+  it("keeps filtering the handed list while the server is out of reach", async () => {
+    const { input, onSearch } = searchable();
+    fireEvent.focus(input);
+    await type(input, "ş");
+
+    expect(onSearch).not.toHaveBeenCalled();
+    expect(labels()).toEqual(["Ayşe Kara"]);
+  });
+
+  it("adds what the server found to what was already there", async () => {
+    const { input } = searchable();
+    fireEvent.focus(input);
+    await type(input, "Ayşe");
+
+    // The handed match first: it is the one already on screen when the
+    // answer arrives, and reordering under the cursor is how the wrong
+    // row gets clicked.
+    expect(labels()).toEqual(["Ayşe Kara", "Ayşe Yılmaz"]);
+  });
+
+  it("does not list the same record twice", async () => {
+    // `c-local` comes back from the server as well. Two identical names
+    // in one dropdown read as two records, which is the duplicate the
+    // search exists to prevent.
+    const { input } = searchable();
+    fireEvent.focus(input);
+    await type(input, "Ayşe");
+
+    expect(labels().filter((l) => l === "Ayşe Kara")).toHaveLength(1);
+  });
+
+  it("switches the note once the server has actually answered", async () => {
+    const { input } = searchable();
+    fireEvent.focus(input);
+    await type(input, "Ayşe");
+
+    expect(screen.getByText("Yazmaya devam edin.")).toBeInTheDocument();
+    expect(screen.queryByText("En az iki harf yazın.")).toBeNull();
+  });
+
+  it("can still name a record it reached through the server", async () => {
+    // Leaving the field reconciles the text with the value, and the
+    // lookup only ever read `options`. A client found by searching is
+    // not in `options`, so the name was cleared while the hidden input
+    // kept the id: an empty required field over a full form.
+    const { input, container } = searchable({ options: [] });
+    fireEvent.focus(input);
+    await type(input, "Ayşe");
+    fireEvent.mouseDown(screen.getByText("Ayşe Yılmaz"));
+
+    fireEvent.focusOut(input, { relatedTarget: null });
+
+    expect(input).toHaveValue("Ayşe Yılmaz");
+    expect(
+      (container.querySelector('input[type="hidden"]') as HTMLInputElement)
+        .value,
+    ).toBe("c-far");
+  });
+});

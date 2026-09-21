@@ -53,9 +53,12 @@ interface Props {
    * picker with nothing said (`lib/pagination.ts`). Searching moves the
    * filter to where the records are, and the cap stops being a wall.
    *
-   * `options` stays for the lists that really are complete: species,
-   * breeds. When `onSearch` is given it takes over and `options` is not
-   * consulted.
+   * It extends `options`, it does not replace them. The list a picker is
+   * handed is the first fifty records of the clinic, and they stay
+   * visible and browsable: a clinic of sixty would otherwise face an
+   * empty dropdown until it typed two letters, having lost the ability
+   * to look for a name it would recognise but cannot spell. Server hits
+   * are appended after them, minus the ones already on show.
    */
   onSearch?: (term: string) => Promise<ComboOption[]>;
   /**
@@ -131,6 +134,16 @@ export function Combobox({
   // where opening put it; the second one moves.
   const [moved, setMoved] = React.useState(false);
   const [remote, setRemote] = React.useState<ComboOption[]>([]);
+  // What was picked, kept beside `value` because nothing else can name
+  // it once the list moves on. A record reached through the server is in
+  // `remote` only until the next keystroke replaces it, and it was never
+  // in `options`; without this, leaving the field looks up a label that
+  // is nowhere and blanks a field whose hidden input is still full — the
+  // state `defaultLabel` exists to prevent, arrived at from the other
+  // side.
+  const [chosen, setChosen] = React.useState<ComboOption | null>(() =>
+    defaultValue ? { value: defaultValue, label: initialLabel } : null,
+  );
   const listId = React.useId();
 
   const query = display.trim();
@@ -172,16 +185,29 @@ export function Combobox({
     };
   }, [onSearch, query, readyToSearch]);
 
-  const filtered = searching
-    ? readyToSearch
-      ? remote
-      : []
-    : typed
-      ? options.filter((o) => matches(o.label, query))
-      : options;
-  const exact = options.find(
-    (o) => fold(o.label)[0] === fold(query)[0],
-  );
+  const local = typed ? options.filter((o) => matches(o.label, query)) : options;
+  // Second, and only what is new. The same client can come back from the
+  // server that is already on the handed list, and reading a name twice
+  // in one dropdown reads as two records.
+  const shown = new Set(local.map((o) => o.value));
+  const filtered = readyToSearch
+    ? [...local, ...remote.filter((o) => !shown.has(o.value))]
+    : local;
+
+  // Everything the picker can name, which is not the same as everything
+  // it can show: a selection stays nameable after the list it came from
+  // is gone.
+  function labelFor(v: string): string | undefined {
+    if (!v) return undefined;
+    return (
+      options.find((o) => o.value === v)?.label ??
+      remote.find((o) => o.value === v)?.label ??
+      (chosen?.value === v ? chosen.label : undefined)
+    );
+  }
+  const exact =
+    options.find((o) => fold(o.label)[0] === fold(query)[0]) ??
+    remote.find((o) => fold(o.label)[0] === fold(query)[0]);
   const showAdd =
     allowCustom && !freeText && typed && query.length > 0 && !exact;
 
@@ -197,6 +223,7 @@ export function Combobox({
 
   function commitValue(next: string, label: string) {
     setValue(next);
+    setChosen(next ? { value: next, label } : null);
     setDisplay(label);
     setOpen(false);
     setTyped(false);
@@ -238,10 +265,15 @@ export function Combobox({
       if (query !== value) commitValue(query, query);
     } else {
       // Revert to the last committed selection.
-      const current = options.find((o) => o.value === value);
-      setDisplay(current?.label ?? (allowCustom ? value : ""));
+      setDisplay(labelFor(value) ?? (allowCustom ? value : ""));
     }
   }
+
+  // The note under the list. Two readings of one fact: above the
+  // threshold the server has answered and still had more, below it the
+  // server has not been asked at all — and what the user should do about
+  // that is different enough to say differently.
+  const footerLabel = belowThreshold ? searchHintLabel : hasMoreLabel;
 
   const rows: Array<{ key: string; kind: "option" | "add"; option?: ComboOption }> = [
     ...filtered.map((o) => ({ key: o.value, kind: "option" as const, option: o })),
@@ -315,17 +347,17 @@ export function Combobox({
               "no results" tells the user their clinic has no such
               record when nobody has looked yet (TEAM.md #19). The
               server returns an empty array in both cases, so the two
-              are told apart here, by what the user has typed. */}
-          {belowThreshold ? (
+              are told apart here, by what the user has typed.
+
+              Only when there is nothing above it. The instruction used
+              to stand in the list's place, which hid the fifty records
+              the page had already sent down. */}
+          {rows.length === 0 && (
             <li className="px-2.5 py-2 text-xs text-muted-foreground">
-              {searchHintLabel ?? noResultsLabel ?? "-"}
+              {(belowThreshold ? searchHintLabel : undefined) ??
+                noResultsLabel ??
+                "-"}
             </li>
-          ) : (
-            rows.length === 0 && (
-              <li className="px-2.5 py-2 text-xs text-muted-foreground">
-                {noResultsLabel ?? "-"}
-              </li>
-            )
           )}
           {rows.map((row, i) =>
             row.kind === "add" ? (
@@ -376,14 +408,14 @@ export function Combobox({
               in here. The records that fall off are not random either
               — the list is ordered, so it is always the same end of the
               alphabet missing, which reads exactly like "not on file". */}
-          {hasMore && rows.length > 0 && (
+          {hasMore && rows.length > 0 && footerLabel && (
             <li
               className="border-t border-border px-2.5 py-2 text-xs text-muted-foreground"
               // Not an option: it cannot be chosen and arrow keys must
               // not stop on it.
               role="presentation"
             >
-              {hasMoreLabel}
+              {footerLabel}
             </li>
           )}
         </ul>
