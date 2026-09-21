@@ -63,6 +63,12 @@ await client.query("SET TIME ZONE 'UTC'");
 // unqualified table name from here on reads the filtered version, and a
 // query added later is filtered without anyone remembering to. Fourteen
 // hand-written conditions would work until the fifteenth query.
+//
+// The cost, and it will bite somebody: a query that wants to measure the
+// state clinic ITSELF returns zero from here on, because it is the one
+// clinic these views hide. Whoever comes to ask "are all 27 states still
+// there" has to qualify the table — `public.clients`, not `clients` — or
+// the answer is a confident, wrong "no".
 const STATE_CLINIC_NAME = "HÂL KLİNİĞİ";
 const stateClinic = await client.query(
   `SELECT id FROM clinics WHERE name = $1`,

@@ -65,6 +65,35 @@ describe("finding a Turkish name typed on an English keyboard", () => {
     expect(search("İşık")).toEqual(["Işık Yılmaz"]);
   });
 
+  it("finds a dotted capital typed either way, in both directions", () => {
+    // The pair the old two-variant fold existed for, kept after it came
+    // down to one canonical form. Both spellings have to reach the same
+    // string, and the test asks it from both ends rather than trusting
+    // that one implies the other: the vet types what their keyboard
+    // gives them, and the record was typed by whoever entered it.
+    const view = render(
+      <Combobox
+        name="city"
+        options={[
+          { value: "ist", label: "İstanbul" },
+          { value: "izm", label: "Izmir" },
+        ]}
+      />,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    const labels = () =>
+      within(view.container)
+        .queryAllByRole("option")
+        .map((o) => o.textContent);
+
+    fireEvent.change(input, { target: { value: "Istanbul" } });
+    expect(labels()).toEqual(["İstanbul"]);
+
+    fireEvent.change(input, { target: { value: "İzmir" } });
+    expect(labels()).toEqual(["Izmir"]);
+  });
+
   it("does not fold so far that everything matches", () => {
     // A fold that strips too much turns a picker into a list of
     // everyone, which is the same silence from the other end.
