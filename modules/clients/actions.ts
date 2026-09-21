@@ -110,7 +110,28 @@ export const restoreClientAction = action(
  * new idea.
  */
 export async function searchClientsAction(term: string): Promise<{
-  options: { value: string; label: string }[];
+  options: {
+    value: string;
+    label: string;
+    /**
+     * What a form needs to warn before it saves, carried beside the
+     * label rather than derived later.
+     *
+     * A reminder for a client with no consent, or no number, is a
+     * record that will sit there forever looking like work in
+     * progress. The form says so before it is written -- but it takes
+     * clients from two places, this search and the page's own list,
+     * and a warning present on one path only is the defect it was
+     * written to prevent: right often enough to be trusted, missing
+     * exactly when the clinic got big enough to cap the list.
+     *
+     * `notificationsOptIn` is three-valued on purpose. `false` is a
+     * refusal and there is nothing to do about it; `null` is a
+     * question nobody asked, and that is a phone call.
+     */
+    phone: string | null;
+    notificationsOptIn: boolean | null;
+  }[];
   hasMore: boolean;
 }> {
   const session = await requireSession();
@@ -124,6 +145,8 @@ export async function searchClientsAction(term: string): Promise<{
     options: items.map((c) => ({
       value: c.id,
       label: `${c.firstName} ${c.lastName}`,
+      phone: c.phone,
+      notificationsOptIn: c.notificationsOptIn,
     })),
     hasMore,
   };

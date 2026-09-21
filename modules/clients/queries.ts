@@ -145,7 +145,20 @@ export async function quickSearchClients(
     where: buildClientWhere({ clinicId, search: term }),
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     take: take + 1,
-    select: { id: true, firstName: true, lastName: true, email: true },
+    // Consent and phone travel with every search hit because the form
+    // that reads them cannot tell where a client came from. A picker
+    // fills itself from this list once the page's own list is capped,
+    // and a warning that only works on the uncapped path is worse than
+    // no warning: it is right often enough to be trusted and absent
+    // exactly when the list got long.
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      notificationsOptIn: true,
+    },
   });
   return { items: rows.slice(0, take), hasMore: rows.length > take };
 }

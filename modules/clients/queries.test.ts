@@ -81,6 +81,20 @@ describe("quickSearchClients, the way past the cap", () => {
 
     expect(callOf()?.where).toMatchObject({ clinicId: "clinic-1" });
   });
+
+  // The form that warns "this client has not agreed to messages" takes
+  // clients from two places: the page's own list, and this search once
+  // that list is capped. A warning on one path only is worse than none
+  // -- right often enough to be trusted, and missing exactly when the
+  // clinic grew big enough to cap the list.
+  it("carries the consent and the number a form has to warn about", async () => {
+    await quickSearchClients("clinic-1", "yıl", 20);
+
+    expect(callOf()?.select).toMatchObject({
+      phone: true,
+      notificationsOptIn: true,
+    });
+  });
 });
 
 // ILIKE folds case and nothing else, so the server never found "Ayse".
