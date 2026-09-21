@@ -395,6 +395,16 @@ export async function notifyAppointmentBooked(appointmentId: string, ctx: Action
     if (!isChannelConfigured(clinic.notifications.channel)) return;
     const appointment = await loadAppointment(ctx.clinicId, appointmentId);
     if (!appointment?.client.phone || !appointment.client.notificationsOptIn) return;
+    // The same gate the screen and the manual send already use, and the one
+    // this path was missing. Back-dating an appointment is ordinary clinic
+    // work — writing up yesterday's walk-in — and it was sending the owner
+    // "your appointment has been booked" for a time that had already gone
+    // by. Worse than the message itself: the appointment page was refusing
+    // to offer that very message while the server had already sent it,
+    // which is the exact drift `previewAppointmentMessages` says must not
+    // happen. A confirmation is only true for an appointment still ahead
+    // and still open, whether it was typed in late or created cancelled.
+    if (appointmentMessagingClosed(appointment)) return;
     if (isPetSilenced(appointment.pet)) return;
     await deliver(
       clinic,

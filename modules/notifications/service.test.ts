@@ -26,6 +26,7 @@ import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
 import {
   automaticSendBlocked,
+  notifyAppointmentBooked,
   runReminderSweep,
   logManualMessage,
   previewAppointmentMessages,
@@ -288,6 +289,45 @@ describe("automaticSendBlocked", () => {
     expect(automaticSendBlocked([failedAt(40), failedAt(30), failedAt(20)], now)).toBe(
       true,
     );
+  });
+});
+
+describe("notifyAppointmentBooked", () => {
+  // The automatic confirmation had every gate except the one about time.
+  // Writing up yesterday's walk-in is ordinary clinic work, and it sent the
+  // owner "your appointment has been booked" for a time already gone. The
+  // appointment page was refusing to offer that same message at that same
+  // moment, so the screen and the server disagreed about what was true —
+  // which is the one thing `previewAppointmentMessages` exists to prevent.
+  it("says nothing about an appointment whose time has passed", async () => {
+    vi.setSystemTime(new Date("2026-09-21T09:00:00.000Z"));
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      appointment({ startsAt: new Date("2026-09-20T07:00:00.000Z") }) as never,
+    );
+
+    await notifyAppointmentBooked("a-1", ctx);
+
+    expect(transport.send).not.toHaveBeenCalled();
+    expect(prisma.messageLog.create).not.toHaveBeenCalled();
+  });
+
+  it("says nothing about one created already cancelled", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      appointment({ status: "CANCELLED" }) as never,
+    );
+
+    await notifyAppointmentBooked("a-1", ctx);
+
+    expect(transport.send).not.toHaveBeenCalled();
+  });
+
+  it("still confirms a booking that is ahead and open", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(appointment() as never);
+    transport.send.mockResolvedValue({ providerId: "job-44" });
+
+    await notifyAppointmentBooked("a-1", ctx);
+
+    expect(transport.send).toHaveBeenCalled();
   });
 });
 
