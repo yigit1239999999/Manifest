@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Users, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { listClientsPage } from "@/modules/clients/queries";
 import { PageHeader } from "@/components/page-header";
 import { SearchForm } from "@/components/search-form";
@@ -19,6 +20,11 @@ export default async function ClientsPage({
   searchParams: Promise<{ q?: string; page?: string; archived?: string }>;
 }) {
   const session = await requireSession();
+
+  // A button the server will refuse is worse than no button: the click
+  // looks like it did nothing. The permission is the same one the service
+  // enforces, read from one place (`lib/permissions.ts`).
+  const canCreate = can(session.user.role, "clients.write");
   const { q, page: pageParam, archived } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const includeArchived = archived === "1";
@@ -36,10 +42,12 @@ export default async function ClientsPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")}>
-        <Link href="/clients/new" className={buttonVariants()}>
-          <Plus />
-          {t("new")}
-        </Link>
+        {canCreate && (
+          <Link href="/clients/new" className={buttonVariants()}>
+            <Plus />
+            {t("new")}
+          </Link>
+        )}
       </PageHeader>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -3,6 +3,7 @@ import { Plus, Receipt } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { listInvoicesPage } from "@/modules/invoices/queries";
 import { INVOICE_STATUSES } from "@/modules/invoices/schema";
 import { PageHeader } from "@/components/page-header";
@@ -21,6 +22,11 @@ export default async function InvoicesPage({
 }) {
   const fmt = await getFormatContext();
   const session = await requireSession();
+
+  // A button the server will refuse is worse than no button: the click
+  // looks like it did nothing. The permission is the same one the service
+  // enforces, read from one place (`lib/permissions.ts`).
+  const canCreate = can(session.user.role, "invoices.write");
   const { page: pageParam, status } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const [t, tCommon, tStatus, tClient, result] = await Promise.all([
@@ -38,10 +44,12 @@ export default async function InvoicesPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")}>
-        <Link href="/invoices/new" className={buttonVariants()}>
-          <Plus />
-          {t("new")}
-        </Link>
+        {canCreate && (
+          <Link href="/invoices/new" className={buttonVariants()}>
+            <Plus />
+            {t("new")}
+          </Link>
+        )}
       </PageHeader>
 
       <FilterTabs
@@ -78,10 +86,12 @@ export default async function InvoicesPage({
             icon={Receipt}
             title={t("empty")}
             action={
-              <Link href="/invoices/new" className={buttonVariants()}>
-                <Plus />
-                {t("new")}
-              </Link>
+              canCreate ? (
+                <Link href="/invoices/new" className={buttonVariants()}>
+                  <Plus />
+                  {t("new")}
+                </Link>
+              ) : undefined
             }
           />
         )

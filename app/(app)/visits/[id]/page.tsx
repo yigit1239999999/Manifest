@@ -74,6 +74,8 @@ export default async function VisitPage({
   if (!visit) notFound();
 
   // See the clients page: a button that only produces a refusal is hidden.
+  // One permission, both actions: `visits.write` is what the service
+  // checks for editing and for archiving alike.
   const canArchive = can(session.user.role, "visits.write");
 
   // Needs the animal's species, so it follows the load rather than joining
@@ -92,13 +94,15 @@ export default async function VisitPage({
         description={`${formatDateTime(fmt, visit.visitedAt)} · ${visit.pet.name} · ${visit.client.firstName} ${visit.client.lastName}`}
         badge={<Badge>{tType(visit.type as never)}</Badge>}
       >
-        <Link
-          href={`/visits/${visit.id}/edit`}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Edit3 />
-          {tCommon("edit")}
-        </Link>
+        {canArchive && (
+          <Link
+            href={`/visits/${visit.id}/edit`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Edit3 />
+            {tCommon("edit")}
+          </Link>
+        )}
         {canArchive && !visit.archivedAt && (
           <DeleteButton
             action={archiveVisitAction.bind(null, visit.id)}

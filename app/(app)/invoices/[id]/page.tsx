@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { getInvoiceById } from "@/modules/invoices/queries";
 import { voidInvoiceAction } from "@/modules/invoices/actions";
 import { PaymentForm } from "@/components/forms/payment-form";
@@ -34,6 +35,11 @@ export default async function InvoicePage({
   ]);
   if (!invoice) notFound();
 
+  // Voiding is the one permission in the app that only an administrator
+  // holds, so until now every other role — the vets included — was shown
+  // a button that always refused.
+  const canVoid = can(session.user.role, "invoices.void");
+
   // The invoice's own currency, not the clinic's current setting: changing
   // the setting must not restate an invoice that was issued in another one.
   const currency = invoice.currency;
@@ -56,7 +62,7 @@ export default async function InvoicePage({
           />
         }
       >
-        {invoice.status !== "VOID" && (
+        {canVoid && invoice.status !== "VOID" && (
           <DeleteButton
             action={voidInvoiceAction.bind(null, invoice.id)}
             label={t("void")}

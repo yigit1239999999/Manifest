@@ -112,6 +112,12 @@ export default async function PetPage({
   );
 
   // See the clients page: a button that only produces a refusal is hidden.
+  // Three actions, three different permissions, and the vet techs hold
+  // none of them: the service refuses each one, so offering the button
+  // only turns a refusal into a click that looks like nothing happened.
+  const canEdit = can(session.user.role, "pets.write");
+  const canStartVisit = can(session.user.role, "visits.write");
+  const canBook = can(session.user.role, "appointments.write");
   const canArchive = can(session.user.role, "pets.archive");
 
   const vets = staff
@@ -128,27 +134,33 @@ export default async function PetPage({
           pet.breed ? ` · ${pet.breed}` : ""
         } · ${tSex(pet.sex as never)} · ${petAge(fmt, pet.birthDate) ?? "-"}`}
       >
-        <Link
-          href={`/visits/new?petId=${pet.id}`}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Stethoscope />
-          {(await getTranslations("visit"))("new")}
-        </Link>
-        <Link
-          href={`/appointments/new?petId=${pet.id}`}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <CalendarClock />
-          {(await getTranslations("appointment"))("new")}
-        </Link>
-        <Link
-          href={`/pets/${pet.id}/edit`}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Edit3 />
-          {tCommon("edit")}
-        </Link>
+        {canStartVisit && (
+          <Link
+            href={`/visits/new?petId=${pet.id}`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Stethoscope />
+            {(await getTranslations("visit"))("new")}
+          </Link>
+        )}
+        {canBook && (
+          <Link
+            href={`/appointments/new?petId=${pet.id}`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <CalendarClock />
+            {(await getTranslations("appointment"))("new")}
+          </Link>
+        )}
+        {canEdit && (
+          <Link
+            href={`/pets/${pet.id}/edit`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Edit3 />
+            {tCommon("edit")}
+          </Link>
+        )}
         {canArchive && !pet.archivedAt && (
           <DeleteButton
             action={archivePetAction.bind(null, pet.id)}

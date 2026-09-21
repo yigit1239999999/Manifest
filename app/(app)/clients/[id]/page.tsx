@@ -54,6 +54,9 @@ export default async function ClientPage({
 
   // The service refuses either way; hiding the button keeps the refusal
   // from arriving as a click that silently does nothing (lib/permissions.ts).
+  // The service refuses either way; hiding the action keeps the refusal
+  // from arriving as a click that silently does nothing.
+  const canEdit = can(session.user.role, "clients.write");
   const canArchive = can(session.user.role, "clients.archive");
 
   return (
@@ -64,13 +67,15 @@ export default async function ClientPage({
         title={`${client.firstName} ${client.lastName}`}
         description={client.email ?? client.phone ?? ""}
       >
-        <Link
-          href={`/clients/${client.id}/edit`}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Edit3 />
-          {tCommon("edit")}
-        </Link>
+        {canEdit && (
+          <Link
+            href={`/clients/${client.id}/edit`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Edit3 />
+            {tCommon("edit")}
+          </Link>
+        )}
         {/* The archive button goes away while the record is archived: the
             action that undoes it lives in the notice below, where the state
             it undoes is stated. */}
