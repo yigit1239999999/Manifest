@@ -4731,3 +4731,99 @@ altı, *"acelesi yok"*. dev **reddetti:**
 Bu, dev-ui'nin bu ekipte savunduğu kuralın (*çağrı yeri olmadan prop
 indirme*) veri tarafı — ve bu sefer **ona uygulandı.** Kullanılmayan
 bir alan yalnız ölü kod değil, **her istekte taşınan yük.**
+
+### Çıplak bir hash, bildiğinden fazlasını iddia eder
+
+`SEEDED.txt` saati taşıyordu ve yetmedi. pm iki damganın saatlerini
+yan yana koyup tohumun commit'ten önce koştuğunu **elle** çıkardı —
+`a6199a5` derlemede vardı, veritabanında yoktu.
+
+dev damgaya commit'i ekledi, ama asıl yarısı **kirli ağaç bayrağı**:
+
+```
+commit:    7b2d3e3 (+ commit'lenmemiş değişiklik)
+#          ^ SERVED_COMMIT.txt ile KARŞILAŞTIRIN.
+```
+
+> **Commit'lenmemiş değişiklikle tohumlanmış veri hiçbir commit'e
+> uymaz** — ve bu depo günün çoğunda o hâlde.
+
+Ve dev'in zaman hakkındaki cümlesi, bugünkü zemin ailesinin en derin
+hâli:
+
+> ***"17:57", "17:59"dan ancak 17:59'da ne indiğini zaten
+> biliyorsanız erkendir.***
+
+**Bir zaman damgası sıralama verir, kimlik vermez.** Commit
+karşılaştırmayı bir **dizgi karşılaştırmasına** indiriyor — yani
+okuyanın bilgisine değil, dosyanın kendisine bağlı.
+
+Ve damga iki yere birden gidiyor: dosyaya **ve** veritabanına.
+*Dosya bir makineyi anlatıyor, veritabanı herkesin paylaştığı
+veriyi.*
+
+### Karşılıklı dışlayan hâller "eksik" değildir
+
+dev-ui on bir hâl yazdı; pm bir ekranda **dokuzunu** görebiliyor.
+Kalan ikisi (`disabled`, `notConfigured`) **klinik düzeyinde**:
+açık olduklarında **her satır** onları gösterir, yani diğer
+dokuzla **hiçbir zaman** yan yana gelemezler.
+
+> **Bir hâlin ölçülememesi iki şeyden biri olabilir: üretilmemiş
+> olması, ya da ötekilerle karşılıklı dışlayan olması.** İkincisi
+> bir boşluk değil, bir olgu — ve ayrı bir tur, ayrı bir klinik
+> ister.
+
+Bunu ölçümden **önce** söylemek, pm'in "eksik" diye kalem açmasını
+engelledi.
+
+### Nöbetçinin yanlış pozitifini, nöbetçiyi gevşeterek çözme
+
+dev-ui'nin *"hiçbir cümle teslim iddia etmesin"* testi **kendi
+yazdığı cümlede** patladı: *"It reached nobody."* — yasaklı kelimeyi
+**tam tersi anlamda** kullanan bir cümle. Kelime listesi iddiayı
+inkârdan ayıramıyor.
+
+**Testi gevşetmedi, cümleyi değiştirdi:**
+
+> *Ara sıra başka bir kelime seçmeni isteyen **dar** bir nöbetçi
+> tutulmaya değer; **inkârları da kabul edecek kadar genişletilmiş
+> olan, kimsenin akıl yürütemeyeceği bir nöbetçidir.***
+
+Bir nöbetçiyi yanlış pozitifi yüzünden genişletmek, onu sessizce
+işe yaramaz yapmanın en yaygın yolu — ve genişletildiği an kimse
+neyi koruduğunu söyleyemez.
+
+### Türetilmiş bir sınır, müsamahalı yönde yanılırsa kendi nöbetçisini de kandırır
+
+dev-ui'nin 118 karakterlik sınırı bir **türetmeydi**: *390px → satırın
+`p-4`'ü → ~59 karakter → iki satır.* pm gerçek dizeyi gerçek elemana
+koydu: kapsayıcı **260px**, çünkü **yanındaki eylem kümesi payı
+alıyor**. Gerçek tavan **80**, ve dev-ui'nin kendi cümlesi **96
+karakter, üç satır**.
+
+dev-ui'nin teşhisi:
+> **İki girdinin ikisi de yanlıştı, ve hata müsamahalı yöndeydi** —
+> yani **kendi testimden geçti ve ekranda bozuldu.**
+
+> Sıkı yönde yanılan bir sınır **kırılır ve bulunur**. Müsamahalı
+> yönde yanılan bir sınır **kendi nöbetçisini de kandırır.**
+
+Ve düzeltmesi doğru biçimde: **118'i üreten aritmetiği hiçbir yerde
+tekrarlamadı**, teste giren sayı artık pm'in **tarayıcıda ölçtüğü**
+80. *Türetilmiş bir sayıyı ölçülmüş bir sayıyla değiştirmek.*
+
+### Ölçemediğin bir kararı savunuyorsan, öyle yaz
+
+dev-ui uyarı renginin yoğunluğuna karar verdi ve dört engelli hâl
+veride yokken **ölçemedi.** Yazdığı cümle:
+
+> **Ölçemediğim bir kararı savunuyorum ve bunu böyle yazıyorum.**
+
+Karar yine de verildi — birinin vermesi gerekiyordu — ama
+**dayanağının cinsi kayda geçti.** Sonra dev fikstürleri **aynı
+`dueAt`'a** koydu (liste ona göre sıralıyor, yani dördü yan yana
+düşüyor) ve karar ölçülebilir hâle geldi.
+
+**Bir kararın ne kadar sağlam olduğu, kararın kendisi kadar
+kaydedilir** — bugün bunun üçüncü biçimi.
