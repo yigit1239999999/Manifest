@@ -164,6 +164,19 @@ export function formatDate(
   }).format(date);
 }
 
+/**
+ * A calendar day that is already the clinic's day, e.g. "2027-03-14".
+ *
+ * Not the same job as `formatDate`, which takes an instant and works out
+ * which day that is where the clinic is. Here the day is the input, so it is
+ * pinned to UTC on the way through Intl — formatting it in the clinic zone
+ * would shift a midnight and print the day before.
+ */
+export function formatPlainDate(locale: string, day: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return EMPTY;
+  return formatDate({ locale, timeZone: "UTC" }, new Date(`${day}T00:00:00Z`));
+}
+
 export function formatDateTime(
   target: FormatTarget,
   date: Date | null | undefined,

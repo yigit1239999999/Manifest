@@ -398,7 +398,16 @@
     "nextDueAt": "Sonraki tarih",
     "site": "Uygulama bölgesi",
     "notes": "Notlar",
-    "namePlaceholder": "Ara veya yazın: kuduz, karma, FVRCP…"
+    "namePlaceholder": "Ara veya yazın: kuduz, karma, FVRCP…",
+    "nextDueResult": "Bu tarih panelde \"Yaklaşan aşılar\" arasında görünecek.",
+    "nextDueEmpty": "Boş bırakılırsa bu aşı yaklaşanlar listesinde görünmez.",
+    "suggestionChip": "{interval} sonra · {date}",
+    "suggestionSource": "Bu klinikte son {count} \"{name}\" kaydının çoğu {interval} sonraya yazılmış.",
+    "interval": {
+      "week": "{count, plural, one {1 hafta} other {# hafta}}",
+      "month": "{count, plural, one {1 ay} other {# ay}}",
+      "year": "{count, plural, one {1 yıl} other {# yıl}}"
+    }
   },
   "prescription": {
     "title": "Reçeteler",

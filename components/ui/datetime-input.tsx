@@ -43,12 +43,25 @@ interface Props
   defaultValue?: Date | string | null;
   /** `minute` asks for a date and a time; `day` asks only for a date. */
   granularity?: "minute" | "day";
+  /**
+   * The wall-clock text shown in the field, when a parent needs to drive it.
+   *
+   * Optional, and passing it makes the field controlled. Only one call site
+   * needs this: the vaccination form's suggestion chip has to be able to
+   * put a date into the field, and the sentence under the field has to know
+   * whether there is one (backlog 20). Everywhere else the field keeps its
+   * own state and nothing above it has to care.
+   */
+  value?: string;
+  onValueChange?: (wall: string) => void;
 }
 
 export function DateTimeInput({
   name,
   defaultValue,
   granularity = "minute",
+  value,
+  onValueChange,
   ...props
 }: Props) {
   const timeZone = useClinicZone();
@@ -65,7 +78,14 @@ export function DateTimeInput({
     return day ? wall.slice(0, 10) : wall;
   }, [defaultValue, timeZone, day]);
 
-  const [wall, setWall] = React.useState(initial);
+  const [ownWall, setOwnWall] = React.useState(initial);
+  const wall = value ?? ownWall;
+
+  function change(next: string) {
+    if (value === undefined) setOwnWall(next);
+    onValueChange?.(next);
+  }
+
   // Midnight on the clinic's clock, not on the server's and not UTC's.
   const instant = wall
     ? wallTimeToInstant(day ? `${wall}T00:00` : wall, timeZone)
@@ -77,7 +97,7 @@ export function DateTimeInput({
         {...props}
         type={day ? "date" : "datetime-local"}
         value={wall}
-        onChange={(e) => setWall(e.target.value)}
+        onChange={(e) => change(e.target.value)}
       />
       {/* What the form actually submits. */}
       <input type="hidden" name={name} value={instant?.toISOString() ?? wall} />

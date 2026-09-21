@@ -398,7 +398,16 @@
     "nextDueAt": "Next due",
     "site": "Site",
     "notes": "Notes",
-    "namePlaceholder": "Search or type: rabies, DHPPi, FVRCP…"
+    "namePlaceholder": "Search or type: rabies, DHPPi, FVRCP…",
+    "nextDueResult": "This date will show up under \"Upcoming vaccinations\" on the dashboard.",
+    "nextDueEmpty": "Left empty, this vaccination will not appear in the upcoming list.",
+    "suggestionChip": "{interval} later · {date}",
+    "suggestionSource": "Most of the last {count} \"{name}\" records in this clinic were set {interval} later.",
+    "interval": {
+      "week": "{count, plural, one {1 week} other {# weeks}}",
+      "month": "{count, plural, one {1 month} other {# months}}",
+      "year": "{count, plural, one {1 year} other {# years}}"
+    }
   },
   "prescription": {
     "title": "Prescriptions",
