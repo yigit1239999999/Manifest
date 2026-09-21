@@ -9,7 +9,20 @@ vi.mock("@/modules/visits/actions", () => ({
   createVisitAction: async () => ({}),
   updateVisitAction: async () => ({}),
 }));
+vi.mock("@/modules/clients/actions", () => ({
+  searchClientsAction: async () => ({ options: [], hasMore: false }),
+}));
+vi.mock("@/modules/appointments/actions", () => ({
+  createAppointmentAction: async () => ({}),
+  updateAppointmentAction: async () => ({}),
+}));
+vi.mock("@/modules/invoices/actions", () => ({
+  createInvoiceAction: async () => ({}),
+  updateInvoiceAction: async () => ({}),
+}));
 vi.mock("@/modules/pets/actions", () => ({
+  createPetAction: async () => ({}),
+  updatePetAction: async () => ({}),
   searchPetsAction: async () => ({ options: [], hasMore: false }),
 }));
 
@@ -17,6 +30,9 @@ import { NextIntlClientProvider } from "next-intl";
 import tr from "@/messages/tr.json";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import { VisitForm } from "@/components/forms/visit-form";
+import { AppointmentForm } from "@/components/forms/appointment-form";
+import { InvoiceForm } from "@/components/forms/invoice-form";
+import { PetForm } from "@/components/forms/pet-form";
 
 /**
  * A form that arrives already part-filled -- the last step of the chain
@@ -107,16 +123,21 @@ function ActionFormWithAll() {
   );
 }
 
-describe("the last step of the chain, on the real form", () => {
-  // The synthetic harness above fixes the rule; this fixes the wiring.
-  // Coming back from /pets/new the animal is chosen, the visit type and
-  // the date carry defaults, so nothing required is empty and the work
-  // left is to submit. What must not happen is the cursor landing in
-  // the animal picker, whose value the chain just wrote.
+// The synthetic harness above fixes the rule; these fix the wiring, one
+// per prefillable form. Where each one actually lands was measured
+// rather than reasoned about: "reasonable" and "measured" disagreed
+// about the visit form once already, and that disagreement was the
+// defect. Written down here so the four answers cannot drift quietly --
+// nothing else in the app notices if a new default field appears above
+// the one the cursor used to reach.
+describe("the last step of the chain, on the real forms", () => {
+  // Coming back from /pets/new the animal is chosen; the visit type and
+  // the date carry defaults nobody picked, so the first thing genuinely
+  // blank is the reason the vet is there.
   it("lands on the sentence the vet came to write", () => {
     wrap(
       <VisitForm
-          pets={[{ id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" }]}
+        pets={[{ id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" }]}
         vets={[{ id: "u-1", name: "Dr. Ayşe Demir" }]}
         defaultPetId="p-1"
         defaultPetLabel="Zeytin · Ayşe Yılmaz"
@@ -127,6 +148,49 @@ describe("the last step of the chain, on the real form", () => {
     expect((document.activeElement as HTMLTextAreaElement).name).toBe(
       "chiefComplaint",
     );
+  });
+
+  it("asks an appointment why the animal is coming in", () => {
+    wrap(
+      <AppointmentForm
+        pets={[{ id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" }]}
+        vets={[{ id: "u-1", name: "Dr. Ayşe Demir" }]}
+        defaultPetId="p-1"
+        defaultPetLabel="Zeytin · Ayşe Yılmaz"
+      />,
+    );
+
+    expect((document.activeElement as HTMLInputElement).name).toBe("reason");
+  });
+
+  it("puts a bill on its first line rather than its number", () => {
+    // The number arrives filled (`defaultNumber`), which is the whole
+    // point of the rule: a form can be part-filled from more than one
+    // direction and the cursor still belongs on the first blank.
+    wrap(
+      <InvoiceForm
+        clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Yılmaz" }]}
+        defaultClientId="c-1"
+        defaultClientLabel="Ayşe Yılmaz"
+        defaultNumber="2026-0001"
+      />,
+    );
+
+    expect((document.activeElement as HTMLInputElement).name).toBe(
+      "lines[0].description",
+    );
+  });
+
+  it("asks a new animal for its name", () => {
+    wrap(
+      <PetForm
+        owners={[{ id: "c-1", firstName: "Ayşe", lastName: "Yılmaz" }]}
+        defaultOwnerId="c-1"
+        defaultOwnerLabel="Ayşe Yılmaz"
+      />,
+    );
+
+    expect((document.activeElement as HTMLInputElement).name).toBe("name");
   });
 });
 
