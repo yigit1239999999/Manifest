@@ -70,7 +70,12 @@ export const newOwnerSchema = z.object({
   // NOTHING -- `null`, the same value a client born unasked carries --
   // because "I asked and got no answer" and "I never asked" change
   // neither what the product sends nor what it has to ask again.
-  notificationsOptIn: tristate,
+  //
+  // Named for the question rather than for the column: the screen is
+  // not allowed to say "notification permission" anywhere, so a form
+  // field carrying that word would move retired jargon to a fresh
+  // surface. `Client.notificationsOptIn` keeps its name.
+  consent: tristate,
 });
 
 export const newPetSchema = z.object({

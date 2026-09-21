@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { action, parse, type FormState } from "@/lib/action";
-import { visitSchema } from "./schema";
+import { intakeFrom, namedErrors } from "./intake-fields";
+import { visitIntakeSchema, visitSchema } from "./schema";
 import {
   archiveVisit,
   createVisit,
+  createVisitWithIntake,
   restoreVisit,
   updateVisit,
 } from "./service";
@@ -24,6 +26,25 @@ export const createVisitAction = action(
     revalidatePath(`/clients/${visit.clientId}`);
     revalidatePath("/");
     redirect(`/visits/${visit.id}`);
+  },
+);
+
+export const createVisitIntakeAction = action(
+  "visit.createWithIntake",
+  async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
+    const parsed = visitIntakeSchema(await getLocale()).safeParse(
+      intakeFrom(formData),
+    );
+    if (!parsed.success) {
+      return { fieldErrors: namedErrors(parsed.error) };
+    }
+
+    const made = await createVisitWithIntake(parsed.data, ctx);
+    revalidatePath("/visits");
+    revalidatePath("/pets");
+    revalidatePath("/clients");
+    revalidatePath("/");
+    redirect(`/visits/${made.id}`);
   },
 );
 

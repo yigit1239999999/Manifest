@@ -266,7 +266,7 @@ export async function createVisitWithIntake(
                 firstName: newPet.owner!.firstName,
                 lastName: newPet.owner!.lastName,
                 phone: newPet.owner!.phone,
-                notificationsOptIn: newPet.owner!.notificationsOptIn,
+                notificationsOptIn: newPet.owner!.consent,
               },
               select: { id: true },
             })

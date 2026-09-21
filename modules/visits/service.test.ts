@@ -250,7 +250,7 @@ describe("a visit that brings its animal with it", () => {
         firstName: "Yonca",
         lastName: "Demir",
         phone: "0532 111 22 33",
-        notificationsOptIn: true,
+        consent: true,
       },
     },
   };
