@@ -5708,6 +5708,26 @@ bir sebep.**
 *varlığı* kanıtlar, *kimliği* kanıtlamaz. Kimlik gerekiyorsa
 işaretin kendisi saklanır.
 
+**Ve sonra dev kuralın bu vakada geçmediğini gösterdi — mekanizmayla,
+iddiayla değil:**
+
+> Üçünden yalnız **biri** gitmeye izinli, **çünkü elemenin kendisi
+> öyle yapıyor.** Dolayısıyla pencerede o metni taşıyan **tek bir
+> kabul edilmiş mesaj** vardır, ve o mesaj kendi hatırlatmasını
+> bilir.
+
+Yani burada eşleme kimliği kanıtlıyor, **ama eşlemenin kendi
+gücünden değil** — **elemenin tekilliği garanti etmesinden.**
+Belirsizlik yalnız elemenin kapsamadığı yerde (eski geçmiş, penceresi
+geçmiş partner) doğuyor, ve orada kod **birden fazla eşleşme görüp
+susuyor** (`deaf363`, `byPair` → `"ambiguous"` → `null`). Ben
+argümanı sözüne değil koduna bakarak doğruladım.
+
+**Kuralın kalıcı hâli, bu vakayla birlikte:** eşleme kimliği ancak
+**başka bir mekanizma tekilliği garanti ediyorsa** kanıtlar — ve o
+zaman kanıtlayan şey eşleme değil, **o garantidir.** Garanti nerede
+biterse, cevap orada susmalıdır.
+
 Satır bugünkü hâlinde kalıyor: *bu mesaj gitmedi*, ve *aynı metin
 gitti*. **Eksik, ama yanlış değil** — ve bu ikisi arasındaki fark,
 bugünün tamamı.
