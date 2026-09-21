@@ -147,6 +147,7 @@ model Client {
   @@index([clinicId, email])
   @@index([clinicId, phone])
   @@index([clinicId, archivedAt])
+  @@index([clinicId, createdAt(sort: Desc)])
   @@map("clients")
 }
 
