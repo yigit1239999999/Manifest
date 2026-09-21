@@ -127,14 +127,17 @@ export function ConfirmDialog({
                 did nothing at all. Calling the action directly has no such
                 condition attached.
 
-                Disabled while it runs, because a confirmation nobody can
-                click twice is the cheapest place to stop a double submit
-                (see `createAppointment`, which had to solve the same thing
-                after the fact). */}
+                A double confirm is still refused while it runs — that
+                was the point of disabling it, and it is the half worth
+                keeping. The other half was not: a control disabled
+                under the user's finger loses focus to `body` and does
+                not get it back when it returns, and in a dialog that
+                means focus escapes the dialog entirely. `aria-busy`
+                says the same thing and keeps the button. */}
             <button
               type="button"
-              disabled={pending}
-              onClick={confirm}
+              aria-busy={pending || undefined}
+              onClick={() => !pending && confirm()}
               className={buttonVariants({
                 variant: tone === "destructive" ? "destructive" : "primary",
                 size: "md",

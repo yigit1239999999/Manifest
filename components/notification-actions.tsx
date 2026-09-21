@@ -109,8 +109,14 @@ export function NotificationActions({
               )}
               <button
                 type="button"
-                disabled={pending}
-                onClick={() => copy(m)}
+                // `aria-busy` rather than `disabled`, for the reason
+                // `submit-button.tsx` carries at length: a control
+                // disabled under the user's finger loses focus to
+                // `body` and does not get it back. The press is
+                // ignored while one is in flight, which is the half
+                // of `disabled` that was wanted.
+                aria-busy={pending || undefined}
+                onClick={() => !pending && copy(m)}
                 // The row holds more than one message, so "Copy" alone would
                 // not say which one this is.
                 aria-label={t("copyMessage", { kind: tKind(m.kind) })}
@@ -122,8 +128,8 @@ export function NotificationActions({
               {configured && (
                 <button
                   type="button"
-                  disabled={pending}
-                  onClick={() => send(m.kind)}
+                  aria-busy={pending || undefined}
+                  onClick={() => !pending && send(m.kind)}
                   className={cn(buttonVariants({ size: "sm" }))}
                 >
                   <Send />

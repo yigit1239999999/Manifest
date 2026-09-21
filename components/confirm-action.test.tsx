@@ -275,7 +275,23 @@ describe("confirming an action", () => {
     const confirm = screen.getByRole("button", { name: "Sil" });
     fireEvent.click(confirm);
 
-    await vi.waitFor(() => expect(confirm).toBeDisabled());
+    // Busy, not disabled — and this test asserted the mechanism, so
+    // it had to change when the mechanism did. A control disabled
+    // under the user's finger loses focus to `body`, which in a
+    // dialog means focus escapes the dialog; `aria-busy` says the
+    // same thing and keeps the button where the user left it.
+    await vi.waitFor(() =>
+      expect(confirm).toHaveAttribute("aria-busy", "true"),
+    );
+    expect(confirm).toBeEnabled();
+    // Not asserting where focus is: `fireEvent.click` does not move it
+    // in jsdom, so there is nothing here to keep or lose and a passing
+    // assertion would be about the test environment. What matters —
+    // that the button is still focusable because it is still enabled —
+    // is the line above. The focus claim belongs in a browser.
+
+    // The half of `disabled` that was worth keeping: the second press
+    // does nothing. That is what this test was always about.
     fireEvent.click(confirm);
     expect(action).toHaveBeenCalledTimes(1);
 
