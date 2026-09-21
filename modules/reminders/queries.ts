@@ -29,7 +29,13 @@ export async function listReminders({
     orderBy: { dueAt: "asc" },
     take,
     include: {
-      client: { select: { id: true, firstName: true, lastName: true } },
+      // The phone is on the row because the row is a piece of work, and
+      // the work is usually a call. Without it the "Call" action is a
+      // detour through the client page to fetch one field, which is how a
+      // list of things to do stops being used as one.
+      client: {
+        select: { id: true, firstName: true, lastName: true, phone: true },
+      },
       pet: { select: { id: true, name: true } },
     },
   });

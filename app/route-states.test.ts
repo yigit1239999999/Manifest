@@ -338,13 +338,22 @@ describe("the forms inside a record's page", () => {
     { page: "pets/[id]", form: "DiagnosticForm", permission: "diagnostics.write" },
     { page: "pets/[id]", form: "NoteForm", permission: "notes.write" },
     { page: "invoices/[id]", form: "PaymentForm", permission: "payments.write" },
+    { page: "reminders", form: "ReminderForm", permission: "reminders.write" },
   ];
 
   const sourceOf = (page: string) =>
     readFileSync(`${appDir}/${page}/page.tsx`, "utf8");
 
   it("every one of them is rendered behind its own permission", () => {
+    // Behind it *when there is someone to keep out*. The same question the
+    // link sweep asks, and for the same reason: every role holds
+    // `reminders.write`, so guarding the reminder form would be a
+    // condition that cannot be false — dead code telling the next reader a
+    // case exists when it does not (TEAM.md #30). The matrix decides, not
+    // a list of exceptions, so the day a role loses that permission this
+    // starts demanding the guard on its own.
     const offenders = FORMS.filter(({ page, form, permission }) => {
+      if (ROLES.every((role) => can(role, permission))) return false;
       const source = sourceOf(page);
       // The flag has to be read from that permission *and* be the condition
       // this form renders under. Both halves matter: `/pets/[id]` carried
@@ -384,7 +393,12 @@ describe("the forms inside a record's page", () => {
   });
 
   it("covers every action form on those pages, so none is simply forgotten", () => {
-    for (const page of ["visits/[id]", "pets/[id]", "invoices/[id]"]) {
+    for (const page of [
+      "visits/[id]",
+      "pets/[id]",
+      "invoices/[id]",
+      "reminders",
+    ]) {
       const rendered = new Set(
         [...sourceOf(page).matchAll(/<([A-Z]\w*Form)\b/g)].map((m) => m[1]),
       );
