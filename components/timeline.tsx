@@ -101,9 +101,23 @@ export async function Timeline({ events }: { events: TimelineEvent[] }) {
                       <Badge className="capitalize">
                         {t(labelKey)}
                       </Badge>
-                      <p className="text-sm font-semibold text-foreground">
-                        {event.title}
-                      </p>
+                      {/* Not rendered when there is no title, rather than
+                          rendered empty: the row is a flex line with a
+                          `gap-2`, so an empty `<p>` leaves a gap after the
+                          badge that no other row has.
+
+                          A visit and an appointment have no title of their
+                          own, and they used to be given one in the query —
+                          "Vizit", "Randevu", hard-coded Turkish next to the
+                          badge that already says exactly that (8976632).
+                          The row reads from the badge, the time and the
+                          vet; it does not need a sentence invented for it
+                          (TEAM.md #21). */}
+                      {event.title && (
+                        <p className="text-sm font-semibold text-foreground">
+                          {event.title}
+                        </p>
+                      )}
                       {event.kind === "note" && event.pinned && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-warning">
                           <Pin className="size-3" aria-hidden="true" />
