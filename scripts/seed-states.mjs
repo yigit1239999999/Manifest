@@ -61,12 +61,21 @@ export const STATES = [
   { id: "invoice.void", covers: "one struck out" },
 
   // The pair that let the dashboard add dollars to lira.
-  { id: "invoice.paid.ownCurrency", covers: "revenue in the clinic's own currency" },
-  { id: "invoice.paid.foreignCurrency", covers: "revenue the chart must leave out" },
+  {
+    id: "invoice.paid.ownCurrency",
+    covers: "revenue in the clinic's own currency",
+  },
+  {
+    id: "invoice.paid.foreignCurrency",
+    covers: "revenue the chart must leave out",
+  },
 
   // Three lives of an animal, three weights of the same page.
   { id: "pet.active", covers: "an animal in ordinary care" },
-  { id: "pet.archived", covers: "one put away, reachable only through the filter" },
+  {
+    id: "pet.archived",
+    covers: "one put away, reachable only through the filter",
+  },
   { id: "pet.deceased", covers: "one that died: nothing may be sent about it" },
 
   // Every note kind: the timeline names each from the catalogue, and a
@@ -79,8 +88,14 @@ export const STATES = [
   { id: "note.event", covers: "an event" },
 
   // Length is a state, and both of these have broken a layout before.
-  { id: "text.longEmail", covers: "an address wide enough to push a table sideways" },
-  { id: "text.longTurkishLabel", covers: "the longest Turkish text a row can hold" },
+  {
+    id: "text.longEmail",
+    covers: "an address wide enough to push a table sideways",
+  },
+  {
+    id: "text.longTurkishLabel",
+    covers: "the longest Turkish text a row can hold",
+  },
 
   // The loop's four resting places.
   { id: "reminder.pending", covers: "a reminder waiting to go" },
@@ -90,6 +105,27 @@ export const STATES = [
 
   // Three record types with no data anywhere today, so three screens that
   // have never been measured against anything at all.
+  // Consent is three-valued, and one client can only carry one of them.
+  // The clinic held a single owner who had agreed, so "refused" and
+  // "never asked" existed in the schema and nowhere in the data -- the
+  // screen for each was unmeasurable, which is the one thing this clinic
+  // is here to prevent. "Agreed" was being produced all along and was not
+  // on this list; an unnamed state is an unmeasurable one just as surely.
+  {
+    id: "client.consent.granted",
+    covers:
+      "an owner who agreed: messages go out, and the appointment page offers them",
+  },
+  {
+    id: "client.consent.declined",
+    covers:
+      "an owner who refused: the appointment page says messages will not be sent",
+  },
+  {
+    id: "client.consent.unasked",
+    covers: "an owner nobody has asked: the form shows neither answer chosen",
+  },
+
   { id: "clinical.prescription", covers: "a prescription on an animal" },
   { id: "clinical.treatment", covers: "a treatment" },
   { id: "clinical.diagnostic", covers: "a diagnostic test" },
@@ -132,24 +168,44 @@ export async function buildStateClinic(db) {
      RETURNING id`,
     // Deliberately long: the staff table and the appointment row both have
     // to survive an address that does not shorten.
-    [clinic.id, "cok.uzun.bir.eposta.adresi.hal@ornek-veteriner-klinigi.example"],
+    [
+      clinic.id,
+      "cok.uzun.bir.eposta.adresi.hal@ornek-veteriner-klinigi.example",
+    ],
   );
   made("text.longEmail");
 
-  const client = await one(
-    `INSERT INTO clients (id, "clinicId", "firstName", "lastName", phone,
-                          "notificationsOptIn", "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, 'Hâl', 'Sahibi', '0532 000 00 00', true, now())
-     RETURNING id`,
-    [clinic.id],
-  );
+  // Three owners, because consent has three values and one row can only
+  // hold one of them. Everything else in this clinic hangs off the first;
+  // the other two exist to be looked at.
+  const owner = async (firstName, lastName, phone, consent) =>
+    one(
+      `INSERT INTO clients (id, "clinicId", "firstName", "lastName", phone,
+                            "notificationsOptIn", "updatedAt")
+       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, now())
+       RETURNING id`,
+      [clinic.id, firstName, lastName, phone, consent],
+    );
+
+  const client = await owner("Hâl", "Sahibi", "0532 000 00 00", true);
+  made("client.consent.granted");
+  await owner("Reddeden", "Sahip", "0532 000 00 01", false);
+  made("client.consent.declined");
+  // `null` and not "leave it out": the column has no default any more
+  // (20260921180000), so an omitted value would also be null -- writing
+  // it plainly is what says this row is the unasked state on purpose
+  // rather than by inheritance.
+  await owner("Sorulmamış", "Sahip", "0532 000 00 02", null);
+  made("client.consent.unasked");
 
   const pet = async (name, species, extra = "", params = []) =>
     one(
       `INSERT INTO pets (id, "clinicId", "ownerId", name, species, "updatedAt"${extra ? `, ${extra.split("=")[0]}` : ""})
        VALUES (gen_random_uuid()::text, $1, $2, $3, $4::"Species", now()${extra ? `, $5` : ""})
        RETURNING id`,
-      extra ? [clinic.id, client.id, name, species, ...params] : [clinic.id, client.id, name, species],
+      extra
+        ? [clinic.id, client.id, name, species, ...params]
+        : [clinic.id, client.id, name, species],
     );
 
   const active = await pet("Etkin", "DOG");
@@ -329,7 +385,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     const produced = await buildStateClinic(db);
     const missing = STATES.filter((s) => !produced.includes(s.id));
-    console.log(`${STATE_CLINIC_NAME}: ${produced.length}/${STATES.length} states`);
+    console.log(
+      `${STATE_CLINIC_NAME}: ${produced.length}/${STATES.length} states`,
+    );
     if (missing.length > 0) {
       console.error("not produced:", missing.map((s) => s.id).join(", "));
       process.exitCode = 1;
