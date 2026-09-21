@@ -325,11 +325,39 @@ describe("which states the list shouts about", () => {
     expect(WEIGHT.undelivered).not.toBe(WEIGHT.delivered);
   });
 
-  // Not knowing is neither success nor fault, and the warning tier is
-  // how this list says "somebody could not be reached" — a claim this
-  // state cannot support, for the same reason its sentence may not
-  // borrow the word. I had it in the warning tier; value overruled it
-  // with that argument on the table.
+  /**
+   * Not knowing is neither success nor fault, and the warning tier is
+   * how this list says "somebody could not be reached" — a claim this
+   * state cannot support, for the same reason its sentence may not
+   * borrow the word. I had it in the warning tier; value overruled it
+   * with that argument on the table.
+   *
+   * THE TRIGGER THAT WOULD CHANGE THIS, and which way it points,
+   * because the answer is not symmetric and the measurement has not
+   * been taken yet. Measure what share of messages on a reporting
+   * channel end in `EXPIRED`:
+   *
+   *   RARE  → raise it to the warning tier. A rare "we do not know" is
+   *           a genuine anomaly and worth a look, which was the
+   *           argument that lost here only because nobody could say
+   *           whether it is rare.
+   *   OFTEN → leave it neutral. A frequent "we do not know" is
+   *           background noise, and a warning on it turns the list
+   *           into a wall.
+   *
+   * Neutral is the right place to stand while waiting, because an
+   * unwarranted warning breaks the instrument permanently and a
+   * missing one costs a single uncertain row.
+   *
+   * The threshold is behavioural, not a percentage nobody has earned:
+   * with `EXPIRED` in the warning tier, is the morning list still
+   * something one vet could phone through one by one?
+   *
+   * And frequency is a PROXY. What we actually want to know is how
+   * often `EXPIRED` really means it did not arrive, and only somebody
+   * ringing the owners can tell us that. We are measuring frequency
+   * because it is what we can reach (value).
+   */
   it("keeps unknowing out of the warning tier", () => {
     expect(WEIGHT.reportExpired).not.toBe(WEIGHT.undelivered);
     expect(WEIGHT.reportExpired).toBe(WEIGHT.sent);
