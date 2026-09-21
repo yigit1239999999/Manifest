@@ -76,9 +76,14 @@ test.describe("Clients", () => {
 
     await page.getByRole("link", { name: "Robin Vale" }).click();
     await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
-    await page
-      .getByRole("button", { name: /restore from archive|arşivden çıkar/i })
-      .click();
+    const restore = page.getByRole("button", {
+      name: /restore from archive|arşivden çıkar/i,
+    });
+    await restore.click();
+    // The restore is a server action; navigating away before it has answered
+    // aborts it, and the list would then honestly show nothing. The archive
+    // notice, and the button in it, leave the page once the record is back.
+    await expect(restore).toBeHidden();
 
     await page.goto("/clients");
     await expect(page.getByText("Robin Vale")).toBeVisible();
