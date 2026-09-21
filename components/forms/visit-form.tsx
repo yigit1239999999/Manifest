@@ -71,12 +71,6 @@ export function VisitForm({
     <ActionForm
       form={form}
       focusFirstEmpty={Boolean(defaultPetId)}
-      // The form the measured loss happened on: a chief complaint and
-      // a history typed in, a walk to the client list, and both gone
-      // on the way back. Keyed to the record rather than the route, so
-      // a half-written new visit cannot pour itself into the edit form
-      // of an old one.
-      draftKey={visit ? `visit:${visit.id}` : "visit:new"}
       className="flex flex-col gap-6"
     >
       {/* Part-filled arrivals only: the chain a new clinic walks, or a
