@@ -263,6 +263,26 @@ fark, bir erişim açığı kadardır. 30b'den farkı ve neden ayrı madde: **ba
 gerekçe yanlış bir kararı savunur ve karara bakan onu görebilir; bayat kapsam
 notu ise bakmayı engeller** — aramayı durdurduğu için daha sinsidir.
 
+**30g. Bir kapsam notundaki SAYI, yazıldığı an doğru olsa bile üçüncü
+okumada yanlıştır — sayı yorumda değil, ÇALIŞTIRILABİLİR bir yerde
+tutulur.** (21 Eylül 2026. **30c bayat kapsam notunu tarif eder; bu onun
+ÇARESİDİR.**)
+**Kanıtı bir sayımın dört kez yapılması:** fiziksel yön sınıfları —
+32c'nin eski kaydı **2** · ux-2 **~19** · ana oturum **16, dokuz dosya** ·
+dev-ui **12, sekiz dosya** · **gerçek 17, dokuz dosyada** (`b5dff33`).
+Kaçırılanlar sırasıyla farklıydı; ana oturum `left-*`/`right-*` ve
+`ml-auto`'yu atladı. **Dört okuma, dört farklı eksik, aynı basit sayım.**
+**Elle sayım bir kereliktir; tekrar gerektiğinde teste dönüşür.**
+
+**Ve dikkat — bozulan KURAL değildi:** 31 tuttu (kuraldan sonra sıfır
+ihlal). Bozulan, **kuralın tuttuğunu ölçme yöntemiydi.** İkisi
+karıştırılırsa sağlam bir kural, çürük bir sayı yüzünden tartışmaya açılır.
+
+**Yan kazanç, ve kendi ailesinden:** tarama yorumları ayıklamaya başlayınca
+`description-list.tsx`'in **kendi gerekçesini yazan yorumu** artık kendi
+kuralını düşürmüyor. *Testlerin yorumları kod sayması* sınıfının bir örneği
+daha.
+
 **30d. Koşula bağlı bir not, koşulu kontrol eden bir şey olmadıkça, koşul
 gerçekleştiğinde SESSİZCE yanlışa döner.** (21 Eylül 2026 — 30b'nin bayat
 **gerekçesi**, 30c'nin bayat **kapsamı**, bunun bayat **koşulu**.)
@@ -347,9 +367,13 @@ tutmadıysa kural ya güçlendirilir ya kaldırılır. Kural koymak kadar tuttu�
 kanıtlamak da gerekiyor, ve bu genelde yapılmıyor. İlk örnek 31'dir: gerekçesi
 "bugün bedava, sonra yüzlerce satır" diye bir **tahmindi**; bu turda yazılan
 dört bileşende sıfır fiziksel yön sınıfı çıktı ve kimse ek maliyet ödemedi —
-~~kalan iki kullanım kuraldan öncedir.~~ **SAYI BAYATTI, düzeltildi
-(21 Eylül 2026, ux-2 yakaladı, ana oturum saydı): kuraldan önceki borç
-`app`+`components` altında 9 dosyada 16 kullanım** (`grep -rnE
+~~kalan iki kullanım kuraldan öncedir.~~ **SAYI BAYATTI ve ÜÇ KEZ YANLIŞ SAYILDI
+(21 Eylül 2026): kuraldan önceki borç 9 dosyada 17 kullanım.**
+Not **"iki"** diyordu · ux-2 **~19** saydı · ana oturum **16** saydı ·
+dev-ui **12** dedi · gerçek **17**. Ana oturumun kaçırdığı
+`left-*`/`right-*` ve `ml-auto`'ydu.
+**Üç ayrı sayım, üç ayrı cevap — testin varlık sebebi tam olarak budur**
+(`b5dff33`): dördüncü bir sayımdan başlanmasın diye. (`grep -rnE
 '\b(ml|mr|pl|pr)-[0-9]' --include='*.tsx'`), sekizi `pets/[id]` ve
 `visits/[id]`'de `mr-1` olarak. **Kararın kendisi ayakta — 31 tuttu**,
 kuraldan sonra yazılan kodda sıfır ihlal var; yalnızca sayı düzeliyor.
@@ -484,12 +508,109 @@ de birlikte; ux ölçtü, value ve ana oturum doğruladı). Bu bir tasarım kara
 mı, kimsenin fark etmediği bir boşluk mu? **Bugünkü cevap: "kararlı
 görünüyor."** Soru kapanmadan kaybolmasın diye buradadır.
 
+**32n. "Sıfır kullanıcı etkisi" bir işin ALEYHİNE delildir, lehine değil —
+ama bir sayımı teste çevirmek ayrı bir iştir.** (21 Eylül 2026, value
+dev-ui'nin gerekçesini değiştirdi.) dev-ui yön süpürmesi testini *"sıfır
+kullanıcı etkisi olan bir iş"* diye sundu; **o hâliyle yapılmaması
+gerekirdi** — kural zaten tuttu ve test gözlenmiş bir başarısızlığı
+çözmüyor.
+**İşi haklı çıkaran şey kural değil, SAYIM:** kuralın tuttuğunu **elle
+sayarak** öğrendik ve **o elle sayım bir kez zaten bayatladı** (32c'nin
+kaydı "iki kullanım" diyordu, gerçek **9 dosyada 16**'ymış). Yani test,
+kuralı zorlamak için değil **bayatlamış bir kapsam notunun yerine geçmek**
+için yazılıyor: **yorumdaki sayı çürür, testteki liste çürümez.**
+*Altı ay sonra biri bu testi silmek isterse savunacak cümle budur.*
+
+**Uygulanan hâli (`b5dff33`):** her dosya için **bir bütçe** — azı serbest,
+fazlası ya da başkası değil; ve **mutasyonla iki yönde de doğrulandı**
+(eklenen `mr-3` dosya ve sınıf adıyla düşürüyor, silinen `ml-2` sessizce
+geçiyor). 32e'nin istediği kanıt biçimi budur.
+
+**İzin listesinin ŞEKLİ: "bu on bir yer var" değil, "bu on birin dışında
+yok."** Varlık iddia eden liste, biri o satırı **meşru sebeple** silince
+kırılır ve insanlar listeyi güncellemek yerine **testi gevşetir** —
+`ForbiddenState`'te konuşulan tel tuzağın aynısı. **Üst sınır biçimi yeni
+ihlali imkânsız kılar, silmeyi serbest bırakır.**
+**Ve listeye yorum içindeki eşleşme girmez:** `ui/data-table:18` bir yorum
+eşleşmesiydi — **tarama yorumları yakalıyorsa taramayı düzeltmek gerekir,
+listeyi kirletmek değil.** (On iki değil, on bir.)
+**Bu bir SÜPÜRME DEĞİLDİR:** on bir kullanım yerinde kalıyor; TEAM.md 31
+toplu çevirmeyi zaten ayrı iş sayıyor.
+
+**32m. Bir paketi büyüten şey yeni bir FİKİR değil de aynı SINIFIN yeni bir
+yüzüyse, paket büyümeli.** (21 Eylül 2026, v0.4.0'ın ölçüsü — 32d'nin
+uygulaması: sıra kararları da ölçülür.) Bölmek, **sınıfı ikiye bölmek**
+olur ve **borç taşıyan paket** üretir.
+**Ölçüldüğü olay:** v0.4.0 üç kez büyüdü — *"E2 + 45'in düğmeleri"* diye
+başladı, *"dokuz rota kapısı"* oldu, sonra *"on satır içi form"* oldu.
+**Küçük paket kuralını çiğnemedi:** üçü de **tek sınıf** ve **tek cümle**
+altında durdu, "bir de, bir de" gerekmedi. Büyümenin sebebi her seferinde
+aynıydı: **kapattığımızı sandığımız sınıfın bir yüzü daha vardı.**
+**Ayırt etme ölçütü ux'in cümle testidir:** paketten o işi çıkarınca cümle
+eksik kalıyorsa aynı sınıftır, kalmıyorsa yeni fikirdir ve paket bölünür.
+
+**32l. Bir ajan oturumu iş ortasında bittiğinde, ağaçta kalan commit'siz
+yığın SAHİPSİZLEŞİR.** (21 Eylül 2026 — **iki kez oldu, ikisi de aynı
+dosyada.**) Oturum bitince ardında iki yığın kalır: biri commit edilir,
+biri ağaçta kalır ve **kimse sahiplenmez.** dev "benim değil" dedi ve
+haklıydı; dev-ui de öyle.
+**Çaresi ucuz:** oturum devri sırasında `git status` okunur ve **her
+commit'siz dosya bir ada bağlanır** — sahibi yoksa **o an geri alınır.**
+**Ve eksik olan kısım (value'nun eki): ada bağlanan dosya, O ADIN
+KENDİSİNE SORULARAK bağlanır.** value bu turda `route-states.test.ts`'i
+"dev'in" diye işaretledi ve **doğruydu** — ama dev-ui de aynı ağaçtaydı;
+**yanılsaydı birinin yarım işini diğerine fatura etmiş olurdu.** Sıra:
+**ajan ayaktaysa sorulur** → değilse **`git log` ile son dokunan bulunur**
+→ ikisi de yoksa **geri alınır. Tahmin edilmez.**
+*(Bu turda blok bitmiş çıktı — `tsc` 0, testleri geçiyor — ve "bitmişse
+alınır" şartı gereği `c412873` ile indi, kimin yazdığının bilinmediği
+commit mesajına yazılarak.)*
+**Neden bu kadar pahalı:** sahipsiz yarım iş, sürüm kapısını kilitleyen tek
+şeydir — **kırmızı bir kapının kime ait olduğu bilinmiyorsa kimse
+düzeltmez.**
+
+**32j. Yanlış pozitif, kuralın yanlış İFADE EDİLDİĞİNİN işaretidir —
+kuralın yanlış olduğunun değil.** (21 Eylül 2026, value; ve kaydedilmeye
+değer olmasının sebebi **kuralı biz yazdık ve yine de tuzağa düştük.**)
+Bir test yanlış pozitif verdiğinde iki yol vardır: **testi gevşetmek**
+(kuralı öldürür) ya da **testin sorduğu soruyu düzeltmek** (kuralı
+güçlendirir).
+**İstisna listesi üçüncü bir yol değildir, gevşetmenin kılık değiştirmiş
+hâlidir:** ikinci vaka çıkınca liste büyür ve kimse satırların neden orada
+olduğunu hatırlamaz.
+
+**Kazanıldığı olay — tel tuzak iki saat içinde kendi testimizde doğdu.**
+`route-states.test.ts` iki bulgu verdi: `clients/[id]` → `/pets/new`
+(**gerçek kusur**) ve `pets/new` → `/clients/new` (**yanlış pozitif** —
+`pets.write` ve `clients.write` üç rolde de birlikte, o sayfaya girebilen
+herkesin ikisi de var, kapı ölü kod olurdu).
+**Soru şöyle değiştirildi:** kural *"her bağlantı korunur"* değil,
+***"o sayfaya erişebilen ama hedefin iznini taşımayan bir rol varsa"***
+kusurdur. Bu hem yanlış pozitifi **kalıcı olarak** kaldırdı hem testi
+**doğru yönde sertleştirdi:** izinler yarın ayrışır da `pets.write` olup
+`clients.write` olmayan bir rol doğarsa **test o gün kendiliğinden
+kırmızıya döner.** İstisna listesi bunu yapamaz, sessizce yanlış kalır.
+
+**32k. İki tasarım sesi varsa, uygulayan taraf hakem yapılmaz.** (ux'in
+koordinasyon notu, dev-ui'ye değil **sürece**.) Bir şartnamedeki maddeyi
+başka bir tasarım sesi değiştirirse, uygulayan **uygular ama şartnameyi
+yazana tek satır yazar**; karşı gerekçe varsa iki tasarım sesi kendi
+arasında kapatır. Aksi hâlde **bedelini bekleyen taraf öder** — ve bu,
+"bir konu birden fazla yerde açıksa kimin kapatacağı önce söylenir"
+kuralının tasarım tarafındaki hâlidir.
+
 **32h. Ekran, izin matrisini TEKRAR ETMEZ.** (21 Eylül 2026, value; ux
 kabul etti ve sertleştirdi.) **Kimin erişebileceğini söyleyen her cümle,
 izin modelinin ikinci bir kopyasıdır** ve kopya sessizce ayrışır. Ekran
 yalnızca **şu anki kullanıcının** erişemediğini ve **ne yapacağını** söyler.
 Bu, 33'ün **ters yönüdür:** orada ekran kodun **yapmadığını** vaat ediyordu,
 burada kodun **yaptığını yanlış anlatıyor.**
+
+**Uygulamanın iki yolu vardı, AÇIKLAMAYI KORUYAN seçildi (dev):** value
+yanlış cümlenin **silinmesini** önerdi; dev yerine *"Bu bölüm rolünüze açık
+değil"* yazdı — **münhasırlık iddiası yok, rol adı yok, ama neden
+reddedildiği hâlâ açıklanıyor.** value kendi çözümünün bilgi kaybettiğini,
+bunun kaybetmediğini kabul etti.
 
 **Kazanıldığı olay:** `forbiddenPage` **tek ve paylaşımlı** bir metin ama
 arkasındaki sayfaların izinleri farklı — `/staff` ve `/settings`

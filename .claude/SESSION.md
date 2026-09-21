@@ -65,8 +65,147 @@ ekip birlikte düşünür. Ölçüt `.claude/TEAM.md`'de yazılı: kullanıcın�
 
 ## DURUM — tartışmasız hâl (21 Eylül 2026)
 
-**`v0.3.0` KESİLDİ, ETİKETLENDİ VE PUSH EDİLDİ.** Etiket **`454f02c`**'de,
-main de oraya getirildi.
+**`v0.4.0` KESİLDİ, ETİKETLENDİ VE PUSH EDİLDİ** — etiket **`3b83620`**'da,
+main orada. Kapılar etiketlenen hash'te temiz checkout'ta koşuldu:
+**tsc 0 · 474 test / 49 dosya · eslint 0 hata.** Etiket bu kez `HEAD`'e
+değil, **kapıların koşulduğu commit'e** vuruldu (v0.3.0'ın hatası
+tekrarlanmadı).
+
+### ÜRETİM DERLEMESİ AYAKTA — iki engel birden kalktı (ana oturum)
+
+value bunu "kullanıcıya taşınacak madde" olarak işaretlemişti; gerek
+kalmadı. **`npm run build` başarılı**, `/appointments/[id]` dahil **her
+rota derleniyor.** Üretim sunucusu **`http://localhost:3001`**'de
+(`PORT=3001 npm run start`); **geliştirme sunucusu 3000'de duruyor**,
+ikisi bir arada.
+
+**Ölçülen süreler (üretim, 3001):**
+`/appointments` 0,15 sn · `/appointments/zzz` 0,014 sn · `/pets` 0,009 sn ·
+`/invoices` 0,011 sn · `/audit` 0,010 sn · `/reminders` 0,007 sn.
+
+**Sonuç 1 — pm'in P0'ının (a) ayağı KAPANDI:** `/appointments/[id]`'nin
+90 saniye yanıt vermemesi **kod hatası değil, Turbopack yeniden derleme
+takılmasıydı.** Dev sunucusu yeniden başlatılınca da düzelmişti (0,09 sn);
+üretim derlemesi bunu kesinleştirdi.
+**Sonuç 2 — §8-3 (rota başına gerçek süreler) artık ölçülebilir.** pm
+performans bütçesini 3001'e karşı ölçsün; **dev sunucusunda ölçüm yok**
+(TEAM.md'de zaten yazılı).
+
+**Bundan sonraki her commit v0.5.0'a aittir.** "Kesim şartı", "kesmeden
+önce" diyen mesajlar **geç kalmıştır**; içerikleri v0.5.0'a taşınır.
+
+**v0.5.0'ın bugünkü içeriği:** `2a2da57` (hata kutusunun sahibi
+`ActionForm`, `col-span-full`, kaydırma hedefi ref, `invoice-form:59`
+katlaması) + sonrası.
+
+## v0.5.0 — "Kaydettiğini görüyorsun, iki kez kaydetmiyorsun." (value)
+
+**İÇERİK:**
+1. **v0.4.0'dan devreden borç** — `clients/[id]`'nin `pets.write` kapısı +
+   `route-states.test.ts`'in doğru soruyu sorması. **İkisi de indi**
+   (`10f4031`, `c412873`). Cümleye uymuyorlardı ama **açık borç taşımama
+   kuralı cümle kuralının önünde**; emsal 43b.
+2. **Paketin kendisi: randevu mükerrer koruması.**
+
+**17b — hangi yarı kesilir, ÖNCEDEN yazıldı:**
+- **KESİLMEZ — sunucu tarafında mükerrer koruması.** `createAppointment`'ta
+  kontrol yok; **aynı hayvan + aynı `startsAt` hiçbir zaman meşru değil.**
+  İstenen biçim **hata değil, var olan kayda dönmek**: ikinci gönderim yeni
+  kayıt yaratmaz, var olanın sayfasına gider. *Kullanıcı istediğini alır,
+  veritabanı tek kayıt taşır.* **Bu yarı, nedeni ne olursa olsun** (yavaş
+  rota, çift tıklama, sekme yenileme, kopan bağlantı) **sonucu ortadan
+  kaldırır**; diğer yarı yalnızca olasılığı düşürür.
+- **KESİLEBİLİR — bekleme geri bildirimi.**
+
+**Bir yanlış işe girişilmesi önlendi (value):** **eksik olan "pending"
+değil.** `action-form.tsx:64` `useActionState`'ten `pending` alıyor ve
+yönlendiren aksiyonda gezinme bitene kadar `true` kalıyor — **düğme
+gerçekten pasifti.** Sorun, **90 saniye pasif duran bir düğmenin bozuk
+uygulamadan ayırt edilememesi.** Yani "pending ekle" diye bir iş yok;
+ne olduğunu söyleyen bir şey gerekiyor, tasarımı ux verecek.
+
+**KAPSAM SINIRI, şimdi çizildi:** mükerrer koruması **yalnızca randevuya**
+giriyor — kanıtlanmış vaka o ve **doğal bir teklik anahtarı var**. Diğer
+dört aksiyon (`clients:23`, `pets:25`, `visits:26`, `invoices:57`) aynı
+`redirect` desenini taşıyor ama orada **"mükerrer nedir" bir ÜRÜN
+SORUSU** — iki hayvan aynı adı taşıyabilir. **Bu pakette cevaplanmıyor;**
+dev tarama yaparsa value'ya getirir, kapatmaz.
+
+**GİRMEYENLER:** 390px turu (duran kapı) · `shadow-sm` + C ayağı (dış girdi
+bekliyor) · 40'ın silmeleri · 38 · 21.
+
+**ETİKET İÇİN İKİ NOT:**
+1. **`SENT`, v0.5.0'da doğrulanmış olarak VE hangi sürümde alındığı
+   yazılacak** — v0.4.0 etiketi "sıfır, dördüncü sürümdür" diyor ve o cümle
+   **yanlış kaldı.** `INPUT_FILL_RATE_SINCE` ile **aynı hatayı iki kez
+   yapmayalım.**
+2. §2 ve 42a'nın kabulü rota engeli kalktığı için **kuyruğa geri döndü.**
+
+### Performans bütçesi — artık kapanabilir, ama körlemesine değil
+
+Bugünkü **6000 ms bir bütçe değil tavan**; üretimde ölçülen süreler
+**0,007–0,15 sn**, yani **tavanın kırkta biri.** value'nun önerisi
+**1000 ms** ve kademeli sıkmanın ilk adımı.
+**Ama sabitlenmeden önce:** bugünkü sayılar **129 klinik / 100 hayvanlık**
+bir veritabanından. pm ölçümü **en çok veriye sahip klinikte** yapacak ve
+**en yavaş üç rotayı** bildirecek. *Gerçek veriye karşı sınamadan 1000'i
+sabitlemek, **ölçüyü kendi lehimize kurmak** olurdu* — 32c'nin uyardığı
+şeyin ölçüm tarafındaki hâli. **v0.5.0'ın içeriği değil.**
+
+### Bir arıza geçtiğinde açığa çıkardığı şey geçmiş sayılmaz (value)
+
+`/appointments/[id]`'nin asılması kodda değildi, sunucu yeniden başlatınca
+geçti. **Bulgunun değeri kaybolmadı:** *geçici bir aksaklık, kalıcı bir
+tasarım açığını görünür kıldı.* pm'in iki mükerrer kaydı **silinmiyor,
+kanıt.**
+
+### (eski başlık) v0.5.0'ın muhtemel paketi
+
+pm'in P0'ının **(b) ayağı ve bu KAPANMIYOR.**
+`modules/appointments/actions.ts:24` oluşturmadan sonra `redirect` ediyor
+ve `createAppointment`'ta **mükerrer kontrolü yok.** Hedef sayfa herhangi
+bir sebeple yavaşlarsa kullanıcı hiçbir şey olmadığını sanıp tekrar basıyor
+ve **ikinci kayıt yazılıyor.** pm'in elindeki **aynı hayvana ait iki
+birebir aynı randevu** bunun ürünü.
+
+**Sınıf tek rotaya özgü değil:** aynı desen `clients:23`, `pets:25`,
+`visits:26`, `invoices:57` ve düzenleme yollarında da var — hepsi "yaz,
+sonra bir sayfaya yönlendir".
+
+**Ailesi tanıdık ve bu teşhis değerli (value):** **5 tam olarak buydu** —
+*"kullanıcı 'kaydedilmedi' okuyup tekrar kaydediyor, bedeli mükerrer tıbbi
+kayıt."* Onu formlar için `useActionForm` ile kapattık; **yönlendiren
+aksiyonlar o düzeltmenin dışında kaldı.** Yani sınıf kapatılmamış, yarısı
+kapatılmış.
+
+### §10 KAPANDI + yan kanıt: (6) gerçekten devrede
+
+pm iki `SENT` kaydı üretti (SMS, onay + hatırlatma). **Yan kanıt değerli:**
+forma `"0532 111 11 11"` yazıldı, gateway'e **`905321111111`** gitti — yani
+**(6) telefon düzeltmesi gerçekten çalışıyor** ve `country`'nin 129 klinikte
+NULL olması onu etkilemiyor (`lib/phone.ts:19-24` bu durumu bilerek
+karşılıyor). **§8-1 bulgu olmaktan çıktı, (6) yeniden açılmıyor.**
+value kendi varsayımını da düzeltti: iki eski `MANUAL` kaydı pm'in testi
+sanmıştı, değilmiş.
+
+### §8-2 kapandı: `settings/page.tsx:50`
+
+pm ölçtü: o duruma düşen hesap **sıfır** (kliniksiz kullanıcı yok). İş
+açılıyor ama **en düşük öncelikte, sürüm dışı.** **32g'nin tam vakası:**
+hâl ölü değil, **ulaşılamaz** — bir gün ulaşılırsa ux'in anlattığı şey
+aynen olur.
+
+**v0.5.0'a taşınan iki düzeltme:**
+1. **`SENT` kaydı ALINDI** (pm, `appointments.sent: 1`) — v0.4.0 etiketi
+   onu hâlâ "sıfır, dördüncü sürümdür" diye sayıyor, çünkü rapor kesimden
+   dakikalar sonra geldi. **v0.5.0 etiketinde doğrulanmış olarak yazılacak.**
+   Duran kapılardan biri kapandı.
+2. **390px turu hâlâ yapılmadı** — tek duran kapı o kaldı, beşinci sürüme
+   giriyor.
+
+---
+
+**`v0.3.0`** etiketi `454f02c`'de.
 
 > **DÜZELTME — etiket metninde iki yanlış var, kayda geçiyor:**
 > Ana oturum etiketi **`HEAD`'e vurdu, belirli bir commit'e değil**, ve
