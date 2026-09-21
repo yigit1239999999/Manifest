@@ -17,12 +17,24 @@
 //   <ActionForm form={form} className="...">…</ActionForm>
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { Callout } from "@/components/ui/callout";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import type { FormState } from "@/lib/action";
 
 const EMPTY: readonly string[] = [];
+const EMPTY_SUMMARY: { name: string; label: string; message: string }[] = [];
+
+function sameSummary(
+  a: { name: string; message: string }[],
+  b: { name: string; message: string }[],
+) {
+  return (
+    a.length === b.length &&
+    a.every((x, i) => x.name === b[i].name && x.message === b[i].message)
+  );
+}
 
 type FormAction = (
   state: FormState,
@@ -202,6 +214,69 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
   // The six forms that carried `sm:col-span-2` by hand were right until a
   // grid grew a third column.
   const errorBox = React.useRef<HTMLDivElement>(null);
+  const t = useTranslations("common");
+
+  // One line per broken field, each a way back to it.
+  //
+  // ux measured what a failed submit cost before this existed: focus on
+  // `body`, no announcement of any kind, and **22 Tab presses** from
+  // there to the first bad field — the skip link, the logo, ten sidebar
+  // links, search, three theme segments, two language buttons, sign
+  // out. A vet correcting a typo walked the whole navigation skeleton
+  // of the product to reach it.
+  //
+  // Built from the DOM rather than from a registry, because the form
+  // already knows which of its errors have a field: the same scan below
+  // works out which do not. A label is read through the control's `id`,
+  // which `Field` has already injected — so a form gets this without
+  // passing anything, and a form that stops using `Field` loses the
+  // entry rather than shipping a broken link.
+  const [summary, setSummary] = React.useState<
+    { name: string; label: string; message: string }[]
+  >([]);
+
+  React.useEffect(() => {
+    const element = ref.current;
+    if (!element || !fieldErrors) {
+      setSummary(EMPTY_SUMMARY);
+      return;
+    }
+    const next: { name: string; label: string; message: string }[] = [];
+    for (const [name, messages] of Object.entries(fieldErrors)) {
+      const control = element.querySelector(`[name="${CSS.escape(name)}"]`);
+      if (!control) continue; // Homeless: it is in the box's first line.
+      const id = control.getAttribute("id");
+      const label = id
+        ? element.querySelector(`label[for="${CSS.escape(id)}"]`)
+        : null;
+      next.push({
+        name,
+        // Falling back to the field's own name is deliberate and ugly on
+        // purpose: an entry reading "petId" is a visible sign that a
+        // control is unlabelled, which is a defect worth seeing rather
+        // than an entry silently going missing.
+        label: label?.textContent?.trim() || name,
+        message: messages[0],
+      });
+    }
+    setSummary((prev) => (sameSummary(prev, next) ? prev : next));
+  }, [fieldErrors, responseToken]);
+
+  /** Put the cursor on the control a summary line names. */
+  const goToField = React.useCallback((name: string) => {
+    const element = ref.current;
+    if (!element) return;
+    const control = element.querySelector(`[name="${CSS.escape(name)}"]`);
+    // A hidden input carries the value for comboboxes and chip pickers;
+    // the thing a person types into is the one marked invalid.
+    const target =
+      control instanceof HTMLElement &&
+      !(control instanceof HTMLInputElement && control.type === "hidden")
+        ? control
+        : element.querySelector<HTMLElement>('[aria-invalid="true"]');
+    target?.focus();
+    target?.scrollIntoView({ block: "nearest" });
+  }, []);
 
   // On a long form (a visit, a pet, an invoice) the submit button is far
   // below the box, so without this the page does not move and the user sees
@@ -211,13 +286,25 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
   // Keyed to the response, not the message: the same rejection twice is two
   // events, and the second one has to be shown too.
   //
-  // Focus is deliberately NOT moved into the box. It is `role="alert"`, so
-  // focusing it makes a screen reader read the message a second time (see
-  // the note in `callout.tsx`). The price is recorded: a keyboard user's
-  // focus stays on the submit button, which may now be off screen. The
-  // observation that would change this: pm seeing "I submitted, the page
-  // jumped, I lost my button" in real use. If it does, moving focus and
-  // `live={false}` go together — never one alone.
+  // Focus IS moved into the box now, and the condition written here for
+  // changing it is the one that was met.
+  //
+  // It used to say: focus stays on the submit button, the price is that
+  // it may be off screen, and the observation that would change this is
+  // someone seeing it fail in real use. ux measured worse than the price
+  // named — focus was not on the submit button at all. `SubmitButton`
+  // disabled itself on press, and a control disabled under the user's
+  // finger drops focus to `body`. The disabling lasted under 150ms; the
+  // focus loss was permanent. From `body` to the first bad field: 22
+  // Tab presses, and nothing announced at any point.
+  //
+  // The old note also said moving focus and `live={false}` go together,
+  // never one alone, and that pairing is kept: the box is focused, so
+  // it is not a live region. A focused element is read on arrival; a
+  // `role="alert"` that is also focused is read twice in some screen
+  // reader and browser pairings (see `callout.tsx`). ux asked for
+  // `role="alert"` by name and this is the one place I have not done
+  // exactly that — flagged rather than quietly substituted.
   //
   // Reduced motion removes the animation, not the scroll: the movement
   // carries information here, it is not decoration.
@@ -239,6 +326,11 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
       block: "nearest",
       behavior: reduced ? "auto" : "smooth",
     });
+    // After the scroll, so the box is where it will stay. A successful
+    // submit has no box and nothing is touched: the page is changing
+    // and stealing focus from whatever it becomes would be its own
+    // defect.
+    target.focus();
   }, [responseToken]);
 
   // Skip the initial render: only an explicit reset() clears the form.
@@ -287,9 +379,49 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
         onClick?.(e);
       }}
     >
-      {state.error && (
-        <Callout ref={errorBox} variant="danger" className="col-span-full">
-          {state.error}
+      {(state.error || summary.length > 0) && (
+        <Callout
+          ref={errorBox}
+          variant="danger"
+          // Not a live region, because it takes focus. See the note
+          // above: one or the other, never both.
+          live={false}
+          tabIndex={-1}
+          // The one place a failure is reported, named so that a test
+          // can find it without asserting the mechanism. It used to be
+          // found by `role="alert"`, which is exactly the thing that
+          // had to change.
+          data-form-error=""
+          className="col-span-full outline-none"
+          title={
+            summary.length > 0
+              ? t("errorSummary", { count: summary.length })
+              : undefined
+          }
+        >
+          {state.error && <p>{state.error}</p>}
+          {summary.length > 0 && (
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {summary.map((item) => (
+                <li key={item.name}>
+                  {/* A button, not an `href="#id"`: a link would move
+                      the cursor to the field's container and leave the
+                      control itself unfocused, and half these controls
+                      are a hidden input with a widget in front of them.
+                      The visible text is short because it sits in a
+                      list; the accessible name says where it goes. */}
+                  <button
+                    type="button"
+                    onClick={() => goToField(item.name)}
+                    aria-label={t("errorSummaryGoTo", { field: item.label })}
+                    className="rounded-control text-start underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2"
+                  >
+                    {item.label}: {item.message}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </Callout>
       )}
       {children}

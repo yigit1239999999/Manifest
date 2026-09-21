@@ -44,6 +44,8 @@
     "addNew": "Ekle: \"{value}\"",
     "optional": "isteğe bağlı",
     "required": "zorunlu",
+    "errorSummary": "{count, plural, one {Bir alanı düzeltmeniz gerekiyor} other {# alanı düzeltmeniz gerekiyor}}",
+    "errorSummaryGoTo": "{field} alanına git",
     "requiredFields": "Zorunlu alanlar: {fields}",
     "yes": "Evet",
     "no": "Hayır",

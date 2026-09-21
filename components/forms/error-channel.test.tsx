@@ -3,7 +3,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render as rtlRender } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
+import tr from "@/messages/tr.json";
 
 // `useActionForm` refreshes the route after a successful submit, so the
 // hook-level test below needs a router to exist.
@@ -34,6 +36,20 @@ import {
 // `import.meta.url` is an http URL under the jsdom environment this file
 // needs for the second half, so the scan is anchored on the project root.
 const formsDir = join(process.cwd(), "components/forms");
+
+// `ActionForm` now names the summary it draws ("two fields need your
+// attention"), so it needs messages. Wrapped here rather than at each
+// call site, so that a test written later cannot forget and then read
+// the missing-context crash as a defect in the form.
+const intl = (ui: React.ReactNode) => (
+  <NextIntlClientProvider locale="tr" messages={tr}>
+    {ui}
+  </NextIntlClientProvider>
+);
+const render = (ui: React.ReactNode) => {
+  const view = rtlRender(intl(ui));
+  return { ...view, rerender: (next: React.ReactNode) => view.rerender(intl(next)) };
+};
 
 const sources = readdirSync(formsDir)
   .filter((f) => f.endsWith("-form.tsx"))
@@ -96,11 +112,13 @@ describe("a submission error is shown in the form, not in a toast", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("the wrapper renders exactly one alert, and only when there is one", () => {
+  it("the wrapper renders exactly one error box, and only when there is one", () => {
     // jsdom has no `scrollIntoView`; the mount effect would reach for it.
     Element.prototype.scrollIntoView = vi.fn();
     const empty = render(<ActionForm form={api({})}><input name="a" /></ActionForm>);
-    expect(empty.container.querySelectorAll('[role="alert"]')).toHaveLength(0);
+    expect(empty.container.querySelectorAll("[data-form-error]")).toHaveLength(
+      0,
+    );
     empty.unmount();
 
     const failed = render(
@@ -108,9 +126,15 @@ describe("a submission error is shown in the form, not in a toast", () => {
         <input name="a" />
       </ActionForm>,
     );
-    const alerts = failed.container.querySelectorAll('[role="alert"]');
+    const alerts = failed.container.querySelectorAll("[data-form-error]");
     expect(alerts).toHaveLength(1);
     expect(alerts[0]).toHaveTextContent("Kaydedilemedi.");
+    // Not a live region, and this is the deliberate half of the change.
+    // The box takes focus now, and a focused `role="alert"` is read
+    // twice in some screen reader and browser pairings. One channel or
+    // the other, never both (see `callout.tsx`).
+    expect(alerts[0].getAttribute("role")).toBeNull();
+    expect(alerts[0].getAttribute("tabindex")).toBe("-1");
     // Spans whatever the grid turns out to be. Six forms carried
     // `sm:col-span-2` by hand, which was right until a grid grew a third
     // column.
@@ -216,7 +240,7 @@ describe("a new error is brought into view", () => {
     }
 
     const { container } = render(<Harness />);
-    const alerts = container.querySelectorAll('[role="alert"]');
+    const alerts = container.querySelectorAll('[data-form-error]');
     expect(alerts).toHaveLength(1);
     expect(alerts[0]).toHaveTextContent("Müşteri seçin.");
     expect(alerts[0]).toHaveTextContent("2. kalemin fiyatı eksik.");
@@ -241,7 +265,7 @@ describe("a new error is brought into view", () => {
         <input name="clientId" />
       </ActionForm>,
     );
-    const alerts = container.querySelectorAll('[role="alert"]');
+    const alerts = container.querySelectorAll('[data-form-error]');
     expect(alerts).toHaveLength(1);
     expect(alerts[0]).toHaveTextContent("Müşteri seçin.");
     expect(alerts[0]).toHaveTextContent("2. kalemin fiyatı eksik.");
@@ -291,8 +315,97 @@ describe("a new error is brought into view", () => {
     }
   });
 
-  // Deliberately not asserted, because it is deliberately not done: focus
-  // does not move to the box. It is `role="alert"`, so focusing it reads the
-  // message a second time (`components/ui/callout.tsx`). If that trade ever
-  // flips, focus and `live={false}` change together — the pair is the point.
+  // The trade flipped, and it flipped as a pair, which was the point.
+  //
+  // This block used to say focus deliberately does not move, because the
+  // box is `role="alert"` and focusing it reads the message twice. What
+  // was not known then is where focus actually went: `SubmitButton`
+  // disabled itself on press, and a control disabled under the user's
+  // finger drops focus to `body`. ux measured the disabling at under
+  // 150ms and the focus loss as permanent — 22 Tab presses from `body`
+  // to the first bad field, with nothing announced on the way.
+  //
+  // So focus moves to the box and the box is no longer a live region.
+  // Neither half is safe alone: focus without dropping the role reads
+  // twice, dropping the role without focus says nothing at all.
+  it("puts the cursor on the box, so the way back is one Tab and not 22", () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(harness({}, 0));
+    view.rerender(harness({ error: "Kaydedilemedi." }, 1));
+
+    const box = view.container.querySelector("[data-form-error]");
+    expect(box).not.toBeNull();
+    expect(document.activeElement).toBe(box);
+  });
+
+  it("leaves focus alone when the submit succeeded", () => {
+    // There is no box, and the page is on its way somewhere else.
+    // Taking focus from whatever it becomes would be its own defect.
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(harness({}, 0));
+    const before = document.activeElement;
+    view.rerender(harness({ success: true }, 1));
+
+    expect(view.container.querySelector("[data-form-error]")).toBeNull();
+    expect(document.activeElement).toBe(before);
+  });
+});
+
+// The summary is the other half of the 22 Tabs: a way back to each field
+// that needs fixing, from the place focus now lands.
+describe("what the box says when fields are wrong", () => {
+  function harness(state: ActionFormApi["state"], responseToken = 1) {
+    return (
+      <ActionForm form={{ ...api(state), responseToken }}>
+        <label htmlFor="name-1">İsim</label>
+        <input id="name-1" name="name" />
+        <label htmlFor="phone-1">Telefon</label>
+        <input id="phone-1" name="phone" />
+      </ActionForm>
+    );
+  }
+
+  it("counts the fields and names each one", () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(harness({}, 0));
+    view.rerender(
+      harness(
+        {
+          fieldErrors: { name: ["Zorunlu."], phone: ["Geçersiz numara."] },
+        },
+        1,
+      ),
+    );
+
+    const box = view.container.querySelector("[data-form-error]")!;
+    expect(box).toHaveTextContent("2 alanı düzeltmeniz gerekiyor");
+    expect(box).toHaveTextContent("İsim: Zorunlu.");
+    expect(box).toHaveTextContent("Telefon: Geçersiz numara.");
+  });
+
+  it("sends the cursor to the field a line names", () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(harness({}, 0));
+    view.rerender(harness({ fieldErrors: { phone: ["Geçersiz numara."] } }, 1));
+
+    const link = view.getByRole("button", { name: "Telefon alanına git" });
+    link.click();
+
+    expect(document.activeElement).toBe(
+      view.container.querySelector('input[name="phone"]'),
+    );
+  });
+
+  it("says nothing about a field this form does not render", () => {
+    // That message has nowhere to send anyone, so it stays in the
+    // box's first line where the homeless errors already go — a link
+    // to a field that is not on the page is worse than no link.
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(harness({}, 0));
+    view.rerender(harness({ fieldErrors: { clinicId: ["Bulunamadı."] } }, 1));
+
+    expect(
+      view.queryByRole("button", { name: /alanına git/ }),
+    ).toBeNull();
+  });
 });

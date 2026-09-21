@@ -44,6 +44,8 @@
     "addNew": "Add \"{value}\"",
     "optional": "optional",
     "required": "required",
+    "errorSummary": "{count, plural, one {One field needs your attention} other {# fields need your attention}}",
+    "errorSummaryGoTo": "Go to {field}",
     "requiredFields": "Required: {fields}",
     "yes": "Yes",
     "no": "No",
