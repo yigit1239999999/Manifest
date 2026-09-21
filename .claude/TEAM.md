@@ -2730,3 +2730,31 @@ metin rengi kart rengine yakın düştüğü için birincil düğmeydi.
 sorusu **ölçülmeden cevaplanmaz. Yanlış yöne saptığını varsaymak,
 hatanın yalnızca yakalandığı vakasını görmek demektir** — ve yakalanan
 vaka, tanımı gereği alarm verendir.
+
+### Niyet gibi okunan ölü sınıf — üçünden biri iş yapıyor
+
+ux, odak ölçümü sırasında yan bulgu olarak: onay kutularının
+`size-4 rounded border-border` dizgisinde **üç sınıftan yalnızca biri**
+iş yapıyor.
+
+- **`border-border`** sadece **renk** veriyor; kenarlık **genişliği**
+  olmadığı için hiçbir şey çizmiyor (`border-style: none`,
+  `border-width: 0px`).
+- **`rounded`** hiçbir şey üretmiyor: yarıçap ölçeği bu kod tabanında
+  **role göre** tanımlı (`--radius-control` vb., `7ff7c9a`) ve düz
+  `rounded` diye bir token yok.
+- Kutuyu zaten **tarayıcı** çiziyor (`appearance: auto`), rengini
+  `accent-color` veriyor.
+
+**Dizgi yedi yerde kopyalanmış.**
+
+> **Bir sınıf dizgisi niyet gibi okunur.** Hiçbir şey üretmeyen bir sınıf
+> **silinmiş bir sınıftan tehlikelidir**: okuyan *"burası düşünülmüş"*
+> sanar, ve bir sonraki kişi kenarlığı değiştirmek istediğinde **var
+> olmayan bir şeyi ayarlamaya** çalışır.
+
+**Ve bu sınıfın tespit yolu ölçümdü, okuma değil:** `border-border` kodda
+doğru görünüyor; yalnızca **hesaplanmış değer** onun hiçbir şey
+çizmediğini söylüyor. *"Kodda var"* ile *"ekranda iş yapıyor"* arasındaki
+fark, bu oturumun `aria-describedby` ve `outline-ring` vakalarıyla aynı
+aileden — **üçünde de sınıf/öznitelik yazılıydı ve üçünde de etkisizdi.**
