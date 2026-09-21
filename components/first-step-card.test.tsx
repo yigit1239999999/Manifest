@@ -79,13 +79,23 @@ describe("the first step card", () => {
   // later edit that made it say "ask your vet to add a client" would
   // turn a statement of fact into an errand handed to someone who
   // cannot run it.
+  //
+  // What is forbidden is the imperative, not the role. This used to
+  // reject "yönetici" outright and so rejected ux's approved wording,
+  // which names the clinic administrator on purpose: a reader who is
+  // told only that nothing is on file does not learn who can change
+  // that, and leaving it out is the omission TEAM.md #21 is about.
+  // "Your administrator can add them" is a fact about the product;
+  // "ask your administrator" is a job handed to somebody who did not
+  // come here for one. The line between the two is the mood of the
+  // verb, so that is what is measured.
   it("does not hand the waiting reader an errand", async () => {
     await renderAs("VET_TECH", "client");
 
     const said =
       tr.dashboard.firstStep.waiting.title + tr.dashboard.firstStep.waiting.hint;
 
-    expect(said).not.toMatch(/yetki|izin|yönetici|rica|isteyiniz|söyleyiniz/i);
+    expect(said).not.toMatch(/görüşünüz|isteyiniz|söyleyiniz|rica ed|talep ed/i);
   });
 });
 

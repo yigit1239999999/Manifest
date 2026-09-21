@@ -147,8 +147,8 @@
         "hint": "Its visits, vaccinations and prescriptions hang off that record."
       },
       "waiting": {
-        "title": "Your work starts with the first records.",
-        "hint": "Vaccinations, laboratory results and treatments hang off an animal's file."
+        "title": "There is nothing on file yet.",
+        "hint": "Your clinic administrator can add the first client and animal."
       }
     },
     "unreachedRemindersCount": "{count, plural, one {1 did not arrive} other {# did not arrive}}",

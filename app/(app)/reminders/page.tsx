@@ -341,13 +341,16 @@ export default async function RemindersPage({
           whose required picker answered "no results" and offered
           nowhere to go. pm found it by walking the list screens in the
           dark theme.
-          
-          No errand attached yet: `/reminders` is not in `ALLOWED_PATHS`
-          (`lib/next-param.ts`), and `safeNext` drops an unlisted
-          destination silently, so passing one would look like it worked
-          and quietly not. Asked for; it goes in when the path does. */}
+
+          The errand is this screen, not its form: `/reminders` went into
+          `ALLOWED_PATHS` in 62faf00 and deliberately carries no
+          `RECORD_PARAM`, so somebody who came here to read comes back
+          here to read, with the client now on file. Until that entry
+          existed the `next` was left off rather than guessed: `safeNext`
+          drops an unlisted destination silently, so it would have looked
+          like it worked and quietly not. */}
       {clients.items.length === 0 ? (
-        <MissingLink need="client" />
+        <MissingLink need="client" next="/reminders" />
       ) : (
       <Card>
         <CardHeader>

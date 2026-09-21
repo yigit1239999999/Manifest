@@ -92,9 +92,21 @@ const STEPS = {
 // A technician holds `vaccinations.write`, `treatments.write`,
 // `diagnostics.write`, `notes.write` and `reminders.write` -- every one
 // of them writes onto an animal, and on the first morning there is no
-// animal. So there is genuinely nothing for them to do yet, and the
-// sentence says that by naming what their work attaches to rather than
-// by refusing them or apologising.
+// animal. So there is genuinely nothing for them to do yet.
+//
+// This contradicts an earlier decision here -- that a row with nothing
+// to do is noise, so draw nothing -- and the boundary is worth writing
+// down, because it is the second time the argument has been had (ux):
+//
+//   "A line with no action is noise" is a rule about screens that have
+//   OTHER CONTENT. On the first-run screen this card is the only
+//   content, and silence there reads as a product that is broken.
+//
+// The sentence says who can act rather than refusing or apologising:
+// naming the clinic administrator is the one fact a technician needs,
+// and it is said in the words `reminder.delivery.askAdmin` already
+// uses, so the same situation is not described twice in two
+// vocabularies. It promises no button, because there is none for them.
 const WAITING = "waiting";
 
 export async function FirstStepCard({ need }: { need: keyof typeof STEPS }) {
