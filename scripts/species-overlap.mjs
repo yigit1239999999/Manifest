@@ -17,6 +17,16 @@
 // decision to take quietly: which animals move, and which of two names
 // survives, is a question for a person.
 //
+// NOT A GUARD, and the distinction matters. Nothing calls this: not
+// package.json, not a test, not CI. A script nobody runs protects
+// nothing, and calling it a guard would be this session's seventh
+// example of a thing that exists and does not protect. What prevents
+// the collision is the server -- modules/pets/species-names.ts and its
+// tests -- which cannot create one any more. This is where the number
+// comes from, so the next person can re-derive it instead of believing
+// it. Result on 21 September 2026: 1 clinic-defined species in the
+// whole database, 0 of them built-ins, 0 animals attached.
+//
 // Run: node --env-file=.env scripts/species-overlap.mjs
 import { Client } from "pg";
 import { readFileSync } from "node:fs";

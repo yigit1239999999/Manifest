@@ -12,12 +12,17 @@
 // function, and refuses quietly passing: it exits non-zero on any
 // disagreement.
 //
-// It is also the source of the exception table in lib/search.ts, and
-// that makes it more than a helper: whoever writes an exception table
-// leaves behind the measurement that produced it, or the next person
-// cannot update the table -- they can only believe it. Deleting this
-// script does not remove a check, it orphans a list of letters nobody
-// can re-derive. `unaccent` folds letters that Unicode decomposition does
+// It is the source of the exception table in lib/search.ts, and that
+// makes it more than a helper: whoever writes an exception table leaves
+// behind the measurement that produced it, or the next person cannot
+// update the table -- they can only believe it. Deleting this script
+// does not remove a check, it orphans a list of letters nobody can
+// re-derive.
+//
+// It is not a guard either, for the same reason as
+// scripts/species-overlap.mjs: nothing calls it. Run it after touching
+// either side of the fold. Result on 21 September 2026: 511 subjects,
+// 0 disagreements inside the range names are spelled in. `unaccent` folds letters that Unicode decomposition does
 // not (ß, ø, æ, ...), because they are separate letters rather than a
 // base plus a mark; the only honest way to know which ones is to ask.
 //
