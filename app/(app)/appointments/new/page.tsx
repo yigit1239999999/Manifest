@@ -30,7 +30,8 @@ export default async function NewAppointmentPage({
       <PageHeader title={t("new")} />
       <Card className="p-6">
         <AppointmentForm
-          pets={pets.map((p) => ({ id: p.id, name: p.name }))}
+          pets={pets.items.map((p) => ({ id: p.id, name: p.name }))}
+          petsCapped={pets.hasMore}
           vets={vets}
           defaultPetId={petId}
         />

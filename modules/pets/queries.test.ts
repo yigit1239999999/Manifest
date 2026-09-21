@@ -7,7 +7,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { listPetsPage } from "./queries";
+import { listPets, listPetsPage } from "./queries";
 
 // See `modules/visits/queries.test.ts`: an archive nobody can list is an
 // archive nobody can undo (backlog 39).
@@ -48,5 +48,43 @@ describe("listPetsPage", () => {
       | { owner?: { select?: Record<string, unknown> } }
       | undefined;
     expect(include?.owner?.select).toMatchObject({ archivedAt: true });
+  });
+});
+
+describe("listPets, the dropdown list", () => {
+  // The dropdown cap used to be silent. Past 500 animals the rest simply
+  // were not in the picker, search did not help because the picker filters
+  // what it was handed, and nothing said so — the list looked complete.
+  // Who vanished was not random either: ordered newest-first, it was the
+  // oldest animals, which belong to the longest-standing clients.
+  it("reads one row past the cap so it can say the list is short", async () => {
+    await listPets({ clinicId: "clinic-1", take: 2 });
+
+    expect(callOf()?.take).toBe(3);
+  });
+
+  it("reports the cap, and hands back only what was asked for", async () => {
+    vi.mocked(prisma.pet.findMany).mockResolvedValue([
+      { id: "p-1" },
+      { id: "p-2" },
+      { id: "p-3" },
+    ] as never);
+
+    const { items, hasMore } = await listPets({ clinicId: "clinic-1", take: 2 });
+
+    expect(items).toHaveLength(2);
+    expect(hasMore).toBe(true);
+  });
+
+  it("says nothing when the list fits", async () => {
+    // The hint has to stay off for every clinic that is nowhere near the
+    // cap, which is all of them today; a warning everyone sees is one
+    // nobody reads.
+    vi.mocked(prisma.pet.findMany).mockResolvedValue([{ id: "p-1" }] as never);
+
+    const { items, hasMore } = await listPets({ clinicId: "clinic-1", take: 2 });
+
+    expect(items).toHaveLength(1);
+    expect(hasMore).toBe(false);
   });
 });

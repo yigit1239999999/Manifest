@@ -12,8 +12,28 @@ export const PAGE_SIZES = {
   PETS: 24,
   /** Larger lists where scrolling beats clicking — visits, audit log. */
   LIST: 100,
-  /** Select dropdowns populated from a tenant — capped at a safe ceiling. */
+  /**
+   * Select dropdowns populated from a tenant.
+   *
+   * A cap with nothing saying it is a cap. Past it, records simply are not
+   * there: the 501st client cannot be put on an invoice, and searching
+   * does not help because the picker filters what it was handed. Worse,
+   * who disappears is not random — clients are ordered by surname, so it
+   * is the end of the alphabet; animals by age, so it is the oldest, which
+   * belong to the longest-standing customers.
+   *
+   * It stays at 500 until the pickers ask the server as the user types.
+   * Lowering it first would only lose more people. What changes now is the
+   * silence: the queries report whether they hit the cap
+   * (`SEARCH_RESULTS` below is what a search returns instead).
+   */
   DROPDOWN: 500,
+  /**
+   * A picker's worth of search results. Larger than the palette's five —
+   * a list is being chosen from, not jumped to — and small enough that the
+   * answer arrives while the next key is being pressed.
+   */
+  SEARCH_RESULTS: 20,
   /** Audit log viewer. */
   AUDIT: 200,
   /** Dashboard / preview lists. */

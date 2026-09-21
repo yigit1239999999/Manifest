@@ -31,11 +31,12 @@ export default async function NewInvoicePage({
       <PageHeader title={t("new")} />
       <Card className="p-6">
         <InvoiceForm
-          clients={clients.map((c) => ({
+          clients={clients.items.map((c) => ({
             id: c.id,
             firstName: c.firstName,
             lastName: c.lastName,
           }))}
+          clientsCapped={clients.hasMore}
           defaultClientId={clientId}
           defaultNumber={defaultNumber}
         />

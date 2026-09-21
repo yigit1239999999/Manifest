@@ -42,11 +42,12 @@ export default async function EditPetPage({
       <Card className="p-6">
         <PetForm
           pet={pet}
-          owners={owners.map((o) => ({
+          owners={owners.items.map((o) => ({
             id: o.id,
             firstName: o.firstName,
             lastName: o.lastName,
           }))}
+          ownersCapped={owners.hasMore}
           customSpecies={customSpecies}
           clinicBreeds={clinicBreeds}
           enabledSpecies={enabledSpecies}

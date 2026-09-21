@@ -83,16 +83,18 @@ export default async function RemindersPage({
         </CardHeader>
         <CardContent>
           <ReminderForm
-            clients={clients.map((c) => ({
+            clients={clients.items.map((c) => ({
               id: c.id,
               firstName: c.firstName,
               lastName: c.lastName,
             }))}
-            pets={pets.map((p) => ({
+            pets={pets.items.map((p) => ({
               id: p.id,
               name: p.name,
               ownerId: p.ownerId,
             }))}
+            clientsCapped={clients.hasMore}
+            petsCapped={pets.hasMore}
           />
         </CardContent>
       </Card>

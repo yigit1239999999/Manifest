@@ -35,7 +35,8 @@ export default async function EditVisitPage({
       <Card className="p-6">
         <VisitForm
           visit={visit}
-          pets={pets.map((p) => ({ id: p.id, name: p.name }))}
+          pets={pets.items.map((p) => ({ id: p.id, name: p.name }))}
+          petsCapped={pets.hasMore}
           vets={vets}
         />
       </Card>

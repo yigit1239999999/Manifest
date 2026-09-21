@@ -21,6 +21,8 @@ import { ActionForm, useActionForm } from "@/components/forms/action-form";
 interface Props {
   pet?: Pet;
   owners: Pick<Client, "id" | "firstName" | "lastName">[];
+  /** See `InvoiceForm`: true when the list was cut off at its cap. */
+  ownersCapped?: boolean;
   defaultOwnerId?: string;
   /** Clinic-defined species (beyond the built-in enum). */
   customSpecies?: { id: string; name: string }[];
@@ -35,6 +37,7 @@ interface Props {
 export function PetForm({
   pet,
   owners,
+  ownersCapped,
   defaultOwnerId,
   customSpecies = [],
   clinicBreeds = [],
@@ -111,7 +114,16 @@ export function PetForm({
       {/* The essentials: everything a vet needs to register an animal in
           under a minute. Everything else lives under "optional details". */}
       <FormSection title={t("sections.identity")} description={t("sections.identityHint")}>
-        <Field label={t("owner")} error={state.fieldErrors?.ownerId} required>
+        <Field
+          label={t("owner")}
+          error={state.fieldErrors?.ownerId}
+          hint={
+            ownersCapped
+              ? tCommon("listCapped", { count: owners.length })
+              : undefined
+          }
+          required
+        >
           <Select
             name="ownerId"
             defaultValue={pet?.ownerId ?? defaultOwnerId ?? ""}

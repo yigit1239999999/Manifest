@@ -25,11 +25,26 @@ const emptyLine: Line = { description: "", quantity: "1", unitPrice: "" };
 
 interface Props {
   clients: Pick<Client, "id" | "firstName" | "lastName">[];
+  /**
+   * True when the list was cut off at its cap.
+   *
+   * Without it the picker is indistinguishable from a complete one, and a
+   * clinic past the cap is told nothing while its last records quietly
+   * cannot be chosen. The hint does not promise a way round it, because
+   * there is not one yet — it says the list is short so that a missing
+   * record reads as a limit rather than as a record that does not exist.
+   */
+  clientsCapped?: boolean;
   defaultClientId?: string;
   defaultNumber?: string;
 }
 
-export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) {
+export function InvoiceForm({
+  clients,
+  clientsCapped,
+  defaultClientId,
+  defaultNumber,
+}: Props) {
   const t = useTranslations("invoice");
   const locale = useLocale();
   const tCommon = useTranslations("common");
@@ -54,7 +69,16 @@ export function InvoiceForm({ clients, defaultClientId, defaultNumber }: Props) 
   return (
     <ActionForm form={form} className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={tClient("one")} error={state.fieldErrors?.clientId} required>
+        <Field
+          label={tClient("one")}
+          error={state.fieldErrors?.clientId}
+          hint={
+            clientsCapped
+              ? tCommon("listCapped", { count: clients.length })
+              : undefined
+          }
+          required
+        >
           <Select name="clientId" defaultValue={defaultClientId ?? ""} required>
             <option value="" disabled>
               {tCommon("select")}

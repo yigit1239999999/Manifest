@@ -16,14 +16,19 @@ import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   clients: Pick<Client, "id" | "firstName" | "lastName">[];
+  /** See `InvoiceForm`: true when the list was cut off at its cap. */
+  clientsCapped?: boolean;
   pets?: Pick<Pet, "id" | "name" | "ownerId">[];
+  petsCapped?: boolean;
   defaultClientId?: string;
   defaultPetId?: string;
 }
 
 export function ReminderForm({
   clients,
+  clientsCapped,
   pets,
+  petsCapped,
   defaultClientId,
   defaultPetId,
 }: Props) {
@@ -93,7 +98,16 @@ export function ReminderForm({
       form={form}
       className="grid gap-4 sm:grid-cols-2"
     >
-      <Field label={tClient("one")} error={state.fieldErrors?.clientId} required>
+      <Field
+        label={tClient("one")}
+        error={state.fieldErrors?.clientId}
+        hint={
+          clientsCapped
+            ? tCommon("listCapped", { count: clients.length })
+            : undefined
+        }
+        required
+      >
         <Select
           name="clientId"
           value={clientId}
@@ -111,7 +125,18 @@ export function ReminderForm({
         </Select>
       </Field>
       {pets && (
-        <Field label={tPet("one")} error={state.fieldErrors?.petId}>
+        <Field
+          label={tPet("one")}
+          error={state.fieldErrors?.petId}
+          hint={
+            petsCapped && !clientId
+              ? // Only while the list is unnarrowed: once a client is
+                // chosen the list is their animals, complete, whatever
+                // the cap did to the one it was filtered from.
+                tCommon("listCapped", { count: pets.length })
+              : undefined
+          }
+        >
           <Select
             name="petId"
             value={petId}

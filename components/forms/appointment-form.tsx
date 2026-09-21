@@ -22,6 +22,8 @@ import { ActionForm, useActionForm } from "@/components/forms/action-form";
 interface Props {
   appointment?: Appointment;
   pets: Pick<Pet, "id" | "name">[];
+  /** See `InvoiceForm`: true when the list was cut off at its cap. */
+  petsCapped?: boolean;
   vets: Pick<User, "id" | "name">[];
   defaultPetId?: string;
 }
@@ -29,6 +31,7 @@ interface Props {
 export function AppointmentForm({
   appointment,
   pets,
+  petsCapped,
   vets,
   defaultPetId,
 }: Props) {
@@ -54,7 +57,14 @@ export function AppointmentForm({
     <ActionForm form={form} className="flex flex-col gap-4">
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
+        <Field
+          label={tPet("one")}
+          error={state.fieldErrors?.petId}
+          hint={
+            petsCapped ? tCommon("listCapped", { count: pets.length }) : undefined
+          }
+          required
+        >
           <Select
             name="petId"
             defaultValue={appointment?.petId ?? defaultPetId ?? ""}

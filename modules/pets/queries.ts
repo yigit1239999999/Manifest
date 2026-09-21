@@ -50,16 +50,18 @@ function buildPetWhere(args: {
   };
 }
 
+/** See `listClients`: one row past the cap, so the cap can be reported. */
 export async function listPets({ take = PAGE_SIZES.DROPDOWN, ...args }: ListPetsArgs) {
-  return prisma.pet.findMany({
+  const rows = await prisma.pet.findMany({
     where: buildPetWhere(args),
     orderBy: { createdAt: "desc" },
-    take,
+    take: take + 1,
     include: {
       owner: { select: { id: true, firstName: true, lastName: true } },
       customSpecies: { select: { id: true, name: true } },
     },
   });
+  return { items: rows.slice(0, take), hasMore: rows.length > take };
 }
 
 export interface PagedPetsArgs extends Omit<ListPetsArgs, "take"> {

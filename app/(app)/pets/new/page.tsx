@@ -40,7 +40,7 @@ export default async function NewPetPage({
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <BackLink href="/pets" label={tCommon("back")} />
       <PageHeader title={t("new")} />
-      {owners.length === 0 ? (
+      {owners.items.length === 0 ? (
         <EmptyState
           icon={Users}
           title={tClient("empty")}
@@ -54,11 +54,12 @@ export default async function NewPetPage({
       ) : (
         <Card className="p-6">
           <PetForm
-            owners={owners.map((o) => ({
+            owners={owners.items.map((o) => ({
               id: o.id,
               firstName: o.firstName,
               lastName: o.lastName,
             }))}
+            ownersCapped={owners.hasMore}
             defaultOwnerId={ownerId}
             customSpecies={customSpecies}
             clinicBreeds={clinicBreeds}

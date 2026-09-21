@@ -31,19 +31,27 @@ function buildClientWhere(args: {
   };
 }
 
-/** Unpaginated list, used for select dropdowns. Caps at `take` rows. */
+/**
+ * Unpaginated list for select dropdowns, and whether there are more.
+ *
+ * Reads one row past the cap and throws it away. That one row is the
+ * whole point: without it the list is indistinguishable from a complete
+ * one, and a clinic past the cap is told nothing while its last hundred
+ * clients quietly cannot be chosen.
+ */
 export async function listClients({
   take = PAGE_SIZES.DROPDOWN,
   ...args
 }: ListClientsArgs) {
-  return prisma.client.findMany({
+  const rows = await prisma.client.findMany({
     where: buildClientWhere(args),
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    take,
+    take: take + 1,
     include: {
       _count: { select: { pets: { where: { archivedAt: null } } } },
     },
   });
+  return { items: rows.slice(0, take), hasMore: rows.length > take };
 }
 
 export interface PagedClientsArgs extends Omit<ListClientsArgs, "take"> {
@@ -91,7 +99,15 @@ export async function countClients(clinicId: string) {
   return prisma.client.count({ where: { clinicId, archivedAt: null } });
 }
 
-/** Lightweight matches used by the global command palette. */
+/**
+ * Lightweight matches, used by the global command palette and — with a
+ * larger `take` — by the pickers on the forms.
+ *
+ * The second caller is why the cap is a parameter rather than a constant
+ * here: the palette wants five, a picker wants a screenful. Both want the
+ * same query, and writing it twice is how the two would start disagreeing
+ * about what "matches" means.
+ */
 export async function quickSearchClients(
   clinicId: string,
   term: string,

@@ -43,6 +43,7 @@
     "optional": "optional",
     "required": "required",
     "requiredFields": "Required: {fields}",
+    "listCapped": "This list shows the first {count} records; if the one you want is missing, it cannot be chosen here yet.",
     "yes": "Yes",
     "no": "No",
     "all": "All",
