@@ -1188,6 +1188,14 @@ export async function buildStateClinic(db) {
   // fixture that a background job rewrites is a fixture nobody can
   // measure twice.
   const deliveryCase = async (key, title, status, code, deliveredAt) => {
+    // Each carries its own wording, and that is not decoration. Four
+    // accepted messages with identical text to one number is precisely
+    // what the dedupe now prevents, so sharing a body would depict a
+    // state the product can no longer produce -- the third fixture
+    // today caught doing that. It also keeps them out of the
+    // suppressed-partner lookup's ambiguity case, which is what
+    // silences a row.
+    const body = `Sayın Hâl Sahibi, Zeytin için ${title.toLocaleLowerCase("tr")} zamanı geldi. HÂL KLİNİĞİ`;
     const row = await one(
       `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
                               "dueAt", status, "sentAt", "updatedAt")
@@ -1200,8 +1208,7 @@ export async function buildStateClinic(db) {
                                  recipient, language, body, status, "providerId",
                                  "deliveryStatus", "deliveryCode", "deliveredAt",
                                  "deliveryCheckedAt", "createdAt")
-       VALUES ($6, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr',
-               'Sayın Hâl Sahibi, Zeytin için kontrol zamanı geldi. HÂL KLİNİĞİ',
+       VALUES ($6, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr', $11,
                'SENT', $7, $4::"MessageDeliveryStatus", $5, $8, $9, $10)`,
       [
         clinic.id,
@@ -1216,22 +1223,23 @@ export async function buildStateClinic(db) {
         // rest of this clinic is already full of.
         hoursAgo(1),
         ago(1),
+        body,
       ],
     );
   };
 
-  await deliveryCase("delivered", "Kontrol hatırlatması", "DELIVERED", "1", hoursAgo(23));
+  await deliveryCase("delivered", "Kontrol", "DELIVERED", "1", hoursAgo(23));
   made("notification.delivery.delivered");
   // Asked, and the operator has not decided. `0` is its "still in the
   // retry window" code -- not a failure, and the row must not read as
   // one.
-  await deliveryCase("awaiting", "Kontrol hatırlatması", "PENDING", "0", null);
+  await deliveryCase("awaiting", "Aşı tekrarı", "PENDING", "0", null);
   made("notification.delivery.awaiting");
   // `3`, a wrong or restricted number: the one delivery answer with
   // something for the vet to do.
-  await deliveryCase("undelivered", "Kontrol hatırlatması", "UNDELIVERED", "3", null);
+  await deliveryCase("undelivered", "Tırnak kesimi", "UNDELIVERED", "3", null);
   made("notification.delivery.undelivered");
-  await deliveryCase("expired", "Kontrol hatırlatması", "EXPIRED", "2", null);
+  await deliveryCase("expired", "Parazit ilacı", "EXPIRED", "2", null);
   made("notification.delivery.expired");
 
   // The twin. Its message was composed and deliberately not sent,
