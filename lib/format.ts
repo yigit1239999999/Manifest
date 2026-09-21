@@ -1,107 +1,25 @@
-const SPECIES_LABELS: Record<string, string> = {
-  DOG: "Dog",
-  CAT: "Cat",
-  BIRD: "Bird",
-  RABBIT: "Rabbit",
-  RODENT: "Rodent",
-  REPTILE: "Reptile",
-  FISH: "Fish",
-  EXOTIC: "Exotic",
-  OTHER: "Other",
-};
-
-const SEX_LABELS: Record<string, string> = {
-  MALE: "Male",
-  FEMALE: "Female",
-  UNKNOWN: "Unknown",
-};
-
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Admin",
-  VETERINARIAN: "Veterinarian",
-  VET_TECH: "Vet tech",
-  RECEPTIONIST: "Receptionist",
-};
-
-const VISIT_TYPE_LABELS: Record<string, string> = {
-  WELLNESS_CHECK: "Wellness check",
-  VACCINATION: "Vaccination",
-  SICK_VISIT: "Sick visit",
-  EMERGENCY: "Emergency",
-  SURGERY: "Surgery",
-  DENTAL: "Dental",
-  GROOMING: "Grooming",
-  FOLLOWUP: "Follow-up",
-  TELEHEALTH: "Telehealth",
-  OTHER: "Other",
-};
-
-const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
-  SCHEDULED: "Scheduled",
-  CONFIRMED: "Confirmed",
-  ARRIVED: "Arrived",
-  IN_PROGRESS: "In progress",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-  NO_SHOW: "No show",
-};
-
-const NOTE_KIND_LABELS: Record<string, string> = {
-  GENERAL: "Note",
-  PHONE_CALL: "Phone call",
-  EMAIL: "Email",
-  SMS: "SMS",
-  INTERNAL: "Internal",
-  EVENT: "Event",
-};
-
-const DIAGNOSTIC_TYPE_LABELS: Record<string, string> = {
-  BLOOD: "Blood test",
-  URINE: "Urinalysis",
-  FECAL: "Fecal test",
-  CYTOLOGY: "Cytology",
-  CULTURE: "Culture",
-  XRAY: "X-Ray",
-  ULTRASOUND: "Ultrasound",
-  MRI: "MRI",
-  CT: "CT scan",
-  ECG: "ECG",
-  ENDOSCOPY: "Endoscopy",
-  OTHER: "Other",
-};
-
-const INVOICE_STATUS_LABELS: Record<string, string> = {
-  DRAFT: "Draft",
-  SENT: "Sent",
-  PARTIAL: "Partially paid",
-  PAID: "Paid",
-  VOID: "Void",
-};
-
-export function speciesLabel(species: string): string {
-  return SPECIES_LABELS[species] ?? species;
-}
-export function sexLabel(sex: string): string {
-  return SEX_LABELS[sex] ?? sex;
-}
-export function roleLabel(role: string): string {
-  return ROLE_LABELS[role] ?? role;
-}
-export function visitTypeLabel(type: string): string {
-  return VISIT_TYPE_LABELS[type] ?? type;
-}
-export function appointmentStatusLabel(status: string): string {
-  return APPOINTMENT_STATUS_LABELS[status] ?? status;
-}
-export function noteKindLabel(kind: string): string {
-  return NOTE_KIND_LABELS[kind] ?? kind;
-}
-export function diagnosticTypeLabel(type: string): string {
-  return DIAGNOSTIC_TYPE_LABELS[type] ?? type;
-}
-export function invoiceStatusLabel(status: string): string {
-  return INVOICE_STATUS_LABELS[status] ?? status;
-}
+// The enum labels that used to live here are gone, and the note is
+// worth more than they were.
+//
+// Eight functions -- `speciesLabel`, `sexLabel`, `roleLabel`,
+// `visitTypeLabel`, `appointmentStatusLabel`, `noteKindLabel`,
+// `diagnosticTypeLabel`, `invoiceStatusLabel` -- returned hard-coded
+// ENGLISH strings, and not one of them was called outside their own
+// test. Every screen reads these words from `messages/*.json` through
+// `getTranslations("enum.species")` and always did.
+//
+// They were not merely dead. A colleague building the animal picker's
+// new row reached for `speciesLabel` first, because it has the right
+// name and sits in the right file -- and it would have printed "Cat"
+// into a Turkish interface. An unused abstraction is debt; an unused
+// abstraction in the wrong language, wearing the correct name, is a
+// trap. A comment pointing at `enum.*` would not have helped: it is
+// the name that misleads, and the name would still have been there.
+//
+// `lib/whatsapp/messages.ts` keeps its own `visitTypeLabel`, which is
+// the one production calls: it takes a locale and reads both
+// catalogues, because a message goes out in the client's language
+// rather than the reader's.
 
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean).slice(0, 2);
