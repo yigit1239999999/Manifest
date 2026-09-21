@@ -2233,6 +2233,69 @@ yeniden alınacak.
 
 # Sonraki sürüm: "Kliniğin parası uygulamanın içinde kapansın"
 
+## KULLANICI KARARLARI — 21 Eylül 2026, dördü birden
+
+Ana oturum dört soruyu kullanıcıya önizlemeli olarak sordu, dördü de
+cevaplandı. **Bunlar ekibin tek başına veremeyeceği kararlardı; tartışma
+kapandı, sonraki okuyan baştan açmasın.**
+
+### 1. KDV: ORANDAN TÜRETİLECEK ✔
+
+Klinik ayarında varsayılan **%20**, faturada değiştirilebilir. Bugünkü hâl
+— `modules/invoices/schema.ts:49` `tax: optionalMoney(locale)`, oran kod
+tabanında hiç yok — kalkıyor. **Bekleyen dört karar içinde canlı maliyeti
+olan tek kalemdi:** veteriner her faturada KDV'yi elden çarpıyor.
+Aynı zamanda POS mutabakatının ön şartı: cihazdan gelen tutarla faturanın
+KDV'si tutmazsa eşleştirme baştan çöker, ve tutarın **türetilmiş** olması
+bunun tek garantisi.
+
+### 2. Klinik telefonu: MESAJLAŞMA AÇILIRKEN SORULACAK ✔
+
+29b'nin bu parçası sürüm dışından çıkıyor, **ama kayıt formuna girmiyor** —
+alan mesajlaşma anahtarının açıldığı ekrana bağlanıyor. İki bağımsız kaynak
+aynı anı işaret etmişti: `value` kodla (yeni klinikte
+`notifications.whatsapp.enabled` `null`, ilk gün dışarı mesaj çıkmıyor), ve
+hekim kendi sözleriyle — *"o bilgiye ihtiyacım olduğu ilk an dışarı bir şey
+çıktığı an. Baştan sorarsanız formu doldurur geçerim ama aklımda kalmaz,
+sonra yanlış numara mesajlarda gezer."*
+
+### 3. Aşı Excel'i içe aktarma: ERTELENDİ ✔
+
+Kanıtı güçlü, kapsamı L: eşleme ekranı + ilk on satır önizlemesi + tek
+düğmeyle paketi geri alma. Bu sürüme sığdırmak başka bir şeyi dışarı iterdi.
+**Bir sonraki sürümün ilk adayı**, ve ilk dilim tam CRM göçü değil
+**telefonda Ctrl+F'i öldüren en küçük sürüm**: sahip · hayvan · telefon ·
+kuduz · karma. Hekimin şartları hazır: yüklemeden önce ilk on satırın
+önizlemesi, sonrası için paketi tek düğmeyle geri alma, ve tarihlerin
+**her zaman gün-ay-yıl** olduğu (`12.03.2024`, Excel tarih hücresi ve
+`12/3/24` karışık) — *"12 Mart'ı 3 Aralık yaparsanız aşı hatırlatması
+yanlış zamanda gider, o benim en can alıcı noktam."*
+
+### 4. POS: FİZİKİ CİHAZA BAĞLANACAK ✔ — value'nun tezinin TERSİ
+
+**Kullanıcı fiziki cihaz entegrasyonunu seçti.** `value`'nun tezi bunun
+tersiydi (ön şartlar → mutabakat → ödeme linki, fiziki cihaz *"muhtemelen
+hiç"*) ve gerekçesi kayıtta duruyor: cihazda tutar tuşlamak beş saniye,
+kliniğin kaybettiği para tahsil edilmemiş faturada ve uygulamaya hiç
+yazılmamış kart tahsilatında.
+
+**Karar kullanıcınındır ve uygulanacaktır.** Buraya yalnız bilinen maliyet
+yazılıyor, tartışmayı yeniden açmak için değil, kapsam yazılırken
+şaşırmamak için: yerel bir köprü servisi gerekir (web uygulaması doğrudan
+USB/yerel ağdaki cihaza konuşamaz), **banka/cihaz başına sertifikasyon**
+gerekir, ve bakım yükü kalıcıdır — her banka ayrı.
+
+**Ve iki ön şart bu kararla DEĞİŞMEDİ, ikisi de hâlâ gerekli:**
+(a) KDV oranı (yukarıda, karar 1 ile zaten alındı); (b) `Payment`'ta
+**kaynak ayrımı** — `CARD` bugün yalnız "kartla ödedi" demek, elle mi
+yazıldı cihazdan mı geldi ayrımı yok, `reference` serbest metin. Kaynak
+ayrımı olmayan bir tabloda *"uygulamada kart görünen 14 tahsilatın kaçı
+bankada var"* sorusu sorulamaz — ve cihaz entegrasyonunda bu soru **daha
+da** kritiktir, çünkü artık iki taraf birbirine yazıyor.
+
+Kapsamın ilk cümlesi (aşağıda) değişmiyor: bugünkü `Invoice` GİB'e giden
+bir belge değildir.
+
 ## POS cihazı entegrasyonu — kullanıcı açtı (21 Eylül 2026), kapsam: value
 
 Kullanıcının kendi sözleri: *"bu akış bitince backloga pos cihazıyla
@@ -2287,7 +2350,13 @@ para cihazda tutar tuşlama süresinde değil; **tahsil edilmemiş faturada** ve
    çarpma ve yanlış yazma riski; **POS'ta** cihazdan gelen tutarla faturanın
    KDV'si tutmazsa mutabakat baştan çöker.
 
-### Sıra tezi: ön şartlar → C → B → (A belki hiç)
+### Sıra tezi — KULLANICI (A)'yı seçti, aşağısı gerekçe olarak duruyor
+
+> **21 Eylül 2026: kullanıcı fiziki cihaz entegrasyonunu (A) seçti.**
+> Aşağıdaki sıralama `value`'nun tezidir ve **uygulanmayacaktır**; silinmiyor,
+> çünkü (A)'nın maliyetini ve (C)/(B)'nin neyi çözdüğünü anlatan tek metin
+> bu, ve kapsam yazılırken ikisi de lazım olacak. Ön şartlar (KDV oranı,
+> ödemenin kaynak ayrımı) **her üç yolda da gerekli** ve kararla değişmedi.
 
 - **(A) Fiziki cihaz entegrasyonu** — uygulama cihaza tutar gönderir. Web
   uygulamasından yerel POS'a konuşmak bir köprü servisi + banka/cihaz başına
