@@ -7,8 +7,6 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { listPetsPage } from "@/modules/pets/queries";
-import { countClients } from "@/modules/clients/queries";
-import { MissingLink } from "@/components/missing-link";
 import { PageHeader } from "@/components/page-header";
 import { SearchForm } from "@/components/search-form";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -53,26 +51,16 @@ export default async function PetsPage({
     }),
   ]);
 
-  // An animal is registered to an owner, so a clinic with no clients
-  // cannot add one, and "Yeni hayvan" here would open a form whose owner
-  // picker has nothing in it. Asked only when the list came back empty
-  // and nothing was filtering it: a clinic with animals never pays for
-  // this read, and the one clinic that does pay is by definition the one
-  // with an empty `pets` table.
   const unfiltered = !q && !species;
-  const needsClient =
-    result.items.length === 0 &&
-    unfiltered &&
-    (await countClients(session.user.clinicId)) === 0;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")}>
-        {/* And not while the body is saying the link above this one is
-            missing. The header's button survived the first pass and put
-            two primary buttons on one screen, one of them the dead end
-            the other was put there to replace. */}
-        {canCreate && !needsClient && (
+        {/* Unconditional again: see the note on the same button in
+            `visits/page.tsx`. The form behind it no longer needs a
+            client to exist, so there is nothing for a door to stand in
+            front of. */}
+        {canCreate && (
           <Link href="/pets/new" className={buttonVariants()}>
             <Plus />
             {t("new")}
@@ -94,26 +82,22 @@ export default async function PetsPage({
       </div>
 
       {result.items.length === 0 ? (
-        needsClient ? (
-          <MissingLink need="client" next="/pets" />
-        ) : (
-          <EmptyState
-            icon={PawPrint}
-            title={q ? t("emptySearch") : t("empty")}
-            description={q ? t("emptySearchHint") : t("emptyHint")}
-            // Not under a search or a species filter: "no cats" is
-            // answered by looking at another species, not by registering
-            // one.
-            action={
-              unfiltered && canCreate ? (
-                <Link href="/pets/new" className={buttonVariants()}>
-                  <Plus />
-                  {t("new")}
-                </Link>
-              ) : undefined
-            }
-          />
-        )
+        <EmptyState
+          icon={PawPrint}
+          title={q ? t("emptySearch") : t("empty")}
+          description={q ? t("emptySearchHint") : t("emptyHint")}
+          // Not under a search or a species filter: "no cats" is
+          // answered by looking at another species, not by registering
+          // one.
+          action={
+            unfiltered && canCreate ? (
+              <Link href="/pets/new" className={buttonVariants()}>
+                <Plus />
+                {t("new")}
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

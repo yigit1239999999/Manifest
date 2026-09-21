@@ -92,19 +92,68 @@ test.describe("First run", () => {
   // The `/new` routes above are reached by typing a URL. The screens a vet
   // actually lands on are the lists, and on a first morning three of them
   // offered "New appointment" / "New visit" / "New invoice" — buttons whose
-  // form has an empty picker behind it. Each list now names the same link
-  // its `/new` route does: the animal for appointments and visits, the
-  // client for pets and invoices, because a bill needs no animal.
+  // form has an empty picker behind it. Each list still names the link its
+  // `/new` route does: the animal for appointments, the client for
+  // invoices, because a bill needs no animal.
   //
   // `/clients` is the exception and the point of the whole exercise: it is
   // the one screen on a fresh clinic whose button leads to a form that can
   // be filled in, and it had no button at all.
+  //
+  // `/pets` and `/visits` LEFT this list, and the two that stay are
+  // deliberate rather than unfinished. A visit is now recordable on a
+  // fresh clinic -- the animal and its owner are opened inside the visit
+  // form -- and so is an animal, whose owner box does the same. An
+  // appointment is a different thing: it is tomorrow's, and the animal
+  // it is for exists before it is booked. Routing every empty list to
+  // `/visits/new` would say that a clinic's first act is always an
+  // examination, which is true of the morning and false of the diary.
   const lists = [
-    { path: "/pets", says: /a client comes first|önce müşteri gerekir/i, to: "/clients/new" },
     { path: "/invoices", says: /a client comes first|önce müşteri gerekir/i, to: "/clients/new" },
     { path: "/appointments", says: /a pet comes first|önce hayvan gerekir/i, to: "/pets/new" },
-    { path: "/visits", says: /a pet comes first|önce hayvan gerekir/i, to: "/pets/new" },
   ];
+
+  // The two screens whose doors came down, and what stands there now.
+  //
+  // A vet on their first morning has an animal on the table, not a
+  // records problem, and what they got here was a screen naming a
+  // record they have to go and make first. The form behind each of
+  // these buttons can now be filled in from empty: the visit opens its
+  // animal and that animal's owner, and the animal form opens its
+  // owner. So the empty state is the ordinary one -- "no visits yet",
+  // and the way to make one.
+  const opened = [
+    { path: "/pets", to: "/pets/new" },
+    { path: "/visits", to: "/visits/new" },
+  ];
+
+  test("the two lists a first morning starts from open their own form", async ({
+    page,
+  }) => {
+    await signUp(page, Date.now());
+
+    for (const list of opened) {
+      await page.goto(list.path);
+      const main = page.getByRole("main");
+
+      // Nothing about a record that has to exist first: the sentence
+      // this whole round is about is gone from both.
+      await expect(
+        main.getByText(
+          /comes first|önce müşteri gerekir|önce hayvan gerekir/i,
+        ),
+      ).toHaveCount(0);
+
+      // Both ways forward -- the header's and the empty state's -- and
+      // they go to the same form, which is what makes two of them fine
+      // (`/clients` has always carried two).
+      const ways = main.getByRole("link", { name: /^(new|yeni) /i });
+      await expect(ways).toHaveCount(2);
+      for (const way of await ways.all()) {
+        await expect(way).toHaveAttribute("href", list.to);
+      }
+    }
+  });
 
   test("every empty list names the link that is missing", async ({ page }) => {
     await signUp(page, Date.now());
@@ -115,7 +164,7 @@ test.describe("First run", () => {
       await expect(main.getByText(list.says)).toBeVisible();
 
       // A screen may offer more than one way forward; they must all go
-      // to the same place. On these four there is one place to go, so
+      // to the same place. On these two there is one place to go, so
       // the count is one.
       //
       // Not a rule against two buttons: /clients deliberately carries

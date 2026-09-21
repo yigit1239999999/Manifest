@@ -5,9 +5,7 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { listVisitsPage } from "@/modules/visits/queries";
-import { countPets } from "@/modules/pets/queries";
 import { VISIT_TYPES } from "@/modules/appointments/schema";
-import { MissingLink } from "@/components/missing-link";
 import { PageHeader } from "@/components/page-header";
 import { ownerLabel, petLabel } from "@/lib/pet-label";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -47,26 +45,16 @@ export default async function VisitsPage({
     }),
   ]);
 
-  // A visit is recorded against an animal, so on a clinic with none
-  // "Yeni vizit" opens a form whose animal picker is empty. The animal
-  // and not the client even when there are no clients either: this
-  // screen's precondition is the animal, and `/pets/new` names the owner
-  // when the reader gets there — the same chain walk `/visits/new`
-  // already does. Asked only on an unfiltered empty list, so a clinic
-  // with records never pays for it.
-  const needsPet =
-    result.items.length === 0 &&
-    !type &&
-    (await countPets(session.user.clinicId)) === 0;
-
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")}>
-        {/* And not while the body is saying the link above this one is
-            missing. The header's button survived the first pass and put
-            two primary buttons on one screen, one of them the dead end
-            the other was put there to replace. */}
-        {canCreate && !needsPet && (
+        {/* Unconditional again, and so is the one in the empty state
+            below. Two buttons on one screen was only ever a defect
+            while they led to different places -- the header offering
+            "New visit" over a body that said an animal had to exist
+            first. They now lead to the same form, which is the case
+            `/clients` has always been. */}
+        {canCreate && (
           <Link href="/visits/new" className={buttonVariants()}>
             <Plus />
             {t("new")}
@@ -119,8 +107,6 @@ export default async function VisitsPage({
               </Link>
             }
           />
-        ) : needsPet ? (
-          <MissingLink need="pet" next="/visits" />
         ) : (
           <EmptyState
             icon={Stethoscope}
