@@ -18,26 +18,32 @@ aşağıdaki "UX bu ekibin kırmızı çizgisidir" ve "UX önce gelir" bölümle
 **2. Performans ve ölçeklenebilirlik — ikinci öncelik, ve artık
 ölçülebilir.**
 
-> **BÜTÇE: 800 ms. Ama asıl karar sayı değil, ADI (value, 21 Eylül):**
-> **800 ms bir GERİLEME KORUMASIDIR, ÖLÇEK TESTİ DEĞİL.**
-> 31 hayvanlık bir klinikte ölçüldü. Söylediği şey *"çerçeve ve sorgu yolu
-> bu kadar sürüyor"*; söylemediği şey *"bu uygulama büyük klinikte ayakta
-> kalır."* **Bu cümle bütçenin yanından ayrılmaz** — yoksa altı ay sonra
-> biri 800'ü *"ölçeklenebilirlik kanıtlandı"* diye okur.
-> Ölçülen en yavaş üç rota (üretim, oturum açık): `/pets/[id]` **473 ms** ·
-> `/appointments` **451** · `/invoices/[id]` **450**.
-> **Sentetik hacim kurulmadı** (tabanı kirletir ve asıl soruyu da tam
-> cevaplamaz); **"hacimli klinikte ölçek ölçümü" AYRI BİR İŞ** olarak
-> açılacak. **Bugün ölçek hakkında hiçbir kanıtımız yok.** Üretim derlemesi `http://localhost:3001`'de ayakta; bugüne
-kadar "dev sunucusunda ölçüm yok" diye ertelenen her şey artık yapılabilir.
-Bugünkü durum: rota süreleri **0,007–0,15 sn**, ama bu **129 klinik / 100
-hayvanlık** bir veritabanından — gerçek veride büyür. Bekleyen iş: **en çok
-veriye sahip klinikte ölçüm** ve rota başına bütçenin 6000 ms tavanından
-gerçek bir sayıya (öneri **1000 ms**) indirilmesi.
-**Ölçeklenebilirlik ayrı bir şey ve henüz hiç bakılmadı:** sorgu sayısı,
-N+1, indeks kapsamı, sayfalama sınırları, klinik sayısı arttığında ne
-olduğu. **Kimse bunu iş olarak açmadı** — ikinci öncelik olduğuna göre
-açılmalı.
+> **BÜTÇE: 1500 ms. Ama asıl karar sayı değil, ADI (value):**
+> **1500 ms bir GERİLEME KORUMASIDIR, PERFORMANS HEDEFİ DEĞİL.**
+> **Bugünkü en kötü 1099'dur ve o BİR BULGUDUR, BİR TABAN DEĞİL.**
+> Kırmızıya dönerse **önce araştırılır, yükseltilmez.** 31 hayvanlık bir
+> klinikte ölçüldü; **ölçek testi değil.**
+>
+> **⚠ ESKİ KAYIT ÇÜRÜTÜLDÜ, bu satır uyarı olarak duruyor:** burada bir
+> ara *"rota süreleri 0,007–0,15 sn"* yazıyordu. **O ölçüm 307
+> yönlendirmelerini ölçmüştü** — oturumsuz `curl`, yani hata sayfası.
+> Ve **800 ms bütçesi de o yanlış tabandan türemişti.**
+> Temiz zeminde (üretim derlemesi, oturum açık, ısınma ayrı) aynı rotalar
+> **iki katına** çıktı: `/pets/<id>` 473 → **1099** · `/invoices/<id>`
+> 450 → **705** · `/appointments` 451 → **633**.
+> *value'nun "tutarlılık geçerlilik kanıtı değildir" kuralı tam bunu
+> tarif ediyormuş: eski üç sayı birbirine yakındı ve ikna eden şey o
+> yakınlıktı.*
+>
+> **`/pets/<id>` KARARLI yavaş (993/1099) ve sebebi bulundu:** N+1 değil
+> — zaman çizelgesi ile dört liste **aynı satırları iki kez okuyor**.
+> Düzeltilmedi, ve **indeksler indikten sonra yeniden ölçülmedi.**
+>
+> **Sentetik hacim REDDEDİLDİ, gerekçesiyle:** 500 hayvanlık bir test
+> kliniği bize *"500 hayvanda ne oluyor"*u değil **"500 AYNI hayvanda ne
+> oluyor"**u söyler. Yerine duran boşluk: *"1500 ms 31 hayvanlık klinikte
+> ölçüldü, gerçek hacimde okunmadı"* — **ilk gerçek müşteri geldiğinde
+> ilk iş.**
 
 **Sıra bir yasak değil, bir hakemlik kuralı:** ikisi çatıştığında UX kazanır
 ve gerekçesi yazılır. Performans bir UX konusudur zaten — bekleyen bir ekran
@@ -97,6 +103,32 @@ sınıflandırması olur** ve sonraki okuyucu onu o ağırlıkta okur. **Liste a
 bir karar değildir; her madde kendi sınıfıyla yazılır.**
 *(value'nun kararı: alan klinik yetkisi olan rollerle sınırlanır, ve
 arayüzün süzdüğü ölçüt ile sunucunun kabul ettiği ölçüt aynı olur.)*
+
+## SIRALAMA ÖLÇÜTÜ — geri alınabilirlik, şiddetten önce gelir
+
+ux formüle etti, value *"bütün oturumun uyguladığı şeyin özeti"* diye
+kabul etti:
+
+> **Kalıcı yanlış veri > engellenmiş kullanıcı > borç.**
+> **Geri alınabilirlik, ŞİDDETTEN ÖNCE gelir.**
+
+**Kanıtı somut bir karşılaştırma:** klavyeyle çalışan veteriner başarısız
+bir gönderimden sonra ilk hatalı alana ulaşmak için **22 Tab** yürüyor —
+*"pahalı, yorucu, aşağılayıcı, ama kurtarılabilir."* Tür P0 ise her gün
+**geri alınamaz veri** üretiyor: kapalı bir türün adı yazıldığında hayvan
+`OTHER` kaydediliyor ve `CAT`'e göre sayan her listenin dışında kalıyor.
+**Şiddet ilkini, sıra ikincisini seçtiriyor.**
+
+**Ve bir istisna KOŞUL olarak değil, YAPISAL olarak kuruldu** — value'nun
+hamlesi, ve bu dosyadaki "kural değil yer" kalıbının sıralama tarafı:
+ux *"paket kayarsa 4. madde kaymasın"* dedi (o madde mükerrer kayıt
+üretiyor, ötekiler yalnızca yoruyor). Doğru, ama **hatırlanmayı
+gerektiriyordu.** Yerine: 3. ve 4. madde **aynı efekt bloğunda**
+(`combobox.tsx:242-259`), yani ayrılamaz bir **çift** —
+
+> **Bir çiftin önceliği, içindeki EN AĞIR maddeninkidir.**
+
+İlişki artık **kodda duruyor**, kimsenin akılda tutması gerekmiyor.
 
 ## Nasıl bir ekibiz
 
