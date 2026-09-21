@@ -35,6 +35,7 @@ import {
   ReminderDeliveryLine,
   type ReminderDeliveryLineProps,
 } from "@/components/reminder-delivery-line";
+import { ReminderMessageLog } from "@/components/reminder-message-log";
 import { ReminderSendNowButton } from "@/components/reminder-send-now-button";
 import { NotificationBlockedBanner } from "@/components/notification-blocked-banner";
 import { Badge } from "@/components/ui/badge";
@@ -416,6 +417,11 @@ export default async function RemindersPage({
                       for a reminder going out tomorrow morning and for one
                       that will never go out at all. */}
                   {line && <ReminderDeliveryLine {...line} />}
+                  {/* What was actually written, and to which number.
+                      Folded shut: this is evidence, wanted rarely and
+                      urgently, and open by default it would push the
+                      working list off the screen. */}
+                  <ReminderMessageLog messages={r.messages} />
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <StatusBadge

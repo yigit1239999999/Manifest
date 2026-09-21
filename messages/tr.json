@@ -529,11 +529,16 @@
     "emptyClosedHint": "Tamamladığınız ya da gerek kalmadığı için kapattığınız hatırlatmalar burada birikir.",
     "sendNow": "Şimdi gönder",
     "customTitleHint": "Bu başlık müşteriye aynen gönderilir.",
+    "log": {
+      "summary": "{count, plural, one {Gönderilen mesaj} other {Gönderilen # mesaj}}",
+      "recipient": "Numara",
+      "providerCode": "Sağlayıcı kodu"
+    },
     "unreachable": {
       "neverAsked": "Bu müşteriye bildirim onayı hiç sorulmamış.",
       "optedOut": "Bu müşteri bildirim onayı vermemiş.",
       "noPhone": "Bu müşterinin kayıtlı telefon numarası yok.",
-      "savedAnyway": "Hatırlatma kaydedilir ama mesaj gönderilmez."
+      "savedAnyway": "Hatırlatma kaydedilir, mesaj gitmez."
     },
     "delivery": {
       "scheduled": "Gönderilecek: {at} · {channel}",

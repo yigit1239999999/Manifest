@@ -529,11 +529,16 @@
     "emptyClosedHint": "Reminders you have completed, or closed because they were no longer needed, collect here.",
     "sendNow": "Send now",
     "customTitleHint": "This title is sent to the client word for word.",
+    "log": {
+      "summary": "{count, plural, one {Message sent} other {# messages sent}}",
+      "recipient": "Number",
+      "providerCode": "Provider code"
+    },
     "unreachable": {
-      "neverAsked": "This client has never been asked for notification consent.",
+      "neverAsked": "Nobody has asked this client for notification consent.",
       "optedOut": "This client has not given notification consent.",
       "noPhone": "This client has no phone number on record.",
-      "savedAnyway": "The reminder is saved, but no message goes out."
+      "savedAnyway": "The reminder is saved; no message goes out."
     },
     "delivery": {
       "scheduled": "Will be sent: {at} · {channel}",
