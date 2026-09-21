@@ -31,6 +31,30 @@ export interface BadgeProps
   extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
-export function Badge({ className, variant, ...props }: BadgeProps) {
-  return <span className={cn(badgeVariants({ variant }), className)} {...props} />;
+export function Badge({
+  className,
+  variant,
+  children,
+  ...props
+}: BadgeProps) {
+  return (
+    <span className={cn(badgeVariants({ variant }), className)} {...props}>
+      {/* A leading space, and it is load-bearing.
+          
+          A badge sits directly beside the thing it qualifies, with no
+          whitespace between them in the markup — `<Link>Ayşe</Link><Badge>1
+          animal</Badge>`. Sighted readers get the gap from `ms-2`; the
+          accessible name is built by concatenating text, so a screen reader
+          announced "1 animalArchived", "SMSNot connected", "Appointment
+          confirmation1 SMS". pm heard all three on one tour and they have
+          one cause, so they get one fix (TEAM.md #4, #26).
+          
+          Invisible without `sr-only` or any other machinery: this is a
+          flex container, and a whitespace-only run between flex items is
+          not rendered at all. It is still a text node, so the name gets
+          its separator. */}
+      {" "}
+      {children}
+    </span>
+  );
 }
