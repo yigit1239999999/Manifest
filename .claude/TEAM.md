@@ -1598,3 +1598,28 @@ Geçerli ölçü:
 - Para tam sayı kuruş olarak saklanır; kuruş dönüşümü tek noktadan yapılır.
 - Her ekran TR/EN × açık/koyu × 390px doğrulanır. Bunlar sonradan kontrol
   edilecek maddeler değil, işin kendisidir.
+
+### Yanı sıra giden satırın eşiği, yerine geçtiği HER sütunun eşiğidir
+
+Dar ekranda sütun gizlemek ancak içeriği başka bir yerde kalıyorsa dürüsttür
+— bu yüzden liste satırlarına "gizlenen sütunların yanı sıra gittiği" ikincil
+bir satır konuyor. **O satırın tek bir eşiği vardır, taşıdığı sütunlarınsa
+her biri kendi eşiğine sahiptir.** Eşikler ayrışırsa iki kusurdan biri doğar:
+
+- satır sütundan **önce** kaybolursa → o bantta bilgi **hiçbir yerde yok**;
+- satır sütundan **sonra** kaybolursa → o bantta bilgi **iki kez var**.
+
+`/appointments`: yanı sıra giden satır `sm:hidden`, içinde `type` ve `phone`;
+`type` sütunu `hideBelow: "sm"` (**eşleşiyor**), `phone` sütunu
+`hideBelow: "md"` (**eşleşmiyor**) → **640–767px'te telefon yok**, yani
+tabletin dikey hâlinde. `/staff` aynı şekli doğru kuruyor: satır `sm:hidden`,
+her iki sütun da `hideBelow: "sm"`.
+
+**Ve bu maddenin asıl dersi kusur değil, kusurun nasıl bulunduğudur.**
+pm "kopya sütun" dedi, ben doğrulamadan desen diye yazdım, dev-ui `/staff`
+için çürüttü — üç tur. Sonunda ayıran şey ölçüm değil **iki sayının yan yana
+konması** oldu: `sm` ile `md`. Bir hipotez "kopya mı, boşluk mu" diye
+sorulduğunda cevabı ekran değil **eşik tablosu** verir; ekran yalnızca
+baktığın tek genişlikte doğruyu söyler ve aradaki bandı hiç göstermez.
+**Tersi bulgu, hipotezin çöpe atılacağı anlamına gelmez** — pm'in mekanizması
+doğruydu, işareti yanlıştı.
