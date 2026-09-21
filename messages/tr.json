@@ -135,8 +135,8 @@
     },
     "firstStep": {
       "visit": "Bugün baktığınız bir hastayı yazın. Kayıtlı olmayan hayvanı ve sahibini yol üstünde açarsınız.",
-      "client": "Kliniğinizde henüz müşteri yok. Hayvan, vizit, randevu ve fatura kaydı bir müşteriye bağlanır; ilk müşterinizi ekleyerek başlayınız.",
-      "pet": "Kayıtlı hayvan yok. Vizit, randevu, aşı ve reçete kaydı bir hayvana bağlanır; müşterilerinizden birine ilk hayvanı ekleyiniz."
+      "client": "Bugün gelen bir hayvan sahibini kaydedin. Hayvanı, viziti ve faturası ona bağlanır.",
+      "pet": "Bugün baktığınız bir hayvanı sahibine kaydedin. Vizit, aşı ve reçete kaydı ona bağlanır."
     },
     "unreachedRemindersCount": "{count, plural, one {1 tanesi ulaşmadı} other {# tanesi ulaşmadı}}",
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
