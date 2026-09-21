@@ -63,6 +63,17 @@ export interface ComboOption {
  */
 export type CreateMatch = "label" | "caption" | "none";
 
+/**
+ * What the row knows about the query it is carrying.
+ *
+ * An object rather than a second string, so the next thing the row
+ * learns about itself arrives as a field instead of as a third
+ * positional argument nobody can read at the call site.
+ */
+export interface CreateContext {
+  matchedBy: CreateMatch;
+}
+
 interface Props {
   name: string;
   options: ComboOption[];
@@ -122,9 +133,9 @@ interface Props {
    * same reason -- two animals with one name is normal, so the
    * existing one cannot be assumed to be the one meant.
    */
-  onCreate?: (query: string, match: CreateMatch) => void;
+  onCreate?: (query: string, context: CreateContext) => void;
   /** Renders the label for that row from the typed query. */
-  createLabel?: (value: string, match: CreateMatch) => string;
+  createLabel?: (value: string, context: CreateContext) => string;
   noResultsLabel?: string;
   /**
    * Asks the server instead of filtering `options` locally.
@@ -417,7 +428,7 @@ export function Combobox({
   // handlers, which is exactly where a second argument drifts.
   function fireCreate() {
     setOpen(false);
-    onCreate?.(query.trim(), createMatch);
+    onCreate?.(query.trim(), { matchedBy: createMatch });
   }
 
   function openList() {
@@ -712,7 +723,7 @@ export function Combobox({
                 >
                   <Plus className="size-4 shrink-0" />
                   {createLabel
-                    ? createLabel(query.trim(), createMatch)
+                    ? createLabel(query.trim(), { matchedBy: createMatch })
                     : `+ "${query.trim()}"`}
                 </li>
               ) : row.kind === "add" ? (

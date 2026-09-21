@@ -830,7 +830,7 @@ describe("making the record the typed name does not match yet", () => {
     fireEvent.keyDown(input, { key: "ArrowDown" });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(onCreate).toHaveBeenCalledWith("Limon", "label");
+    expect(onCreate).toHaveBeenCalledWith("Limon", { matchedBy: "label" });
   });
 
   it("says nothing about creating before anything is typed", () => {
@@ -891,9 +891,9 @@ describe("telling the caller what the typed name matched", () => {
   it("says the name was found on the first line", () => {
     const { onCreate, createLabel } = typed("Zeytin");
 
-    expect(createLabel).toHaveBeenLastCalledWith("Zeytin", "label");
+    expect(createLabel).toHaveBeenLastCalledWith("Zeytin", { matchedBy: "label" });
     create();
-    expect(onCreate).toHaveBeenCalledWith("Zeytin", "label");
+    expect(onCreate).toHaveBeenCalledWith("Zeytin", { matchedBy: "label" });
   });
 
   // The one that matters: "Ali Kaya" is an owner, and an owner's name
@@ -902,17 +902,17 @@ describe("telling the caller what the typed name matched", () => {
   it("says the name was found on the quieter second line", () => {
     const { onCreate, createLabel } = typed("Ali Kaya");
 
-    expect(createLabel).toHaveBeenLastCalledWith("Ali Kaya", "caption");
+    expect(createLabel).toHaveBeenLastCalledWith("Ali Kaya", { matchedBy: "caption" });
     create();
-    expect(onCreate).toHaveBeenCalledWith("Ali Kaya", "caption");
+    expect(onCreate).toHaveBeenCalledWith("Ali Kaya", { matchedBy: "caption" });
   });
 
   it("says so when nothing on screen matched at all", () => {
     const { onCreate, createLabel } = typed("Zzz");
 
-    expect(createLabel).toHaveBeenLastCalledWith("Zzz", "none");
+    expect(createLabel).toHaveBeenLastCalledWith("Zzz", { matchedBy: "none" });
     create();
-    expect(onCreate).toHaveBeenCalledWith("Zzz", "none");
+    expect(onCreate).toHaveBeenCalledWith("Zzz", { matchedBy: "none" });
   });
 
   // Both lines can match one query, and the first line wins: the row is
@@ -923,7 +923,7 @@ describe("telling the caller what the typed name matched", () => {
     const { onCreate } = typed("Pamuk");
 
     create();
-    expect(onCreate).toHaveBeenCalledWith("Pamuk", "label");
+    expect(onCreate).toHaveBeenCalledWith("Pamuk", { matchedBy: "label" });
   });
 });
 
