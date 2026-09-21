@@ -184,6 +184,23 @@ export function DetailSkeleton() {
   );
 }
 
+/**
+ * The dashboard's waiting shape: seven counter tiles and four list cards,
+ * written to the same grids the real panel uses.
+ *
+ * The grids line up and the header block does not, and the second half is
+ * deliberate. Measured on `cb827ed`: the tiles land at the same x and the
+ * same 235x96 as the loaded page, but the whole block sits 166px higher
+ * here, because a first-run dashboard carries a greeting, a `FirstStepCard`
+ * and a centred line above the panel while this file carries two rules.
+ *
+ * It cannot carry more. `loading.tsx` is drawn before any data, so it does
+ * not know whether that card will render. Reserving the 166px would buy one
+ * clinic's first load at the price of an equal jump, upward, on every
+ * dashboard of every clinic that is past first run -- the opposite trade.
+ * The shift that remains is downward onto a skeleton nothing can be aimed
+ * at, so it costs a glance rather than a mis-tap.
+ */
 export function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-8">
