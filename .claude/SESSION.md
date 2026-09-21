@@ -18,6 +18,52 @@ Plan `.claude/BACKLOG.md`'de, çalışma ilkeleri `.claude/TEAM.md`'de.
 >
 > **KURAL: `audit_logs` ya da `message_logs`'tan okunan bir saat, ekranda
 > görülen saatle karşılaştırılmadan KANIT SAYILMAZ.**
+
+## DURAN BOŞLUKLAR — "temiz" değil, ve üçü AYNI ŞEY DEĞİL
+
+value'nun ayrımı: **etiket, ne yapılacağını belirler.** Tek listede
+dururlarsa okuyan hepsini B sanar.
+**A bir YETENEK bekliyor · B bir TUR bekliyor · C NÜKSÜ bekliyor.**
+
+### A — ÖLÇÜLEMEDİ *(ortam o hâli üretemiyor; bir yetenek gerekiyor)*
+
+1. **`DROPDOWN`'ın davranış tarafı.** Üretilemeyen şey veri değil **karar**
+   — mükerrer kayıt, kullanıcının *"bulamadım, yenisini açayım"*
+   kararından doğuyor. **Eşik: kod + test.**
+2. **Grafiğin DOLU hâli** — TRY'de toplam > 0 **ve** başka para birimi
+   birlikte. Bu klinikte üretilemiyor. (Üç hâlden ikisi ölçüldü.)
+3. **1500 ms'nin gerçek hacimde okunması.** Gerçek hacim bir **müşteri**
+   gerektiriyor; sentetik 500'lük klinik *"500 hayvanda ne oluyor"*u değil
+   *"500 **aynı** hayvanda ne oluyor"*u söyler. **İlk gerçek müşteri
+   geldiğinde ilk iş.**
+
+### B — ÖLÇÜLMEDİ *(ölçülebilir, sıra gelmedi; bir tur gerekiyor)*
+
+4. **`/pets/<id>`'nin sabit maliyeti** — 993/1099 ms, **kararlı** yavaş.
+   Kesildi ve **açık soru olarak yazıldı: ölçülmedi; N+1 olabilir de
+   olmayabilir de.**
+5. **`/clients/new`'in 2,6 kat oynaması** (387–999 ms) — sabit değil
+   **değişken**, ayrı bir soru. Kullanıcıya bilinen sonucu yok.
+6. **390px turunun kalanı — DÖRT SÜRÜMDÜR AÇIK:** EN'de 390px, yatay
+   telefon (844×390), `/prescriptions/*`, ve liste/detay/form yüzeylerinin
+   koyu tema turu. *(ux: "koyu tema tarandı demek yanlış olur; sürümün
+   dokunduğu üç yüzey tarandı.")*
+
+### C — AÇIKLANAMADI *(semptom yok, mekanizma bilinmiyor; nüksederse
+TANINMASI gerekiyor — bunlar bir iş değil, bir sonraki gözlemciye
+bırakılmış işaret)*
+
+7. **`/staff`'ın 6px'i.** 413px → 6px, 390'da `scrollX` 0, iki şartlı
+   ölçüt geçti — **ama neden küçüldüğünü kimse açıklayamadı.** Eşik ~525:
+   **onu aşan bir tablo çıkarsa taşma geri gelir** ve o gün *"bunu daha
+   önce çözmüştük"* DENMEMELİ.
+8. **Panelin 2405 ms'i.** ux gördü, pm temiz zeminde **tekrarlayamadı** —
+   ama *"uygulamanın kendisi demek için kanıt yok"* dedi. Bir daha
+   görülürse bu kayıt onu **yeni bir kusur sanmayı** önler.
+
+**Ve bu turun ölçümleri çoğunlukla EN arayüzde alındı.** TR'de `/staff`'ın
+6px'i, `/clients`'ın sıfırı ve `/reminders` satırı farklı çıkabilir —
+**açılırsa gerileme değil, ilk kez doğru dilde ölçülmüş olur.**
 > Aynı desen `scripts/loop-metrics.mjs`'te de var — kesim tarihli ölçüm
 > **sınır günlerde** kayabilir.
 

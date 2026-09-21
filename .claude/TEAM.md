@@ -2219,3 +2219,26 @@ varsa erteleme ucuz, yoksa değil.
 
 **Kesilen soru açık soru olarak yazılır** (30c): *"ölçülmedi; N+1 olabilir
 de olmayabilir de."* Yazılmazsa bir sonraki okuyan **bakılmış sanar.**
+
+### Duran boşluklar üçe ayrılır: ÖLÇÜLEMEDİ · ÖLÇÜLMEDİ · AÇIKLANAMADI
+
+value'nun ayrımı, ve gerekçesi **etiketin ne yapılacağını belirlemesi:**
+
+| | ne bekliyor | okuyan ne yapmalı |
+|---|---|---|
+| **A — ölçülemedi** | bir **yetenek** (hâl kliniği, gerçek müşteri) | yeteneği kur, ya da kabul et |
+| **B — ölçülmedi** | bir **tur** | sıraya koy |
+| **C — açıklanamadı** | **nüks** | kovalama — **tanı** |
+
+**Hepsini tek listede "ölçülmedi" diye tutmak üçünü birden yanlış
+etiketler:** okuyan hepsini **B** sanar, A'nın neden hâlâ açık olduğunu
+anlamaz, ve *"neden bir turda halletmediniz"* sorusunun cevabı listede
+bulunmaz.
+
+**C özellikle ayrı durur, çünkü C bir İŞ DEĞİLDİR** — bir sonraki
+gözlemciye bırakılmış **işarettir.** İş listesine karışırsa iki sonuçtan
+biri olur: boşuna kovalanır, ya da unutulur ve nüksettiğinde **yeni bir
+kusur sanılır.**
+
+*(Bu oturumun kendi listesi `.claude/SESSION.md`'nin başında, bu üç başlık
+altında duruyor.)*
