@@ -135,6 +135,11 @@ export default async function RemindersPage({
     ? transportName(clinic.notifications.channel) === "log"
     : false;
 
+  // Which rows are actually on the page, so the fold under a suppressed
+  // one can tell a link it can keep from one it cannot: the anchor it
+  // points at only exists while that reminder is in the current filter.
+  const presentIds = new Set(reminders.map((r) => r.id));
+
   const deliveries = clinic
     ? reminders.map((r) => reminderDeliveryState(r, clinic))
     : [];
@@ -460,7 +465,10 @@ export default async function RemindersPage({
                       Folded shut: this is evidence, wanted rarely and
                       urgently, and open by default it would push the
                       working list off the screen. */}
-                  <ReminderMessageLog messages={r.messages} />
+                  <ReminderMessageLog
+                    messages={r.messages}
+                    presentIds={presentIds}
+                  />
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <StatusBadge

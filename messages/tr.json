@@ -539,7 +539,8 @@
     "log": {
       "summary": "{count, plural, one {Gönderilen mesaj} other {Gönderilen # mesaj}}",
       "recipient": "Numara",
-      "providerCode": "Sağlayıcı kodu"
+      "providerCode": "Sağlayıcı kodu",
+      "sentInstead": "Bunun yerine gönderilen"
     },
     "unreachable": {
       "neverAsked": "Bu müşteriye bildirim onayı hiç sorulmamış.",

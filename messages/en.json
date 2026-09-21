@@ -539,7 +539,8 @@
     "log": {
       "summary": "{count, plural, one {Message sent} other {# messages sent}}",
       "recipient": "Number",
-      "providerCode": "Provider code"
+      "providerCode": "Provider code",
+      "sentInstead": "Sent instead"
     },
     "unreachable": {
       "neverAsked": "Nobody has asked this client for notification consent.",
