@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render as rtlRender } from "@testing-library/react";
+import { act, render as rtlRender } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import tr from "@/messages/tr.json";
 
@@ -364,6 +364,30 @@ describe("what the box says when fields are wrong", () => {
       </ActionForm>
     );
   }
+
+  it("puts the cursor on the summary, not on the first bad field", async () => {
+    // The case the earlier focus test could not see. That one gave the
+    // form a `state.error`, so the box was on screen the instant the
+    // response landed. With only field errors the box is a render
+    // late — the summary is built from the DOM — and focus used to
+    // settle on the first invalid control before it arrived.
+    //
+    // It looked fine: not `body`, and zero Tabs to the first bad
+    // field. What it cost was the count. A screen reader said "Name,
+    // required" and never said that two fields were wrong, because the
+    // box is not a live region either. ux measured it as one `focusin`
+    // event, to `INPUT[firstName]`.
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(harness({}, 0));
+    view.rerender(
+      harness({ fieldErrors: { name: ["Zorunlu."], phone: ["Geçersiz."] } }, 1),
+    );
+    await act(async () => {});
+
+    const box = view.container.querySelector("[data-form-error]");
+    expect(box).not.toBeNull();
+    expect(document.activeElement).toBe(box);
+  });
 
   it("counts the fields and names each one", () => {
     Element.prototype.scrollIntoView = vi.fn();

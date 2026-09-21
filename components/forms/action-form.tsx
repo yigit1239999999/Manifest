@@ -311,14 +311,38 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
   // Skipped on mount: a message that was there at first paint did not
   // arrive, so there is nothing to bring the user's attention to.
   const firstResponse = React.useRef(true);
+  // Which response has already been settled on, so that waiting for the
+  // box below cannot turn into moving focus twice.
+  const settledFor = React.useRef<number | null>(null);
   React.useEffect(() => {
     if (firstResponse.current) {
       firstResponse.current = false;
+      // Mark the mount's token settled, not just the mount. The effect
+      // re-runs now that it watches the summary, and without this the
+      // second run would no longer be "first" and would scroll to a
+      // message that was on the page before anyone submitted anything.
+      settledFor.current = responseToken;
       return;
     }
-    const target =
-      errorBox.current ?? ref.current?.querySelector('[aria-invalid="true"]');
+    if (settledFor.current === responseToken) return;
+    const box = errorBox.current;
+    // The box arrives a render late, and that is the whole of the bug
+    // ux caught here. The summary is built in an effect that reads the
+    // DOM for labels, so on the render that carries the response there
+    // are field errors and no box yet. This ran, found none, fell
+    // through to the first invalid control and focused that — then the
+    // box appeared, unfocused, and stayed that way. It looked right:
+    // focus was not on `body`, and the first bad field was zero Tabs
+    // away. What was lost was the only thing that says how many fields
+    // are wrong, because the box is not a live region either. Two
+    // channels, both closed.
+    //
+    // So when there are field errors, wait for the box rather than
+    // settle for what is on screen this instant.
+    if (!box && fieldErrors) return;
+    const target = box ?? ref.current?.querySelector('[aria-invalid="true"]');
     if (!(target instanceof HTMLElement)) return;
+    settledFor.current = responseToken;
     const reduced = window.matchMedia?.(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -331,7 +355,7 @@ export function ActionForm({ form, onInput, onClick, ...props }: ActionFormProps
     // and stealing focus from whatever it becomes would be its own
     // defect.
     target.focus();
-  }, [responseToken]);
+  }, [responseToken, summary, fieldErrors]);
 
   // Skip the initial render: only an explicit reset() clears the form.
   const firstRender = React.useRef(true);
