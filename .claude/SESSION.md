@@ -19,6 +19,49 @@ Plan `.claude/BACKLOG.md`'de, çalışma ilkeleri `.claude/TEAM.md`'de.
 > **KURAL: `audit_logs` ya da `message_logs`'tan okunan bir saat, ekranda
 > görülen saatle karşılaştırılmadan KANIT SAYILMAZ.**
 
+## ⚠ BİLDİRİLEN ODAK GERİLEMESİ YOKTU — geri alındı, iki kez
+
+Bir sürüm kararı **olmayan bir kusur** üzerine kuruldu ve geri alındı. Bu
+blok, `12a9e8a`'nın commit mesajını okuyan birinin yanlış sonuca varmaması
+için burada.
+
+**İddia:** birincil düğmenin odak konturu görünmez — koyu temada **1,09**,
+açık temada **1,00**.
+**Gerçek:** `button.tsx` `transition-colors` taşıyor ve **Tailwind v4'te o
+liste `outline-color`'ı da içeriyor** (0,15 sn). Odaksız bir düğmede
+`outline-color` hesaplanmış değeri `currentColor`'dır; odak anında
+`currentColor` → `--ring` diye **animasyonla** geçer. ux `.focus()`'tan
+hemen sonra okudu — yani **geçişin ilk karesini.** Yerleşme beklenince
+aynı derlemede: **koyu 7,62 · açık 5,21.** Kontur çalışıyordu.
+
+**İkinci geri alma:** *"`outline-ring` hiç CSS üretmiyor"* deneyi de
+geçersizdi — çıplak `outline-ring` sınıfı test edilmişti, oysa kod
+`focus-visible:outline-ring` kullanıyor ve Tailwind **yalnızca kullanılan
+varyantı** üretir.
+
+**`12a9e8a` kaldı** (rengin açıkça yazılması bir yardımcı sınıf adına
+bağımlılığı kaldırıyor, zararsız) **ama bir gerilemeyi düzeltmiyor —
+gerileme yoktu.** Commit mesajı fazla iddia ediyor; geçmiş yeniden
+yazılmadı, düzeltme burada.
+
+**Üç ders, üçü de kayda değer:**
+
+1. **Aynı yöntemle ikinci bir örnek almak DOĞRULAMA DEĞİLDİR** (ux). Açık
+   temayı da ölçüp *"daha da kötü"* bulmak, hatayı **doğrulanmış**
+   gösterdi. Bağımsız doğrulama **farklı yöntem** ister.
+2. **Tutarlı bir yanlış, tutarsız bir yanlıştan tehlikelidir** (ux). Aynı
+   tuzak form alanlarında **tutarsız** sonuç verdi ve orada yakalandı;
+   düğmede **tutarlı** çıktı ve tutarlılık doğruluk sanıldı.
+3. **Bir öngörünün, onu doğuran ölçümle AYNI yöntemle sınanması doğrulama
+   değildir** (value). *Model ne kadar iyi kuruluysa, aleti sorgulamayı o
+   kadar geciktirir.* value ux'in ölçümü üstüne bir mekanizma kurdu, ikinci
+   ölçüm aynı kusurlu yöntemle onu doğrulayınca güveni **arttı**, ve bu bir
+   sürüm kararına dönüştü.
+
+**Ve testin bunu kalıcı hâle getirme riski vardı:** odaktan hemen sonra
+okuyan bir e2e testi **hatayı teste gömerdi.** Yazılacak test geçişin
+**yerleşmesini beklemeli.**
+
 ## DURAN BOŞLUKLAR — "temiz" değil, ve üçü AYNI ŞEY DEĞİL
 
 value'nun ayrımı: **etiket, ne yapılacağını belirler.** Tek listede
