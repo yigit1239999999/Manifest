@@ -257,6 +257,11 @@ export const STATES = [
       "three failures against one reminder, six hours apart as the sweep would actually space them: nothing automatic will try again, which is a different sentence from 'it will be retried' and the only state where the button is the whole answer",
   },
   {
+    id: "notification.reminder.duplicateSuppressed",
+    covers:
+      "the second of two reminders for one animal on one day, whose message would have been word for word the first one's: the owner was told once, and whether the row says so plainly instead of promising a send that will never come",
+  },
+  {
     id: "notification.reminder.failedProduct",
     covers:
       "a failure we caused: the operator refused a repeat of a message it had just accepted, which is evidence the first one went. It must not spend one of the three attempts, and the row must not accuse the owner's phone",
@@ -1197,6 +1202,32 @@ export async function buildStateClinic(db) {
   made("notification.delivery.undelivered");
   await deliveryCase("expired", "Kontrol hatırlatması", "EXPIRED", "2", null);
   made("notification.delivery.expired");
+
+  // The twin. Its message was composed and deliberately not sent,
+  // because the first of the pair had just said the same words to the
+  // same number -- `VACCINATION_DUE` builds its text from the owner,
+  // the animal and the day, so two different titles produce one
+  // identical SMS.
+  //
+  // The pair is the fixture, not the row: the point on screen is that
+  // a vet sees BOTH pieces of work and decides what the second one
+  // still needs. `hal-reminder-due` above is the one that went.
+  const twin = await one(
+    `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
+                            "dueAt", status, "updatedAt")
+     VALUES ($5, $1, $2, $3, 'VACCINATION_DUE', 'Kuduz aşısı zamanı', $4, 'PENDING', now())
+     RETURNING id`,
+    [clinic.id, client.id, active.id, ahead(2), halId("reminder", "twin")],
+  );
+  await db.query(
+    `INSERT INTO message_logs (id, "clinicId", "clientId", "reminderId", channel, kind,
+                               recipient, language, body, status, "createdAt")
+     VALUES ($4, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr',
+             'Sayın Hâl Sahibi, Zeytin için aşı zamanı yaklaşıyor (23 Eyl Çar). Randevu için bize ulaşabilirsiniz. HÂL KLİNİĞİ',
+             'SUPPRESSED', $5)`,
+    [clinic.id, client.id, twin.id, halId("messagelog", "twin"), hoursAgo(1)],
+  );
+  made("notification.reminder.duplicateSuppressed");
 
   // The four reasons a reminder will never go out, one row each.
   //

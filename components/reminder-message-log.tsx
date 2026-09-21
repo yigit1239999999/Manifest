@@ -4,7 +4,7 @@ import { formatDateTime } from "@/lib/format";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 export interface ReminderMessageEntry {
-  status: "SENT" | "FAILED" | "MANUAL";
+  status: "SENT" | "FAILED" | "MANUAL" | "SUPPRESSED";
   createdAt: Date;
   channel: "SMS" | "WHATSAPP";
   /** What was actually sent. The point of the whole fold. */

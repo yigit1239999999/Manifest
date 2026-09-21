@@ -58,6 +58,7 @@ const REASONS = {
   coolingOff: "yakın zamanda başarısız, altı saat bekliyor",
   notDue: "saati gelmemiş",
   noRecipient: "numara aranabilir hâle gelmiyor",
+  duplicateSuppressed: "aynı metin aynı numaraya zaten gitti (ikiz hatırlatma)",
 };
 
 const missing = SWEEP_SKIP_REASONS.filter((r) => !(r in REASONS));
@@ -85,7 +86,12 @@ function printKind(title, window, kind) {
   console.log(`  kapalı olan klinik  ${kind.clinicsDisabled}  — bu yarı ayarlardan kapatılmış`);
   console.log(`  elenenler   ${skipped}`);
   for (const reason of SWEEP_SKIP_REASONS) {
-    console.log(`    ${String(kind.skipped[reason]).padStart(5)}  ${REASONS[reason]}`);
+    // The fallback is loud on purpose. A reason without a description
+    // printed as "undefined" beside a real count, and the guard that
+    // catches it writes to stderr -- which scrolls past. The line
+    // itself has to say what is wrong, where the number is.
+    const why = REASONS[reason] ?? `AÇIKLAMASIZ SEBEP: ${reason} — run-sweep.mjs'e ekleyin`;
+    console.log(`    ${String(kind.skipped[reason]).padStart(5)}  ${why}`);
   }
   // The invariant that makes the list readable: every row in the window
   // is in exactly one line above. If it ever fails, the census and the

@@ -369,6 +369,14 @@ describe("automaticSendBlocked", () => {
     expect(automaticSendBlock([ours(1)], now)).toBe("coolingOff");
   });
 
+  // Decided once and recorded. The run-local check only sees its own
+  // run, so without this the twin would go out on the next sweep.
+  it("does not reconsider a twin it has already held back", () => {
+    expect(
+      automaticSendBlock([{ status: "SUPPRESSED", createdAt: now, error: null }], now),
+    ).toBe("duplicateSuppressed");
+  });
+
   it("names which of the three rules held the candidate back", () => {
     expect(automaticSendBlock([{ status: "SENT", createdAt: now }], now)).toBe("alreadySent");
     expect(automaticSendBlock([failedAt(1)], now)).toBe("coolingOff");
@@ -449,6 +457,52 @@ describe("runReminderSweep", () => {
     const where = vi.mocked(prisma.appointment.findMany).mock.calls[0][0]
       ?.where as Record<string, unknown>;
     expect(where.pet).toEqual({ deceased: false, archivedAt: null });
+  });
+
+  // Two reminders for one animal on one day compose the same SMS: the
+  // text is built from the owner, the animal, the type and the day,
+  // and never reads the title or the body. Sending both puts the same
+  // sentence in front of the owner twice.
+  it("says the same thing once, and leaves the twin a row of its own", async () => {
+    const twin = (id: string, title: string) => ({
+      id,
+      type: "VACCINATION_DUE",
+      title,
+      body: null,
+      dueAt: new Date("2026-09-22T09:00:00.000Z"),
+      pet: { name: "Sarı" },
+      client: {
+        id: "c-1",
+        firstName: "Ayşe",
+        lastName: "Yılmaz",
+        phone: "0532 123 45 67",
+        preferredLanguage: "tr",
+        notificationsOptIn: true,
+      },
+      messages: [],
+    });
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+      twin("r-1", "Kuduz aşısı"),
+      twin("r-2", "Karma aşı"),
+    ] as never);
+    vi.mocked(prisma.messageLog.findFirst).mockResolvedValue(null as never);
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([{ reason: "eligible", n: 2 }] as never);
+    transport.send.mockResolvedValue({ providerId: "job-1" });
+
+    const summary = await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"));
+
+    expect(transport.send).toHaveBeenCalledTimes(1);
+    expect(summary.reminders.sent).toBe(1);
+    expect(summary.reminders.skipped.duplicateSuppressed).toBe(1);
+
+    // The trace is the point: with no row the twin is indistinguishable
+    // from a reminder waiting its turn, the screen promises a send that
+    // is never coming, and the next run weighs it again.
+    const suppressed = vi
+      .mocked(prisma.messageLog.create)
+      .mock.calls.map((c) => c[0].data)
+      .find((d) => (d as { status?: string }).status === "SUPPRESSED");
+    expect(suppressed).toMatchObject({ reminderId: "r-2", recipient: "905321234567" });
   });
 
   it("keeps a reminder that names no animal, drops one whose animal is gone", async () => {

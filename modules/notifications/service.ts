@@ -478,6 +478,15 @@ export const SWEEP_SKIP_REASONS = [
   "notDue",
   /** A number that is stored but cannot be dialled. */
   "noRecipient",
+  /**
+   * The same words had just gone to the same number.
+   *
+   * Ours, and decided rather than discovered: two reminders for one
+   * animal on one day compose an identical SMS, because the text is
+   * built from the owner, the animal, the type and the day and never
+   * reads the title or the body.
+   */
+  "duplicateSuppressed",
 ] as const;
 
 export type SweepSkipReason = (typeof SWEEP_SKIP_REASONS)[number];
@@ -601,6 +610,17 @@ export const MIN_RETRY_INTERVAL_MS = 6 * 3_600_000;
 export const DUPLICATE_WINDOW_MS = 3_600_000;
 
 /**
+ * How far back the sweep looks before deciding two reminders would say
+ * the same thing to the same person.
+ *
+ * A day, and not the provider's hour: the operator's filter protects
+ * its own network, this protects the owner. The composed text names a
+ * due date at day granularity, so two identical texts are about the
+ * same day's work however many hours apart the reminders fell due.
+ */
+export const DUPLICATE_SUPPRESSION_WINDOW_MS = 24 * 3_600_000;
+
+/**
  * Whether the sweep should leave this candidate alone for now.
  *
  * Three rules, and the middle one is why this function exists: a provider
@@ -617,8 +637,17 @@ export const DUPLICATE_WINDOW_MS = 3_600_000;
 export function automaticSendBlock(
   messages: { status: string; createdAt: Date; error?: string | null }[],
   now: Date,
-): Extract<SweepSkipReason, "alreadySent" | "attemptsExhausted" | "coolingOff"> | null {
+):
+  | Extract<
+      SweepSkipReason,
+      "alreadySent" | "attemptsExhausted" | "coolingOff" | "duplicateSuppressed"
+    >
+  | null {
   if (messages.some((m) => m.status === "SENT" || m.status === "MANUAL")) return "alreadySent";
+  // Decided once and recorded, so later runs stop reconsidering it.
+  // Without the row the run-local check would only ever see its own
+  // run, and the twin would go out on the next one.
+  if (messages.some((m) => m.status === "SUPPRESSED")) return "duplicateSuppressed";
 
   const failures = messages.filter((m) => m.status === "FAILED");
   // A failure we caused does not spend one of the reminder's three
@@ -776,6 +805,9 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
       const reminderHorizon = new Date(
         now.getTime() + (cfg.reminders.daysBefore + 2) * 86_400_000,
       );
+      // What this run has already said, and to whom. Per clinic,
+      // because the number is the key and two clinics never share one.
+      const sentInRun = new Set<string>();
       const reminderFloor = new Date(now.getTime() - 86_400_000);
       const remindersSummary = summary.reminders;
       const hold = (reason: SweepSkipReason) => remindersSummary.skipped[reason]++;
@@ -798,7 +830,7 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           client: { select: CLIENT_SELECT },
           messages: {
             where: { kind: "REMINDER_DUE" },
-            select: { status: true, createdAt: true },
+            select: { status: true, createdAt: true, error: true },
           },
         },
       });
@@ -837,6 +869,59 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           dueAt: reminder.dueAt,
           clinic,
         });
+
+        // Would this be the same sentence, to the same person, twice?
+        //
+        // The SMS is built from the owner, the animal, the type and the
+        // day: neither the title nor the body reaches it. So a vet who
+        // writes "Kuduz aşısı" and "Karma aşı" for one animal on one day
+        // has written two pieces of work whose messages are identical
+        // word for word, and both are candidates in the same run.
+        //
+        // Two checks, because one run cannot see the other: the set
+        // covers twins that come up together, the query covers a twin
+        // whose partner went out earlier. Neither is the provider's
+        // duplicate filter -- that one protects its network inside an
+        // hour, this protects the owner from reading the same thing
+        // twice.
+        const twinKey = `${recipient}|${body}`;
+        const alreadySaid =
+          sentInRun.has(twinKey) ||
+          (await prisma.messageLog.findFirst({
+            where: {
+              clinicId: clinic.id,
+              recipient,
+              body,
+              status: { in: ["SENT", "MANUAL"] },
+              createdAt: { gte: new Date(now.getTime() - DUPLICATE_SUPPRESSION_WINDOW_MS) },
+            },
+            select: { id: true },
+          }));
+        if (alreadySaid) {
+          // A row of its own, and this is the point of it. Left with
+          // nothing the reminder is indistinguishable from one waiting
+          // its turn -- the screen would promise a send that is never
+          // coming, and the next run would weigh it again. What the
+          // vet decides about the second piece of work is theirs; the
+          // product's job is to say plainly that its message did not
+          // go and why.
+          await prisma.messageLog.create({
+            data: {
+              clinicId: clinic.id,
+              reminderId: reminder.id,
+              clientId: reminder.client.id,
+              channel: clinic.notifications.channel,
+              kind: "REMINDER_DUE",
+              recipient,
+              language,
+              body,
+              status: "SUPPRESSED",
+            },
+          });
+          hold("duplicateSuppressed");
+          continue;
+        }
+
         try {
           await deliver(
             clinic,
@@ -854,6 +939,7 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
             where: { id: reminder.id },
             data: { status: "SENT", sentAt: now },
           });
+          sentInRun.add(twinKey);
           remindersSummary.sent++;
         } catch {
           remindersSummary.failed++;
@@ -896,6 +982,16 @@ export type ReminderDeliveryState =
   | { state: "sentNoReportChannel"; at: Date; channel: Channel }
   /** The validity period ran out. We do not know that it failed, only that we stopped hearing. */
   | { state: "reportExpired"; at: Date; channel: Channel }
+  /**
+   * Composed and held back: the same words had just gone to the same
+   * number, from another reminder for the same animal on the same day.
+   *
+   * Information, not a warning. Nothing failed and nobody needs to be
+   * phoned -- the owner did receive the sentence, once. Whether the
+   * second piece of work still needs doing is the vet's call, and the
+   * two rows sit next to each other so they can make it.
+   */
+  | { state: "duplicateSuppressed"; at: Date; channel: Channel }
   | {
       state: "failed";
       at: Date;
@@ -978,6 +1074,18 @@ export function reminderDeliveryState(
         };
     }
   }
+
+  // A held-back message and a failed one can both be in the history;
+  // the newest is the one that describes where the reminder stands.
+  const lastDecision = newestFirst.find(
+    (m) => m.status === "SUPPRESSED" || m.status === "FAILED",
+  );
+  if (lastDecision?.status === "SUPPRESSED")
+    return {
+      state: "duplicateSuppressed",
+      at: lastDecision.createdAt,
+      channel: lastDecision.channel,
+    };
 
   const failures = newestFirst.filter((m) => m.status === "FAILED");
   if (failures.length > 0)

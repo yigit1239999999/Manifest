@@ -780,6 +780,16 @@ enum MessageStatus {
   SENT
   FAILED
   MANUAL
+  /// Composed, and deliberately not sent: an identical text had just
+  /// gone to the same number, so the owner would have received the
+  /// same words twice.
+  ///
+  /// Not `FAILED` -- nothing refused it and no attempt was spent --
+  /// and certainly not `SENT`. It exists because the decision has to
+  /// leave a trace: without a row, the reminder it belongs to is
+  /// indistinguishable from one still waiting its turn, and the sweep
+  /// would reconsider it on every run for ever.
+  SUPPRESSED
 }
 
 /// What became of a message the provider accepted.

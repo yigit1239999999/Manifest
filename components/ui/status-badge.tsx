@@ -99,6 +99,12 @@ const message = {
   // counts `status = SENT` rather than any row in `message_logs` — staff
   // sending by hand would otherwise pass a bar the cron never cleared.
   MANUAL: "neutral",
+  // Nothing went and nothing failed: the same words had just gone to
+  // the same number, from another reminder for the same animal on the
+  // same day. `quiet`, because a vet reading down a list has no work
+  // here -- the owner did get the sentence, once -- and `danger` would
+  // send them looking for a fault that is not there.
+  SUPPRESSED: "quiet",
 } satisfies Record<MessageStatus, StatusTone>;
 
 const prescription = {
