@@ -7,7 +7,7 @@ import { can } from "@/lib/permissions";
 import { listStaff } from "@/modules/staff/queries";
 import { setStaffActiveAction } from "@/modules/staff/actions";
 import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { StaffStatusButton } from "@/components/staff-status-button";

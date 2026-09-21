@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SearchX } from "lucide-react";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 
 /**

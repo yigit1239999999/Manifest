@@ -107,6 +107,50 @@ describe("DataTable", () => {
     expect(physical).toEqual([]);
   });
 
+  describe("numeric columns", () => {
+    const numericTable = () =>
+      render(
+        <DataTable
+          rows={rows}
+          rowKey={(r) => r.id}
+          columns={[
+            { key: "name", header: "Ad", cell: (r) => r.name },
+            { key: "total", header: "Toplam", numeric: true, cell: (r) => r.total },
+          ]}
+        />,
+      );
+
+    it("gives figures tabular digits and end alignment together", () => {
+      // Right alignment alone only lines up the last digit. "1.200,00" and
+      // "480,00" still put their commas in different places, so a column
+      // that exists to be compared down its length cannot be.
+      const { container } = numericTable();
+      const cells = [...container.querySelectorAll("tbody td")].filter((td) =>
+        td.textContent?.includes("₺"),
+      );
+      expect(cells).toHaveLength(2);
+      for (const cell of cells) {
+        expect(cell.className).toContain("tabular-nums");
+        expect(cell.className).toContain("text-end");
+      }
+      expect(
+        screen.getByRole("columnheader", { name: "Toplam" }).className,
+      ).toContain("text-end");
+    });
+
+    it("leaves a plain end-aligned column proportional", () => {
+      // `align: "end"` is also how the "Details →" link column is placed,
+      // and a link is not a figure.
+      const { container } = table();
+      const cells = [...container.querySelectorAll("tbody td")].filter((td) =>
+        td.textContent?.includes("₺"),
+      );
+      for (const cell of cells) {
+        expect(cell.className).not.toContain("tabular-nums");
+      }
+    });
+  });
+
   it("renders nothing but the header when there are no rows", () => {
     // Callers show an EmptyState instead; an empty table must not crash or
     // invent a placeholder row.

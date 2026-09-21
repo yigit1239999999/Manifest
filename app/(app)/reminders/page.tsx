@@ -6,7 +6,7 @@ import { listReminders } from "@/modules/reminders/queries";
 import { listClients } from "@/modules/clients/queries";
 import { listPets } from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ReminderForm } from "@/components/forms/reminder-form";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";

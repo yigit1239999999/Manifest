@@ -2,6 +2,7 @@
 // They follow the active CSS variables so they re-skin with the theme.
 
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export interface BarDatum {
   label: string;
@@ -51,7 +52,7 @@ export function HorizontalBars({
   className?: string;
 }) {
   if (data.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyLabel}</p>;
+    return <EmptyState size="inline" title={emptyLabel} />;
   }
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
@@ -114,7 +115,7 @@ export function ColumnBars({
   // new clinic saw twelve stubby bars instead of an empty state.
   const total = data.reduce((sum, d) => sum + d.value, 0);
   if (data.length === 0 || total === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyLabel}</p>;
+    return <EmptyState size="inline" title={emptyLabel} />;
   }
 
   const max = Math.max(...data.map((d) => d.value), 1);

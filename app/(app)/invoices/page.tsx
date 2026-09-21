@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/session";
 import { listInvoicesPage } from "@/modules/invoices/queries";
 import { INVOICE_STATUSES } from "@/modules/invoices/schema";
 import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
 import { StatusBadge } from "@/components/ui/status-badge";

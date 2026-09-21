@@ -11,7 +11,7 @@ import {
 } from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PetForm } from "@/components/forms/pet-form";
 import { buttonVariants } from "@/components/ui/button";
 

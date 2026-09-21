@@ -5,7 +5,7 @@ import { requireSession } from "@/lib/session";
 import { listClientsPage } from "@/modules/clients/queries";
 import { PageHeader } from "@/components/page-header";
 import { SearchForm } from "@/components/search-form";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";

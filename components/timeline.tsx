@@ -13,7 +13,7 @@ import {
   TestTube,
 } from "lucide-react";
 import type { TimelineEvent } from "@/modules/timeline/queries";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import {
   dayKey,

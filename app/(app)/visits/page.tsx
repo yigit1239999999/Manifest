@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/session";
 import { listVisitsPage } from "@/modules/visits/queries";
 import { VISIT_TYPES } from "@/modules/appointments/schema";
 import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
 import { Badge } from "@/components/ui/badge";

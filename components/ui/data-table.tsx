@@ -15,7 +15,9 @@ import { cn } from "@/lib/utils";
 //     last columns were cut off with no way to reach them (TEAM.md #27).
 //     `overflow-x-auto` keeps the corners and lets the table scroll.
 //   - money columns were right-aligned with `text-right`, a physical
-//     direction (TEAM.md #31). `align: "end"` emits `text-end`.
+//     direction (TEAM.md #31). `align: "end"` emits `text-end`. They also
+//     had proportional figures, so the digits above the last one did not
+//     line up at all; `numeric` now carries both halves of that decision.
 //
 // Deliberately not used by the invoice line items on `/invoices/[id]`. That
 // table sits bare inside a card, with tighter padding and a `<tfoot>` of
@@ -39,6 +41,21 @@ export type Column<Row> = {
    */
   hideBelow?: "sm" | "md";
   align?: "start" | "end";
+  /**
+   * A column of figures: money, counts, measurements.
+   *
+   * Implies `align: "end"` and adds `tabular-nums`, and the two travel
+   * together on purpose. Right-aligning alone lines up the last digit but
+   * not the ones before it — in the default proportional figures "1.234,56"
+   * and "999,00" put their commas in different places, so the eye has to
+   * re-find the decimal point on every row. A money column exists to be
+   * compared down its length; that is the whole job.
+   *
+   * Kept separate from `align` rather than folded into it because two of
+   * today's three `align: "end"` columns are a "Details →" link, not a
+   * number. Alignment is the layout's decision, figures are the content's.
+   */
+  numeric?: boolean;
   /**
    * Keep the header in the accessibility tree but off the screen.
    *
@@ -82,7 +99,9 @@ export function DataTable<Row>({
                 scope="col"
                 className={cn(
                   "px-4 py-3 font-medium",
-                  column.align === "end" ? "text-end" : "text-start",
+                  column.align === "end" || column.numeric
+                    ? "text-end"
+                    : "text-start",
                   column.hideBelow && hideClass[column.hideBelow],
                 )}
               >
@@ -106,7 +125,8 @@ export function DataTable<Row>({
                   // middle of a three-line row reads as belonging to neither.
                   className={cn(
                     "px-4 py-3 align-top",
-                    column.align === "end" && "text-end",
+                    (column.align === "end" || column.numeric) && "text-end",
+                    column.numeric && "tabular-nums",
                     column.hideBelow && hideClass[column.hideBelow],
                     column.cellClassName,
                   )}

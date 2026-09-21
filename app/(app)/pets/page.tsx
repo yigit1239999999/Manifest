@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/session";
 import { listPetsPage } from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
 import { SearchForm } from "@/components/search-form";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SpeciesIcon } from "@/components/species-icon";
 import { Pagination } from "@/components/pagination";
 import { buttonVariants } from "@/components/ui/button";

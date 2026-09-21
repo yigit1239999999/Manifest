@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/session";
 import { listAppointmentsPage } from "@/modules/appointments/queries";
 import { APPOINTMENT_STATUSES } from "@/modules/appointments/schema";
 import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
 import { DayNav } from "@/components/day-nav";
