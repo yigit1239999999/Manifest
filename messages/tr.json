@@ -100,7 +100,8 @@
       "upcomingAppointments": "Yaklaşan",
       "activePrescriptions": "Aktif reçete",
       "outstandingInvoices": "Ödenmemiş",
-      "openReminders": "Hatırlatma"
+      "openReminders": "Hatırlatma",
+      "unreachedReminders": "Ulaşmayacak"
     },
     "sections": {
       "upcomingAppointments": "Yaklaşan randevular",

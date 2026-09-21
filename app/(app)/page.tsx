@@ -4,6 +4,7 @@ import { surface } from "@/components/ui/card";
 import {
   CalendarClock,
   ClipboardList,
+  PhoneOff,
   PawPrint,
   Pill,
   Receipt,
@@ -122,36 +123,40 @@ export default async function DashboardPage() {
       key: "openReminders" as const,
       icon: ClipboardList,
       value: insights.counts.openReminders,
-      // The destination follows the hint when there is one, and that
-      // is the condition on this number rather than a flourish: a vet
-      // reads "3 will not reach anyone", clicks, and has to land on
-      // those three. Arriving at a tab of eight would put the number
-      // and the rows back into disagreement, which is why the count
-      // was made a named subset in the first place.
-      //
-      // It means this card's headline ("open reminders") and its
-      // destination differ while the hint is present. Deliberate and
-      // worth knowing: the actionable half of the card is the hint.
-      href: blocked.unreachedTotal
-        ? "/reminders?status=blocked&group=unreached"
-        : "/reminders",
-      // How many of those open reminders will reach nobody. From the
-      // same function that fills the "will not reach" tab, which is the
-      // condition value put on this number: a card saying 3 above a tab
-      // listing 5 teaches a vet that neither is worth reading.
-      //
-      // Absent rather than zero when there are none. A nought here
-      // would take a line of the card every morning to say that
-      // nothing is wrong, which is the least useful day to speak.
-      // `unreachedTotal`, not every blocked reminder. value's test:
-      // can this number reach zero this week? `optedOut` never can and
-      // `neverAsked` erodes over months, and a number that cannot
-      // reach zero stops being read -- taking the rest of the panel
-      // with it. What is left is what a vet can act on today.
-      hint: blocked.unreachedTotal
-        ? t("unreachedRemindersCount", { count: blocked.unreachedTotal })
-        : undefined,
+      href: "/reminders",
+      hint: undefined,
     },
+    // Its own card rather than a line under the one above, and the
+    // reason is not the wording -- it is that the other card's
+    // destination was conditional on data. The same card sent a vet to
+    // two different places on two mornings depending on whether the
+    // hint was there, and a heading cannot fix that: the day the hint
+    // disappears the heading is wrong again (ux).
+    //
+    // Split, every card's three parts describe one set: the title, the
+    // number and where it goes. And the number that is worth acting on
+    // stops being a 12px grey footnote under a volume count that is
+    // not -- it gets the same weight as the others and a whole card as
+    // its target.
+    //
+    // Titled exactly as the tab it opens, so the word a vet reads here
+    // is the word they land on.
+    //
+    // Absent rather than zero, which is the same call the overdue
+    // vaccination card already makes: a card saying nothing is wrong
+    // takes space every morning to say it on the days it matters
+    // least.
+    ...(blocked.unreachedTotal
+      ? [
+          {
+            key: "unreachedReminders" as const,
+            icon: PhoneOff,
+            value: blocked.unreachedTotal,
+            href: "/reminders?status=blocked&group=unreached",
+            hint: undefined,
+          },
+        ]
+      : []),
   ];
 
   const visitsLast12WeeksData = insights.visitsLast12Weeks.map((w) => ({

@@ -100,7 +100,8 @@
       "upcomingAppointments": "Upcoming",
       "activePrescriptions": "Active Rx",
       "outstandingInvoices": "Outstanding",
-      "openReminders": "Reminders"
+      "openReminders": "Reminders",
+      "unreachedReminders": "Will not reach"
     },
     "sections": {
       "upcomingAppointments": "Upcoming appointments",

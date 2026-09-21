@@ -389,8 +389,18 @@ export default async function RemindersPage({
           // tab, so the two cannot disagree about which set they mean.
           {
             value: "blocked",
-            label: blocked.total
-              ? t("filterBlockedCount", { count: blocked.total })
+            // The count follows the filter, because the dashboard now
+            // lands here already narrowed: a pill reading 5 above a
+            // list of 1 is the same drift the subset was invented to
+            // stop, arriving one screen later. Clicking the pill drops
+            // the group -- `FilterTabs` builds its hrefs from scratch
+            // -- so it is also the way back to all of them.
+            label: (unreachedOnly ? blocked.unreachedTotal : blocked.total)
+              ? t("filterBlockedCount", {
+                  count: unreachedOnly
+                    ? blocked.unreachedTotal
+                    : blocked.total,
+                })
               : t("filterBlocked"),
           },
           { value: "closed", label: t("filterClosed") },
