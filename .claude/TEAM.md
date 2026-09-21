@@ -577,6 +577,24 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    **Sorulacak soru:** bu bilgiyi kim, **hangi ekranda** kullanacak — ve
    o ekran onu görüyor mu?
 
+   **Ve kural 12'den AYIRT ET — kardeş dal, alt dal değil, çünkü
+   çareleri farklı** (`ux`'in ayrımı):
+
+   | | ne oldu | çare |
+   |---|---|---|
+   | **14 — yanlış yerde duran doğru bilgi** | doğru türetilmiş, **yanlış sayfada** | **dağıtım**: aynı bilgiyi kararın verildiği yere taşı |
+   | **12 — doğru soruyu yanlış alana sormak** | **hiç doğru türetilmemiş**; alan o cevabı taşımıyor | **anahtarı değiştir**, taşıma |
+
+   **İkincisi daha sinsi, ve sebebi şu:** cevap **kendinden emin**
+   çıkıyor. `isChannelConfigured` hiç boş dönmüyordu — **yanlış**
+   dönüyordu. Boş dönen bir cevap şüphe uyandırır; dolu ve yanlış olan
+   uyandırmaz.
+
+   *Ve bu ayrımı yapmanın bedeli ölçüldü:* mükerrer sahip vakasında
+   `ux` **notu taşımaya** çalışıyordu (14'ün çaresi), `value`
+   **anahtarın kırık** olduğunu gösterdi (12'nin çaresi). Yanlış aileye
+   koysaydık doğru çareyi hiç denemeyecektik.
+
 15. **Küçük değişiklikler ucuz göründüğü için çakışır.**
    `dev-ui`'nin kendi kuralı, bugün **üçüncü** çakışmasından sonra:
 
