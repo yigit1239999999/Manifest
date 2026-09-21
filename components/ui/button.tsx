@@ -19,8 +19,15 @@ import { cn } from "@/lib/utils";
 // `outline-none` is gone with it: it was there to clear the browser's own
 // outline before drawing a ring in its place, and there is nothing to
 // clear now.
+//
+// The colour is written out rather than reached through the `outline-ring`
+// utility. `outline-color`'s initial value is `currentColor`, so if that
+// utility ever fails to reach an element the mark does not disappear —
+// it turns the colour of the text, which on a primary button is nearly
+// the colour of the button. An invisible focus ring is worse than none,
+// because it looks handled. The arbitrary value cannot fall back.
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {

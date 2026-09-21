@@ -663,7 +663,11 @@ describe("every focusable thing has a focus mark of ours", () => {
       fileURLToPath(new URL("../components/ui/button.tsx", import.meta.url)),
       "utf8",
     );
-    expect(button).toContain("focus-visible:outline-ring");
+    // The colour is written out, not reached through `outline-ring`:
+    // `outline-color` falls back to `currentColor`, which on a primary
+    // button is nearly the button's own fill. A mark that fails to
+    // invisible is worse than no mark, because it looks handled.
+    expect(button).toContain("focus-visible:outline-[var(--color-ring)]");
     expect(button).toContain("focus-visible:outline-offset-2");
     // The ring is gone, and so is the `outline-none` that existed only
     // to clear the browser's mark before drawing it.
