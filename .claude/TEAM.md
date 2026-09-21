@@ -2242,3 +2242,29 @@ kusur sanılır.**
 
 *(Bu oturumun kendi listesi `.claude/SESSION.md`'nin başında, bu üç başlık
 altında duruyor.)*
+
+### Bir yokluğu kusur saymadan önce, aynı işi yapan ALTERNATİF mekanizma aranır
+
+ux'in yedinci yakalaması, ve sınıfı öncekilerden farklı: önceki altısı
+**yanlış şeyi ölçmek**ti, bu **doğru ölçüp eksik okumak.**
+
+⌘K paletinde `aria-modal`'ın hiçbir yerde olmadığını ve bir `<section>`
+kardeşinin gizlenmediğini gördüler; oradan *"ekran okuyucu palet açıkken
+uygulamada gezinebiliyor"* diye ciddi bir bulgu çıkacaktı. **İkisi de
+eksik okumaydı:** o `<section>` toaster'dı (bilerek açık — toast'lar palet
+açıkken de duyurulmalı) ve uygulama içeriği **gerçekten gizlenmişti;**
+`aria-modal`'ın yokluğu kusur değildi, **modalite alternatif teknikle
+kurulmuştu.**
+
+> **Bir standardın adını arayıp bulamamak, standardın gereğinin
+> karşılanmadığı anlamına gelmez.** Önce *"bu işi burada başka ne
+> yapıyor?"* sorulur.
+
+**Neden bu ailenin en sinsi üyesi:** ölçüm doğru, araç doğru, okunan
+değer doğru — **yanlış olan yalnızca çıkarım**, ve çıkarımın hiçbir
+kontrol listesi maddesi yoktur. Kontrol listesi *nasıl ölçüleceğini*
+söyler; bu, **ölçüleni neyin açıkladığını** sorar.
+
+**Pratik biçimi:** bir yokluk bulgusu yazarken cümle şu iki parçayı
+taşır — *"X yok"* **ve** *"X'in işini yapan başka bir şey de yok."*
+İkincisi yoksa bulgu değil, **gözlem.**
