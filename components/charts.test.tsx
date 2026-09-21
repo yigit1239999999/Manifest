@@ -195,6 +195,24 @@ describe("HorizontalBars", () => {
     expect(screen.getByText("Kedi")).toBeInTheDocument();
   });
 
+  it("sets the values in tabular figures", () => {
+    // The values sit in a fixed-width column at the end of each row, one
+    // under the other. In proportional digits "1" is narrower than "8", so
+    // "12" and "8" do not line up on their last digit and the column reads
+    // as ragged.
+    render(
+      <HorizontalBars
+        emptyLabel="Veri yok."
+        data={[
+          { label: "Kedi", value: 12 },
+          { label: "Köpek", value: 8 },
+        ]}
+      />,
+    );
+    expect(screen.getByText("12").className).toContain("tabular-nums");
+    expect(screen.getByText("8").className).toContain("tabular-nums");
+  });
+
   it("scales bars against the tallest value", () => {
     const { container } = render(
       <HorizontalBars emptyLabel="Veri yok."

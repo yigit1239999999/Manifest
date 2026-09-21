@@ -142,9 +142,17 @@ export default async function DashboardPage() {
               </span>
               <Icon className="size-4 text-muted-foreground" />
             </div>
-            <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
+            {/* `tabular-nums` here and not on each card: six cards sit in
+                one grid and their figures are read across as much as down.
+                Proportional digits give "1" a narrower column than "8", so
+                the six numbers start at six slightly different places. */}
+            <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">
+              {value}
+            </p>
             {hint && (
-              <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+              <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+                {hint}
+              </p>
             )}
           </Link>
         ))}

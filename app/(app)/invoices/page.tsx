@@ -117,7 +117,7 @@ export default async function InvoicesPage({
               {
                 key: "total",
                 header: t("total"),
-                align: "end",
+                numeric: true,
                 cellClassName: "font-medium",
                 cell: (inv) => formatMoney(fmt, inv.totalCents, inv.currency),
               },

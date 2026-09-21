@@ -71,24 +71,32 @@ export default async function InvoicePage({
             <CardTitle>{t("lines")}</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* The one hand-written table left, and deliberately not a
+                `DataTable`: this is a document, not a list. It has a
+                `<tfoot>` of running totals, no pagination, no empty state
+                and no row to click. What it does share with `DataTable` is
+                every figure in it — right-aligned with `tabular-nums`, so
+                the line totals and the totals below them line up on the
+                same decimal. A figure column that cannot be read down its
+                length is the only reason it is a column. */}
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <thead className="text-start text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="py-2">{t("description")}</th>
-                  <th className="py-2 text-right">{t("quantity")}</th>
-                  <th className="py-2 text-right">{t("unitPrice")}</th>
-                  <th className="py-2 text-right">{t("lineTotal")}</th>
+                  <th className="py-2 text-start">{t("description")}</th>
+                  <th className="py-2 text-end">{t("quantity")}</th>
+                  <th className="py-2 text-end">{t("unitPrice")}</th>
+                  <th className="py-2 text-end">{t("lineTotal")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {invoice.lines.map((l) => (
                   <tr key={l.id}>
                     <td className="py-2">{l.description}</td>
-                    <td className="py-2 text-right">{l.quantity}</td>
-                    <td className="py-2 text-right">
+                    <td className="py-2 text-end tabular-nums">{l.quantity}</td>
+                    <td className="py-2 text-end tabular-nums">
                       {formatMoney(fmt, l.unitPriceCents, currency)}
                     </td>
-                    <td className="py-2 text-right">
+                    <td className="py-2 text-end tabular-nums">
                       {formatMoney(fmt, l.totalCents, currency)}
                     </td>
                   </tr>
@@ -96,26 +104,26 @@ export default async function InvoicePage({
               </tbody>
               <tfoot className="border-t border-border text-sm">
                 <tr>
-                  <td colSpan={3} className="py-2 text-right text-muted-foreground">
+                  <td colSpan={3} className="py-2 text-end text-muted-foreground">
                     {t("subtotal")}
                   </td>
-                  <td className="py-2 text-right">
+                  <td className="py-2 text-end tabular-nums">
                     {formatMoney(fmt, invoice.subtotalCents, currency)}
                   </td>
                 </tr>
                 <tr>
-                  <td colSpan={3} className="py-2 text-right text-muted-foreground">
+                  <td colSpan={3} className="py-2 text-end text-muted-foreground">
                     {t("tax")}
                   </td>
-                  <td className="py-2 text-right">
+                  <td className="py-2 text-end tabular-nums">
                     {formatMoney(fmt, invoice.taxCents, currency)}
                   </td>
                 </tr>
                 <tr>
-                  <td colSpan={3} className="py-2 text-right font-semibold">
+                  <td colSpan={3} className="py-2 text-end font-semibold">
                     {t("total")}
                   </td>
-                  <td className="py-2 text-right font-semibold">
+                  <td className="py-2 text-end font-semibold tabular-nums">
                     {formatMoney(fmt, invoice.totalCents, currency)}
                   </td>
                 </tr>
@@ -135,10 +143,10 @@ export default async function InvoicePage({
               <CardTitle>{t("outstanding")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-semibold">
+              <p className="text-2xl font-semibold tabular-nums">
                 {formatMoney(fmt, Math.max(0, remaining), currency)}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs tabular-nums text-muted-foreground">
                 {t("paidAt")}: {formatMoney(fmt, paidSoFar, currency)} /{" "}
                 {formatMoney(fmt, invoice.totalCents, currency)}
               </p>

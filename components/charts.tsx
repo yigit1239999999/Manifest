@@ -70,7 +70,7 @@ export function HorizontalBars({
                 style={{ width: `${pct}%` }}
               />
             </span>
-            <span className="w-10 shrink-0 text-end text-xs font-semibold text-foreground">
+            <span className="w-10 shrink-0 text-end text-xs font-semibold tabular-nums text-foreground">
               {d.display ?? d.value}
             </span>
           </li>
