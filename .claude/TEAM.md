@@ -3260,3 +3260,43 @@ input**, etiket ise **görünen denetimde ve başka bir `id`'de.**
 
 Ve yanında ikinci bulgu: üç hata var, ekranda **iki** denetim
 `aria-invalid` taşıyor — tür grubu hiç işaretlenmiyor.
+
+### Yukarı taşınan bir tez değişirse, DÜZELTMEYİ DE TAŞIYAN taşır
+
+Bugün ilk kez tam bir öneri döngüsü kapandı ve sonu bir düzeltmeydi:
+
+```
+value tezi kurdu  →  kendi kanıtını düzeltti  →  ana oturum kullanıcıya taşıdı
+   →  kullanıcı ONAYLADI  →  ux ölçtü ve ÇÜRÜTTÜ  →  value park etti
+```
+
+**Onaylanmış bir şey çürüdüğünde, kullanıcı hâlâ eski cevabın üstünde
+duruyor.** Ve bunu bilen tek kişi **taşıyandır** — tezi üreten değil,
+çürüten değil.
+
+> **Bir tezi yukarı taşıyan, tez değiştiğinde düzeltmeyi de taşımak
+> zorundadır.** Aksi hâlde kullanıcı, **artık kimsenin savunmadığı bir
+> kararın** sahibi olarak kalır.
+
+Bu, value'nun *"bir olgu geri alındığında ondan türetilmiş iddialar
+kendiliğinden geri alınmaz"* kuralının **yukarı yön**deki hâli — ve
+ana oturuma düşer, çünkü **ekipten kimse kullanıcıyla konuşmuyor.**
+
+**Aynı turda iki düzeltme taşındı:** park edilen öneri, **ve** onaylanan
+yönün şekli (*"bir alan eksik"* → **"bir eylem eksik"**, kazanç
+olduğundan **büyük**). İkincisi özellikle önemli çünkü **yön
+değişmemişti** — yalnızca onu taşıyan cümle eksikti, ve *"karar hâlâ
+doğru"* düzeltmeyi gereksiz kılmıyor.
+
+### Park edilmiş bir öneri, TETİĞİ yazılmazsa unutulmuş bir öneridir
+
+value kataloğu geri çekmedi, **tetiğiyle** park etti: *para zinciri
+indikten sonra elle eklenen kalem sayısı görünür olunca yeniden
+bakılacak; sıklık düşükse düşer.*
+
+> **Park, bir karar değil bir BEKLEME'dir — ve bekleyen şeyin neyi
+> beklediği yazılmazsa, bekleme sessizce reddetmeye dönüşür.**
+
+Bu, *"kesilen soru açık soru olarak yazılır"* kuralının öneri tarafı; ve
+tetiğin **ölçülebilir** olması (kalem sayısı) onu bir niyetten bir
+randevuya çeviriyor.
