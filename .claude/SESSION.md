@@ -42,8 +42,22 @@ burada:
 
 1. **Ölçüm masaüstü genişlikte yapıldı. 390 px'te HİÇBİR odak işareti
    ölçülmedi** — ve ürünün gerçekten kullanıldığı genişlik orası.
-2. Üst çubuğun altı denetimi sistemin desenini paylaşmıyor (3,11, eşiği
-   geçiyor, tutarlılık borcu).
+2. ~~Üst çubuğun altı denetimi sistemin desenini paylaşmıyor (3,11).~~
+   **BU SATIR v0.8.0 İÇİN DOĞRU, BUGÜN İÇİN DEĞİL — açık madde listesine
+   taşınmasın.** dev-ui `76c8dce` ile bir e2e nöbetçi indirdi ve **ilk
+   koşuşunda beş gerçek kusur buldu** (⌘K, üç tema segmenti, bir dil
+   segmenti — beşi de Chromium'un `rgb(0,95,204)` mavisine düşüyordu);
+   beşi de düzeltildi. *Var olmayan bir kusur için sipariş edilen test,
+   var olan beşini yakaladı.*
+   **"Beş mi altı mı" farkı da bir bulgu çıkardı:**
+   `components/locale-switcher.tsx:31` aktif dilin düğmesini `disabled`
+   yapıyor — odaklanamıyor, taramada görünmüyor. ux kodu okuyup **altı**
+   saydı, dev-ui odaklanabilirleri tarayıp **beş** buldu; **ikisi de
+   doğru.** Çıkan kusur: `ThemeToggle` üç segmentini de odaklanabilir
+   bırakıyor, `LocaleSwitcher` aktif olanı kapatıyor — aynı desende iki
+   model (18), ve bedeli **devre dışı bir denetim durumunu duyurmaz**:
+   klavyeyle gelen biri hangi dilin etkin olduğunu yalnızca renkten
+   okuyor. ux'te, tasarım kararı.
 
 **Adın kendisi onaylandı, geriye dönük ve artık sayıya dayanıyor:** etikette
 *"value'nun son ad onaylaması alınamadı"* diye açık bir madde duruyordu; ux

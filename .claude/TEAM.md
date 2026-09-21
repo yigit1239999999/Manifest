@@ -2551,3 +2551,24 @@ kuralının aynısı, başka bir işlemde.
 çelişen sürüm kararları verdi, ve durdurulan bir kopya dev-ui **ESLint'i
 düşen bir dosyayı ağaçta bıraktı** (araçları tur ortasında kapandı).
 İkincisi hatırlatıyor: **bir kopyayı durdurmak da bedelsiz değil.**
+
+### Sunulan derlemenin commit'i DALDA DURUYOR MU?
+
+Yeni bir zemin tuzağı, bu turda yaşandı: 3001 `2fdaa13`'ü sunuyordu ve
+`SERVED_COMMIT.txt` doğru yazıyordu — ama o commit **amend/rebase ile
+yeniden yazılmıştı** ve artık dalda yoktu. Yerine geçen `a1412c4` ile
+farkı `combobox.tsx`'te **95 satır**.
+
+**Yani dosya doğruydu, zemin yanlıştı.** Ölçen kişi hash'i okur, `git log`'da
+arar, **bulamaz** — ya da daha kötüsü aramaz ve var sanar.
+
+> **`SERVED_COMMIT.txt` yalnızca hangi commit'i değil, o commit'in hâlâ
+> dalın atası olup olmadığını da yazar.**
+
+Dosyaya `dalda mı:` satırı eklendi ve **derleme sırasında hesaplanıyor**,
+elle yazılmıyor — yine *"kural değil yer"*: satırın kendisi
+`git merge-base --is-ancestor`'ın çıktısı.
+
+**Genel hâli:** bir kimlik kaydı, kimliğin **hâlâ geçerli olup olmadığını**
+taşımıyorsa yarımdır. Hash bir isimdir; **isim, işaret ettiği şey
+silindiğinde de aynı görünür.**
