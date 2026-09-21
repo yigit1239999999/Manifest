@@ -19,6 +19,14 @@ beforeAll(() => {
   };
 });
 
+// `StaffStatusButton` refreshes the list itself after a successful switch,
+// so it reads the router. Nothing here asserts on the refresh; the mock only
+// gives the component the router a page would.
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+}));
+
 const withIntl = (ui: React.ReactNode) =>
   render(
     <NextIntlClientProvider locale="tr" messages={tr}>
