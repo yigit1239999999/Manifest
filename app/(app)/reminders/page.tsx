@@ -218,6 +218,14 @@ export default async function RemindersPage({
               id: c.id,
               firstName: c.firstName,
               lastName: c.lastName,
+              // Consent and number, so the form can say before it saves
+              // that this reminder will never reach anybody. The search
+              // path carries the same two fields, because a warning that
+              // only works while the clinic is small is worse than none:
+              // it is right often enough to be trusted, and absent
+              // exactly when the list got long enough to be capped.
+              phone: c.phone,
+              notificationsOptIn: c.notificationsOptIn,
             }))}
             pets={pets.items.map((p) => ({
               id: p.id,

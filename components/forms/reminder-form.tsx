@@ -10,6 +10,7 @@ import { Combobox, type ComboOption } from "@/components/ui/combobox";
 import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Callout } from "@/components/ui/callout";
 import { SubmitButton } from "@/components/submit-button";
 import { REMINDER_TYPES } from "@/modules/reminders/schema";
 import { createReminderAction } from "@/modules/reminders/actions";
@@ -17,8 +18,21 @@ import { searchClientsAction } from "@/modules/clients/actions";
 import { searchPetsAction } from "@/modules/pets/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
+/**
+ * Whether a message can reach this client at all.
+ *
+ * `null` for a client we know nothing about: one reached through the
+ * animal picker, whose owner arrives with a name and nothing else. The
+ * form then says nothing rather than guessing, because a warning that is
+ * wrong is worse than one that is missing (TEAM.md #21).
+ */
+type Contactable = Pick<Client, "phone" | "notificationsOptIn">;
+
 interface Props {
-  clients: Pick<Client, "id" | "firstName" | "lastName">[];
+  clients: Pick<
+    Client,
+    "id" | "firstName" | "lastName" | "phone" | "notificationsOptIn"
+  >[];
   /** See `InvoiceForm`: true when the list was cut off at its cap. */
   clientsCapped?: boolean;
   /**
@@ -59,6 +73,11 @@ export function ReminderForm({
     [clients],
   );
 
+  const handedContact = useMemo(
+    () => new Map(clients.map((c) => [c.id, c as Contactable])),
+    [clients],
+  );
+
   // The pair, not the id: both pickers are handed a capped fifty, and
   // each can be given a record that is not on its own list — the owner
   // filled in from an animal, or a default arriving in the URL.
@@ -70,6 +89,31 @@ export function ReminderForm({
   };
 
   const [client, setClient] = useState<ComboOption | null>(initialClient);
+  // Consent and number for the client currently chosen.
+  //
+  // Held as state and set in the handlers, not read from a ref during
+  // render, for the reason `petOwner` below carries: a ref read while
+  // rendering is a value React has not agreed to re-run for.
+  const [contact, setContact] = useState<Contactable | null>(
+    () => handedContact.get(defaultClientId ?? "") ?? null,
+  );
+  // Learned from the search, which carries consent and number with every
+  // hit precisely so this path is not the blind one.
+  const searchedContact = useRef(new Map<string, Contactable>());
+  const searchClients = useCallback(async (term: string) => {
+    const found = await searchClientsAction(term);
+    for (const o of found.options)
+      searchedContact.current.set(o.value, {
+        phone: o.phone,
+        notificationsOptIn: o.notificationsOptIn,
+      });
+    return {
+      options: found.options.map(({ value, label }) => ({ value, label })),
+      hasMore: found.hasMore,
+    };
+  }, []);
+  const contactFor = (id: string) =>
+    handedContact.get(id) ?? searchedContact.current.get(id) ?? null;
   const [pet, setPet] = useState<ComboOption | null>(initialPet);
   const clientId = client?.value ?? "";
 
@@ -176,7 +220,32 @@ export function ReminderForm({
     setClient(initialClient);
     setPet(initialPet);
     setPetOwner(null);
+    setContact(handedContact.get(defaultClientId ?? "") ?? null);
   }
+
+  /**
+   * Why no message will reach this client, or null when one will.
+   *
+   * Same order as `reminderDeliveryState` on the server, and that is the
+   * point rather than a coincidence: the form and the row have to give the
+   * same answer about the same client, or the vet is told one thing before
+   * saving and another one line later.
+   *
+   * The reminder is still saved. It is a note to the vet as much as a
+   * message to the owner, and refusing to write it down would take away
+   * the half that does work -- the screen says what will not happen, it
+   * does not decide for anyone.
+   */
+  const unreachable =
+    !contact
+      ? null
+      : contact.notificationsOptIn === null
+        ? "neverAsked"
+        : contact.notificationsOptIn === false
+          ? "optedOut"
+          : !contact.phone
+            ? "noPhone"
+            : null;
 
   return (
     <ActionForm
@@ -197,10 +266,13 @@ export function ReminderForm({
           required
           options={clientOptions}
           value={client}
-          onValueChange={(_, option) => setClient(option)}
+          onValueChange={(_, option) => {
+            setClient(option);
+            setContact(option ? contactFor(option.value) : null);
+          }}
           placeholder={tCommon("searchOrType")}
           noResultsLabel={tCommon("noResults")}
-          onSearch={clientsCapped ? searchClientsAction : undefined}
+          onSearch={clientsCapped ? searchClients : undefined}
           hasMore={clientsCapped}
           searchHintLabel={tCommon("searchMinChars")}
             searchingLabel={tCommon("searching")}
@@ -234,7 +306,17 @@ export function ReminderForm({
                 ? { value: handed.ownerId, label: handed.ownerName }
                 : searchedOwners.current.get(v);
               setPetOwner(owner ?? null);
-              if (owner) setClient(owner);
+              if (owner) {
+                setClient(owner);
+                // An owner reached through an animal found by search
+                // arrives with a name and nothing else, so this is `null`
+                // and the warning stays quiet. Not a silent gap worth
+                // papering over: saying "no consent" about a client whose
+                // consent we have not read would be a wrong warning, and
+                // a wrong one costs more than a missing one. The list
+                // itself still says it, on the row, after saving.
+                setContact(contactFor(owner.value));
+              }
             }}
             placeholder={tCommon("searchOrType")}
             noResultsLabel={tCommon("noResults")}
@@ -279,6 +361,18 @@ export function ReminderForm({
           required
         />
       </Field>
+      {/* Under the two pickers, before the fields that describe the work:
+          the answer belongs next to the question that produced it, and a
+          notice below the save button is read after the decision it was
+          meant to inform. `live`, because it appears in response to a
+          choice rather than as part of the first paint. */}
+      {unreachable && (
+        <div className="sm:col-span-2">
+          <Callout variant="warning" live>
+            {t(`unreachable.${unreachable}`)} {t("unreachable.savedAnyway")}
+          </Callout>
+        </div>
+      )}
       <div className="sm:col-span-2">
         <Field label={t("name")} error={state.fieldErrors?.title} required>
           <Input name="title" required />

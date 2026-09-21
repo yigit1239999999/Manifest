@@ -528,6 +528,12 @@
     "emptyClosed": "No closed reminders.",
     "emptyClosedHint": "Reminders you have completed, or closed because they were no longer needed, collect here.",
     "sendNow": "Send now",
+    "unreachable": {
+      "neverAsked": "This client has never been asked for notification consent.",
+      "optedOut": "This client has not given notification consent.",
+      "noPhone": "This client has no phone number on record.",
+      "savedAnyway": "The reminder is saved, but no message goes out."
+    },
     "delivery": {
       "scheduled": "Will be sent: {at} · {channel}",
       "sent": "Sent: {at} · {channel}",

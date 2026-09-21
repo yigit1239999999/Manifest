@@ -528,6 +528,12 @@
     "emptyClosed": "Kapatılmış hatırlatma yok.",
     "emptyClosedHint": "Tamamladığınız ya da gerek kalmadığı için kapattığınız hatırlatmalar burada birikir.",
     "sendNow": "Şimdi gönder",
+    "unreachable": {
+      "neverAsked": "Bu müşteriye bildirim onayı hiç sorulmamış.",
+      "optedOut": "Bu müşteri bildirim onayı vermemiş.",
+      "noPhone": "Bu müşterinin kayıtlı telefon numarası yok.",
+      "savedAnyway": "Hatırlatma kaydedilir ama mesaj gönderilmez."
+    },
     "delivery": {
       "scheduled": "Gönderilecek: {at} · {channel}",
       "sent": "Gönderildi: {at} · {channel}",

@@ -13,7 +13,14 @@ vi.mock("@/modules/reminders/actions", () => ({
 // picker's "there is more" note depends on it.
 const { searchClients, searchPets } = vi.hoisted(() => ({
   searchClients: vi.fn(async () => ({
-    options: [] as { value: string; label: string }[],
+    // Consent and number ride along with every hit, so the warning is
+    // not blind on the one path a big clinic actually uses.
+    options: [] as {
+      value: string;
+      label: string;
+      phone: string | null;
+      notificationsOptIn: boolean | null;
+    }[],
     hasMore: false,
   })),
   searchPets: vi.fn(async () => ({
@@ -42,9 +49,26 @@ import { ReminderForm } from "@/components/forms/reminder-form";
 // forms the server would reject, one level in: not a door that shuts, a
 // list with the wrong things in it.
 
+// Ayşe can be reached, so the tests about the pickers see no warning;
+// Mehmet has never been asked, which is the case the warning was written
+// for. The remaining two ways out of reach are handed in per test rather
+// than added here, because every list assertion in this file counts these
+// rows.
 const CLIENTS = [
-  { id: "c-1", firstName: "Ayşe", lastName: "Demir" },
-  { id: "c-2", firstName: "Mehmet", lastName: "Kaya" },
+  {
+    id: "c-1",
+    firstName: "Ayşe",
+    lastName: "Demir",
+    phone: "0532 000 00 00",
+    notificationsOptIn: true,
+  },
+  {
+    id: "c-2",
+    firstName: "Mehmet",
+    lastName: "Kaya",
+    phone: "0533 111 11 11",
+    notificationsOptIn: null,
+  },
 ];
 
 const PETS = [
@@ -139,7 +163,14 @@ describe("reaching a record the handed list does not contain", () => {
   it("asks the server, and keeps showing what the page already sent", async () => {
     vi.useFakeTimers();
     searchClients.mockResolvedValue({
-      options: [{ value: "c-9", label: "Zeynep Yılmaz" }],
+      options: [
+        {
+          value: "c-9",
+          label: "Zeynep Yılmaz",
+          phone: "0536 444 44 44",
+          notificationsOptIn: true,
+        },
+      ],
       hasMore: false,
     });
     renderForm({ clientsCapped: true });
@@ -231,5 +262,109 @@ describe("searching for an animal once the client is known", () => {
     // owner is the answer, so narrowing to nothing would be narrowing
     // to no clinic at all.
     expect(searchPets).toHaveBeenCalledWith("kar", undefined);
+  });
+});
+
+/**
+ * The form says, before it writes anything, that this reminder will never
+ * reach anybody.
+ *
+ * The vet who found this described exactly what it costs: "I can set a
+ * reminder for a client with no consent and it quietly does not go. If
+ * there is no consent, either stop me or tell me while I am setting it —
+ * if I knew, I would pick up the phone. Right now no message goes out and
+ * I do not call either, and the patient is lost between the two."
+ *
+ * Telling, not stopping: a reminder is a note to the vet as much as a
+ * message to the owner, so the save still happens. The screen says what
+ * will not happen; it does not decide for anyone.
+ */
+describe("warning that this reminder cannot reach anyone", () => {
+  const warning = () =>
+    screen.queryByText(new RegExp(tr.reminder.unreachable.savedAnyway));
+
+  // The picker's own 200ms debounce, waited out with real timers; the
+  // same helper the animal-search block keeps for itself.
+  async function typeInto(field: RegExp, text: string) {
+    const input = picker(field);
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: text } });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 260));
+    });
+  }
+
+  it("stays quiet for a client who can be reached", () => {
+    renderForm();
+    choose(/müşteri/i, "Ayşe Demir");
+
+    expect(warning()).not.toBeInTheDocument();
+  });
+
+  // `null` and `false` are different answers with different work attached,
+  // and the column's own comment forbids collapsing them. Nobody asked is
+  // a phone call; refused is a client to leave alone.
+  it("tells a question never asked apart from a refusal", () => {
+    const { unmount } = renderForm();
+    choose(/müşteri/i, "Mehmet Kaya");
+    expect(screen.getByText(/hiç sorulmamış/)).toBeInTheDocument();
+    unmount();
+
+    renderForm({
+      clients: [
+        {
+          id: "c-9",
+          firstName: "Zeynep",
+          lastName: "Arslan",
+          phone: "0534 222 22 22",
+          notificationsOptIn: false,
+        },
+      ],
+    });
+    choose(/müşteri/i, "Zeynep Arslan");
+    expect(screen.getByText(/onayı vermemiş/)).toBeInTheDocument();
+  });
+
+  it("warns when there is consent but no number to send to", () => {
+    renderForm({
+      clients: [
+        {
+          id: "c-9",
+          firstName: "Hasan",
+          lastName: "Yıldız",
+          phone: null,
+          notificationsOptIn: true,
+        },
+      ],
+    });
+    choose(/müşteri/i, "Hasan Yıldız");
+
+    expect(screen.getByText(/telefon numarası yok/)).toBeInTheDocument();
+  });
+
+  // It has to survive the capped path, which is the one the warning would
+  // otherwise be missing from — and missing exactly when the clinic got
+  // big enough for the page's own list to be cut off. A warning that is
+  // right often enough to be trusted and absent when it matters is worse
+  // than no warning at all, which is why `searchClientsAction` carries
+  // consent and number with every hit.
+  it("works for a client reached through the search", async () => {
+    searchClients.mockResolvedValue({
+      options: [
+        {
+          value: "c-far",
+          label: "Uzak Müşteri",
+          phone: "0535 333 33 33",
+          notificationsOptIn: null,
+        },
+      ],
+      hasMore: false,
+    });
+    renderForm({ clientsCapped: true });
+
+    await typeInto(/müşteri/i, "uza");
+    fireEvent.mouseDown(screen.getByText("Uzak Müşteri"));
+
+    expect(screen.getByText(/hiç sorulmamış/)).toBeInTheDocument();
   });
 });
