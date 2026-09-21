@@ -113,6 +113,70 @@ describe("createPet", () => {
     });
   });
 
+  it("looks for a species the way the clinic would recognise it", async () => {
+    // "Kopek" and "Köpek" are one species to a vet and were two rows to
+    // the product: the dedupe read used `mode: "insensitive"`, which is
+    // ILIKE, which folds case and nothing else. Unlike a search that
+    // misses, this one writes -- the second row is permanent, the
+    // picker offers both forever, and animals get filed under either.
+    //
+    // Asserted on the query rather than the outcome, because the
+    // outcome here is a row that does not get created and every wrong
+    // version of this code also does not create it, for the wrong
+    // reason.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue({ id: "cs-9" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: "Kopek" }, ctx);
+
+    expect(prisma.customSpecies.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { clinicId: ctx.clinicId, nameKey: "kopek" },
+      }),
+    );
+  });
+
+  it("takes the other request's species when two vets add it at once", async () => {
+    // The read above cannot close the window: both requests find
+    // nothing and both insert. The unique index decides, and the loser
+    // has to end up with the winner's row rather than an error shown to
+    // a vet who did nothing wrong.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: "cs-winner" } as never);
+    vi.mocked(prisma.customSpecies.create).mockRejectedValue(
+      Object.assign(new Error("duplicate key"), { code: "P2002" }),
+    );
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+
+    await createPet({ ...validInput, species: "Papağan" }, ctx);
+
+    expect(prisma.pet.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        species: "OTHER",
+        customSpeciesId: "cs-winner",
+      }),
+    });
+  });
+
+  it("does not swallow a failure that is not a lost race", async () => {
+    // The catch is narrow on purpose. Widening it would turn a real
+    // database failure into "species not found", which is a lie the
+    // next person would debug from the wrong end.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.customSpecies.create).mockRejectedValue(
+      Object.assign(new Error("connection reset"), { code: "P1001" }),
+    );
+
+    await expect(
+      createPet({ ...validInput, species: "Papağan" }, ctx),
+    ).rejects.toThrow("connection reset");
+    expect(prisma.pet.create).not.toHaveBeenCalled();
+  });
+
   it("rejects a custom:<id> reference from another clinic", async () => {
     vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
     vi.mocked(prisma.customSpecies.findFirst).mockResolvedValue(null);

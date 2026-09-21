@@ -53,6 +53,20 @@ export const forbidden = (messageKey = "error.forbidden"): AppError =>
 export const conflict = (messageKey: string): AppError =>
   new AppError("CONFLICT", messageKey);
 
+/**
+ * A unique index refused the row.
+ *
+ * Not the same predicate as `lostTheRace` in
+ * `modules/appointments/service.ts`, which also accepts P2034: that one
+ * wraps a serializable transaction and a serialization failure is one of
+ * its ordinary outcomes. Here there is no transaction to retry -- the
+ * only question is whether somebody else inserted the same row first --
+ * so widening it would swallow a different kind of failure.
+ */
+export function isUniqueViolation(error: unknown): boolean {
+  return (error as { code?: unknown } | null)?.code === "P2002";
+}
+
 // Compile-time roster of every entity key that lives under
 // `error.entity.*` in messages/{en,tr}.json. Keep these in sync.
 export type EntityNouns = {

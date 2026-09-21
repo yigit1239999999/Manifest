@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { notFound, validationFailed } from "@/lib/errors";
+import { isUniqueViolation, notFound, validationFailed } from "@/lib/errors";
 import { redact, withAudited, writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { Species } from "@/generated/prisma/enums";
+import { fold } from "@/lib/search";
 import { SPECIES, type PetInput } from "./schema";
 
 async function assertOwnerInClinic(ownerId: string, clinicId: string) {
@@ -47,16 +48,38 @@ async function resolveSpecies(
   if (!name)
     throw validationFailed({ species: ["error.validation.speciesUnknown"] });
 
+  // Folded, not `mode: "insensitive"`. ILIKE folds case and nothing
+  // else, so "Kopek" did not find "Köpek" and the clinic ended up with
+  // both: the picker offered two species forever, animals were filed
+  // under either, and nothing in the product can merge them back. A
+  // search that misses is recoverable by typing again; this one writes.
+  const nameKey = fold(name);
   const existing = await prisma.customSpecies.findFirst({
-    where: { clinicId: ctx.clinicId, name: { equals: name, mode: "insensitive" } },
+    where: { clinicId: ctx.clinicId, nameKey },
     select: { id: true },
   });
   if (existing) return { species: "OTHER", customSpeciesId: existing.id };
 
-  const created = await prisma.customSpecies.create({
-    data: { clinicId: ctx.clinicId, name },
-    select: { id: true },
-  });
+  let created: { id: string };
+  try {
+    created = await prisma.customSpecies.create({
+      data: { clinicId: ctx.clinicId, name },
+      select: { id: true },
+    });
+  } catch (e) {
+    // Two vets adding "Papağan" in the same second both read nothing
+    // and both insert. The read above cannot close that window and the
+    // unique index can, so the loser reads the winner's row instead of
+    // failing at a vet who did nothing wrong.
+    if (!isUniqueViolation(e)) throw e;
+    const winner = await prisma.customSpecies.findFirst({
+      where: { clinicId: ctx.clinicId, nameKey },
+      select: { id: true },
+    });
+    if (!winner) throw e;
+    return { species: "OTHER", customSpeciesId: winner.id };
+  }
+
   await writeAudit({
     clinicId: ctx.clinicId,
     actorId: ctx.userId,
