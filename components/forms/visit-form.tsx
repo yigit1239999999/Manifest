@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { useLocale, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
@@ -17,13 +17,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { VISIT_TYPES } from "@/modules/appointments/schema";
 import {
-  createVisitAction,
+  createVisitIntakeAction,
   updateVisitAction,
 } from "@/modules/visits/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import { searchPetsAction } from "@/modules/pets/actions";
 import { petRowCaption, petRowLabel } from "@/lib/pet-label";
-import { createHref } from "@/lib/next-param";
+import { NewPetBlock, type OpenedWith } from "@/components/forms/new-pet-block";
+import { readDraft } from "@/lib/form-draft";
+import type { HiddenSpecies } from "@/components/species-picker";
 
 interface Props {
   visit?: Visit;
@@ -68,6 +70,33 @@ interface Props {
    * it was a guess nobody could see.
    */
   defaultVetId?: string;
+  /**
+   * Everything the block inside this form needs to open an animal and
+   * its owner, assembled by the page from the same queries
+   * `pets/new/page.tsx` runs.
+   *
+   * Absent on an edit, where there is no such block: a visit being
+   * corrected cannot grow a new animal, and the schema that would
+   * write one is deliberately a different schema.
+   */
+  owners?: { id: string; firstName: string; lastName: string | null }[];
+  ownersCapped?: boolean;
+  speciesChoices?: { value: string; label: string; icon?: string }[];
+  hiddenBuiltIns?: HiddenSpecies[];
+  hiddenQualifier?: string;
+  manageHref?: string;
+  /**
+   * What the reader is allowed to write, decided where the service
+   * decides it (`lib/permissions.ts`).
+   *
+   * Not decoration: `createVisitWithIntake` requires `pets.write` for
+   * the animal and `clients.write` for the owner, so an offer this
+   * reader cannot take is a server error rather than a message under a
+   * field. A receptionist who may record visits but not open records
+   * gets the picker without the offer, which is the honest screen.
+   */
+  canCreatePet?: boolean;
+  canCreateOwner?: boolean;
 }
 
 export function VisitForm({
@@ -78,8 +107,15 @@ export function VisitForm({
   defaultPetId,
   defaultPetLabel,
   defaultVetId,
+  owners = [],
+  ownersCapped,
+  speciesChoices = [],
+  hiddenBuiltIns,
+  hiddenQualifier,
+  manageHref,
+  canCreatePet = false,
+  canCreateOwner = false,
 }: Props) {
-  const router = useRouter();
   const locale = useLocale();
   const petOptions = useMemo(
     () =>
@@ -94,11 +130,59 @@ export function VisitForm({
   const tCommon = useTranslations("common");
   const tType = useTranslations("enum.visitType");
   const tPet = useTranslations("pet");
+  // One action for a new visit, whether or not the block is open.
+  // `visitIntakeSchema` is `visitSchema` with the two extra branches,
+  // and `intakeFrom` hands a plain submission straight through -- so a
+  // visit recorded against an animal already on file takes exactly the
+  // path it always did, and there is no second code path to keep in
+  // step with this one.
   const action = visit
     ? updateVisitAction.bind(null, visit.id)
-    : createVisitAction;
+    : createVisitIntakeAction;
   const form = useActionForm(action, {});
   const { state } = form;
+
+  // The block, and the four ways it comes to be open.
+  //
+  // Opened by hand from the picker's "create" row; reopened by a
+  // rejected submit, which echoes the submission back with the intent
+  // in it; reopened by a draft, for the vet who left this form and came
+  // back to it; and closed by "never mind", which drops the intent so
+  // the animal box goes back to being a choice.
+  //
+  // The submission and the draft are read HERE rather than left to
+  // `ActionForm`. It restores by writing into controls that already
+  // exist, and the block is precisely the controls that do not: by the
+  // time it is on screen that pass has run. So whatever reopens it also
+  // hands it its values.
+  //
+  // Read during the first render, the way `ActionForm` reads the same
+  // key, because a block that appeared one render later would arrive
+  // after the restore and after the cursor had been placed.
+  const [restoredDraft] = useState<Record<string, string> | null>(() =>
+    visit || typeof window === "undefined" ? null : readDraft("visit:new"),
+  );
+  const [creating, setCreating] = useState<OpenedWith | null>(
+    restoredDraft?.["newPet[intent]"] === "1"
+      ? { petName: "", ownerQuery: "" }
+      : null,
+  );
+
+  // A rejected submit is a server response, not an event this form can
+  // subscribe to, so it is read as it arrives rather than in an effect:
+  // the block has to be in the SAME render as the values that refill
+  // it. Same shape as the response bookkeeping in `useActionForm`.
+  const echoed = state.values;
+  const [seenValues, setSeenValues] = useState(echoed);
+  if (seenValues !== echoed) {
+    setSeenValues(echoed);
+    if (echoed?.["newPet[intent]"] === "1" && !creating) {
+      setCreating({ petName: "", ownerQuery: "" });
+    }
+  }
+
+  const blockValues =
+    echoed?.["newPet[intent]"] === "1" ? echoed : (restoredDraft ?? undefined);
 
   return (
     <ActionForm
@@ -120,11 +204,20 @@ export function VisitForm({
           {/* See `InvoiceForm`: searchable only once the list is short
               of the whole clinic. */}
           <Combobox
+            // Remounted when the block opens or closes, and that is
+            // what empties the hidden id: the vet had picked Zeytin,
+            // changed their mind and asked for a new animal, and the
+            // id left behind would otherwise be what the visit was
+            // written against. The typed text survives as the label,
+            // so the box still shows what they asked for.
+            key={creating ? "creating" : "picking"}
             name="petId"
             required
             options={petOptions}
-            defaultValue={visit?.petId ?? defaultPetId ?? ""}
-            defaultLabel={defaultPetLabel}
+            defaultValue={creating ? "" : (visit?.petId ?? defaultPetId ?? "")}
+            defaultLabel={
+              creating ? creating.petName || creating.ownerQuery : defaultPetLabel
+            }
             placeholder={tCommon("searchOrType")}
             noResultsLabel={tCommon("noResults")}
             onSearch={petsCapped ? searchPetsAction : undefined}
@@ -138,15 +231,18 @@ export function VisitForm({
             // that asks for one: "the dog is on the table, the owner is
             // crying, and what I got was not a blank page but a door".
             //
-            // Only on a new visit. The walk back is `?next=`, and an
-            // existing visit's own address is not somewhere a chain may
-            // resume (`ALLOWED_PATHS`), so offering it there would send
-            // the vet to the animal's page with the edit abandoned.
+            // It used to walk to `/pets/new` and back with `?next=`,
+            // which kept the errand but not the minute: a visit half
+            // typed had to survive two screens and a return. Now the
+            // form grows the block instead and the address never
+            // changes.
+            //
+            // Only on a new visit: an edit cannot create an animal, and
+            // the schema that would is deliberately a different one.
             onCreate={
-              visit
+              visit || !canCreatePet
                 ? undefined
-                : (typed) =>
-                    router.push(createHref("/pets/new", typed, "/visits/new"))
+                : (typed) => setCreating({ petName: typed, ownerQuery: "" })
             }
             createLabel={(typed) => tPet("createNamed", { name: typed })}
           />
@@ -165,6 +261,28 @@ export function VisitForm({
           </Select>
         </Field>
       </div>
+
+      {creating && (
+        <NewPetBlock
+          petName={creating.petName}
+          ownerQuery={creating.ownerQuery}
+          values={blockValues}
+          errors={state.fieldErrors}
+          // Flushed, because the draft is written by the form's own
+          // click handler as this click bubbles past it: without the
+          // synchronous commit the hidden intent is still in the DOM
+          // when the snapshot is taken, and a block somebody closed
+          // would be waiting for them when they came back.
+          onCancel={() => flushSync(() => setCreating(null))}
+          owners={owners}
+          ownersCapped={ownersCapped}
+          canCreateOwner={canCreateOwner}
+          speciesChoices={speciesChoices}
+          hiddenBuiltIns={hiddenBuiltIns}
+          hiddenQualifier={hiddenQualifier}
+          manageHref={manageHref}
+        />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("visitedAt")} error={state.fieldErrors?.visitedAt} required>

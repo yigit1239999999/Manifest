@@ -7,11 +7,15 @@ import tr from "@/messages/tr.json";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/modules/visits/actions", () => ({
   createVisitAction: async () => ({}),
+  createVisitIntakeAction: async () => ({}),
   updateVisitAction: async () => ({}),
 }));
 vi.mock("@/modules/appointments/actions", () => ({
   createAppointmentAction: async () => ({}),
   updateAppointmentAction: async () => ({}),
+}));
+vi.mock("@/modules/clients/actions", () => ({
+  searchClientsAction: async () => ({ options: [], hasMore: false }),
 }));
 vi.mock("@/modules/pets/actions", () => ({
   searchPetsAction: async () => ({ options: [], hasMore: false }),

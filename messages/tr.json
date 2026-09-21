@@ -299,6 +299,8 @@
     "chiefComplaint": "Ana şikayet",
     "vet": "Veteriner",
     "vetYou": "{name} (siz)",
+    "newPetLegend": "Yeni hayvan: {name}",
+    "newOwnerLegend": "Yeni sahip: {name}",
     "soap": "SOAP notları",
     "subjective": "Anamnez (S)",
     "objective": "Klinik bulgular (O)",

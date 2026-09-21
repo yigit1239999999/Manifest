@@ -299,6 +299,8 @@
     "chiefComplaint": "Chief complaint",
     "vet": "Veterinarian",
     "vetYou": "{name} (you)",
+    "newPetLegend": "New animal: {name}",
+    "newOwnerLegend": "New owner: {name}",
     "soap": "SOAP notes",
     "subjective": "Subjective",
     "objective": "Objective",

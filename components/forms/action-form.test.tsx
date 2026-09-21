@@ -7,6 +7,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/modules/visits/actions", () => ({
   createVisitAction: async () => ({}),
+  createVisitIntakeAction: async () => ({}),
   updateVisitAction: async () => ({}),
 }));
 vi.mock("@/modules/clients/actions", () => ({
