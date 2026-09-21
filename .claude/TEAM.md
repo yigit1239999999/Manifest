@@ -5,6 +5,77 @@ kurallarıdır.
 Her ajan kendi tanımına ek olarak bunu uygular. Kurallar çalışırken kazanıldı;
 her biri gerçek bir hatanın veya doğru kararın karşılığıdır.
 
+## SAYI ODAKLI YAKLAŞIM İNDİRİLDİ — dışarıya bakılacak (21 Eylül 2026, kullanıcı kararı)
+
+**Bu bölüm dosyanın geri kalanını yönetir. Aşağıdaki hiçbir kural, bu
+bölümle çatıştığında geçerli değildir.**
+
+Kullanıcının kendi cümlesi: *"bir de sayı odaklı yaklaşımımız yanlış
+olabilir. Teams'ten onu çıkaralım bence. Çünkü uygulama şu an tamamen
+testte, prodda değil. Biraz daha dünya çapında uygulamalara bakmalıyız
+gibi geliyor yaklaşımlarımızda."*
+
+Gerekçe bizim değil kullanıcının, ve doğrudur: **bu ürünün henüz gerçek
+kullanıcısı yok.** Sayıyla önceliklendirme, gerçek kullanımı olan bir
+üründe anlamlıdır — orada sayı, insanların ne yaptığının izidir. Burada
+öyle bir iz yok. Elimizdeki sayılar kendi fikstürlerimizden, kendi
+kurduğumuz zeminlerden ve kendi yazdığımız senaryolardan çıkıyor. Böyle
+bir sayı bir şeyi kanıtlamaz; yalnız **kendimizi ikna eder**, ve bu en
+tehlikeli ikna biçimidir çünkü rakam gibi görünür.
+
+### Ne durdu
+
+- **Sayı, kalitenin ölçütü olmaktan çıktı.** "Şu ekranda kaç alan var",
+  "kaç ekran gezildi", "kaç saniyede açıldı" — bunlar artık bir şeyin iyi
+  olduğunun kanıtı değil. Kullanıcı bu çerçeveyi bir kez zaten reddetti:
+  ekip onboarding'i *"10 ekrandan 6'ya indirdik"* diye ölçtüğünde cevabı
+  *"onboarding'i çok çok zayıf kılmış, world class değil"* oldu. Sayı
+  düşmüştü; ürün iyileşmemişti.
+- **Sayı, ne yapacağımızın gerekçesi olmaktan çıktı.** Bir işin sıraya
+  girme sebebi artık "şu sayı şu kadar" değil.
+- **Kendi ürettiğimiz veriden çıkarılan sayı kanıt sayılmaz.** Fikstür,
+  seed, e2e ve elle kurulmuş klinikler bizim yazdığımız şeylerdir.
+
+### Ne yerine geçti
+
+**Dünya çapındaki uygulamalara bakmak.** Bir akışı tasarlarken ilk soru
+*"sayı ne diyor"* değil, **"bunu dünyada en iyi yapan ürün nasıl
+yapıyor, ve neden öyle yapıyor"**. Sonra: hangi parçası bu ürüne uyar,
+hangisi uymaz, **niçin uymaz**. Uymayanı ayıklamak en az uyanı getirmek
+kadar değerlidir; bu ürün şişirilmeye değil sadeleştirilmeye çalışılıyor.
+
+Bakılan şey adıyla yazılır. *"Top uygulamalarda böyle"* bir gerekçe
+değildir — hangi ürün, hangi ekran, ne yapıyor, o yazılır.
+
+Zaten yazılı olan 23. kural bu bölümün özüdür ve artık ölçütün kendisidir:
+**"Ölçüt 'hata yok' değil, 'world-class'. Bir akış teknik olarak geçtiği
+hâlde ucuz veya hantal görünüyorsa, bu bir bulgudur."**
+
+### Ne DURMADI, ve ayrım burada
+
+İki ayrı şey aynı kelimeyle yazılmıştı. Yalnız biri indi:
+
+| durdu | durmadı |
+|---|---|
+| Sayıyla **karar vermek** — neyin iyi olduğu, neyin sıraya gireceği | Bir değişikliğin bir şeyi **bozmadığını görmek** |
+| Kendi fikstürümüzden çıkan rakamı **kanıt** saymak | Testin gerçekten bir şey tuttuğunu **mutasyonla** sınamak |
+| Kaliteyi **rakamla** savunmak | Ölçümün hangi **zeminde** alındığını yazmak |
+
+Yani: erişilebilirlik eşiği, mutasyon sınavı, zemin commit'i, "iddianı
+`dosya:satır` ile kanıtla" — **hepsi duruyor.** Bunlar kalite ölçütü
+değil, **kendimizi yanıltmama araçlarıdır**, ve bugün tam bu araçlar
+sayesinde sekiz dosyalık bir kayıp ve üç bayat zemin yakalandı.
+
+Ayrımın tek cümlelik hâli: **sayı artık ne yapacağımızı söylemiyor, ama
+yaptığımızın ne olduğunu hâlâ söylüyor.**
+
+### Bu bölümün kendi sınavı
+
+Bir bulgu yazarken sor: *bu sayıyı kim üretti?* Cevap "biz" ise, o sayı
+bir iddiayı destekleyemez — yalnız bir değişikliği tarif edebilir.
+
+---
+
 ## Önceliklendirme — kullanıcının koyduğu sıra (21 Eylül 2026)
 
 Kullanıcının kendi cümlesi: *"Olabildiğince UX odaklı bir uygulamaya
