@@ -895,6 +895,39 @@ tarafındaki hâli.**
 tech elendi, **klinisyen olmayan ADMIN elenmedi**"* — "kapandı" değil.
 Gerçek çaresi çok rollülük ve o bu paketin kırk katı.
 
+**12f. BİR KOLONU NULLABLE YAPMAK, HER OKUYUCUSUNU SAYMAYI GEREKTİRİR.**
+Alanı isteğe bağlı yapmak bir form kararı gibi görünür; oysa o kolonu okuyan
+**her** yer, bugüne kadar hiç karşılaşmadığı bir değerle karşılaşmaya başlar.
+Ve okuyucuların çoğu kolonun adını taşımaz, o yüzden karar verilen yerden
+görünmezler.
+
+22 Eylül'de `Client.lastName` isteğe bağlıyken `${firstName} ${lastName}`
+diye elle birleştiren **yedi** okuyucu vardı. `pm` ekranda **birini** gördü
+— hatırlatma formunun seçicisi — ve kapsamı doğru ölçtü: ekranda gerçekten
+tek yüzey vardı. Ama üçü ekrana değil **giden mesaja** yazıyordu:
+`modules/notifications/service.ts:188 · :971 · :1410` → `clientName` →
+`lib/messaging/sms-templates.ts` ve `lib/whatsapp/messages.ts` →
+**`Sayın ${ctx.clientName},`**
+
+Yani soyadsız müşteri *"Sayın Ayşe null, Limon için … randevunuz
+bulunmaktadır."* diye SMS alıyordu. `.trim()` kurtarmıyor: `` `${"Ayşe"}
+${null}`.trim() === "Ayşe null" ``.
+
+**Bunu üç şey aynı anda zor yapıyor:**
+- **Ekranda saymak yetmiyor.** "Kaç yerde görünüyor" sorusunun doğru cevabı,
+  "kaç yerde var" sorusunun yanlış cevabıydı — çünkü bazı okuyucular ekrana
+  değil dışarıya yazıyor.
+- **`null` sessizce dizeye dönüşüyor.** Tip sistemi durdurmuyor, test
+  durdurmuyor, ve çıktı "boş" değil **"null"**.
+- **Kusur, kolonu değiştiren commit'te doğmuyor;** o kolonda ilk `null`
+  değer yazıldığında doğuyor, yani günler sonra ve başka birinin işinde.
+
+**Yapılacak:** kolonu nullable yapan commit, `grep` ile **bütün** okuyucuları
+sayar ve hepsini aynı commit'te tek bir ortak biçimlendiriciye bağlar
+(burada `ownerLabel()`, `lib/pet-label.ts`). Sonra **statik bir nöbetçi**
+koyar: o ham desen kodda bir daha geçemesin. Yedincisi bugün bulundu,
+sekizincisi yarın yazılırdı.
+
 **13. Doldurulmayan girdi üzerine kurulan özellik, yapılmamış özellikten
 kötüdür** — çünkü yapılmış sanılır ve çalışmadığı fark edilmez. Bir akışın
 dayandığı alan pratikte boş kalıyorsa, asıl iş o alanın dolmasıdır.
