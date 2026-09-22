@@ -2969,6 +2969,37 @@ açılır liste panelidir (`absolute top-full`), ve yalnız **açıkken**.
 Kapalı hâlde hiçbir şey örtülmüyor. İki ölçüm farklı öğeden söz ederken
 birbirini yalanlıyor göründü.
 
+### Görevde bıraktığın TAHMİNİ silmeye gitmek, bulgunun kendisini bulduruyor
+
+`pm`'in kendi cümlesi, ve tekrarlanabilir kısmın dikkat olmadığını
+söylemek için yazdı:
+
+> Ekranda gördüğüm şey yalnız *"eşleşmeyen sorgu bir cümle eksik
+> söylüyor"*du; oraya kadar bu sıradan bir tutarsızlıktı. Testi açmamın
+> sebebi kendi taslağıma **"muhtemelen önceden beri böyle"** diye bir
+> tahmin yazmış olmamdı — **tahmini silmek için kaynağa gittim**, ve
+> `picker()` yardımcısının `onCreate` almadığını orada gördüm.
+
+Yani turun en değerli bulgusunu (kırmızıya dönemeyen yeşil bir test)
+ortaya çıkaran şey ölçüm değil, **bir tahminin görevde bırakılmaması**
+oldu.
+
+> **Kural: bir görev metnine yazdığın her "muhtemelen" / "sanırım" /
+> "önceden beri böyledir", teslimden önce ya kaynağa gidilip
+> DOĞRULANIR ya da "doğrulanmadı" diye işaretlenir.** Birincisi sık sık
+> bulgu üretir; ikincisi en azından sonraki okuyucuyu yanıltmaz.
+
+Ailesi: *"kanıtı varsayım sanma"* ile *"anlayamadım bir sonuçtur, yok
+bir iddiadır"*. Farkı şu — bu ikisi yanlış bir şey **yazmamayı**
+söylüyor, bu kural doğru olanı **aramaya** gönderiyor.
+
+**Ve aynı koşudan, aynı ailenin beşinci üyesi:** red sonrası alan
+taraması `e.value` okuduğu için **işaretlenmemiş onay kutularını da
+"dolu" saydı** (`phoneLater: "on"`, `consent` hem `true` hem `false`);
+doğrusu `.checked`. Sorulan soruyu (yazılan metin duruyor mu)
+bozmadığı için rapora girmedi ama `pm` yine de bildirdi. Bir okuma,
+yanlış olduğu hâlde **doğru cevabı vermiş** olabilir.
+
 ### Ölçüm noktaları koddan türetilir, cihazdan değil
 
 *"İki nokta bir bandı kapsamaz"* tespitinin yanlış çözümü nokta eklemektir:
