@@ -590,6 +590,42 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    kendi içinden gelen kanıtı: uyarı vardı, okundu, ve yine kaçtı —
    çare uyarıyı güçlendirmek değil, **indeksi paylaşmayı bırakmak.**
 
+   **Dördüncü madde, ve okumanın yakalayamadığı hâli o kapatıyor:
+   commit'ten önce sahnelenmiş yol SAYISINI yaz, sonra karşılaştır.**
+
+   ```
+   git diff --cached --name-only | wc -l
+   ```
+
+   Beklediğin sayıdan **fazlaysa** dur — başkasının işi indekstedir.
+   **Sıfırsa da dur** — ve bu hâl 22 Eylül'de `2ab2894`'ü üretti:
+   **456 dosyayı silen, boş ağaçlı bir commit.** Sebebi `$$`'ydi.
+   `dev-ui` kendi indeksini `"$CLAUDE_JOB_DIR/tmp/idx5.$$"` diye
+   adlandırmıştı; `$$` **her kabukta farklı bir PID** verir, yani
+   sahneleme bir dosyaya, commit **başka** bir dosyaya baktı. Git var
+   olmayan indeksi **boş** indeks sayar ve boşluğu sorgusuz commit eder.
+   Önceki üç commit'te aynı kalıp çalışmıştı, çünkü sahneleme ile commit
+   tesadüfen aynı kabuktaydı.
+
+   **Ve asıl ders mekanizmada değil, okumanın sınırında.** `dev-ui`
+   kuralın *"her yolu oku"* kısmını yaptı — ama boş indekste okunacak yol
+   yoktur, ve 456 satırlık bir **silme** listesini zaten kimse satır satır
+   okumaz. Bir liste ne kadar uzunsa, onu okuduğunu sanmak o kadar kolaydır;
+   **bir sayı ise tek bakışta yanlış çıkar.** Bu yüzden sayma adımı
+   okumanın yerine geçmez, **önüne** geçer: önce sayı tutuyor mu, sonra
+   yollar doğru mu.
+
+   İndeks dosyasının adı da bu yüzden **sabit** olur — `$$`, `$RANDOM`,
+   `mktemp` gibi her çağrıda değişen bir ad, sahneleme ile commit'in ayrı
+   kabuklarda olduğu anda sessizce boş indekse düşer. Kabuk değişse bile
+   aynı dosyaya bakmak istiyorsan adını kendin sabitle.
+
+   **Kurtarma, kaza olduğunda:** `git reset --soft HEAD~1` — hiçbir şey
+   push edilmediyse bozuk commit tarihten temizce çıkar, çalışma ağacına
+   dokunulmaz. **`git revert` kullanma:** 456 dosyayı silip geri koyan bir
+   çift commit tarihe yerleşir ve bu depo `git blame`'i sürekli kullanır
+   (AGENTS.md) — bütün dosyaların blame'i o çiftte düğümlenir.
+
 10. **Kimlik alanı yerinde düzeltilmez. Hekim bunu kendisi reddetti.**
    Bir seçicide yanlış kaydı seçmişken adı *"düzeltmek"*, gerçek bir
    insanın kaydını **sessizce başkasının adıyla** değiştirmektir.
