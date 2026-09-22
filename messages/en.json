@@ -224,7 +224,7 @@
     "one": "Client",
     "lastNameHint": "Leave it blank if you do not know it.",
     "phoneHint": "A client without a phone number cannot be sent reminders.",
-    "phoneLater": "Not now, ask later"
+    "phoneLater": "No number, ask later"
   },
   "pet": {
     "createNamed": "Add \"{name}\" as a new animal",

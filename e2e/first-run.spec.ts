@@ -310,55 +310,98 @@ test.describe("First run", () => {
     }
   });
 
-  // The chain walked down and then back up again, which is the half that
-  // was missing: before `?next=`, every save landed on the new record's
-  // own page and the vet had to remember the errand and navigate back --
-  // two manual steps in an eight-screen walk, taken on the day they know
-  // the product least.
-  test("a record made mid-errand comes back to the form that needed it", async ({
+  // The chain, walked the way it is now: not walked at all.
+  //
+  // This test used to measure the walk down and back up -- /visits/new
+  // to /pets/new to /clients/new and home again, with `?next=` and the
+  // typed name carried at every step. Nothing was lost on that walk and
+  // it is still the right behaviour for the two forms that HAVE such a
+  // chain. What it cost was the thing the vet described: the address
+  // changed twice while an examination sat half typed, on the day they
+  // know the product least.
+  //
+  // So the visit does not leave any more, and this is the same journey
+  // with the walking taken out: one screen, one save, three records.
+  test("a first morning is recorded without the screen ever changing", async ({
     page,
   }) => {
     await signUp(page, Date.now());
 
-    // Down: the vet types the animal's name into the visit, finds no
-    // such animal, and asks for one -- and the same again for its
-    // owner. Each step carries the address AND what was typed.
     await page.goto("/visits/new");
     const main = page.getByRole("main");
+
+    // The animal that is not on file, asked for from the box that
+    // wanted it.
     await main.getByRole("combobox", { name: /^pet$|^hayvan$/i }).fill("Limon");
     await main.getByRole("option", { name: /Limon/ }).last().click();
-    await expect(page).toHaveURL("/pets/new?next=%2Fvisits%2Fnew&name=Limon");
-    // Written once: the name is already in the animal form.
+    // The whole point, asserted first: the vet is still on the form
+    // they were filling in.
+    await expect(page).toHaveURL("/visits/new");
     await expect(page.getByLabel(/^name$|^isim$/i)).toHaveValue("Limon");
 
+    await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
+
+    // And its owner, from the box inside that block.
+    await main
+      .getByRole("combobox", { name: /^owner$|^sahibi$/i })
+      .fill("Ayşe Çelik");
+    await main.getByRole("option", { name: /Ayşe Çelik/ }).last().click();
+    await expect(page).toHaveURL("/visits/new");
+    await expect(page.getByLabel(/first name|^ad$/i)).toHaveValue("Ayşe");
+    await expect(page.getByLabel(/last name|soyad/i)).toHaveValue("Çelik");
+
+    // No number, and said out loud rather than left blank: the animal
+    // is on the table and the counter has not asked yet.
+    // By role, because the consent question two lines down offers a
+    // "Not now" of its own: they are different answers to different
+    // questions and the block says both.
+    await page
+      .getByRole("checkbox", { name: /no number|şimdi yok/i })
+      .check();
+
+    // One save for all three.
+    await page.getByRole("button", { name: /create visit|viziti kaydet/i }).click();
+    // Not `[^/]+`: that matches `/visits/new`, which is where a
+    // refused save leaves the vet standing.
+    await expect(page).toHaveURL(/\/visits\/(?!new$)[^/]+$/);
+    await expect(main).toContainText("Limon");
+    await expect(main).toContainText("Ayşe");
+
+    // And they are records, not a sentence on one page: the animal is
+    // findable tomorrow morning, and so is the person to ring.
+    await page.goto("/pets");
+    await expect(page.getByRole("main")).toContainText("Limon");
+    await page.goto("/clients");
+    await expect(page.getByRole("main")).toContainText("Ayşe");
+  });
+
+  // The chain itself is not gone, and this is where it still lives: an
+  // animal being registered on its own form still needs an owner, and
+  // that walk is one link rather than two.
+  test("a client made from the animal form comes back to it", async ({
+    page,
+  }) => {
+    await signUp(page, Date.now());
+
+    await page.goto("/pets/new");
+    const main = page.getByRole("main");
     await main
       .getByRole("combobox", { name: /^owner$|^sahibi$/i })
       .fill("Devrim Aksoy");
     await main.getByRole("option", { name: /Devrim Aksoy/ }).last().click();
     await expect(page).toHaveURL(/\/clients\/new\?.*name=Devrim\+Aksoy/);
-    // And again: the client form opens with the name split into it.
+    // The name arrives split into both halves, editable: a wrong guess
+    // costs a keystroke, retyping costs the thing the vet called a door.
     await expect(page.getByLabel(/first name|^ad$/i)).toHaveValue("Devrim");
     await expect(page.getByLabel(/last name|soyad/i)).toHaveValue("Aksoy");
 
-    // Up, one link: back on the animal form with the owner already in it.
-    await page.getByLabel(/phone|telefon/i).first().fill("0532 111 22 33");
+    await page.getByLabel(/^phone$|^telefon$/i).first().fill("0532 111 22 33");
     await page
       .getByRole("button", { name: /create client|müşteri oluştur/i })
       .click();
     await expect(page).toHaveURL(/\/pets\/new\?.*ownerId=/);
     await expect(page.getByLabel(/^owner$|^sahibi$/i)).toHaveValue(
       "Devrim Aksoy",
-    );
-
-    // Up, the last link: back on the visit form with the animal in it,
-    // named the way every other picker names one.
-    await page.getByLabel(/^name$|^isim$/i).fill("Zeytin");
-    await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
-    await page.getByLabel(/^sex$|^cinsiyet$/i).selectOption("FEMALE");
-    await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
-    await expect(page).toHaveURL(/\/visits\/new\?.*petId=/);
-    await expect(page.getByLabel(/^pet$|^hayvan$/i)).toHaveValue(
-      "Zeytin · Devrim Aksoy",
     );
   });
 

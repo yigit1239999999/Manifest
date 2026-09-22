@@ -207,14 +207,29 @@ export function NewPetBlock({
             rather than one screen away, for the reason this whole
             block exists. */}
         <Combobox
+          // Remounted when the owner block opens or closes, for the
+          // reason the animal picker is: what is in the box belongs to
+          // the answer the vet has moved on from. It comes back showing
+          // the name they typed, over an empty id.
+          key={creatingOwner ? "creating" : "picking"}
           name="newPet[ownerId]"
-          required
+          // The owner is required and the asterisk says so. What is
+          // dropped while the block below is open is the BROWSER's
+          // insistence: the answer is being typed underneath, the id is
+          // empty on purpose, and a native `required` on an empty
+          // picker refuses the submit with no message anywhere -- the
+          // save simply does not happen. The schema still refuses a new
+          // animal with neither an owner nor an owner being written
+          // down (`visitIntakeSchema`).
+          required={!creatingOwner}
           options={ownerOptions}
-          defaultValue={openedOwnerId}
+          defaultValue={creatingOwner ? "" : openedOwnerId}
           defaultLabel={
-            openedOwnerId
-              ? (matchedOwner?.label ?? values?.["newOwner[firstName]"])
-              : ownerQuery || undefined
+            creatingOwner
+              ? ownerName || undefined
+              : openedOwnerId
+                ? (matchedOwner?.label ?? values?.["newOwner[firstName]"])
+                : ownerQuery || undefined
           }
           placeholder={tCommon("searchOrType")}
           noResultsLabel={tCommon("noResults")}

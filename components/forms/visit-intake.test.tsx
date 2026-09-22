@@ -239,6 +239,26 @@ describe("the animal opened inside the visit form", () => {
     expect(field("newOwner[phoneLater]")).not.toBeNull();
   });
 
+  // The defect this caught, which no message would have reported: the
+  // owner picker kept the browser's `required` while the block that
+  // answers it was open under it, so the save was refused by the
+  // browser with nothing on screen to say so -- the button simply did
+  // nothing. Measured on the real form before this line existed.
+  it("stops insisting on the picker once the answer is being typed", () => {
+    mount();
+    askToCreate(/^hayvan$/i, "Limon", /Limon.*yeni hayvan aç/i);
+    expect(screen.getByLabelText(/^sahibi$/i)).toBeRequired();
+
+    askToCreate(/^sahibi$/i, "Ayşe Çelik", /Ayşe Çelik.*yeni müşteri aç/i);
+
+    const picker = screen.getByLabelText(/^sahibi$/i) as HTMLInputElement;
+    expect(picker).not.toBeRequired();
+    // Still saying whose animal this is, over an empty id: the owner is
+    // the one being written down below.
+    expect(picker.value).toBe("Ayşe Çelik");
+    expect(field("newPet[ownerId]")!.value).toBe("");
+  });
+
   // "Never mind" is the way out of a block opened by one keystroke, and
   // it has to take the intent with it -- otherwise the form still says
   // "make an animal" with nothing in it.
