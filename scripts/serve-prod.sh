@@ -19,6 +19,22 @@ PORT="${1:-3005}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# A refresh while somebody is measuring silently invalidates their run --
+# the reading stays on screen and looks right. It happened: the ground moved
+# from a8ad0e3 to 9230de9 ten minutes into an acceptance run, and pm had
+# asked in advance to be told first. Asking people to remember is what
+# failed, so the marker is checked here instead.
+#
+# Whoever is measuring creates it (`touch MEASURING`) and removes it when
+# done. It is not a lock -- --force is one word away -- it is a question
+# asked at the only moment the answer matters.
+if [ -f MEASURING ] && [ "${2:-}" != "--force" ]; then
+  echo "DURDUM: MEASURING dosyası var -- biri ölçüm yapıyor." >&2
+  echo "  içerik: $(cat MEASURING 2>/dev/null)" >&2
+  echo "  Ölçen kişiye sor. Gerçekten tazelenecekse: $0 $PORT --force" >&2
+  exit 3
+fi
+
 COMMIT="$(git rev-parse --short HEAD)"
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   TREE="KİRLİ -- bu derleme $COMMIT DEĞİLDİR, $COMMIT + commit edilmemiş iş"

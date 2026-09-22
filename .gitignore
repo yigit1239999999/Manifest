@@ -56,3 +56,6 @@ next-env.d.ts
 
 # Ground stamp: written by scripts/serve-prod.sh, never by hand.
 SERVED_COMMIT.txt
+
+# Set by whoever is measuring; scripts/serve-prod.sh refuses to rebuild while it exists.
+MEASURING
