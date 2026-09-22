@@ -199,7 +199,7 @@ describe("the animal opened inside the visit form", () => {
 
     expect(field("newPet[intent]")!.value).toBe("1");
     expect(field("newPet[name]")!.value).toBe("Limon");
-    expect(screen.getByText("Yeni hayvan: Limon")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Yeni hayvan" })).toBeTruthy();
     expect(field("petId")!.value).toBe("");
     // What was asked for is still on screen in the box it was typed in.
     expect((screen.getByLabelText(/^hayvan$/i) as HTMLInputElement).value).toBe(
@@ -227,7 +227,8 @@ describe("the animal opened inside the visit form", () => {
     askToCreate(/^hayvan$/i, "Limon", /Limon.*yeni hayvan aç/i);
     askToCreate(/^sahibi$/i, "Ayşe Çelik", /Ayşe Çelik.*yeni müşteri aç/i);
 
-    expect(screen.getByText("Yeni sahip: Ayşe Çelik")).toBeTruthy();
+    expect(field("newOwner[intent]")!.value).toBe("1");
+    expect(screen.getByRole("heading", { name: "Yeni sahip" })).toBeTruthy();
     // Split at the first space, both halves editable: a guess costs a
     // keystroke, retyping the name costs the thing the vet complained
     // about.
@@ -275,13 +276,17 @@ describe("the animal opened inside the visit form", () => {
     askToCreate(/^hayvan$/i, "Limon", /Limon.*yeni hayvan aç/i);
 
     fireEvent.click(
-      within(screen.getByRole("group", { name: /yeni hayvan: limon/i })).getByRole(
+      within(screen.getByRole("group", { name: "Yeni hayvan" })).getByRole(
         "button",
         { name: /vazgeç/i },
       ),
     );
 
     expect(field("newPet[intent]")).toBeNull();
+    // Both intents, because one button closes the whole block: an
+    // owner half written down belongs to the animal that is going
+    // away with it.
+    expect(field("newOwner[intent]")).toBeNull();
     expect(field("petId")).not.toBeNull();
   });
 
@@ -295,6 +300,7 @@ describe("the animal opened inside the visit form", () => {
         "newPet[intent]": "1",
         "newPet[name]": "Limon",
         "newPet[species]": "CAT",
+        "newOwner[intent]": "1",
         "newOwner[firstName]": "Ayşe",
         "newOwner[lastName]": "Çelik",
         "newOwner[phone]": "",
@@ -326,6 +332,7 @@ describe("the animal opened inside the visit form", () => {
         "newPet[intent]": "1",
         "newPet[name]": "Limon",
         "newPet[species]": "CAT",
+        "newOwner[intent]": "1",
         "newOwner[firstName]": "Ayşe",
         chiefComplaint: "Limon kusuyor",
       }),
@@ -335,7 +342,7 @@ describe("the animal opened inside the visit form", () => {
 
     expect(field("newPet[intent]")!.value).toBe("1");
     expect(field("newPet[name]")!.value).toBe("Limon");
-    expect(screen.getByText("Yeni hayvan: Limon")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Yeni hayvan" })).toBeTruthy();
     // And the owner's block with it, because a half-written client is
     // the same unsaved work as a half-written animal.
     expect(field("newOwner[firstName]")!.value).toBe("Ayşe");

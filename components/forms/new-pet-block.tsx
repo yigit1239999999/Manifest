@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
+import { FormSection } from "@/components/ui/form-section";
+import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { PhoneOrNone } from "@/components/ui/phone-or-none";
@@ -93,12 +95,6 @@ export function NewPetBlock({
 
   const openedName = values?.["newPet[name]"] ?? petName;
 
-  // Held in state only because the heading above says it back. The box
-  // is uncontrolled, like every other field in these forms: a
-  // controlled one would fight `ActionForm`, which puts a rejected
-  // submission back by writing into the DOM.
-  const [heading, setHeading] = React.useState(openedName);
-
   const ownerOptions = React.useMemo(
     () => owners.map((o) => ({ value: o.id, label: ownerLabel(o) })),
     [owners],
@@ -116,8 +112,11 @@ export function NewPetBlock({
   }, [ownerQuery, ownerOptions]);
 
   const openedOwnerId = values?.["newPet[ownerId]"] ?? matchedOwner?.value ?? "";
+  // The owner branch, opened by a choice rather than inferred from a
+  // box being non-empty -- see `intakeFrom`, which reads the same
+  // intent on the other side.
   const [creatingOwner, setCreatingOwner] = React.useState(
-    Boolean(values?.["newOwner[firstName]"]),
+    values?.["newOwner[intent]"] === "1",
   );
   const [ownerName, setOwnerName] = React.useState(
     values?.["newOwner[firstName]"]
@@ -131,39 +130,34 @@ export function NewPetBlock({
     | ConsentAnswer
     | null;
 
-  const headingId = React.useId();
-  const ownerHeadingId = React.useId();
-
   return (
-    // `role="group"` with the heading as its name rather than a
-    // `fieldset`/`legend`: a legend has to be the first child to be the
-    // caption, and the way out of this block belongs on the same line
-    // as the words it is about. A legend is also laid out by the engine
-    // rather than by its parent, so a flex fieldset puts it somewhere
-    // no two browsers agree on (`client-form.tsx` says the same).
-    <div
-      role="group"
-      aria-labelledby={headingId}
-      className={cn(surface, "flex flex-col gap-4 p-4")}
-    >
+    // The frame the SOAP notes and the vitals are drawn in, on the
+    // same form a few fields down (`visit-form.tsx`). A block that
+    // invents its own hierarchy mark teaches the reader a second
+    // vocabulary for the same idea.
+    <fieldset className={cn(surface, "grid gap-4 p-4 sm:grid-cols-2")}>
+      <legend className="px-2 text-sm font-semibold text-foreground">
+        {tVisit("newPet")}
+      </legend>
       {/* The intent, and the reason it is a field rather than an
           inference: without it an empty block left on screen by a
           rejected submit is indistinguishable from no block at all,
           and the animal id underneath would quietly win
           (`intake-fields.ts`). */}
       <input type="hidden" name="newPet[intent]" value="1" />
-      <div className="flex items-start justify-between gap-3">
-        <p id={headingId} className="text-sm font-semibold text-foreground">
-          {tVisit("newPetLegend", { name: heading })}
-        </p>
-        {/* The way out of a block that was opened by mistake, which is
-            one keystroke away from the row that opens it. It closes
-            the block and drops the intent with it, so the animal box
-            goes back to being a choice. */}
+      {/* The way out of a block that one keystroke opened.
+          
+          Not inside the `legend`: a legend is laid out by the engine
+          rather than by its parent, so a control in it lands somewhere
+          no two browsers agree on -- and on a phone it would squeeze
+          the heading. First row of the contents instead, right-aligned,
+          which is where a form's secondary action sits everywhere else
+          in this product. */}
+      <div className="flex justify-end sm:col-span-2">
         <button
           type="button"
           onClick={onCancel}
-          className="shrink-0 rounded-control px-2 py-1 text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
         >
           {tCommon("nevermind")}
         </button>
@@ -173,7 +167,6 @@ export function NewPetBlock({
         <Input
           name="newPet[name]"
           defaultValue={openedName}
-          onChange={(e) => setHeading(e.target.value)}
           required
           // The cursor goes to the box that is empty, which is the
           // whole of what the block is asking for: opened from an
@@ -184,7 +177,14 @@ export function NewPetBlock({
         />
       </Field>
 
-      <Field label={t("species")} error={errors?.["newPet[species]"]} required>
+      {/* The chips are a group, not a box: they want the whole row on
+          a phone and read as one answer on a desktop. */}
+      <Field
+        label={t("species")}
+        error={errors?.["newPet[species]"]}
+        required
+        className="sm:col-span-2"
+      >
         <SpeciesPicker
           name="newPet[species]"
           label={t("species")}
@@ -201,7 +201,12 @@ export function NewPetBlock({
         />
       </Field>
 
-      <Field label={t("owner")} error={errors?.["newPet[ownerId]"]} required>
+      <Field
+        label={t("owner")}
+        error={errors?.["newPet[ownerId]"]}
+        required
+        className="sm:col-span-2"
+      >
         {/* The second door the vet found before we did: "where does the
             owner of the animal opened that way come from? It has to
             open from the same box." It opens one block further in
@@ -259,31 +264,14 @@ export function NewPetBlock({
       </Field>
 
       {creatingOwner && (
-        // No second frame. Two nested boxes on a 390px screen spend
-        // about a third of the line on borders and padding, and what
-        // this block needs to say is "these fields belong to the owner
-        // above" -- which a rule down the leading edge says in one pixel.
-        <div
-          role="group"
-          aria-labelledby={ownerHeadingId}
-          className="flex flex-col gap-4 border-s-2 border-border ps-4"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <p
-              id={ownerHeadingId}
-              className="text-sm font-semibold text-foreground"
-            >
-              {tVisit("newOwnerLegend", { name: ownerName })}
-            </p>
-            <button
-              type="button"
-              onClick={() => setCreatingOwner(false)}
-              className="shrink-0 rounded-control px-2 py-1 text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-            >
-              {tCommon("nevermind")}
-            </button>
-          </div>
-
+        // No second frame and no rule down the side: the heading says
+        // whose fields these are, and a second border mark would be a
+        // hierarchy sign this product does not use anywhere else. On a
+        // 390px screen it would also spend the width the consent
+        // question underneath needs.
+        <FormSection title={tVisit("newOwner")} className="sm:col-span-2">
+          {/* Same intent, one branch in. */}
+          <input type="hidden" name="newOwner[intent]" value="1" />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label={tClient("firstName")}
@@ -350,8 +338,8 @@ export function NewPetBlock({
               "": tClient("consent.unansweredHint"),
             }}
           />
-        </div>
+        </FormSection>
       )}
-    </div>
+    </fieldset>
   );
 }

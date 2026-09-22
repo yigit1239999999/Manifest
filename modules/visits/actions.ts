@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { action, parse, type FormState } from "@/lib/action";
-import { intakeFrom, namedErrors } from "./intake-fields";
+import { AppError, validationFailed } from "@/lib/errors";
+import { intakeFrom, namedErrors, onScreen } from "./intake-fields";
 import { visitIntakeSchema, visitSchema } from "./schema";
 import {
   archiveVisit,
@@ -39,7 +40,25 @@ export const createVisitIntakeAction = action(
       return { fieldErrors: namedErrors(parsed.error) };
     }
 
-    const made = await createVisitWithIntake(parsed.data, ctx);
+    // The service's complaints, renamed to the boxes they are about.
+    // Here rather than in `action()`: the wrapper serves nineteen
+    // forms and this map is one form's vocabulary. Here rather than in
+    // the service: it answers three screens and must not learn the
+    // field names of any of them.
+    const made = await createVisitWithIntake(parsed.data, ctx).catch(
+      (error: unknown) => {
+        if (
+          error instanceof AppError &&
+          error.code === "VALIDATION_FAILED" &&
+          error.details?.fieldErrors
+        ) {
+          throw validationFailed(
+            onScreen(error.details.fieldErrors as Record<string, string[]>),
+          );
+        }
+        throw error;
+      },
+    );
     revalidatePath("/visits");
     revalidatePath("/pets");
     revalidatePath("/clients");

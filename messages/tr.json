@@ -159,7 +159,7 @@
     "previewNote": "Örnek bir klinik. Kayıtlarınız girmeye başladığında paneliniz böyle görünecek."
   },
   "client": {
-    "createNamed": "+ \"{name}\" adıyla yeni müşteri aç",
+    "createNamed": "\"{name}\" adıyla yeni müşteri aç",
     "optionalDetails": "İsteğe bağlı detaylar",
     "optionalDetailsHint": "Daha sonra da doldurabilirsiniz ({count} alan)",
     "title": "Müşteriler",
@@ -227,7 +227,7 @@
     "phoneLater": "Numarası yok"
   },
   "pet": {
-    "createNamed": "+ \"{name}\" adıyla yeni hayvan aç",
+    "createNamed": "\"{name}\" adıyla yeni hayvan aç",
     "title": "Hayvanlar",
     "one": "Hayvan",
     "subtitle": "Kliniğinize kayıtlı tüm hayvanlar.",
@@ -299,8 +299,8 @@
     "chiefComplaint": "Ana şikayet",
     "vet": "Veteriner",
     "vetYou": "{name} (siz)",
-    "newPetLegend": "Yeni hayvan: {name}",
-    "newOwnerLegend": "Yeni sahip: {name}",
+    "newPet": "Yeni hayvan",
+    "newOwner": "Yeni sahip",
     "soap": "SOAP notları",
     "subjective": "Anamnez (S)",
     "objective": "Klinik bulgular (O)",

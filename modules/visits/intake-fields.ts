@@ -21,13 +21,22 @@ import type { ZodError } from "zod";
  * pick. Without it, an empty branch left on screen by a rejected
  * submit would be indistinguishable from no branch at all -- and a
  * stale `petId` underneath would quietly win.
+ *
+ * `newOwner[intent]` says the same thing one branch in, and it is a
+ * field for a reason the first version of this file got wrong: the
+ * owner branch used to be inferred from the first name being
+ * non-empty. That reads an empty box as a closed branch, so a vet who
+ * cleared the name was told to "select an owner" under a picker they
+ * had deliberately stepped past, instead of being told the name is
+ * required under the box it is missing from. An intent cannot be
+ * cleared by typing.
  */
 export function intakeFrom(formData: FormData) {
   const get = (key: string) => String(formData.get(key) ?? "");
   const flat = Object.fromEntries(formData) as Record<string, unknown>;
   if (get("newPet[intent]") !== "1") return flat;
 
-  const firstName = get("newOwner[firstName]");
+  const writingOwner = get("newOwner[intent]") === "1";
   return {
     ...flat,
     // The picked animal is dropped on purpose: the branch is open, so
@@ -37,13 +46,13 @@ export function intakeFrom(formData: FormData) {
     newPet: {
       name: get("newPet[name]"),
       species: get("newPet[species]"),
-      ownerId: get("newPet[ownerId]"),
-      // An owner being written down here, or one already on file --
-      // never both. The name is what says which: a picked owner
-      // leaves these boxes untouched.
-      owner: firstName
+      // And the picked owner goes the same way for the same reason,
+      // one branch in. An owner being written down, or one already on
+      // file -- never both.
+      ownerId: writingOwner ? "" : get("newPet[ownerId]"),
+      owner: writingOwner
         ? {
-            firstName,
+            firstName: get("newOwner[firstName]"),
             lastName: get("newOwner[lastName]"),
             phone: get("newOwner[phone]"),
             // An unticked box submits nothing, so this arrives as "".
@@ -54,6 +63,35 @@ export function intakeFrom(formData: FormData) {
         : undefined,
     },
   };
+}
+
+/**
+ * The service's field names, translated to the ones on screen.
+ *
+ * `createVisitWithIntake` refuses an owner from another clinic with
+ * `validationFailed({ ownerId: ... })`, and there is no `ownerId` on
+ * this form -- the box is called `newPet[ownerId]`. The message would
+ * land in the form-level box with no way back to the control it is
+ * about, which is the same defect `namedErrors` exists to prevent,
+ * arriving from the other direction.
+ *
+ * Translated here rather than renamed there: the service answers three
+ * screens and must not learn the field names of any of them. A name
+ * this map does not know is passed through untouched -- a message in
+ * the wrong place is bad, a message nowhere is worse.
+ */
+const SCREEN_NAMES: Record<string, string> = {
+  ownerId: "newPet[ownerId]",
+};
+
+export function onScreen(
+  fieldErrors: Record<string, string[]>,
+): Record<string, string[]> {
+  const named: Record<string, string[]> = {};
+  for (const [field, messages] of Object.entries(fieldErrors)) {
+    named[SCREEN_NAMES[field] ?? field] = messages;
+  }
+  return named;
 }
 
 /**
