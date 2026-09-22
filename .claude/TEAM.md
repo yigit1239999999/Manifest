@@ -2847,6 +2847,77 @@ Kanıtı aynı kişinin aynı turdaki iki raporu: pm performans turunda
 yazmadı ve **doğru bir bulgusunu iptal etti.** Hash'siz bir ölçüm "yeni"
 görünür ve hiçbir alarm çalmaz.
 
+### Ölçmeden önce, ÖLÇÜLECEK ŞEY MÜMKÜN MÜ diye bakılır (ui, 22 Eylül 2026)
+
+`ux` masaüstünde bir koşul ekledi: *"ipucu iki satıra sararsa
+`sm:grid-cols-2` ızgarasının iki sütunu ayrışır mı."* `ui` ölçüme
+gitmeden önce kaynağa baktı ve koşulun **yapısal olarak
+gerçekleşemeyeceğini** gördü: `Field` bir `flex flex-col`, sırası
+etiket → kutu → ipucu, yani ipucu kutunun **altında**; uzadığında yalnız
+aşağı büyür ve iki kutu hücrelerinin tepesinde hizada kalır.
+
+`ux`'in düzeltmesi ailenin adını koydu: *"sezgim doğru aileyi işaret
+ediyordu, üye yanlıştı."* Aynı dosyada gerçek bir hizasızlık vakası
+yazılı — zorunlu alanların `*` işareti boyutsuz kalıp etiket satırını
+24px'e çıkarıyordu — ama o fark **kutunun ÜSTÜNDEYDİ.**
+
+> **Kural: bir koşulu ölçmeye gitmeden önce, düzenin onu üretip
+> üretemeyeceği kaynaktan okunur.** Mümkün olmayan bir şeyi ölçmek
+> "bakıldı, temiz" kaydı üretir — ve o kayıt, aynı ailenin gerçekten
+> mümkün olan üyesini aramayı durdurur.
+
+`ui` mümkün olanı da buldu ve onu ölçmeye aldı: hizasızlık değil,
+**sağ sütunun altındaki boşluk asimetrisi.**
+
+### Bir şey KUSUR olduğu gösterilmeden düzeltilmez — sarma vakası
+
+Dört kişi aynı cümleyi kurdu: *"ipucu uzadı, 390px'te sarar, satır
+ritmini taşırır."* `dev-ui` not etti, `ux` aktardı, `ui` onayladı, ana
+oturum tekrarladı. **Kimse görmemişti.** `ui` durdu:
+
+> Sarma kendi başına kusur değil — zincir bloğunda aynısı oldu ve kabul
+> edildi. Kusur ancak hizayı kaybettiriyorsa, kenar boşluğunu yiyorsa ya
+> da gövdeyi kutudan görünür biçimde taşırıyorsa doğar. **Göstermeden
+> kesersem, kesilmemesi gereken bir cümleyi ölçmeden kesmiş olurum.**
+
+`ux` eşiği ekledi ve kendi kesme sırasını ona bağladı: **asimetri tek
+başına kusur değil** — bugün de var ve kimse bildirmedi. Eşik şu:
+*bir şeyi okumayı ya da kullanmayı zorlaştırıyor mu.* Zorlaştırmıyorsa
+simetri uğruna **doğru bir cümle** kesilmiş olur; o cümle bir vaat
+taşıyor, simetri taşımıyor.
+
+**Ve ölçülemeyen risk kusur diye yazılmadı:** telefonda yazılım klavyesi
+görüntü alanının yarısını yiyor ve açılır liste kutunun altında
+açılıyor; cümle sararsa ikinci satır klavyenin arkasında kalabilir.
+Playwright yazılım klavyesi çizmiyor — kimse ölçemez. *"Bilmiyoruz"*
+diye duruyor, ve tek başına bir kısaltmayı haklı çıkarmıyor (3118'in
+ÖLÇÜLEMEDİ sütunu).
+
+### Ölçüm, tezi DOĞRULAMAK için değil ÇÜRÜTMEK için istenir (ui)
+
+`ui` `/visits/new` için *"çerçeve enflasyonu"* tezini kurmuştu ve
+`dev-ui`'den yüzey envanterini **tezini çürütmek üzere** istedi. Envanter
+çürüttü: üç `fieldset` **kardeş**, üst üste binmiş çerçeve yok, en derin
+gerçek iç içelik `Card → fieldset → FormSection` ve sonuncusu yüzey bile
+değil; üstelik yüzey hiyerarşisi deponun kendi kuralıyla doğru kurulmuş
+(dış kart gölgeli, iç yüzeyler gölgesiz).
+
+**Kabul edildi, ve görevde eski tez "ÇÜRÜDÜ" diye bırakıldı** — silinen
+bir tez sonraki turda aynı yoldan yeniden kurulur.
+
+Yerine geçen teşhis hem daha dar hem daha ağır: gövdedeki **en ağır
+yazı, isteğe bağlı işin başlığı** (SOAP ve vitaller `legend`'ları), ve
+ekranın **zorunlu ana sorusunun** etiketinden ağır. `dev-ui` koddan
+doğruladı — `font-semibold` taşıyan yalnız üç şey var, `font-bold`,
+`text-base`, `text-lg` hiç yok, yani iddiayı çürütecek dördüncü bir ağır
+öğe yok. `ui` bunu kendi `198d6f7` hatasıyla aynı sınıfa koydu:
+**ikincil olan, birincil olandan ağır çiziliyor** — aynı hata, bir ekran
+ötede.
+
+**Ve envanter HEAD'den okundu, çalışma kopyasından değil** — `visit-form.tsx`
+o sırada yarım bir işle kirliydi; kopyadan okunsaydı hem sayım hem tez
+başka çıkardı.
+
 ### Ölçüm noktaları koddan türetilir, cihazdan değil
 
 *"İki nokta bir bandı kapsamaz"* tespitinin yanlış çözümü nokta eklemektir:
