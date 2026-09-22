@@ -226,64 +226,10 @@ export function FieldsetSkeleton({
 }
 
 /**
- * The closed fold (`OptionalDetails`).
- *
- * Closed is the only state a skeleton may draw: open is decided by whether
- * the record being edited has any of those fields filled, which is the
- * answer the page is still waiting for. Drawing it closed is right for
- * every new record and for every edit of a record that has nothing behind
- * the fold; the routes where it can be wrong stop above it instead.
- */
-export function FoldSkeleton() {
-  return (
-    <div className="rounded-surface border border-border bg-muted/20">
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
-        {/* Flush, no gap: the real summary stacks a `text-sm` title
-            straight on a `text-xs` hint, so 20px and 16px and nothing
-            between them. */}
-        <div className="flex flex-col">
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-4 w-56 max-w-full" />
-        </div>
-        <Skeleton className="size-4 shrink-0" />
-      </div>
-    </div>
-  );
-}
-
-/**
- * The three-way consent question (`ConsentChoice`).
- *
- * One row of 28px targets rather than three boxes: the answers sit side
- * by side until the line runs out, and they are taller than their text
- * because WCAG 2.5.8 asks for 24px and a `text-sm` line gives 20.
- */
-export function ConsentSkeleton() {
-  return (
-    <fieldset className="min-w-0">
-      <Skeleton className="mb-2 h-5 w-44" />
-      <Skeleton className="h-7 w-72 max-w-full" />
-      <Skeleton className="mt-2 h-4 w-64 max-w-full" />
-    </fieldset>
-  );
-}
-
-/**
  * The submit button, where it is going to be.
- *
- * `hint` is the "required fields: ..." line two of these forms put beside
- * the button; the row is the same `h-10` either way, so it changes what is
- * drawn and not where anything lands.
  */
-export function SubmitSkeleton({ hint = false }: { hint?: boolean }) {
-  return hint ? (
-    <div className="flex items-center justify-end gap-3">
-      <Skeleton className="h-4 w-48 max-w-full" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-  ) : (
-    <Skeleton className="h-10 w-32" />
-  );
+export function SubmitSkeleton() {
+  return <Skeleton className="h-10 w-32" />;
 }
 
 /** The title and subtitle every route opens with (`PageHeader`). */
