@@ -10,6 +10,10 @@ import tr from "@/messages/tr.json";
 const server = vi.hoisted(() => ({ next: {} as Record<string, unknown> }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("@/modules/appointments/actions", () => ({
+  createAppointmentAction: async () => ({}),
+  updateAppointmentAction: async () => ({}),
+}));
 vi.mock("@/modules/visits/actions", () => ({
   createVisitIntakeAction: async () => server.next,
   updateVisitAction: async () => ({}),
@@ -22,6 +26,7 @@ vi.mock("@/modules/pets/actions", () => ({
 }));
 
 import { VisitForm } from "@/components/forms/visit-form";
+import { AppointmentForm } from "@/components/forms/appointment-form";
 
 const VETS = [
   { id: "u-1", name: "Selin Aydın" },
@@ -91,6 +96,23 @@ describe("the veterinarian a new visit opens with", () => {
     expect((screen.getByLabelText(/veteriner/i) as HTMLSelectElement).value).toBe(
       "",
     );
+  });
+
+  // Two forms in one clinic behaved two ways: the visit opened with the
+  // vet's own name and the appointment opened empty. A reader cannot
+  // tell a deliberate difference from an oversight, and this one was
+  // the second kind.
+  it("is offered the same way on the form that books tomorrow", () => {
+    render(
+      <NextIntlClientProvider locale="tr" messages={tr}>
+        <AppointmentForm pets={PETS} vets={VETS} defaultVetId="u-1" />
+      </NextIntlClientProvider>,
+    );
+
+    const select = screen.getByLabelText(/veteriner/i) as HTMLSelectElement;
+
+    expect(select.value).toBe("u-1");
+    expect(screen.getByRole("option", { name: "Selin Aydın (siz)" })).toBeTruthy();
   });
 
   it("is whoever the record already says, when one is being edited", () => {
@@ -441,6 +463,17 @@ describe("the animal opened inside the visit form", () => {
     // owner half written down belongs to the animal that is going
     // away with it.
     expect(field("newOwner[intent]")).toBeNull();
+    // But NOT the keystroke. The picker is remounted by the same state
+    // change that empties the id, and it used to take the typed text
+    // with it: pm watched "PMTEST Findik" become "". Somebody who
+    // opened the block by mistake should not be charged for the word
+    // they had already written.
+    const box = screen.getByLabelText(/^hayvan$/i) as HTMLInputElement;
+    expect(box.value).toBe("Limon");
+    expect(field("petId")!.value).toBe("");
+    // And the cursor comes back to it, rather than to `body` -- from
+    // where a keyboard user tabs in from the top of the document.
+    expect(document.activeElement).toBe(box);
     // And nothing of either is left in the browser. The draft is
     // written as this click bubbles past the form, so a block still in
     // the DOM at that instant comes back open tomorrow.
@@ -472,6 +505,11 @@ describe("the animal opened inside the visit form", () => {
 
     expect(field("newOwner[intent]")).toBeNull();
     expect(field("newOwner[firstName]")).toBeNull();
+    // Same two rules one level in: the name stays in the box it was
+    // typed into, and the caret comes back to that box.
+    const ownerBox = screen.getByLabelText(/^sahibi$/i) as HTMLInputElement;
+    expect(ownerBox.value).toBe("Ayşe Çelik");
+    expect(document.activeElement).toBe(ownerBox);
     // Everything above it survives, including the name that was typed
     // into the picker: asking for it a third time is the cost this is
     // about.

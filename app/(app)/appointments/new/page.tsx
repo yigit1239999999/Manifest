@@ -56,6 +56,16 @@ export default async function NewAppointmentPage({
             }))}
             petsCapped={pets.hasMore}
             vets={vets}
+            // Who it is booked with, answered before the form opens --
+            // the same rule, the same word and the same source as
+            // `visits/new`: read off the clinician list this form is
+            // already showing, so the default cannot be an id the
+            // picker has no option for.
+            defaultVetId={
+              vets.some((v) => v.id === session.user.id)
+                ? session.user.id
+                : undefined
+            }
             defaultPetId={petId}
             defaultPetLabel={defaultPetLabel}
           />

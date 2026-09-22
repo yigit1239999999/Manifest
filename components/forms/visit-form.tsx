@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 import { useLocale, useTranslations } from "next-intl";
@@ -220,6 +220,16 @@ export function VisitForm({
   const [creating, setCreating] = useState<OpenedWith | null>(
     restoredDraft?.["newPet[intent]"] === "1" ? reopenedWith(restoredDraft) : null,
   );
+  // What was typed into the animal box, kept across a cancel.
+  //
+  // The picker is remounted as the block opens and again as it closes,
+  // which is what empties the id -- and it took the typed text with it,
+  // so "never mind" charged the vet for a keystroke they had already
+  // made. pm measured the box going from "PMTEST Findik" to empty.
+  // Held here rather than read back off the DOM, because by the time
+  // the cancel has run the input carrying it is gone.
+  const [typedPet, setTypedPet] = useState("");
+  const picker = useRef<HTMLDivElement>(null);
 
   // A rejected submit is a server response, not an event this form can
   // subscribe to, so it is read as it arrives rather than in an effect:
@@ -252,7 +262,13 @@ export function VisitForm({
       {/* Part-filled arrivals only: the chain a new clinic walks, or a
           deep link from a record's own page. See `focusFirstEmpty`. */}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* The ref is how "never mind" finds its way back to the box it
+          was pressed from: the picker is remounted by that same state
+          change, so a ref to the control itself would point at a node
+          that no longer exists. The row is stable; the control inside
+          it is the only explicit `role="combobox"` here -- the visit
+          type beside it is a native `select`. */}
+      <div ref={picker} className="grid gap-4 sm:grid-cols-2">
         <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
           {/* See `InvoiceForm`: searchable only once the list is short
               of the whole clinic. */}
@@ -276,7 +292,9 @@ export function VisitForm({
             required={!creating}
             defaultValue={creating ? "" : (visit?.petId ?? defaultPetId ?? "")}
             defaultLabel={
-              creating ? creating.petName || creating.ownerQuery : defaultPetLabel
+              creating
+                ? creating.petName || creating.ownerQuery
+                : typedPet || defaultPetLabel
             }
             placeholder={tCommon("searchOrType")}
             noResultsLabel={tCommon("noResults")}
@@ -302,12 +320,14 @@ export function VisitForm({
             onCreate={
               visit || !canCreatePet
                 ? undefined
-                : (typed) =>
+                : (typed) => {
+                    setTypedPet(typed);
                     // Asked for by hand, so the caret comes with it --
                     // unlike a block put back by a draft or a
                     // rejection, where the reader has their own idea of
                     // where to carry on.
-                    setCreating({ ...offerFor(typed), takeFocus: true })
+                    setCreating({ ...offerFor(typed), takeFocus: true });
+                  }
             }
             createLabel={(typed) => {
               const offer = offerFor(typed);
@@ -349,7 +369,19 @@ export function VisitForm({
           // synchronous commit the hidden intent is still in the DOM
           // when the snapshot is taken, and a block somebody closed
           // would be waiting for them when they came back.
-          onCancel={() => flushSync(() => setCreating(null))}
+          onCancel={() => {
+            flushSync(() => setCreating(null));
+            // Back where they were, which is the box they opened it
+            // from. Without this the caret lands on `body` and a
+            // keyboard user tabs in from the top of the document to
+            // reach a field they were standing in a moment ago -- the
+            // same 22-keystroke walk `ActionForm`'s error summary was
+            // written for. After the flush, because the picker this
+            // looks for is remounted by that state change.
+            picker.current
+              ?.querySelector<HTMLElement>('[role="combobox"]')
+              ?.focus();
+          }}
           owners={owners}
           ownersCapped={ownersCapped}
           canCreateOwner={canCreateOwner}

@@ -54,6 +54,18 @@ interface Props {
    * empty over a hidden input that is not.
    */
   defaultPetLabel?: string;
+  /**
+   * The signed-in user, when they are somebody an appointment may be
+   * booked against. Absent for everyone else, and absent is not a
+   * fallback: "not recorded" is a better answer than a name nobody
+   * chose.
+   *
+   * The same prop, the same word and the same rule as `VisitForm`.
+   * They were two forms behaving two ways in one clinic -- the visit
+   * opened with the vet's own name and the appointment opened empty --
+   * and a reader cannot tell a deliberate difference from an oversight.
+   */
+  defaultVetId?: string;
 }
 
 export function AppointmentForm({
@@ -63,6 +75,7 @@ export function AppointmentForm({
   vets,
   defaultPetId,
   defaultPetLabel,
+  defaultVetId,
 }: Props) {
   const petOptions = useMemo(
     () =>
@@ -75,6 +88,7 @@ export function AppointmentForm({
   );
   const t = useTranslations("appointment");
   const tCommon = useTranslations("common");
+  const tStaff = useTranslations("staff");
   const tType = useTranslations("enum.visitType");
   const tStatus = useTranslations("enum.appointmentStatus");
   const tPet = useTranslations("pet");
@@ -171,11 +185,18 @@ export function AppointmentForm({
       </div>
 
       <Field label={t("vet")} error={state.fieldErrors?.vetId}>
-        <Select name="vetId" defaultValue={appointment?.vetId ?? ""}>
+        {/* Only a new appointment takes the default: on an edit the
+            field already says who it was booked with, and a blank
+            there is a decision somebody made rather than a question
+            nobody reached. */}
+        <Select
+          name="vetId"
+          defaultValue={appointment?.vetId ?? defaultVetId ?? ""}
+        >
           <option value="">{tCommon("none")}</option>
           {vets.map((v) => (
             <option key={v.id} value={v.id}>
-              {v.name}
+              {v.id === defaultVetId ? tStaff("you", { name: v.name }) : v.name}
             </option>
           ))}
         </Select>

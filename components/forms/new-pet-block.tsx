@@ -348,7 +348,19 @@ export function NewPetBlock({
               // written by the form's own click handler as this click
               // bubbles past it, and an intent still in the DOM at
               // that moment comes back as an open block tomorrow.
-              onClick={() => flushSync(() => setCreatingOwner(false))}
+              onClick={() => {
+                flushSync(() => setCreatingOwner(false));
+                // Back to the box this was opened from, for the reason
+                // the outer one gives: `body` is where a cancelled
+                // block used to leave the caret, and from there a
+                // keyboard user tabs in from the top of the document.
+                // The owner picker is the only explicit
+                // `role="combobox"` inside this block -- the animal one
+                // is outside it, and the species chips are buttons.
+                block.current
+                  ?.querySelector<HTMLElement>('[role="combobox"]')
+                  ?.focus();
+              }}
               className={buttonVariants({ variant: "ghost", size: "sm" })}
             >
               {tCommon("nevermind")}
