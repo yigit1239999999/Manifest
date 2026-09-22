@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
+import { ownerLabel } from "@/lib/pet-label";
 
 interface ClientResult {
   id: string;
@@ -216,7 +217,7 @@ export function CommandPalette() {
                   >
                     <Users className="size-4 text-muted-foreground" />
                     <span className="text-sm font-medium">
-                      {c.firstName} {c.lastName}
+                      {ownerLabel(c)}
                     </span>
                     {c.email && (
                       <span className="ml-auto text-xs text-muted-foreground">
@@ -239,7 +240,7 @@ export function CommandPalette() {
                     <PawPrint className="size-4 text-muted-foreground" />
                     <span className="text-sm font-medium">{p.name}</span>
                     <span className="ml-auto text-xs text-muted-foreground">
-                      {p.owner.firstName} {p.owner.lastName}
+                      {ownerLabel(p.owner)}
                     </span>
                   </PaletteItem>
                 ))}

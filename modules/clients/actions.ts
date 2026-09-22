@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { action, parse, type FormState } from "@/lib/action";
 import { clientSchema } from "./schema";
 import { quickSearchClients } from "./queries";
+import { ownerLabel } from "@/lib/pet-label";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { safeNext, withCreated } from "@/lib/next-param";
 import { requireSession } from "@/lib/session";
@@ -154,7 +155,13 @@ export async function searchClientsAction(term: string): Promise<{
   return {
     options: items.map((c) => ({
       value: c.id,
-      label: `${c.firstName} ${c.lastName}`,
+      // The same helper the local options are built with, and that is
+      // the whole point: `Combobox` appends server hits AFTER the list
+      // it was handed, so two formats in one dropdown put "Ayşe" and
+      // "Ayşe null" on top of each other. Every clinic past the
+      // picker's cap sees this one -- the animal form's owner, the
+      // bill's client, the owner inside a visit.
+      label: ownerLabel(c),
       phone: c.phone,
       notificationsOptIn: c.notificationsOptIn,
     })),

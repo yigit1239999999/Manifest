@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { client: { findMany: vi.fn(), count: vi.fn() } },
+  prisma: { client: { findMany: vi.fn(), count: vi.fn(), findFirst: vi.fn() } },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { listClients, listClientsPage, quickSearchClients } from "./queries";
+import {
+  getClientLabel,
+  listClients,
+  listClientsPage,
+  quickSearchClients,
+} from "./queries";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -198,5 +203,39 @@ describe("searching for a name typed without Turkish letters", () => {
 
     expect(rows.items).toEqual([]);
     expect(prisma.client.findMany).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The label a picker shows for a client it was not handed.
+ *
+ * This exists because the list is capped: an id that arrives on a link
+ * or off a record can sit outside the fifty a `Combobox` was given, and
+ * without a label the field renders empty over a full hidden input --
+ * a selection that looks lost, where re-picking is the obvious move and
+ * re-picking is how the wrong record gets the work.
+ *
+ * So the one thing it must never do is put something wrong in that
+ * field, and it was: the two name columns joined by hand, which renders
+ * an absent surname as the word "null". The field the vet reads as a
+ * settled choice said "Ayşe null".
+ */
+describe("the label for a client outside the picker's list", () => {
+  it("says the name that exists and nothing about the one that does not", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      firstName: "Ayşe",
+      lastName: null,
+    } as never);
+
+    expect(await getClientLabel("clinic-1", "c-9")).toBe("Ayşe");
+  });
+
+  it("joins both when both are there", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      firstName: "Ayşe",
+      lastName: "Çelik",
+    } as never);
+
+    expect(await getClientLabel("clinic-1", "c-9")).toBe("Ayşe Çelik");
   });
 });

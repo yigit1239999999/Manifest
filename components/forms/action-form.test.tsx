@@ -137,7 +137,9 @@ describe("the last step of the chain, on the real forms", () => {
   it("lands on the sentence the vet came to write", () => {
     wrap(
       <VisitForm
-        pets={[{ id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" }]}
+        pets={[
+          { id: "p-1", name: "Zeytin", ownerId: "c-1", ownerName: "Ayşe Yılmaz" },
+        ]}
         vets={[{ id: "u-1", name: "Dr. Ayşe Demir" }]}
         defaultPetId="p-1"
         defaultPetLabel="Zeytin · Ayşe Yılmaz"
@@ -153,7 +155,9 @@ describe("the last step of the chain, on the real forms", () => {
   it("asks an appointment why the animal is coming in", () => {
     wrap(
       <AppointmentForm
-        pets={[{ id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" }]}
+        pets={[
+          { id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" },
+        ]}
         vets={[{ id: "u-1", name: "Dr. Ayşe Demir" }]}
         defaultPetId="p-1"
         defaultPetLabel="Zeytin · Ayşe Yılmaz"
@@ -231,7 +235,9 @@ describe("a visit left half-written", () => {
   const visit = (extra: { defaultPetId?: string; defaultPetLabel?: string } = {}) => (
     <NextIntlClientProvider locale="tr" messages={tr}>
       <VisitForm
-        pets={[{ id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" }]}
+        pets={[
+          { id: "p-1", name: "Zeytin", ownerId: "c-1", ownerName: "Ayşe Yılmaz" },
+        ]}
         vets={[{ id: "u-1", name: "Dr. Ayşe Demir" }]}
         {...extra}
       />

@@ -31,7 +31,7 @@ import type { HiddenSpecies } from "@/components/species-picker";
 interface Props {
   visit?: Visit;
   /** The owner travels with the animal: see `lib/pet-label.ts`. */
-  pets: (Pick<Pet, "id" | "name"> & {
+  pets: (Pick<Pet, "id" | "name" | "ownerId"> & {
     ownerName: string;
     /**
      * What this animal is, in the reader's language, and when it was
@@ -160,15 +160,23 @@ export function VisitForm({
   // calculation, so they cannot say different things.
   const offerFor = useMemo(() => {
     const named = pets.map((p) => p.name);
-    const owners = pets.map((p) => p.ownerName);
+    const owners = pets.map((p) => ({ id: p.ownerId, name: p.ownerName }));
     return (query: string): OpenedWith => {
       const typed = query.trim();
       const asAnimal = { petName: typed, ownerQuery: "" };
       if (!typed || named.some((name) => matches(name, typed))) return asAnimal;
-      const hits = new Set(owners.filter((owner) => matches(owner, typed)));
-      const [only] = hits;
-      return hits.size === 1
-        ? { petName: "", ownerQuery: only }
+      const hits = owners.filter((owner) => matches(owner.name, typed));
+      // Counted by WHO, not by what they are called. Two clients with
+      // one name is the case this had wrong: the names deduplicated to
+      // a single entry, so a typed "Ayşe Çelik" that reached two
+      // different people looked like it had reached one, and the block
+      // would have opened with the wrong one's record under it -- the
+      // thing this whole round is most afraid of, arriving through the
+      // convenience that was meant to save a click.
+      const who = new Set(hits.map((owner) => owner.id));
+      const [only] = who;
+      return who.size === 1
+        ? { petName: "", ownerQuery: hits[0].name, ownerId: only }
         : asAnimal;
     };
   }, [pets]);
@@ -326,9 +334,14 @@ export function VisitForm({
 
       {creating && (
         <NewPetBlock
-          petName={creating.petName}
-          ownerQuery={creating.ownerQuery}
-          takeFocus={creating.takeFocus}
+          // Spread, and the reason is a defect that has now happened
+          // twice: `OpenedWith` is exactly what the block needs to know
+          // about how it was opened, and listing its fields here by
+          // hand means a field added to the type reaches the STATE and
+          // not the component. Both times the symptom was silence --
+          // the block simply behaved as though nothing had been
+          // decided, and only a test said otherwise.
+          {...creating}
           values={blockValues}
           errors={state.fieldErrors}
           // Flushed, because the draft is written by the form's own

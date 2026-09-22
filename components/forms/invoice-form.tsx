@@ -16,6 +16,7 @@ import { INVOICE_STATUSES } from "@/modules/invoices/schema";
 import { createInvoiceAction } from "@/modules/invoices/actions";
 import { searchClientsAction } from "@/modules/clients/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { ownerLabel } from "@/lib/pet-label";
 
 interface Line {
   description: string;
@@ -98,7 +99,9 @@ export function InvoiceForm({
     () =>
       clients.map((c) => ({
         value: c.id,
-        label: `${c.firstName} ${c.lastName}`,
+        // See `ReminderForm`: a surname may be absent, and joining the
+        // two by hand renders that absence as the word "null".
+        label: ownerLabel(c),
       })),
     [clients],
   );

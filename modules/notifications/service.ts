@@ -31,6 +31,7 @@ import {
   toMessagingProfile,
   type ClinicMessagingProfile,
 } from "./settings";
+import { ownerLabel } from "@/lib/pet-label";
 
 /** A failed automatic send is retried on later sweeps, up to this many times. */
 export const MAX_AUTOMATIC_ATTEMPTS = 3;
@@ -185,7 +186,13 @@ export function composeFor(
   const recipient = normalizePhone(appointment.client.phone, countryCallingCode(clinic.country));
   const messageCtx = {
     locale: language,
-    clientName: `${appointment.client.firstName} ${appointment.client.lastName}`.trim(),
+    // `ownerLabel`, and here it is not a label at all -- it is the
+    // name the owner is ADDRESSED by in a message that leaves the
+    // clinic. `.trim()` covered the trailing space and not the other
+    // half: a missing surname arrives in a template literal as the
+    // word "null", so an owner with one name was about to be sent
+    // "Sayın Ayşe null".
+    clientName: ownerLabel(appointment.client),
     petName: appointment.pet.name,
     startsAt: appointment.startsAt,
     durationMinutes: appointment.durationMinutes,
@@ -968,7 +975,7 @@ export async function runReminderSweep(
         }
         const body = composeReminderFor(clinic.notifications.channel, {
           locale: language,
-          clientName: `${reminder.client.firstName} ${reminder.client.lastName}`.trim(),
+          clientName: ownerLabel(reminder.client),
           petName: reminder.pet?.name,
           type: reminder.type,
           title: reminder.title,
@@ -1407,7 +1414,7 @@ export async function sendReminderNow(reminderId: string, ctx: ActionContext) {
 
   const body = composeReminderFor(clinic.notifications.channel, {
     locale: language,
-    clientName: `${reminder.client.firstName} ${reminder.client.lastName}`.trim(),
+    clientName: ownerLabel(reminder.client),
     petName: reminder.pet?.name,
     type: reminder.type,
     title: reminder.title,

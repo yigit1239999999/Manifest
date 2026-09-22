@@ -532,3 +532,45 @@ describe("the title field, when the title is the message", () => {
     );
   });
 });
+
+/**
+ * The client who has no surname, in the one picker that named them by
+ * hand.
+ *
+ * "Ayşe null" is what pm saw, and the word is the tell: the two parts
+ * were joined in a template literal, which renders an absent surname as
+ * the string "null". The surname became optional for the vet's reason
+ * -- "I do not know the surname of the lady who brings the street cat,
+ * and asking would be rude" -- and every list column already answers
+ * this with `ownerLabel`, which drops what is not there.
+ *
+ * Worth a rendered test rather than a unit one on the helper: the
+ * helper was never wrong. What was wrong is that this call site did not
+ * use it.
+ */
+describe("a client with no surname, in the picker", () => {
+  it("is named by what is known, not by the absence", async () => {
+    render(
+      <NextIntlClientProvider locale="tr" messages={tr}>
+        <ReminderForm
+          clients={[
+            {
+              id: "c-9",
+              firstName: "Ayşe",
+              lastName: null,
+              phone: "0532 000 00 00",
+              notificationsOptIn: true,
+            },
+          ]}
+          pets={[]}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    fireEvent.focus(picker(/müşteri/i));
+    const row = await screen.findByRole("option", { name: /Ayşe/ });
+
+    expect(row.textContent).toBe("Ayşe");
+    expect(row.textContent).not.toMatch(/null/);
+  });
+});

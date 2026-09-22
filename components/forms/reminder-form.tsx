@@ -18,7 +18,7 @@ import { createReminderAction } from "@/modules/reminders/actions";
 import { searchClientsAction } from "@/modules/clients/actions";
 import { searchPetsAction } from "@/modules/pets/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
-import { petLabel } from "@/lib/pet-label";
+import { ownerLabel, petLabel } from "@/lib/pet-label";
 
 /**
  * Whether a message can reach this client at all.
@@ -70,7 +70,11 @@ export function ReminderForm({
     () =>
       clients.map((c) => ({
         value: c.id,
-        label: `${c.firstName} ${c.lastName}`,
+        // `ownerLabel`, not the two parts joined by hand: a surname is
+        // allowed to be absent, and a template literal renders that
+        // absence as the word "null" -- pm found "Ayşe null" sitting in
+        // this picker. The same helper every list column uses.
+        label: ownerLabel(c),
       })),
     [clients],
   );

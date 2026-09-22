@@ -15,7 +15,6 @@ import { ConsentChoice, type ConsentAnswer } from "@/components/ui/consent-choic
 import { SpeciesPicker, type HiddenSpecies } from "@/components/species-picker";
 import { searchClientsAction } from "@/modules/clients/actions";
 import { ownerLabel } from "@/lib/pet-label";
-import { fold } from "@/lib/search";
 
 /**
  * What the picker had found when the vet asked for a new animal.
@@ -32,6 +31,17 @@ export interface OpenedWith {
   petName: string;
   /** The owner's name, empty when what was typed named the animal. */
   ownerQuery: string;
+  /**
+   * WHO that name turned out to be, when it turned out to be exactly
+   * one person.
+   *
+   * The id and not the name, because two clients may answer to one
+   * name and choosing between them by spelling is how a visit is
+   * written into the wrong record. Absent when the block was opened on
+   * an animal's name, or when the name reached more than one person --
+   * in which case nothing is chosen and the vet chooses.
+   */
+  ownerId?: string;
   /**
    * Whether the cursor should come with it.
    *
@@ -90,6 +100,7 @@ interface Props extends OpenedWith {
 export function NewPetBlock({
   petName,
   ownerQuery,
+  ownerId,
   takeFocus = false,
   values,
   errors,
@@ -114,18 +125,13 @@ export function NewPetBlock({
     [owners],
   );
 
-  // An owner typed into the animal box, matched against the list the
-  // form already has. One exact hit is a choice the vet has already
-  // made in every sense but the click, so it is made for them; two
-  // Ayşes are not, and the box stays open on the query with both in it.
-  const matchedOwner = React.useMemo(() => {
-    if (!ownerQuery) return undefined;
-    const needle = fold(ownerQuery.trim());
-    const hits = ownerOptions.filter((o) => fold(o.label) === needle);
-    return hits.length === 1 ? hits[0] : undefined;
-  }, [ownerQuery, ownerOptions]);
-
-  const openedOwnerId = values?.["newPet[ownerId]"] ?? matchedOwner?.value ?? "";
+  // Who the block opened on, decided before it got here and by id:
+  // the form works it out from the animals it was handed, where the
+  // owner is a record rather than a spelling (`visit-form.tsx`). This
+  // used to fold the typed text against the option labels and take a
+  // single exact hit, which reads two people with one name as one
+  // person.
+  const openedOwnerId = values?.["newPet[ownerId]"] ?? ownerId ?? "";
   // The owner branch, opened by a choice rather than inferred from a
   // box being non-empty -- see `intakeFrom`, which reads the same
   // intent on the other side.
@@ -294,7 +300,7 @@ export function NewPetBlock({
           // for.
           defaultLabel={
             openedOwnerId && !creatingOwner
-              ? matchedOwner?.label
+              ? ownerQuery || undefined
               : ownerName || undefined
           }
           placeholder={tCommon("searchOrType")}

@@ -42,6 +42,7 @@ const TWO_ZEYTINS = [
   {
     id: "p-1",
     name: "Zeytin",
+    ownerId: "c-1",
     ownerName: "Ayşe Yılmaz",
     speciesLabel: "Kedi",
     lastSeen: "7 ay önce",
@@ -49,6 +50,7 @@ const TWO_ZEYTINS = [
   {
     id: "p-2",
     name: "Zeytin",
+    ownerId: "c-2",
     ownerName: "Mehmet Kaya",
     speciesLabel: "Köpek",
     lastSeen: "2 gün önce",

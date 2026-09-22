@@ -43,6 +43,11 @@ export default async function EditVisitPage({
           pets={pets.items.map((p) => ({
             id: p.id,
             name: p.name,
+            // WHO owns it, not just what they are called: the form
+            // decides whether a typed name reached one person or two
+            // by id (`offerFor`), because two clients with one name is
+            // the ordinary case and spelling cannot tell them apart.
+            ownerId: p.ownerId,
             // `listPets` already loads the owner; dropping it here was
             // how three of the four pickers lost it.
             ownerName: ownerLabel(p.owner),

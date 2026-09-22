@@ -32,6 +32,7 @@ const PETS = [
   {
     id: "p-1",
     name: "Zeytin",
+    ownerId: "c-1",
     ownerName: "Ayşe Yılmaz",
     speciesLabel: "Kedi",
     lastSeen: "7 ay önce",
@@ -276,6 +277,72 @@ describe("the animal opened inside the visit form", () => {
       expect(document.activeElement).not.toBe(document.body);
     });
 
+    // pm typed a name that TWO clients answer to -- a real pair in the
+    // fixture, "PMTEST Ayni Adas" twice -- and the row offered to make
+    // an animal for "them", singular. The rule counted distinct NAMES,
+    // and two people with one name deduplicate to one name.
+    //
+    // It counts people now. Same spelling, two records: nothing is
+    // chosen and the vet chooses, because picking one of two identical
+    // labels on the reader's behalf is how a visit lands in the wrong
+    // client's record -- which is the thing this round is most afraid
+    // of, arriving through a convenience meant to save a click.
+    it("will not guess between two people who share a name", () => {
+      const container = document.createElement("div");
+      document.body.querySelector("main")!.appendChild(container);
+      render(
+        <NextIntlClientProvider locale="tr" messages={tr}>
+          <VisitForm
+            pets={[
+              { id: "p-1", name: "Zeytin", ownerId: "c-1", ownerName: "Ayşe Çelik" },
+              { id: "p-2", name: "Pamuk", ownerId: "c-2", ownerName: "Ayşe Çelik" },
+            ]}
+            vets={VETS}
+            owners={OWNERS}
+            speciesChoices={SPECIES_CHOICES}
+            canCreatePet
+            canCreateOwner
+          />
+        </NextIntlClientProvider>,
+        { container },
+      );
+
+      const box = screen.getByLabelText(/^hayvan$/i);
+      fireEvent.focus(box);
+      fireEvent.change(box, { target: { value: "Ayşe Çelik" } });
+
+      expect(
+        screen.getByRole("option", { name: /"Ayşe Çelik" adıyla yeni hayvan aç/ }),
+      ).toBeTruthy();
+    });
+
+    // Two animals, one owner: still one person, so the offer stands.
+    it("still offers the owner when both animals are theirs", () => {
+      const container = document.createElement("div");
+      document.body.querySelector("main")!.appendChild(container);
+      render(
+        <NextIntlClientProvider locale="tr" messages={tr}>
+          <VisitForm
+            pets={[
+              { id: "p-1", name: "Zeytin", ownerId: "c-1", ownerName: "Ayşe Yılmaz" },
+              { id: "p-2", name: "Pamuk", ownerId: "c-1", ownerName: "Ayşe Yılmaz" },
+            ]}
+            vets={VETS}
+            owners={OWNERS}
+            speciesChoices={SPECIES_CHOICES}
+            canCreatePet
+            canCreateOwner
+          />
+        </NextIntlClientProvider>,
+        { container },
+      );
+
+      askToCreate(/^hayvan$/i, "Ayşe", /sahibi: Ayşe Yılmaz/);
+
+      // And the owner is carried as a record rather than a spelling.
+      expect(field("newPet[ownerId]")!.value).toBe("c-1");
+    });
+
     it("falls back to the animal when two owners answer to the name", () => {
       const container = document.createElement("div");
       document.body.querySelector("main")!.appendChild(container);
@@ -283,8 +350,8 @@ describe("the animal opened inside the visit form", () => {
         <NextIntlClientProvider locale="tr" messages={tr}>
           <VisitForm
             pets={[
-              { id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" },
-              { id: "p-2", name: "Pamuk", ownerName: "Ayşe Çelik" },
+              { id: "p-1", name: "Zeytin", ownerId: "c-1", ownerName: "Ayşe Yılmaz" },
+              { id: "p-2", name: "Pamuk", ownerId: "c-2", ownerName: "Ayşe Çelik" },
             ]}
             vets={VETS}
             owners={OWNERS}

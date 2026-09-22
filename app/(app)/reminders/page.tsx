@@ -623,7 +623,7 @@ export default async function RemindersPage({
                       href={`/clients/${r.client.id}`}
                       className="hover:underline"
                     >
-                      {r.client.firstName} {r.client.lastName}
+                      {ownerLabel(r.client)}
                     </Link>
                     {r.pet && (
                       <>

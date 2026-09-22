@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { fold } from "@/lib/search";
+import { ownerLabel } from "@/lib/pet-label";
 
 export interface ListClientsArgs {
   clinicId: string;
@@ -138,7 +139,11 @@ export async function getClientLabel(clinicId: string, id: string) {
     where: { id, clinicId },
     select: { firstName: true, lastName: true },
   });
-  return client ? `${client.firstName} ${client.lastName}` : undefined;
+  // The same helper the picker's own options are built with. This one
+  // is handed to `Combobox` as `defaultLabel`, so a surname joined by
+  // hand puts "Ayşe null" into a field the vet is reading as a settled
+  // choice -- the very state this function exists to prevent.
+  return client ? ownerLabel(client) : undefined;
 }
 
 export async function countClients(clinicId: string) {
