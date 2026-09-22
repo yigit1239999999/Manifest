@@ -947,10 +947,25 @@ sayılmalı.** Kolonda `null` yeni bir değerdi; burada parametre yeni bir
 parametresiz çağıran **eski** satırda görünüyor.
 
 **Yapılacak:** bir çeviri anahtarına parametre eklerken `grep` ile bütün
-çağrı yerleri sayılır. Parametresiz kalması gereken bir çağrı varsa,
-anahtar **bölünür** — aynı anahtarı iki şekilde kullanmak, ikisinden
-birinin bozulmasını zamana bırakmaktır. `messages/messages.test.ts` bu
-ailenin doğal nöbetçisi.
+çağrı yerleri sayılır. `messages/messages.test.ts` bu ailenin doğal
+nöbetçisi.
+
+**Ve çare anahtarı BÖLMEK değil, anahtarı küçültmek.** Bu satır önce
+"parametresiz kalması gereken bir çağrı varsa anahtar bölünür" diye
+yazılmıştı; `ux` aynı gün daha iyisini buldu ve ilk hâli yanlıştı.
+Bölmek, aynı işaretin iki kopyasını üretir (`"{name} (siz)"` ve `"(siz)"`)
+ve **iki kopya bir gün birbirinden ayrılır** — biri düzeltilir, öteki
+kalır, ve bu sefer kusur iki anahtarın arasında saklanır.
+
+Doğrusu: anahtar **yalnız değişmeyen parçayı** taşır — burada işaretin
+kendisi, `(siz)` / `(you)` — ve adı **çağrı yeri** önüne yazar. Tek anahtar,
+tek şekil, sıfır kopya. Yan faydası, `ux`'in aynı bulguda yakaladığı ikinci
+kusuru da imkânsız kılması: dizede zaten duran parantezin üstüne çağrı
+yerinin kendi parantezini eklemesi. Parantez artık tek bir yerde.
+
+**Genel hâli:** bir anahtar iki iş görüyorsa, çözüm ikinci anahtar açmak
+değil, anahtarın **ortak olan** parçaya inmesidir. İki anahtar iki bakım
+yeri demektir; bir anahtar artı bir birleştirme, tek bakım yeri.
 
 **13. Doldurulmayan girdi üzerine kurulan özellik, yapılmamış özellikten
 kötüdür** — çünkü yapılmış sanılır ve çalışmadığı fark edilmez. Bir akışın
