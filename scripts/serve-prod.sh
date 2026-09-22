@@ -56,7 +56,22 @@ fi
 
 echo "==> sunuluyor: $PORT"
 npx next start -p "$PORT" > "/tmp/next$PORT.log" 2>&1 &
-sleep 6
-printf "==> %s -> " "$PORT"
-curl -s -o /dev/null -w "%{http_code}\n" -m 10 "http://localhost:$PORT/"
+
+# Poll rather than sleep a fixed number of seconds. The first version slept
+# six and printed whatever curl said at that instant; on a slower start that
+# printed 000, which reads as "the build failed" when the server was simply
+# still coming up. A script whose job is to stop the ground being misread
+# must not misreport the ground itself.
+CODE=000
+for _ in $(seq 1 40); do
+  CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "http://localhost:$PORT/" || echo 000)
+  case "$CODE" in 000|"") sleep 1 ;; *) break ;; esac
+done
+
+printf "==> %s -> %s" "$PORT" "$CODE"
+if [ "$CODE" = "000" ]; then
+  echo "  (AYAĞA KALKMADI -- tail -40 /tmp/next$PORT.log)"
+else
+  echo "  (ayakta)"
+fi
 cat SERVED_COMMIT.txt
