@@ -6,6 +6,7 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
+import { countPets } from "@/modules/pets/queries";
 import { getInvoiceForVisit } from "@/modules/invoices/queries";
 import { vaccinationIntervalSuggestions } from "@/modules/vaccinations/queries";
 import {
@@ -27,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Callout } from "@/components/ui/callout";
+import { IntakeReceipt } from "@/components/intake-receipt";
 import { DescriptionList } from "@/components/ui/description-list";
 import {
   Card,
@@ -44,11 +46,13 @@ import { ownerLabel } from "@/lib/pet-label";
 
 export default async function VisitPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ created?: string }>;
 }) {
   const fmt = await getFormatContext();
-  const { id } = await params;
+  const [{ id }, { created }] = await Promise.all([params, searchParams]);
   const session = await requireSession();
   const clinicId = session.user.clinicId;
 
@@ -79,6 +83,19 @@ export default async function VisitPage({
   ]);
 
   if (!visit) notFound();
+
+  // What the save that landed here made, if it made anything.
+  //
+  // Two values and nothing else; anything unrecognised is ignored
+  // rather than reported, because a link somebody edited is not an
+  // error worth a screen. The words are assembled from the RECORD --
+  // the address carries only which sentence applies.
+  const born =
+    created === "animal,owner" ? "owner" : created === "animal" ? "pet" : null;
+  // Only on the one morning it is true: the clinic's first findable
+  // animal. Asked only when something was created, so no ordinary
+  // visit pays for the count.
+  const firstEver = born ? (await countPets(clinicId)) === 1 : false;
 
   // See the clients page: a button that only produces a refusal is hidden.
   // One permission, both actions: `visits.write` is what the service
@@ -186,6 +203,32 @@ export default async function VisitPage({
           />
         )}
       </PageHeader>
+
+      {born && (
+        <IntakeReceipt
+          said={[
+            born === "owner"
+              ? t("createdAnimalOwner", {
+                  pet: visit.pet.name,
+                  owner: ownerLabel(visit.client),
+                })
+              : t("createdAnimal", { pet: visit.pet.name }),
+            // Only where a number could have been taken and was not:
+            // the owner was written down here, on this form, and the
+            // box beside the field said there is none yet.
+            born === "owner" && !visit.client.phone
+              ? t("createdPhoneLater")
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          next={
+            firstEver
+              ? t("createdFindAgain", { pet: visit.pet.name })
+              : undefined
+          }
+        />
+      )}
 
       {visit.archivedAt ? (
         <Callout variant="warning">

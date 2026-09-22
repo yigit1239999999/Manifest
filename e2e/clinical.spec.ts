@@ -22,7 +22,12 @@ async function createClient(page: Page) {
   await page.getByLabel(/last name|soyad/i).fill("Sonbahar");
   await page.getByLabel(/^phone$|^telefon$/i).fill("0532 123 45 67");
   await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
-  await expect(page).toHaveURL(/\/clients\/[\w-]+$/);
+  // `(?!new)`: without it this matches the form the save was
+  // submitted FROM, so it passes the instant the click lands and the
+  // next line navigates away before the record exists. That is a
+  // waiting assertion that waits for nothing, and it shows up as an
+  // empty owner picker one screen later.
+  await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
 }
 
 async function createPet(page: Page) {
@@ -33,7 +38,7 @@ async function createPet(page: Page) {
   await page.getByLabel(/^breed$|^cins$/i).fill("Tekir");
   await page.getByLabel(/^sex$|^cinsiyet$/i).selectOption("MALE");
   await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
-  await expect(page).toHaveURL(/\/pets\/[\w-]+$/);
+  await expect(page).toHaveURL(/\/pets\/(?!new)[\w-]+$/);
   await expect(page.getByRole("heading", { name: "Sarı" })).toBeVisible();
 }
 

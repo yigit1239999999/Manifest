@@ -63,7 +63,26 @@ export const createVisitIntakeAction = action(
     revalidatePath("/pets");
     revalidatePath("/clients");
     revalidatePath("/");
-    redirect(`/visits/${made.id}`);
+    // What was born with this visit, so its page can say so once.
+    //
+    // A flag and not the words: "Limon" and "Ayşe" are the page's own,
+    // read from the database, and a name in an address is a name that
+    // can be edited by whoever holds the link. It is also not a
+    // question the page could answer for itself -- nothing on the
+    // record says whether the animal was made a minute ago or last
+    // year, and guessing from timestamps would report a save that
+    // never happened whenever two things are created in one second.
+    //
+    // Absent when nothing was made, which is the ordinary case: a
+    // visit written against an animal already on file lands on a page
+    // with no sentence, because there is nothing to say that the page
+    // does not already say.
+    const created = parsed.data.newPet
+      ? parsed.data.newPet.owner
+        ? "?created=animal,owner"
+        : "?created=animal"
+      : "";
+    redirect(`/visits/${made.id}${created}`);
   },
 );
 

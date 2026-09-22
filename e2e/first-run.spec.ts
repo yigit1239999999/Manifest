@@ -363,9 +363,38 @@ test.describe("First run", () => {
     await page.getByRole("button", { name: /create visit|viziti kaydet/i }).click();
     // Not `[^/]+`: that matches `/visits/new`, which is where a
     // refused save leaves the vet standing.
-    await expect(page).toHaveURL(/\/visits\/(?!new$)[^/]+$/);
+    // The address it lands on carries WHAT was made, not the names:
+    // the names are the page's own, read from the database.
+    await expect(page).toHaveURL(/\/visits\/(?!new)[^/]+\?created=animal,owner$/);
     await expect(main).toContainText("Limon");
     await expect(main).toContainText("Ayşe");
+
+    // The one fact the page cannot say by itself -- that these two were
+    // born here -- said once, with what to do about the missing number
+    // and, on a clinic's first animal, where to look for it tomorrow.
+    // Two nodes match on purpose and the count is the assertion: the
+    // box somebody reads and the live region a screen reader hears,
+    // handed the same string rather than each given its own wording.
+    const receipt = main.getByText(
+      /were created with this visit|birlikte .* açıldı/,
+    );
+    await expect(receipt).toHaveCount(2);
+    await expect(receipt.first()).toBeVisible();
+    await expect(main).toContainText(
+      /add their phone number later|Telefon numarasını sonra ekleyebilirsiniz/,
+    );
+    await expect(main).toContainText(
+      /search for the name on the Pets page|Hayvanlar sayfasında adını arayın/,
+    );
+
+    // And it says itself once. The flag leaves the address as soon as
+    // the words are on screen, so a reload does not report a save that
+    // already happened -- and a bookmark of this page is a visit, not a
+    // receipt.
+    await expect(page).toHaveURL(/\/visits\/(?!new)[^/?]+$/);
+    await page.reload();
+    await expect(main).toContainText("Limon");
+    await expect(receipt).toHaveCount(0);
 
     // And they are records, not a sentence on one page: the animal is
     // findable tomorrow morning, and so is the person to ring.
