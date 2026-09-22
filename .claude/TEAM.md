@@ -511,7 +511,23 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    ```
 
    Ağaç `HEAD` ile eşit ve indeks `HEAD~1` ile eşitse, indeks **son
-   commit'i geri alacak hâldedir** → `git read-tree HEAD`. Bu, `dev`'in
+   commit'i geri alacak hâldedir** → `git read-tree HEAD`.
+
+   **Ama `HEAD~1` bir ipucudur, sınav değil — ve dar hâli aynı gün iki
+   yanlış alarm üretti.** İndeks birden fazla commit geride kalabilir:
+   `.claude/TEAM.md`'nin indeks blob'u bir kez **üç** commit öncesindendi,
+   ve yalnız `HEAD`/`HEAD~1` karşılaştıran bir okuma onu *"hiçbir commit'te
+   yok"* sanıp **DUR** dedi. Kayıp yoktu; kaybı olan bir hâlle bayat bir hâl
+   aynı görünüyordu.
+
+   Sınav tek satırdır ve tarihin tamamına bakar:
+
+   ```
+   git log --all --oneline --find-object=<indeks blob'u>
+   ```
+
+   Boş dönerse dur. Bir şey dönerse — hangi commit olursa olsun —
+   bayatlıktır, `read-tree HEAD` güvenlidir. Bu, `dev`'in
    `visit-intake.test.tsx`'te okuduğu tablonun ta kendisi: dosya
    diskte doğruydu, ikinci `M` ağacın değil **indeksin** geride
    kaldığını söylüyordu.
