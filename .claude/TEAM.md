@@ -527,6 +527,20 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    boş dönüyorsa. O zaman sıfırlama; o blob birinin henüz commit
    etmediği işidir, sahibine yaz.
 
+   **Ve sahneleme yaptığını bilmeden sahneleyebilirsin:** `git mv` ortak
+   indekse **yazar**. `dev-ui` yirmi dosyayı rota gruplarına taşırken
+   bunu fark etmedi ve yirmi yeniden adlandırma kaydı ortak indekste
+   beklemeye başladı — kimsenin `git add` çalıştırmadığı, herkesin
+   "sahneleme yapmıyorum" dediği bir anda. O sırada `dev` de aynı
+   ağaçtaydı ve ekipte "commit etmeyin" talimatı vardı, yani kayıtlar
+   orada belirsiz bir süre bekleyecekti. Düz bir `git read-tree HEAD`
+   çeken biri yirmisini birden silerdi; dört hash okuması olmasaydı
+   bunu yapan da bu dosyanın yazarı olacaktı.
+
+   Sonucu: `git add` dışında da indekse yazan komutlar var (`git mv`,
+   `git rm`, çakışma çözümü). Kuralın bağlandığı yer bu yüzden
+   **komutun adı değil `git status`'ün ikinci sütunu**.
+
    **İkinci yarısı, `dev-ui`'den ve kaybı yaşayan taraftan:**
    **paylaşımlı bir dosyadaki düzenlemeyi başka iş yaparken elde
    tutma.** O iki dizeyi yazıp başka bir bileşene geçmek, yarım saat
