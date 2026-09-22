@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import tr from "@/messages/tr.json";
+import en from "@/messages/en.json";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
@@ -95,7 +96,7 @@ describe("a clinic with nothing on file", () => {
     expect(body).toContain(tr.pet.noneYetTypeToOpen);
     expect(body).not.toContain(tr.common.noResults);
     // The half that would be lost if the two were split.
-    expect(body).toMatch(/aynı formda açarsınız/);
+    expect(body).toMatch(/aynı formda açabilirsiniz/);
   });
 
   it("says the same thing one block in, where the owner is asked for", () => {
@@ -127,6 +128,40 @@ describe("a clinic with nothing on file", () => {
       tr.client.typeNamePlaceholder,
     );
   });
+});
+
+describe("the two texts on screen at once say different things", () => {
+  // With the list closed, the placeholder and the hint are both up, in
+  // the same size and the same colour -- so a vet cannot tell which is
+  // the instruction and which is the state by weight. The imperative
+  // lives in the placeholder, because that is the one text visible in
+  // BOTH states (closed, and open with the list covering the hint);
+  // the hint carries what the placeholder cannot say, the clinic's
+  // state and what typing leads to.
+  //
+  // Checked in both languages, because the pair is written twice and
+  // the repetition crept back in once already.
+  for (const [locale, m] of [
+    ["tr", tr],
+    ["en", en],
+  ] as const) {
+    it(`keeps the instruction out of the hint (${locale})`, () => {
+      const imperative = (placeholder: string) =>
+        // "Hayvanın adını yazın" -> "adını yazın"; "Type the animal's
+        // name" -> "name". The tail is what a second copy would repeat.
+        placeholder.toLocaleLowerCase(locale).split(/\s+/).slice(-2).join(" ");
+
+      for (const [placeholder, sentence] of [
+        [m.pet.typeNamePlaceholder, m.pet.noneYetTypeToOpen],
+        [m.client.typeNamePlaceholder, m.client.noneYetTypeToOpen],
+        [m.client.typeNamePlaceholder, m.client.noneYetTypeToOpenForm],
+      ]) {
+        expect(sentence.toLocaleLowerCase(locale)).not.toContain(
+          imperative(placeholder),
+        );
+      }
+    });
+  }
 });
 
 describe("the sentence goes away as soon as it is not true", () => {

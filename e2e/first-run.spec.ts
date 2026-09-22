@@ -47,7 +47,7 @@ const doorless = [
     field: /^pet$|^hayvan$/i,
     typed: "Limon",
     asks: /Type the animal's name|Hayvanın adını yazın/i,
-    says: /No animals on file in this clinic yet\. Type the name and you open it on this form\.|Bu klinikte henüz hayvan kaydı yok\. Adını yazın, aynı formda açarsınız\./i,
+    says: /No animals on file in this clinic yet; you can open a new one from what you type on this form\.|Bu klinikte henüz hayvan kaydı yok; yazdığınız adla yenisini aynı formda açabilirsiniz\./i,
   },
   {
     // The one picker that does change the address, so it promises a
@@ -56,7 +56,7 @@ const doorless = [
     field: /^owner$|^sahibi$/i,
     typed: "Ayşe Çelik",
     asks: /Type the owner's name|Sahibinin adını yazın/i,
-    says: /No clients on file in this clinic yet\. Type the name and the client form opens\.|Bu klinikte henüz müşteri kaydı yok\. Adını yazın, müşteri formu açılır\./i,
+    says: /No clients on file in this clinic yet; the name you type opens in the client form\.|Bu klinikte henüz müşteri kaydı yok; yazdığınız adla yenisi müşteri formunda açılır\./i,
   },
 ];
 
