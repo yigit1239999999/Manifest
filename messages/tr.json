@@ -228,6 +228,7 @@
   },
   "pet": {
     "createNamed": "\"{name}\" adıyla yeni hayvan aç",
+    "createForOwner": "Yeni hayvan aç, sahibi: {owner}",
     "title": "Hayvanlar",
     "one": "Hayvan",
     "subtitle": "Kliniğinize kayıtlı tüm hayvanlar.",
@@ -298,7 +299,6 @@
     "visitedAt": "Tarih ve saat",
     "chiefComplaint": "Ana şikayet",
     "vet": "Veteriner",
-    "vetYou": "{name} (siz)",
     "newPet": "Yeni hayvan",
     "newOwner": "Yeni sahip",
     "soap": "SOAP notları",
@@ -394,7 +394,7 @@
     "inactive": "Pasif",
     "deactivate": "Devre dışı bırak",
     "activate": "Aktifleştir",
-    "you": "Siz",
+    "you": "{name} (siz)",
     "deactivateConfirm": "Bu personel devre dışı bırakılsın mı?",
     "emptyHint": "Bu klinikte çalışan veteriner, teknisyen ve resepsiyon görevlilerini ekleyiniz."
   },

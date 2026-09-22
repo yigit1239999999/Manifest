@@ -23,6 +23,7 @@ import {
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import { searchPetsAction } from "@/modules/pets/actions";
 import { petRowCaption, petRowLabel } from "@/lib/pet-label";
+import { matches } from "@/lib/search";
 import { NewPetBlock, type OpenedWith } from "@/components/forms/new-pet-block";
 import { readDraft } from "@/lib/form-draft";
 import type { HiddenSpecies } from "@/components/species-picker";
@@ -137,10 +138,45 @@ export function VisitForm({
       })),
     [pets],
   );
+  // What the "create" row offers, decided here rather than in the
+  // picker -- and the reason is what a caption is. The animal rows read
+  // "Ayşe Yılmaz · 7 ay önce" (`petRowCaption`), so a picker that knew
+  // only that "the caption matched" could not tell an owner's name from
+  // a date, and "7 ay" typed into the box would have offered to make an
+  // animal for somebody. This form has the two fields separately.
+  //
+  // The rule, in the order it is asked:
+  //   - anything at all called that already? then the vet is naming an
+  //     ANIMAL, whether or not one of them is the one they mean. Two
+  //     Limons is the ordinary case here.
+  //   - nothing called that, and exactly one owner does? then they were
+  //     naming a PERSON, and the offer is an animal OF that person with
+  //     the name still to be typed.
+  //   - anything else -- no match at all, or two different owners --
+  //     is an animal called whatever they typed. Guessing between two
+  //     Ayşes is how the wrong record gets the visit.
+  //
+  // The words on the row and what the row does share this one
+  // calculation, so they cannot say different things.
+  const offerFor = useMemo(() => {
+    const named = pets.map((p) => p.name);
+    const owners = pets.map((p) => p.ownerName);
+    return (query: string): OpenedWith => {
+      const typed = query.trim();
+      const asAnimal = { petName: typed, ownerQuery: "" };
+      if (!typed || named.some((name) => matches(name, typed))) return asAnimal;
+      const hits = new Set(owners.filter((owner) => matches(owner, typed)));
+      const [only] = hits;
+      return hits.size === 1
+        ? { petName: "", ownerQuery: only }
+        : asAnimal;
+    };
+  }, [pets]);
   const t = useTranslations("visit");
   const tCommon = useTranslations("common");
   const tType = useTranslations("enum.visitType");
   const tPet = useTranslations("pet");
+  const tStaff = useTranslations("staff");
   // One action for a new visit, whether or not the block is open.
   // `visitIntakeSchema` is `visitSchema` with the two extra branches,
   // and `intakeFrom` hands a plain submission straight through -- so a
@@ -258,9 +294,14 @@ export function VisitForm({
             onCreate={
               visit || !canCreatePet
                 ? undefined
-                : (typed) => setCreating({ petName: typed, ownerQuery: "" })
+                : (typed) => setCreating(offerFor(typed))
             }
-            createLabel={(typed) => tPet("createNamed", { name: typed })}
+            createLabel={(typed) => {
+              const offer = offerFor(typed);
+              return offer.ownerQuery
+                ? tPet("createForOwner", { owner: offer.ownerQuery })
+                : tPet("createNamed", { name: offer.petName });
+            }}
           />
         </Field>
         <Field label={t("type")} error={state.fieldErrors?.type} required>
@@ -320,7 +361,7 @@ export function VisitForm({
                 {/* The reader is in this list, and saying so is what
                     makes a pre-chosen name readable as their own
                     rather than as a name the form picked at random. */}
-                {v.id === defaultVetId ? t("vetYou", { name: v.name }) : v.name}
+                {v.id === defaultVetId ? tStaff("you", { name: v.name }) : v.name}
               </option>
             ))}
           </Select>

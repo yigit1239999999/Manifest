@@ -221,6 +221,76 @@ describe("the animal opened inside the visit form", () => {
     expect(field("newOwner[firstName]")).toBeNull();
   });
 
+  /**
+   * The row that offers to create, and which of two things it offers.
+   *
+   * The animal picker matches the owner's name as well as the
+   * animal's, because that is how a vet looks for one. So "Ayşe" typed
+   * into it brings up Ayşe's animals -- and used to offer, underneath
+   * them, to create an ANIMAL called Ayşe. One click and the clinic
+   * has a cat named after a person, which is the duplicate family this
+   * picker exists to prevent wearing a different coat.
+   *
+   * Decided here rather than in the picker: the row's caption is
+   * "Ayşe Yılmaz · 7 ay önce", so a picker that knew only "the caption
+   * matched" could not tell a person from a date.
+   */
+  describe("what the create row offers", () => {
+    it("offers an animal by that name when an animal has one", () => {
+      mount();
+      const box = screen.getByLabelText(/^hayvan$/i);
+      fireEvent.focus(box);
+      fireEvent.change(box, { target: { value: "Zeytin" } });
+
+      expect(
+        screen.getByRole("option", { name: /"Zeytin" adıyla yeni hayvan aç/ }),
+      ).toBeTruthy();
+    });
+
+    it("offers an animal FOR the owner when only an owner has one", () => {
+      mount();
+      askToCreate(/^hayvan$/i, "Ayşe", /sahibi: Ayşe Yılmaz/);
+
+      // The name is the work that is left, and the cursor is on it.
+      expect(field("newPet[name]")!.value).toBe("");
+      expect(document.activeElement).toBe(field("newPet[name]"));
+      // The owner is not asked for twice: one exact hit in the list is
+      // a choice already made in every sense but the click.
+      expect(field("newPet[ownerId]")!.value).toBe("c-1");
+    });
+
+    it("falls back to the animal when two owners answer to the name", () => {
+      const container = document.createElement("div");
+      document.body.querySelector("main")!.appendChild(container);
+      render(
+        <NextIntlClientProvider locale="tr" messages={tr}>
+          <VisitForm
+            pets={[
+              { id: "p-1", name: "Zeytin", ownerName: "Ayşe Yılmaz" },
+              { id: "p-2", name: "Pamuk", ownerName: "Ayşe Çelik" },
+            ]}
+            vets={VETS}
+            owners={OWNERS}
+            speciesChoices={SPECIES_CHOICES}
+            canCreatePet
+            canCreateOwner
+          />
+        </NextIntlClientProvider>,
+        { container },
+      );
+
+      const box = screen.getByLabelText(/^hayvan$/i);
+      fireEvent.focus(box);
+      fireEvent.change(box, { target: { value: "Ayşe" } });
+
+      // Guessing between two Ayşes is how the wrong record gets the
+      // visit, so it guesses at neither.
+      expect(
+        screen.getByRole("option", { name: /"Ayşe" adıyla yeni hayvan aç/ }),
+      ).toBeTruthy();
+    });
+  });
+
   // 3. Open, with an owner being written down in the same breath.
   it("opens the owner from the same box, one block further in", () => {
     mount();
