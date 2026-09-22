@@ -59,3 +59,6 @@ SERVED_COMMIT.txt
 
 # Set by whoever is measuring; scripts/serve-prod.sh refuses to rebuild while it exists.
 MEASURING
+
+# Agent scratch scripts: screenshots, one-off probes. Never part of the product.
+*-tmp.mjs
