@@ -661,6 +661,40 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    ikinci sütunu `M` olmayan ama birinci sütunu `M` olan her yol,
    onu göreni ilgilendirir.**
 
+   **Altıncı madde, ve dört tekrarın KÖK SEBEBİ buydu — "aynı satırdaki
+   `git reset`" özel indeksin hâlâ açık olduğu kabukta çalışırsa
+   PAYLAŞIMLI indekse hiç dokunmaz.**
+
+   ```
+   export GIT_INDEX_FILE=…/my-index
+   git add <yollarım>
+   git commit
+   git reset HEAD -- <yollarım>     # ← BU, KENDİ indeksini sıfırlar
+   ```
+
+   Son satır hatasız çalışır, çıktı vermez, ve paylaşımlı indeksi
+   **olduğu gibi bayat bırakır.** Kuralı yazan kişi onu uyguladığını
+   görür; `git status` başkasının kabuğunda `MM` gösterir. 22 Eylül'de
+   paylaşımlı indeks dört kez bayat bulundu, dördünde de commit'i atan
+   *"sıfırladım"* diyordu ve **doğru söylüyordu** — yanlış indeksi.
+
+   Doğrusu, temizliği ayrı bir kabuğa çıkarmak ya da değişkeni düşürmek:
+
+   ```
+   git commit && env -u GIT_INDEX_FILE git reset HEAD -- <yollarım>
+   ```
+
+   **Ve doğrulaması commit'i atanın kendi kabuğunda yapılamaz** — orada
+   her şey temiz görünür. Sınav, `GIT_INDEX_FILE` olmayan bir kabukta:
+   `git status --short` çıktısında **birinci sütunu `M` olan kendi
+   yolun kalmamalı.**
+
+   Kuralın altı maddesinin ortak dersi de burada toplanıyor: bu maddenin
+   beşi, **kuralı uyguladığını gösteren bir çıktı** ile **kuralın
+   uygulandığı** arasındaki farktan doğdu. Listeyi görmek okumak değil;
+   sayıyı tutturmak yönü tutturmak değil; ve komutu çalıştırmak, onu
+   doğru indekste çalıştırmak değil.
+
 10. **Kimlik alanı yerinde düzeltilmez. Hekim bunu kendisi reddetti.**
    Bir seçicide yanlış kaydı seçmişken adı *"düzeltmek"*, gerçek bir
    insanın kaydını **sessizce başkasının adıyla** değiştirmektir.
