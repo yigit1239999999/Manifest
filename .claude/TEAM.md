@@ -928,6 +928,30 @@ sayar ve hepsini aynı commit'te tek bir ortak biçimlendiriciye bağlar
 koyar: o ham desen kodda bir daha geçemesin. Yedincisi bugün bulundu,
 sekizincisi yarın yazılırdı.
 
+**Aynı kural dize anahtarları için de geçerli, ve aynı gün ikinci kez
+çarptı.** `staff.you` anahtarının **değeri** `"Siz"`den `"{name} (siz)"`ye
+çevrildi — formlarda doğru, ama `/staff` listesi aynı anahtarı
+**parametresiz** bir rozet olarak kullanıyordu (`staff/(list)/page.tsx:59`).
+Ekranda görünen şey şu oldu:
+
+    Hâl Yönetici({name} (siz))
+
+Yani ham şablon kullanıcının gözüne çıktı, ve yalnız **oturumu açık olan
+kişinin** satırında — herkesin göreceği bir kusur değil, kendi satırına
+bakan herkesin göreceği bir kusur.
+
+Mekanizma kolon vakasıyla birebir aynı: **şekli değişen şeyin her okuyucusu
+sayılmalı.** Kolonda `null` yeni bir değerdi; burada parametre yeni bir
+şekil. İkisinde de tip sistemi durdurmuyor, ikisinde de çıktı boş değil
+**yanlış**, ve ikisinde de kusur değişikliği yapan commit'te değil onu
+parametresiz çağıran **eski** satırda görünüyor.
+
+**Yapılacak:** bir çeviri anahtarına parametre eklerken `grep` ile bütün
+çağrı yerleri sayılır. Parametresiz kalması gereken bir çağrı varsa,
+anahtar **bölünür** — aynı anahtarı iki şekilde kullanmak, ikisinden
+birinin bozulmasını zamana bırakmaktır. `messages/messages.test.ts` bu
+ailenin doğal nöbetçisi.
+
 **13. Doldurulmayan girdi üzerine kurulan özellik, yapılmamış özellikten
 kötüdür** — çünkü yapılmış sanılır ve çalışmadığı fark edilmez. Bir akışın
 dayandığı alan pratikte boş kalıyorsa, asıl iş o alanın dolmasıdır.
