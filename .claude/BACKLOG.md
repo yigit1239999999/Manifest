@@ -3109,3 +3109,77 @@ yönlendiriyordu; **reddedildi**, çünkü randevu yarındır ve vizit şimdidir
 ihlali olurdu: *ürün kullanıcının ne yapmaya çalıştığını biliyor ama
 davranışını ona göre değiştirmiyor.* Muhtemel şekli: `appointments/new`
 aynı satır-içi kalıbı alır, yönlendirme almaz.
+
+## Onboarding 2. tur — kullanıcının 22 Eylül kararları
+
+Birinci tur kapandıktan sonra kullanıcı taze hesapla girdi ve dört şey
+söyledi. Üçü yön, biri kusur — ve kusuru **biz** koyduk.
+
+### 0. ÖNİZLEME PANELİ YALAN SÖYLÜYOR (kullanıcının bulgusu)
+
+Kullanıcının cümlesi: *"paneliniz böyle gözükecek diyoruz ama paneli
+böyle gözükmeyecek gerçekte."*
+
+Doğrulandı, ve fark küçük değil:
+
+| `PreviewPanel` ne çiziyor | gerçek pano ne çiziyor |
+|---|---|
+| dört satır: `ad · gün saat` | dört sayaç karosu (ikon + değer + bağlantı) |
+| soluk metin, `text-muted-foreground` | 12 haftalık sütun grafiği |
+| kart yok, çerçeve yok | 6 aylık gelir grafiği |
+| sayı yok, grafik yok | tür ve vizit türü yatay çubukları |
+| | yaklaşan randevular / son vizitler / aşılar kartları |
+
+Cümle (`dashboard.previewNote`): *"Örnek bir klinik. Kayıtlarınız girmeye
+başladığında paneliniz böyle görünecek."*
+
+**Bu, turun manşetinin beşinci örneği ve en utandırıcısı** — *ürünün kendi
+sözünü tutmadığı yer*, ve bu sefer sözü bu turda biz yazdık. `searchMore`
+olmayan bir kapıyı tarif ediyordu; bu, olmayan bir **paneli** tarif ediyor.
+Aradaki fark şu: ötekini miras aldık, bunu kurduk.
+
+**Çare üç yönden biri, ve karar `ux` + yeni UI uzmanının:**
+- (a) cümleyi doğru yap — *"böyle görünecek"* yerine ne olduğunu söyle;
+- (b) önizlemeyi gerçek panonun **kabasına** benzet (karo + grafik iskeleti);
+- (c) önizlemeyi tamamen kaldır.
+
+Sırayı belirleyen soru: hekim bu bloğa bakıp **ne öğreniyor?** Bugün
+öğrendiği şey yanlış.
+
+### 1. Tek ekran beğenildi, ama biçimi değil
+
+*"Tek ekran girişini beğendim ama alt alta açılan formlar daha şık
+gösterebilir."*
+
+Yani akış doğru, **sunum** eksik. Satır-içi blok bugün `fieldset` +
+`legend` + yüzey olarak çiziliyor ve iki seviye iç içe girebiliyor. Yön:
+alt alta açılan (accordion/adım) bir biçim daha derli toplu görünebilir —
+ama bu turun kazandığı şey **tek ekranda kalmak**; yeni biçim onu geri
+almamalı. Kabul ölçütü değişmiyor: adres değişmez, tek gönder düğmesi,
+hekim hiçbir noktada elinde olmayan bilgiyi sormak zorunda kalmaz.
+
+### 2. UI uzmanı ayrı bir rol olarak açıldı
+
+*"ux uzmanımızın yanında ui uzmanımıza da ihtiyaç var gibi."*
+
+`ux` akışı, durumları, erişilebilirliği ve kırmızı çizgiyi taşıyor — ve bu
+turda bunu iyi yaptı. Eksik olan **görsel zanaat**: tipografik hiyerarşi,
+boşluk ritmi, yüzey ağırlığı, bir bloğun "şık" görünmesi. Bu turda o
+boşluk iki kez göründü — `ux`'in beş maddelik zanaat listesi sıraya
+alınıp beklemesi, ve kullanıcının *"daha şık gösterebilir"* cümlesi.
+
+Yeni rol `.claude/agents/ui.md`. Sınır: `ux` **ne** ve **neden**, `ui`
+**nasıl görünür**. Çatışırsa `ux` kazanır (kırmızı çizgi onda).
+
+### 3. pm sürekli testte beklemeyecek
+
+*"PM testlere sadece geliştirmeler maine toplu halde çıkıldığında girsin.
+Sürekli testte beklemesin."*
+
+Bu turda `pm` beş tazeleme bekledi, üç kez bayat zeminde ölçtü, bir kez
+koşusunun ortasında zemin kaydı. Maliyeti ölçüldü: `MEASURING` bayrağı,
+bitiş tahmini, ve benim beş ayrı tazelemem — hepsi **beklemeyi yönetmek
+için** kurulan araçlar. Kullanıcının kararı aracı gereksiz kılıyor:
+`pm` sürekli hazırda beklemez, **toplu iniş** olduğunda çağrılır.
+
+Yeni düzen `.claude/TEAM.md`'de "pm ne zaman ölçer" başlığı altında.
