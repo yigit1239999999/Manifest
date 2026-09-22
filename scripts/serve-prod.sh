@@ -80,8 +80,13 @@ npx next start -p "$PORT" > "/tmp/next$PORT.log" 2>&1 &
 # must not misreport the ground itself.
 CODE=000
 for _ in $(seq 1 40); do
-  CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "http://localhost:$PORT/" || echo 000)
-  case "$CODE" in 000|"") sleep 1 ;; *) break ;; esac
+  # No `|| echo 000` here: with -w, curl ALREADY prints 000 when it cannot
+  # connect, so the fallback appended a second one and the loop then compared
+  # "000000" against "000", failed to match, and stopped waiting. It reported
+  # a garbage number and broke out early -- the third time this script has
+  # misreported the very thing it exists to report.
+  CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "http://localhost:$PORT/")
+  case "$CODE" in ""|000) sleep 1 ;; *) break ;; esac
 done
 
 printf "==> %s -> %s" "$PORT" "$CODE"
