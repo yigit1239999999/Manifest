@@ -20,6 +20,9 @@ async function createOwner(page: import("@playwright/test").Page) {
   await page.goto("/clients/new");
   await page.getByLabel(/first name|^ad$/i).fill("Ayse");
   await page.getByLabel(/last name|soyad/i).fill("Yilmaz");
+  // Or the box that says there is no number: the counter form asks for
+  // one or the other, and this helper was giving neither.
+  await page.getByLabel(/^phone$|^telefon$/i).first().fill("0532 111 22 33");
   await page
     .getByRole("button", { name: /create client|müşteri oluştur/i })
     .click();
@@ -137,7 +140,12 @@ test.describe("Clinic time zone", () => {
     await page.getByLabel(/first name/i).fill("Ayse");
     await page.getByLabel(/last name/i).fill("Yilmaz");
     await page.getByLabel(/^phone$/i).fill("+905321112233");
-    await page.getByLabel(/^(gave consent|izin verdi)$/i).check();
+    // By role and by the words the counter reads out. This asked for
+    // "gave consent", which is how the consent state is REPORTED on a
+    // record's page; the question a receptionist puts to somebody
+    // standing in front of them is answered yes or no, and the two
+    // vocabularies are deliberately separate (`consent-choice.tsx`).
+    await page.getByRole("radio", { name: /^(yes|evet)$/i }).check();
     await page.getByRole("button", { name: /create client/i }).click();
     await expect(page.getByRole("heading", { name: /ayse yilmaz/i })).toBeVisible();
 

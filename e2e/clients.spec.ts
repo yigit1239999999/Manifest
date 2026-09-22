@@ -12,6 +12,13 @@ async function signUp(page: import("@playwright/test").Page, stamp: number) {
   await expect(page).toHaveURL("/");
 }
 
+// The number, in every one of these. It is not decoration on the way to
+// what each test is about: the counter form asks for a phone or for the
+// box that says there is none, and a client with neither is refused by
+// the schema (`modules/clients/schema.ts`). Three of these were written
+// before that rule existed and were failing on it in silence.
+const PHONE = "0532 111 22 33";
+
 test.describe("Clients", () => {
   test("creating a client takes the user to its detail page", async ({
     page,
@@ -21,6 +28,10 @@ test.describe("Clients", () => {
     await page.goto("/clients/new");
     await page.getByLabel(/first name|^ad$/i).fill("Jamie");
     await page.getByLabel(/last name|soyad/i).fill("Rivera");
+    await page.getByLabel(/^phone$|^telefon$/i).first().fill(PHONE);
+    // The email lives behind the fold now: nine fields a counter does
+    // not stop for while somebody is standing there.
+    await page.getByText(/optional details|isteğe bağlı bilgiler/i).click();
     await page.getByLabel(/^email$/i).fill("jamie@example.com");
     await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
 
@@ -36,6 +47,10 @@ test.describe("Clients", () => {
     await page.goto("/clients/new");
     await page.getByLabel(/first name|^ad$/i).fill("Avery");
     await page.getByLabel(/last name|soyad/i).fill("Chen");
+    // No number, said out loud: the owner who will not give one is the
+    // case the tick exists for, and it has to reach the list like any
+    // other client.
+    await page.getByRole("checkbox", { name: /no number|şimdi yok/i }).check();
     await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
     await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
 
@@ -54,6 +69,7 @@ test.describe("Clients", () => {
     await page.goto("/clients/new");
     await page.getByLabel(/first name|^ad$/i).fill("Robin");
     await page.getByLabel(/last name|soyad/i).fill("Vale");
+    await page.getByLabel(/^phone$|^telefon$/i).first().fill(PHONE);
     await page
       .getByRole("button", { name: /create client|müşteri oluştur/i })
       .click();
