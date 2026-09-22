@@ -53,3 +53,6 @@ next-env.d.ts
 # Production build lives in its own directory so `next dev` and
 # `next start` cannot overwrite each other. See next.config.ts.
 /.next-prod/
+
+# Ground stamp: written by scripts/serve-prod.sh, never by hand.
+SERVED_COMMIT.txt
