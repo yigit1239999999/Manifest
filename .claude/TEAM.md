@@ -695,6 +695,39 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    sayıyı tutturmak yönü tutturmak değil; ve komutu çalıştırmak, onu
    doğru indekste çalıştırmak değil.
 
+   **Ve delik BİR değil İKİ — bunu `dev-ui` düzeltti, kök sebep tek
+   mekanizmaya bağlanmıştı.** Yukarıdaki `GIT_INDEX_FILE` tuzağı
+   gerçek, ama günün üç bayatlığını o açıklamıyor. Kanıt blob'larda:
+
+   ```
+   git rev-parse fb7cc52:.claude/TEAM.md   → 7e54d09   (bulunan bayat blob)
+   git rev-parse 90676d2:.claude/TEAM.md   → 5f001da   (bulunan öteki)
+   ```
+
+   Birincisi **kurtarma** deliği, ikincisi **commit sonrası** delik:
+
+   - **Kurtarma:** boş ağaç kazasından sonra atılan `git reset fb7cc52`
+     çalışma ağacını kurtardı ve paylaşımlı indeksi **fb7cc52'ye
+     sabitledi.** Ağaç doğru, indeks yanlış. HEAD sonra ilerledi, ve
+     özel indeksle atılan her commit o yollarda bayatlığı **görünür**
+     kıldı — sebebi değildi, ortaya çıkaranıydı.
+   - **Commit sonrası:** `a81e7f2`'nin ardından koşan `git reset`,
+     `GIT_INDEX_FILE` hâlâ açık olduğu için özel indekse gitti.
+
+   Eklenen kural, `dev-ui`'nin cümlesiyle: **paylaşımlı indeksi HEAD
+   dışında bir şeye eşitleyen her komuttan sonra indeks HEAD'e geri
+   çekilir.** Kurtarma bittiğinde ağaca bakılıp *"kayıp yok"* denir ve
+   herkes dağılır; indeksin yanlış kaldığını **bir sonraki commit'i
+   atacak kişi** öğrenir — yine kuralı uygulayanla bedelini ödeyenin
+   farklı olması.
+
+   `dev-ui`'nin ikinci ayrımı da kalsın, çünkü teşhisi hızlandırıyor:
+   **çıktının değişmesi ile çıktının boş olması farklı şeylerdir.**
+   Onun onarımları ayrı kabuk çağrılarındaydı (değişken taşınmaz), doğru
+   indekse gitti ve `--name-only` çıktısının **kısaldığı** görüldü;
+   yanlış indekse giden `reset` ise hiçbir şey yazmaz. Sessiz başarı ile
+   gerçek başarıyı ayıran şey burada çıktının **boyu**.
+
 10. **Kimlik alanı yerinde düzeltilmez. Hekim bunu kendisi reddetti.**
    Bir seçicide yanlış kaydı seçmişken adı *"düzeltmek"*, gerçek bir
    insanın kaydını **sessizce başkasının adıyla** değiştirmektir.
