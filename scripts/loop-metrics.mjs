@@ -166,6 +166,12 @@ const HAND_MADE = [
   // Opened by the vet, to walk the first screen with their own hands
   // rather than read it described.
   "Deniz Veteriner Kliniği",
+  // Opened on 22 September 2026 through the product's own sign-up page, so
+  // the owner could walk the first run as a customer would rather than be
+  // told about it. Same reason as the row above it: for as long as it is
+  // the newest clinic here, it would be the one row this census called
+  // REAL, and every number below would start describing us.
+  "Pati Veteriner Kliniği",
 ];
 
 const census = await client.query(
