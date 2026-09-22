@@ -58,6 +58,51 @@ test.describe("Clients", () => {
     await expect(page.getByText("Avery Chen")).toBeVisible();
   });
 
+  /**
+   * The client who has no number, from birth to their own edit screen.
+   *
+   * The lock this is about is not the save that makes them -- that one
+   * was obviously in scope -- but the one six months later. The counter
+   * form and the edit form are the same component over the same schema
+   * (`modules/clients/actions.ts` uses `clientSchema` for both), so a
+   * rule loosened in one place and not the other produces a record that
+   * can be created and then never saved again: somebody opens it to fix
+   * an address and the form demands a number the clinic has never had.
+   *
+   * Nothing red would have said so. The defect waits for the second
+   * visit to that record, which is why it is walked here rather than
+   * reasoned about: create without a number, reopen, save.
+   */
+  test("a client with no number can still be edited later", async ({ page }) => {
+    await signUp(page, Date.now());
+
+    await page.goto("/clients/new");
+    await page.getByLabel(/first name|^ad$/i).fill("Ayse");
+    await page
+      .getByRole("checkbox", { name: /no number|numarası yok/i })
+      .check();
+    await page
+      .getByRole("button", { name: /create client|müşteri oluştur/i })
+      .click();
+    await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
+    const record = page.url();
+
+    await page.goto(`${record}/edit`);
+    // The absence comes back as the fact it is, rather than as an empty
+    // box the form is about to ask them to fill.
+    await expect(
+      page.getByRole("checkbox", { name: /no number|numarası yok/i }),
+    ).toBeChecked();
+
+    await page
+      .getByRole("button", { name: /save changes|^kaydet$/i })
+      .first()
+      .click();
+
+    await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
+    await expect(page.getByRole("main")).toContainText("Ayse");
+  });
+
   // Backlog 39: "Archive" was a one-way door. The record left every list,
   // nothing rendered `restoreClientAction`, and the only way back was the
   // database. The round trip is the test.
