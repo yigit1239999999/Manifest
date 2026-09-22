@@ -314,3 +314,61 @@ describe("what the third answer sends", () => {
     expect(radios.map((r) => r.value)).toContain("");
   });
 });
+
+/**
+ * The telephone and the tick beside it, which answer the same question
+ * and must never both be answering it at once.
+ *
+ * The record is never in doubt -- a number that was given beats a box
+ * that says there is none (`clientSchema`). The SCREEN was: a full
+ * phone field under a ticked "No number" tells the reader two things
+ * and gives them no way to know which one is going to be stored.
+ *
+ * One way only. Typing takes the tick off; clearing the field does not
+ * put it back, because a box that ticks itself while somebody is
+ * halfway through correcting a number moves under their hands. Ticking
+ * stays the reader's own act.
+ */
+describe("the number and the box that says there is none", () => {
+  const phone = () => screen.getByLabelText(tr.client.phone) as HTMLInputElement;
+  const noNumber = () =>
+    screen.getByRole("checkbox", {
+      name: tr.client.phoneLater,
+    }) as HTMLInputElement;
+
+  it("opens marked for a client already on file without one", () => {
+    renderForm({ client: { id: "c1", phone: null } as Client });
+
+    expect(noNumber()).toBeChecked();
+  });
+
+  it("opens unmarked for somebody nobody has asked yet", () => {
+    renderForm();
+
+    expect(noNumber()).not.toBeChecked();
+  });
+
+  it("clears the mark the moment a number is typed", () => {
+    renderForm({ client: { id: "c1", phone: null } as Client });
+    expect(noNumber()).toBeChecked();
+
+    // `input`, not blur: the contradiction goes while it is being
+    // corrected, not when the reader leaves the field.
+    fireEvent.input(phone(), { target: { value: "0532 111 22 33" } });
+
+    expect(noNumber()).not.toBeChecked();
+  });
+
+  it("does not put the mark back when the field is emptied again", () => {
+    renderForm({ client: { id: "c1", phone: null } as Client });
+    fireEvent.input(phone(), { target: { value: "0532" } });
+    fireEvent.input(phone(), { target: { value: "" } });
+
+    expect(noNumber()).not.toBeChecked();
+    // And the form is now refusable, which is the honest state: no
+    // number, and nobody has said there is none.
+    expect(
+      clientSchema.safeParse({ firstName: "Ayşe", phone: "" }).success,
+    ).toBe(false);
+  });
+});

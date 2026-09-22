@@ -7,6 +7,7 @@ import { surface } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
+import { PhoneOrNone } from "@/components/ui/phone-or-none";
 import { ConsentChoice, type ConsentAnswer } from "@/components/ui/consent-choice";
 import { SpeciesPicker, type HiddenSpecies } from "@/components/species-picker";
 import { searchClientsAction } from "@/modules/clients/actions";
@@ -316,31 +317,20 @@ export function NewPetBlock({
             </Field>
           </div>
 
-          <Field
+          {/* The same pair as the counter's own form, and the same
+              rule between them. On the examination table the number is
+              the fact least likely to be in the room: the animal is in
+              front of the vet, the owner is a name. */}
+          <PhoneOrNone
+            name="newOwner[phone]"
+            laterName="newOwner[phoneLater]"
             label={tClient("phone")}
-            error={errors?.["newOwner[phone]"]}
             hint={tClient("phoneHint")}
-          >
-            <Input
-              name="newOwner[phone]"
-              type="tel"
-              defaultValue={values?.["newOwner[phone]"] ?? ""}
-              autoComplete="tel"
-            />
-          </Field>
-          {/* The way past the number, and the only one. The animal is
-              on the table while this is being typed, so this is the
-              field the counter is least likely to have -- and required,
-              it produced a made-up one. See `clientSchema`. */}
-          <label className="flex w-fit items-center gap-2 py-1 text-sm text-foreground">
-            <input
-              type="checkbox"
-              name="newOwner[phoneLater]"
-              defaultChecked={Boolean(values?.["newOwner[phoneLater]"])}
-              className="size-4"
-            />
-            {tClient("phoneLater")}
-          </label>
+            laterLabel={tClient("phoneLater")}
+            error={errors?.["newOwner[phone]"]}
+            defaultValue={values?.["newOwner[phone]"]}
+            defaultLater={Boolean(values?.["newOwner[phoneLater]"])}
+          />
 
           {/* Asked here for the same reason it is asked at the counter:
               the owner is standing there, and an unanswered consent is

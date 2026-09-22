@@ -6,6 +6,7 @@ import { Field } from "@/components/ui/field";
 import { FormSection } from "@/components/ui/form-section";
 import { OptionalDetails } from "@/components/ui/optional-details";
 import { Input } from "@/components/ui/input";
+import { PhoneOrNone } from "@/components/ui/phone-or-none";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
@@ -155,46 +156,22 @@ export function ClientForm({
             the counter it is not contact detail -- it is the key. The
             vet's own account: "if I do not take her number I will never
             find that animal again." */}
-        <Field
+        {/* The number and the way past it, as one control: the rule
+            between them is three lines and a copy of it is where one
+            of the three goes missing (`PhoneOrNone`). */}
+        <PhoneOrNone
+          name="phone"
+          laterName="phoneLater"
           label={t("phone")}
-          error={state.fieldErrors?.phone}
           hint={t("phoneHint")}
-        >
-          <Input
-            name="phone"
-            type="tel"
-            defaultValue={client?.phone ?? ""}
-            autoComplete="tel"
-          />
-        </Field>
-        {/* The way past the number, and the only one.
-
-            Required was the wrong shape for this field rather than the
-            wrong priority: the counter is sometimes handed an animal by
-            somebody who will not give a number, and a form that cannot
-            be finished without one is finished with a made-up one. That
-            is the surname's defect wearing a telephone -- `lastName`
-            and `notificationsOptIn` are the two the product already
-            learned it on, and this is the third.
-
-            A tick rather than simply letting the box be empty, because
-            an empty box is ambiguous between "there is none" and "I have
-            not got there yet", and the second one is a mistake worth
-            catching. Nothing is written for it (`clientSchema`): the
-            empty column is the record.
-
-            No `min-h-6` gymnastics here -- `py-1` makes the label 28px
-            tall, which is what WCAG 2.5.8 asked of the consent radios
-            just below and is the same tap target. */}
-        <label className="flex w-fit items-center gap-2 py-1 text-sm text-foreground">
-          <input
-            type="checkbox"
-            name="phoneLater"
-            defaultChecked={Boolean(client) && !client?.phone}
-            className="size-4"
-          />
-          {t("phoneLater")}
-        </label>
+          laterLabel={t("phoneLater")}
+          error={state.fieldErrors?.phone}
+          defaultValue={client?.phone}
+          // A client already on file with no number: the tick says so,
+          // and without it the form would demand what the record has
+          // never had every time somebody opens it to fix an address.
+          defaultLater={Boolean(client) && !client?.phone}
+        />
       </FormSection>
 
     {/* Under the phone and above the fold, which is the order of the

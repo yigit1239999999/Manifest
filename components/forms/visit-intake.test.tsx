@@ -236,7 +236,15 @@ describe("the animal opened inside the visit form", () => {
     // The number is asked for and not demanded: on the examination
     // table it is the fact the counter is least likely to have.
     expect(field("newOwner[phone]")!.required).toBe(false);
-    expect(field("newOwner[phoneLater]")).not.toBeNull();
+    // The same pair the counter's own form carries, and the same one
+    // way through it: a number typed in takes the tick off.
+    const box = field("newOwner[phoneLater]")!;
+    fireEvent.click(box);
+    expect(box.checked).toBe(true);
+    fireEvent.input(field("newOwner[phone]")!, {
+      target: { value: "0532 111 22 33" },
+    });
+    expect(box.checked).toBe(false);
   });
 
   // The defect this caught, which no message would have reported: the
