@@ -398,7 +398,8 @@
     "inactive": "Pasif",
     "deactivate": "Devre dışı bırak",
     "activate": "Aktifleştir",
-    "you": "{name} (siz)",
+    "you": "Siz",
+    "youNamed": "{name} (siz)",
     "deactivateConfirm": "Bu personel devre dışı bırakılsın mı?",
     "emptyHint": "Bu klinikte çalışan veteriner, teknisyen ve resepsiyon görevlilerini ekleyiniz."
   },

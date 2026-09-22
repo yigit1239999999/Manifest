@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import { readdir, readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -88,6 +90,63 @@ describe("tr and en stay in step", () => {
 
 /** Pronouns with no formal reading. See the test that uses it for why. */
 const INFORMAL_PRONOUN = /(?:^|[^\p{L}])(sen|senin|sana|seni|sende|senden)(?![\p{L}])/iu;
+
+/**
+ * A message with a hole in it, used by somebody who thinks it is a word.
+ *
+ * `staff.you` was "Siz", and `/staff` drew it as one: `({t("you")})`
+ * beside the signed-in person's name. Then a second screen wanted "Selin
+ * Aydın (siz)" and took the same key for it, so the first screen started
+ * rendering `Hâl Yönetici({name} (siz))` -- the template itself, braces
+ * and all, in a table a clinic's administrator reads.
+ *
+ * Nothing caught it. The catalogues stayed in step with each other, both
+ * languages were equally wrong, and the call site still compiled: a
+ * missing parameter is not a type error, it is a brace on the screen.
+ *
+ * So the rule is about the SHAPE of the call rather than the text: a key
+ * asked for with no parameters must resolve to a message with no
+ * placeholders. Only flagged when there is no reading under which the
+ * call is safe -- a file's translators are matched by the namespaces it
+ * opens, so a key that exists parameterless in any of them passes.
+ */
+describe("a key asked for as a word", () => {
+  it("never resolves to a message with a hole in it", async () => {
+    const offenders: string[] = [];
+    for (const dir of ["app", "components"]) {
+      for await (const file of walk(resolve(dir))) {
+        if (file.includes(".test.")) continue;
+        const source = await readFile(file, "utf8");
+        const namespaces = [
+          ...source.matchAll(/(?:use|get)Translations\(\s*"([^"]+)"/g),
+        ].map((m) => m[1]);
+        if (namespaces.length === 0) continue;
+
+        // `t("key")` and nothing else inside the parentheses: a call
+        // that passes values is not what this is about.
+        for (const call of source.matchAll(/(?<![\w.])t[A-Z]?\w*\(\s*"([^"]+)"\s*\)/g)) {
+          const key = call[1];
+          const found = namespaces
+            .map((ns) => TR.get(`${ns}.${key}`))
+            .filter((v): v is string => v !== undefined);
+          if (found.length > 0 && found.every((v) => /\{\w+\}/.test(v))) {
+            offenders.push(`${file}: ${key}`);
+          }
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});
+
+async function* walk(dir: string): AsyncGenerator<string> {
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) yield* walk(full);
+    else if (/\.tsx?$/.test(entry.name)) yield full;
+  }
+}
 
 describe("Turkish house style", () => {
   // These are the wording rules the team wrote down after getting them wrong.
