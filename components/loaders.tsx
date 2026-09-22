@@ -1,4 +1,25 @@
 // Suspense fallbacks used by loading.tsx routes.
+//
+// THE TWO CONTAINERS, because both of us got this wrong from opposite
+// sides on the same afternoon. At 390px this file draws into one of two
+// widths, and neither of them is 390:
+//
+//   main px-4     294px   the dashboard's fallback
+//   Card p-6      246px   every form and detail fallback
+//
+// Both sit behind a permanent 64px icon rail: the sidebar is `w-16` at
+// every width and only widens at `md` (`components/sidebar.tsx:86`), so
+// a phone spends a sixth of its screen on it before any padding. ux
+// worked the width out and forgot the rail; I worked it out and used the
+// card figure for a bar that was in the wider one. Two different
+// mistakes, one missing number -- so the number lives here now rather
+// than in the thread where we found it.
+//
+// What it is for: a fixed `w-*` bar is safe up to `w-64` (256px) in the
+// first container and up to `w-48` (192px) in the second. Past that it
+// wants `max-w-full`, which is why four bars here carry it and one does
+// not -- the odd one out is in the wide container, and the difference
+// follows the container rather than anybody's preference.
 
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
