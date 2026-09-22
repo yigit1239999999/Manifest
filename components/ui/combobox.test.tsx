@@ -698,6 +698,76 @@ describe("what the list says while it has nothing to show", () => {
   });
 });
 
+// The state the block above did not count, found by ux on the day a
+// clinic is least able to shrug it off: `/visits/new` on a clinic with
+// nothing in it. Focus opens the list before a key is pressed, so the
+// first sentence the product ever said to that clinic was "Sonuç yok."
+// -- a refusal to a search nobody had run.
+//
+// The tests that would fall if the condition were drawn too wide come
+// first, because that is the risk: a sentence about an empty clinic
+// appearing in a clinic with records is worse than the defect it fixes.
+describe("what the list says to a clinic that has nothing yet", () => {
+  function picker(props: Partial<React.ComponentProps<typeof Combobox>> = {}) {
+    const view = render(
+      <Combobox
+        name="petId"
+        options={[]}
+        noResultsLabel="Sonuç yok."
+        emptyCatalogueLabel="Bu klinikte henüz hayvan yok."
+        {...props}
+      />,
+    );
+    return { ...view, input: view.container.querySelector('input[type="text"]')! };
+  }
+
+  it("keeps the refusal for a search that really found nothing", () => {
+    const { input } = picker({ options: OPTIONS });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "zzz" } });
+
+    expect(screen.getByText("Sonuç yok.")).toBeInTheDocument();
+    expect(screen.queryByText("Bu klinikte henüz hayvan yok.")).toBeNull();
+  });
+
+  it("keeps it on an empty clinic too, once somebody has actually looked", () => {
+    const { input } = picker();
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Zeytin" } });
+
+    // Typed and matched nothing is an answer, and the answer does not
+    // change because the catalogue behind it is empty.
+    expect(screen.getByText("Sonuç yok.")).toBeInTheDocument();
+  });
+
+  it("says what is missing when nobody has looked yet", () => {
+    const { input } = picker();
+    fireEvent.focus(input);
+
+    expect(screen.getByText("Bu klinikte henüz hayvan yok.")).toBeInTheDocument();
+    expect(screen.queryByText("Sonuç yok.")).toBeNull();
+  });
+
+  it("says it again when the typed query is wiped back out", () => {
+    const { input } = picker();
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Ze" } });
+    fireEvent.change(input, { target: { value: "" } });
+
+    // `typed` never goes back to false, so an emptied field would keep
+    // the refusal on screen for a search that is no longer there.
+    expect(screen.getByText("Bu klinikte henüz hayvan yok.")).toBeInTheDocument();
+  });
+
+  it("is silent in every picker that was not given the sentence", () => {
+    const { input } = picker({ emptyCatalogueLabel: undefined });
+    fireEvent.focus(input);
+
+    // Four pickers ship without it today. None of them may change.
+    expect(screen.getByText("Sonuç yok.")).toBeInTheDocument();
+  });
+});
+
 // Two things can be true at once and the note used to pick one.
 //
 // pm measured the cost on a clinic of 63 with a cap of 50: open the

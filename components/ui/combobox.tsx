@@ -96,6 +96,19 @@ interface Props {
   /** Renders the label for that row from the typed query. */
   createLabel?: (value: string) => string;
   noResultsLabel?: string;
+  /** The list's body while this clinic's catalogue is empty and nothing
+   * has been typed yet.
+   *
+   * The state the three below it did not count. A clinic on its first
+   * morning opens `/visits/new`, the animal picker takes focus, the
+   * list opens on an empty catalogue, and the first sentence the
+   * product ever says to them is "no results" -- a refusal, for a
+   * search nobody ran. Passed by the caller like every other string
+   * here, because the sentence is about what is missing and only the
+   * caller knows whether that is an animal or a client.
+   *
+   * Left off, the picker behaves exactly as it does today. */
+  emptyCatalogueLabel?: string;
   /**
    * Asks the server instead of filtering `options` locally.
    *
@@ -168,6 +181,7 @@ export function Combobox({
   onCreate,
   createLabel,
   noResultsLabel,
+  emptyCatalogueLabel,
   onSearch,
   hasMore = false,
   minSearchChars = 2,
@@ -471,6 +485,15 @@ export function Combobox({
   const showCapNote = effectiveHasMore && Boolean(hasMoreLabel);
   const showSearchHint = belowThreshold && Boolean(searchHintLabel);
 
+  // "Nobody has looked yet" and "there is nothing to look through" are
+  // one state here, and only together: a query that was typed and
+  // matched nothing is a real answer and keeps the real answer's
+  // sentence, whatever the catalogue holds. `remote` counts too, so a
+  // searching picker that has already been handed matches is never
+  // called empty.
+  const untouched = !typed || query.trim().length === 0;
+  const catalogueEmpty = options.length === 0 && remote.length === 0;
+
   const rows: Array<{
     key: string;
     kind: "option" | "add" | "create";
@@ -610,12 +633,20 @@ export function Combobox({
             role="listbox"
             className="max-h-[16.5rem] overflow-y-auto p-1"
           >
-            {/* Three states, not two, and the first is not an empty one.
+            {/* Four states, not two, and only the last is an empty one.
               "Type two more letters" is an instruction; dressing it as
               "no results" tells the user their clinic has no such
               record when nobody has looked yet (TEAM.md #19). The
               server returns an empty array in both cases, so the two
               are told apart here, by what the user has typed.
+
+              The fourth was counted late, by ux, and it is the one a
+              clinic meets first: the catalogue itself is empty. Focus
+              opens this list before a key is pressed, so a brand new
+              clinic's first sentence from the product was a refusal to
+              a search nobody ran. Told apart the same way -- by what
+              has been typed -- with the catalogue asked as well, so an
+              answered search keeps its answer.
 
               Only when there is nothing above it. The instruction used
               to stand in the list's place, which hid the fifty records
@@ -632,6 +663,9 @@ export function Combobox({
                 {(belowThreshold ? searchHintLabel : undefined) ??
                   (status === "failed" ? searchFailedLabel : undefined) ??
                   (status === "asking" ? searchingLabel : undefined) ??
+                  (untouched && catalogueEmpty
+                    ? emptyCatalogueLabel
+                    : undefined) ??
                   noResultsLabel ??
                   "-"}
               </li>
