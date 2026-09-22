@@ -68,7 +68,14 @@ export function PhoneOrNone({
   const later = React.useRef<HTMLInputElement>(null);
 
   return (
-    <>
+    // One box around the pair, and the gap is the argument for it. As
+    // two siblings they took whatever their parent put between fields
+    // -- 16px, the same distance the form uses between the surname and
+    // the telephone -- so the tick read as a field of its own rather
+    // than as the way past the one above it. 8px is what `ConsentChoice`
+    // puts between its answers and its consequence, which is the same
+    // relation: a control and the sentence that belongs to it.
+    <div className="flex flex-col gap-2">
       <Field label={label} error={error} hint={hint}>
         <Input
           name={name}
@@ -89,8 +96,11 @@ export function PhoneOrNone({
         />
       </Field>
       {/* `py-1` makes the label 28px tall, which is what WCAG 2.5.8
-          asked of the consent radios below it and is the same target. */}
-      <label className="flex w-fit items-center gap-2 py-1 text-sm text-foreground">
+          asked of the consent radios below it and is the same target.
+          `min-h-6` is the floor under it, carried from `ConsentChoice`
+          so the two ticks a reader meets in one form cannot end up
+          different sizes because one of them has shorter words. */}
+      <label className="flex min-h-6 w-fit items-center gap-2 py-1 text-sm text-foreground">
         <input
           ref={later}
           type="checkbox"
@@ -100,6 +110,6 @@ export function PhoneOrNone({
         />
         {laterLabel}
       </label>
-    </>
+    </div>
   );
 }
