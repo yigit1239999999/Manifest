@@ -331,5 +331,37 @@ describe("the animal opened inside the visit form", () => {
     // And the owner's block with it, because a half-written client is
     // the same unsaved work as a half-written animal.
     expect(field("newOwner[firstName]")!.value).toBe("Ayşe");
+    // The picker above the block still says what is being made. Blank
+    // there, over a hidden id the draft emptied on purpose, is the
+    // state that refuses the next save with nothing on screen.
+    expect((screen.getByLabelText(/^hayvan$/i) as HTMLInputElement).value).toBe(
+      "Limon",
+    );
+    expect(screen.getByLabelText(/^hayvan$/i)).not.toBeRequired();
+  });
+
+  // The other half of a restored block: an owner who was PICKED rather
+  // than written down. The draft carries the id and nothing else, so
+  // the name has to be looked up again -- a full hidden input under an
+  // empty box reads as a selection that was lost, and re-picking is how
+  // the wrong animal gets attached to a visit.
+  it("comes back saying which owner was chosen, not just holding the id", () => {
+    window.sessionStorage.setItem(
+      "pettrack.draft.v1.u-1.visit:new",
+      JSON.stringify({
+        "newPet[intent]": "1",
+        "newPet[name]": "Limon",
+        "newPet[species]": "CAT",
+        "newPet[ownerId]": "c-1",
+      }),
+    );
+
+    mount();
+
+    expect(field("newPet[ownerId]")!.value).toBe("c-1");
+    expect((screen.getByLabelText(/^sahibi$/i) as HTMLInputElement).value).toBe(
+      "Ayşe Yılmaz",
+    );
+    expect(field("newOwner[firstName]")).toBeNull();
   });
 });

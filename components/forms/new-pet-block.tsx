@@ -224,11 +224,17 @@ export function NewPetBlock({
           required={!creatingOwner}
           options={ownerOptions}
           defaultValue={creatingOwner ? "" : openedOwnerId}
+          // Only for an id the picker cannot name itself: it looks its
+          // own options up, so a restored draft holding an owner from
+          // the list comes back named without help. What is left is an
+          // owner past the cap, and this form has no way to ask -- the
+          // honest gap, and the same one `defaultOwnerLabel` closes on
+          // `/pets/new` with a server lookup a draft restore cannot do.
           defaultLabel={
             creatingOwner
               ? ownerName || undefined
               : openedOwnerId
-                ? (matchedOwner?.label ?? values?.["newOwner[firstName]"])
+                ? matchedOwner?.label
                 : ownerQuery || undefined
           }
           placeholder={tCommon("searchOrType")}

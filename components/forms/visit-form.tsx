@@ -99,6 +99,17 @@ interface Props {
   canCreateOwner?: boolean;
 }
 
+/**
+ * What a block being put back opens with.
+ *
+ * The name matters: it is what the animal picker above shows while the
+ * block is open, and a picker that comes back blank over a hidden id
+ * reads as a selection that was lost.
+ */
+function reopenedWith(values: Record<string, string>): OpenedWith {
+  return { petName: values["newPet[name]"] ?? "", ownerQuery: "" };
+}
+
 export function VisitForm({
   visit,
   pets,
@@ -163,9 +174,7 @@ export function VisitForm({
     visit || typeof window === "undefined" ? null : readDraft("visit:new"),
   );
   const [creating, setCreating] = useState<OpenedWith | null>(
-    restoredDraft?.["newPet[intent]"] === "1"
-      ? { petName: "", ownerQuery: "" }
-      : null,
+    restoredDraft?.["newPet[intent]"] === "1" ? reopenedWith(restoredDraft) : null,
   );
 
   // A rejected submit is a server response, not an event this form can
@@ -177,7 +186,7 @@ export function VisitForm({
   if (seenValues !== echoed) {
     setSeenValues(echoed);
     if (echoed?.["newPet[intent]"] === "1" && !creating) {
-      setCreating({ petName: "", ownerQuery: "" });
+      setCreating(reopenedWith(echoed));
     }
   }
 
@@ -212,8 +221,15 @@ export function VisitForm({
             // so the box still shows what they asked for.
             key={creating ? "creating" : "picking"}
             name="petId"
-            required
             options={petOptions}
+            // Dropped while the block is open, and this is the same
+            // rule the owner picker follows one level in: the animal
+            // is being typed below, the id is empty on purpose, and a
+            // native `required` over an empty picker refuses the
+            // submit with nothing on screen to say why. The asterisk
+            // stays, and `visitIntakeSchema` still refuses a visit
+            // with neither an animal nor a new one.
+            required={!creating}
             defaultValue={creating ? "" : (visit?.petId ?? defaultPetId ?? "")}
             defaultLabel={
               creating ? creating.petName || creating.ownerQuery : defaultPetLabel
