@@ -53,13 +53,19 @@ const STEPS = {
   // makes the other two records on the way there, so asking for the
   // work no longer costs the data.
   //
-  // The sentence promises exactly that ("you can add them along the
-  // way"), which is why it could not exist until `?next=` did: before
-  // it, `/visits/new` sent a vet to the animal form and left them
-  // there with no way back. Verified end to end -- `visits/new` offers
-  // the animal, that offers the owner, `withCreated` returns with the
-  // new animal already selected, and `/visits/new` is in
-  // `ALLOWED_PATHS`.
+  // The sentence used to promise a WALK -- "you will add the owner and
+  // the animal first, and what you have typed comes with you" -- and
+  // that was true and still cost the thing the vet complained about:
+  // the address changed twice while an examination sat half typed.
+  // There is no walk now. The animal box opens the animal inside the
+  // visit form and the owner box opens the owner inside that, one save
+  // writes all three, and the sentence says the shape rather than the
+  // itinerary: the animal and its owner go on the same form.
+  //
+  // It could not have said this before the block existed, and it must
+  // not say it again if the block ever goes: this card is the product
+  // making a promise, and `e2e/first-run.spec.ts` is where the promise
+  // is kept or broken.
   visit: {
     href: "/visits/new",
     namespace: "visit",
