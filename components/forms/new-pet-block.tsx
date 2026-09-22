@@ -139,7 +139,8 @@ export function NewPetBlock({
     values?.["newOwner[intent]"] === "1",
   );
   // See `teachPet` in `VisitForm`: one condition, three places, one
-  // sentence.
+  // sentence -- and the rules for shortening that sentence, which are
+  // written out there because this string cannot be split either.
   const teachOwner = owners.length === 0 && canCreateOwner && !creatingOwner;
   const [ownerName, setOwnerName] = React.useState(
     values?.["newOwner[firstName]"]

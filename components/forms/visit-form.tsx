@@ -235,11 +235,36 @@ export function VisitForm({
   // body carry the SAME sentence.
   //
   // The same sentence twice is usually the defect. Here it is the fix,
-  // and a screenshot is why: the list is `absolute top-full`
-  // (`combobox.tsx:579`), so it covers the line under the label the
-  // instant it opens. Split between the two, the vet who clicks the
-  // box -- the likeliest move -- keeps the half that says what is
-  // missing and loses the half that says what to do.
+  // and a screenshot is why -- `.playwright-mcp/onboarding-2026-09-22/
+  // desktop-A-picker-empty.png`, taken on a clinic with nothing on
+  // file. The hint is in the flow and makes room for itself; what
+  // hides it is the list, drawn `absolute top-full` (`combobox.tsx`),
+  // which lands on top of it the instant the box takes focus. So the
+  // vet can read one of them at a time, and the one they read after
+  // the likeliest move -- clicking the box -- is the list's.
+  //
+  // WHICH IS WHY THE SENTENCE CANNOT BE SPLIT AGAIN. The tempting exit,
+  // when it is too long, is "short one in the body, long one in the
+  // hint"; that exit is closed. The body has to stand on its own, and
+  // split, the vet who clicked the box is left holding "no records" --
+  // a line that reports a lack and shows no next move, which is the
+  // complaint this whole thing was opened for.
+  //
+  // If it does have to get shorter, ONE string gets shorter, in this
+  // order: (a) "Bu klinikte" goes -- the clinic is the only context on
+  // screen anyway; (b) "yazdığınız adla" goes -- the placeholder is up
+  // in both states and already says to type the name. "aynı formda"
+  // is NOT touched: the promise lives there, and it is the reason
+  // `/pets/new` carries a string of its own (`noneYetTypeToOpenForm`)
+  // rather than this one -- that picker changes the address, so the
+  // same promise would be a lie.
+  //
+  // And the imperative stays in the placeholder alone. It is the only
+  // text visible in BOTH states, so the order belongs to it; the hint
+  // and the body carry what it cannot say, the state and what follows
+  // from typing. That rule is not advice here: the last two words of
+  // the placeholder may not appear in the sentence beside it, held in
+  // TR and EN separately by `empty-picker-teaching.test.tsx`.
   //
   // `!creating` because the block below is the thing this sentence
   // asks for: left up, it tells the vet to do what they have just

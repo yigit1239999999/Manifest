@@ -106,8 +106,9 @@ export function PetForm({
   next,
 }: Props) {
   // See `teachPet` in `VisitForm`: one condition, three places, one
-  // sentence. No `creating` here -- this picker leaves for
-  // `/clients/new` rather than growing a block.
+  // sentence, and the rules for shortening it. No `creating` here --
+  // this picker leaves for `/clients/new` rather than growing a block,
+  // which is also why its string promises a form rather than this one.
   const teachOwner = owners.length === 0 && !pet;
   const ownerOptions = useMemo(
     () =>
