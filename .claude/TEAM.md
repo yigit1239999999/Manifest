@@ -490,6 +490,43 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    sonra sıfırla" diye iki adım olarak yazılan bir kural, ikinci adımı
    atlanacak biçimde yazılmıştır. Tek komut hâline getir.
 
+   **Ve yukarıdaki hâli eksik: tetikleyici commit DEĞİL.** Bunu `dev`
+   buldu ve kendi eşitlemesini yaptıktan *sonra* yeniden bayatlayan bir
+   indeksle kanıtladı. Yani "her commit'ten sonra sıfırla" biçimi bir
+   hâli kaçırıyor; doğrusu şu:
+
+   > **Ortak indeksin tek meşru hâli HEAD'dir.** Sahnelenmiş iş asla
+   > ortak indekste beklemez — bütün sahneleme özel `GIT_INDEX_FILE`'da
+   > olur. Bayatlığın tetikleyicisi commit değil, **ortak indekse
+   > yapılan her yazmadır**, bu yüzden kontrol commit'e değil
+   > `git status`'te görülen **her ikinci sütun `M`**'ye bağlanır.
+
+   **`M` görünce varsayma, dört hash oku:**
+
+   ```
+   git rev-parse :<yol>          # indeks ne tutuyor
+   git hash-object <yol>         # ağaç ne tutuyor
+   git rev-parse HEAD:<yol>
+   git rev-parse HEAD~1:<yol>
+   ```
+
+   Ağaç `HEAD` ile eşit ve indeks `HEAD~1` ile eşitse, indeks **son
+   commit'i geri alacak hâldedir** → `git read-tree HEAD`. Bu, `dev`'in
+   `visit-intake.test.tsx`'te okuduğu tablonun ta kendisi: dosya
+   diskte doğruydu, ikinci `M` ağacın değil **indeksin** geride
+   kaldığını söylüyordu.
+
+   **Aletin çıktısını bulgu sanma** (bu incelik `dev-ui`'den): sahnelenmiş
+   *silme* görünen bir yol için `git rev-parse :<yol>` hata verir — bu
+   "dosya kayıp" demek değil, komutun o hâlde söyleyecek sözü olmaması
+   demektir. `git cat-file -e HEAD:<yol>` geçiyorsa ve dosya diskteyse,
+   elindeki yalnızca bayat bir silme kaydıdır; `read-tree` geri koyar.
+
+   **Gerçekten durulacak tek hâl:** indekste **içeriği olan** ve hiçbir
+   commit'te bulunmayan bir blob — `git log --all --find-object=<hash>`
+   boş dönüyorsa. O zaman sıfırlama; o blob birinin henüz commit
+   etmediği işidir, sahibine yaz.
+
    **İkinci yarısı, `dev-ui`'den ve kaybı yaşayan taraftan:**
    **paylaşımlı bir dosyadaki düzenlemeyi başka iş yaparken elde
    tutma.** O iki dizeyi yazıp başka bir bileşene geçmek, yarım saat
