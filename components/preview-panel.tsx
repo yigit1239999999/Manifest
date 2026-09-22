@@ -129,6 +129,19 @@ import { surface } from "@/components/ui/card";
  * Not numbered, because numbers would make it a list of jobs. The
  * clinic is asked for one thing on this screen, and it is on the card
  * above.
+ *
+ * TWO THINGS TO KNOW BEFORE CHANGING THE WORDS.
+ *
+ * The last link rests on a fact outside this file. "If they have
+ * agreed" is true today because the consent question is put to every
+ * new owner as they are registered, so every owner a reminder could
+ * reach has answered it. Make that question optional and this sentence
+ * becomes a lie about a message the clinic thinks is going out (ux).
+ *
+ * And the four are one length class on purpose: subject plus passive
+ * verb, none of them much longer than the others. One line at twice
+ * the length of its neighbours swells the block and breaks the sense
+ * of a sequence, which is the only thing the block is for (ui).
  */
 const CHAIN = ["visit", "invoice", "appointment", "reminder"] as const;
 
