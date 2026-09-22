@@ -111,7 +111,26 @@ export function ConsentChoice({
       <legend className="mb-2 text-sm font-medium text-foreground">
         {legend}
       </legend>
-      <div className="flex flex-wrap gap-x-6 gap-y-2">
+      {/* One per line until there is room for a row, which is the
+          pattern rather than a repair. GOV.UK keeps radios stacked by
+          default and reserves the side-by-side row for two short
+          answers -- yes and no -- because three of them in a row make
+          the scanning order ambiguous and, once the line runs out, the
+          wrap looks arbitrary to the reader.
+
+          This product had reached the second half of that by
+          measurement. pm measured the three answers at 390px: 64px in
+          Turkish, where they take two lines, against 28px in English,
+          where they take one. The same question was a different height
+          in two languages and nobody had decided that. And in the
+          narrowest place this control is used -- the new-animal block
+          on `/visits/new`, about 196px of room -- BOTH languages wrap.
+
+          Stacking makes the height a fact of the layout instead of a
+          fact of the wording, which is what lets a skeleton reserve it
+          (`ConsentSkeleton`) and what stops the next translation from
+          silently changing it. */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-2">
         {CONSENT_ANSWERS.map((answer) => (
           <label
             key={answer}
@@ -123,7 +142,12 @@ export function ConsentChoice({
             // was never the problem; height was, on the two controls a
             // phone user taps to answer a consent question. This makes
             // it 28.
-            className="flex min-h-6 items-center gap-2 py-1 text-sm text-foreground"
+            // `w-fit` so the target stays the size of the answer even
+            // when the answers are stacked. A label as wide as the
+            // column reads as a button rather than as a radio, and it
+            // keeps the measured targets (81×28 and 101×28 in Turkish,
+            // 111×28 and 80×28 in English) the same at both widths.
+            className="flex min-h-6 w-fit items-center gap-2 py-1 text-sm text-foreground"
           >
             <input
               type="radio"

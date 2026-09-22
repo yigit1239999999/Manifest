@@ -247,10 +247,75 @@ export function FieldsetSkeleton({
 }
 
 /**
- * The submit button, where it is going to be.
+ * The closed fold (`OptionalDetails`).
+ *
+ * Closed is the only state a skeleton may draw: open is decided by
+ * whether the record being edited has any of those fields filled, which
+ * is an answer the page is still waiting for. Right for every new
+ * record; the edit route that can be wrong stops above it instead.
  */
-export function SubmitSkeleton() {
-  return <Skeleton className="h-10 w-32" />;
+export function FoldSkeleton() {
+  return (
+    <div className="rounded-surface border border-border bg-muted/20">
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
+        {/* Flush, no gap: the real summary stacks a `text-sm` title
+            straight on a `text-xs` hint, so 20px and 16px and nothing
+            between them. */}
+        <div className="flex flex-col">
+          <Skeleton className="h-5 w-40 max-w-full" />
+          <Skeleton className="h-4 w-56 max-w-full" />
+        </div>
+        <Skeleton className="size-4 shrink-0" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The three-way consent question (`ConsentChoice`).
+ *
+ * Reservable again, and only because the control stopped depending on
+ * its own words: the answers stack below `sm` and sit in a row above it,
+ * so the group is 100px or 28px by layout rather than 64px or 28px by
+ * which language is on screen. A skeleton draws grey boxes and cannot
+ * wrap where words wrap, so before that change this row could only be
+ * 36px short in Turkish or 36px long in English -- and the second is the
+ * worse one, since it invents a jump that is not there.
+ *
+ * `h-7` is the 28px target the real answers carry (`min-h-6` plus
+ * `py-1`), and the three widths are the measured answers rather than a
+ * shape: at `sm` they have to sit on one line the way the real ones do.
+ */
+export function ConsentSkeleton() {
+  return (
+    <fieldset className="min-w-0">
+      <Skeleton className="mb-2 h-5 w-44 max-w-full" />
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-2">
+        <Skeleton className="h-7 w-20" />
+        <Skeleton className="h-7 w-24" />
+        <Skeleton className="h-7 w-24" />
+      </div>
+      <Skeleton className="mt-2 h-4 w-64 max-w-full" />
+    </fieldset>
+  );
+}
+
+/**
+ * The submit button, where it is going to be.
+ *
+ * `hint` is the "required fields: ..." line two of these forms put
+ * beside the button; the row is `h-10` either way, so it changes what is
+ * drawn and not where anything lands.
+ */
+export function SubmitSkeleton({ hint = false }: { hint?: boolean }) {
+  return hint ? (
+    <div className="flex items-center justify-end gap-3">
+      <Skeleton className="h-4 w-48 max-w-full" />
+      <Skeleton className="h-10 w-32" />
+    </div>
+  ) : (
+    <Skeleton className="h-10 w-32" />
+  );
 }
 
 /** The title and subtitle every route opens with (`PageHeader`). */
