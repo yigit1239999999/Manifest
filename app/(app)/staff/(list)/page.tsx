@@ -55,8 +55,13 @@ export default async function StaffPage() {
                 <>
                   {member.name}
                   {member.id === session.user.id && (
+                    // The brackets are in the message, not here. A call
+                    // site that adds its own is how one screen ends up
+                    // reading "Ayşe((siz))" while another reads
+                    // "Ayşe (siz)" -- and it is how this one rendered
+                    // the template itself when the key changed shape.
                     <span className="ms-2 text-xs text-muted-foreground">
-                      ({t("you")})
+                      {t("you")}
                     </span>
                   )}
                   {/* What the hidden columns held, riding along. Five

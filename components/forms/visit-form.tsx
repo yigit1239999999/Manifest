@@ -412,7 +412,9 @@ export function VisitForm({
                 {/* The reader is in this list, and saying so is what
                     makes a pre-chosen name readable as their own
                     rather than as a name the form picked at random. */}
-                {v.id === defaultVetId ? tStaff("youNamed", { name: v.name }) : v.name}
+                {v.id === defaultVetId
+                  ? `${v.name} ${tStaff("you")}`
+                  : v.name}
               </option>
             ))}
           </Select>

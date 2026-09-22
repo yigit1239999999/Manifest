@@ -398,8 +398,7 @@
     "inactive": "Inactive",
     "deactivate": "Deactivate",
     "activate": "Activate",
-    "you": "You",
-    "youNamed": "{name} (you)",
+    "you": "(you)",
     "deactivateConfirm": "Deactivate this staff member?",
     "emptyHint": "Add the vets, technicians and receptionists who work at this clinic."
   },

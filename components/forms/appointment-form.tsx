@@ -196,7 +196,9 @@ export function AppointmentForm({
           <option value="">{tCommon("none")}</option>
           {vets.map((v) => (
             <option key={v.id} value={v.id}>
-              {v.id === defaultVetId ? tStaff("youNamed", { name: v.name }) : v.name}
+              {v.id === defaultVetId
+                  ? `${v.name} ${tStaff("you")}`
+                  : v.name}
             </option>
           ))}
         </Select>
