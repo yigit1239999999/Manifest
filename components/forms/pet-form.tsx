@@ -201,7 +201,19 @@ export function PetForm({
         title={t("sections.identity")}
         description={t("sections.identityHint")}
       >
-        <Field label={t("owner")} error={state.fieldErrors?.ownerId} required>
+        <Field
+          label={t("owner")}
+          error={state.fieldErrors?.ownerId}
+          // Its own sentence rather than the one the two inline
+          // pickers share: `onCreate` below leaves for
+          // `/clients/new`, so what is promised here is a form, not
+          // this form. A promise reused where it is not true is spent
+          // for both places it is made.
+          hint={
+            owners.length === 0 && !pet ? tClient("typeToOpenForm") : undefined
+          }
+          required
+        >
           {/* See `InvoiceForm`: searchable only once the list is short
               of the whole clinic, so a small one is not taxed for a
               problem it does not have. */}
@@ -213,6 +225,9 @@ export function PetForm({
             defaultLabel={defaultOwnerLabel}
             placeholder={tCommon("searchOrType")}
             noResultsLabel={tCommon("noResults")}
+            // See `VisitForm`: the state of the clinic, said instead of
+            // a refusal to a search nobody ran.
+            emptyCatalogueLabel={tClient("noneYet")}
             onSearch={ownersCapped ? searchClientsAction : undefined}
             hasMore={ownersCapped}
             searchHintLabel={tCommon("searchMinChars")}

@@ -269,7 +269,23 @@ export function VisitForm({
           it is the only explicit `role="combobox"` here -- the visit
           type beside it is a native `select`. */}
       <div ref={picker} className="grid gap-4 sm:grid-cols-2">
-        <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
+        <Field
+          label={tPet("one")}
+          error={state.fieldErrors?.petId}
+          // Said before anything is touched, because the box says
+          // "search or type" and a clinic with nothing on file reads
+          // that as a search it cannot win. The two conditions are the
+          // same two `onCreate` below is given: an empty catalogue, and
+          // a picker that really does open the record. Without
+          // `pets.write` the line does not appear -- telling somebody
+          // to do what the server will refuse is worse than silence.
+          hint={
+            pets.length === 0 && !visit && canCreatePet
+              ? tCommon("typeToOpenHere")
+              : undefined
+          }
+          required
+        >
           {/* See `InvoiceForm`: searchable only once the list is short
               of the whole clinic. */}
           <Combobox
@@ -298,6 +314,13 @@ export function VisitForm({
             }
             placeholder={tCommon("searchOrType")}
             noResultsLabel={tCommon("noResults")}
+            // What the list says before anything is typed in a clinic
+            // that has no animals yet: the state of the clinic, where
+            // "no results" would have been an answer to a search
+            // nobody ran. The line under the label says what to do;
+            // this one says why the list is empty. Two facts, never
+            // the same sentence twice.
+            emptyCatalogueLabel={tPet("noneYet")}
             onSearch={petsCapped ? searchPetsAction : undefined}
             hasMore={petsCapped}
             searchHintLabel={tCommon("searchMinChars")}

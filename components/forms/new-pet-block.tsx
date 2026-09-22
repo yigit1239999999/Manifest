@@ -255,6 +255,13 @@ export function NewPetBlock({
       <Field
         label={t("owner")}
         error={errors?.["newPet[ownerId]"]}
+        // The animal picker's line, one block in, for the same reason
+        // and under the same two conditions as `onCreate` below.
+        hint={
+          owners.length === 0 && canCreateOwner
+            ? tCommon("typeToOpenHere")
+            : undefined
+        }
         required
         className="sm:col-span-2"
       >
@@ -305,6 +312,9 @@ export function NewPetBlock({
           }
           placeholder={tCommon("searchOrType")}
           noResultsLabel={tCommon("noResults")}
+          // See `VisitForm`: the state of the clinic, said instead of
+          // a refusal to a search nobody ran.
+          emptyCatalogueLabel={tClient("noneYet")}
           onSearch={ownersCapped ? searchClientsAction : undefined}
           hasMore={ownersCapped}
           searchHintLabel={tCommon("searchMinChars")}

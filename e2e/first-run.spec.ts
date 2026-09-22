@@ -30,9 +30,31 @@ const guards = [
 // stand in front of. The two above have no such box -- somebody who
 // walked in from the side really can go no further -- so their doors
 // are right and stay.
+// `teaches` and `holds` are the two sentences a clinic with nothing on
+// file meets, and they are listed apart because they answer different
+// questions: the first says what typing does, said under the label
+// before anything is touched; the second says why the list is empty,
+// said in the list's own body. The vet who opened the first clinic read
+// "search or type" and did not work out that a name typed there opens
+// the record -- and the list, on focus alone, told them "no results"
+// for a search they had not run.
 const doorless = [
-  { path: "/visits/new", field: /^pet$|^hayvan$/i, typed: "Limon" },
-  { path: "/pets/new", field: /^owner$|^sahibi$/i, typed: "Ayşe Çelik" },
+  {
+    path: "/visits/new",
+    field: /^pet$|^hayvan$/i,
+    typed: "Limon",
+    teaches: /you open it on this form|aynı formda açarsınız/i,
+    holds: /No animals on file|henüz hayvan kaydı yok/i,
+  },
+  {
+    // The one picker that does change the address, so it promises a
+    // form rather than this form.
+    path: "/pets/new",
+    field: /^owner$|^sahibi$/i,
+    typed: "Ayşe Çelik",
+    teaches: /the client form opens|müşteri formu açılır/i,
+    holds: /No clients on file|henüz müşteri kaydı yok/i,
+  },
 ];
 
 test.describe("First run", () => {
@@ -54,6 +76,15 @@ test.describe("First run", () => {
       await expect(
         main.getByText(/comes first|önce .* gerekir/i),
       ).toHaveCount(0);
+
+      // Before a key is pressed: the field says what typing does.
+      await expect(main.getByText(screen.teaches)).toBeVisible();
+
+      // And the list, opened by focus alone, says what the clinic
+      // holds rather than refusing a search nobody ran.
+      await box.focus();
+      await expect(main.getByText(screen.holds)).toBeVisible();
+      await expect(main.getByText(/no results|sonuç yok/i)).toHaveCount(0);
 
       // The way out is inside the field: typed text is searched first,
       // and the offer to create it sits under whatever was found.
