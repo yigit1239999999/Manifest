@@ -2328,6 +2328,48 @@ ux'in getirdiği girdi.** Danışma bir oy değil, bir **girdi türü** — ve b
 sınır olmadan iki kişi aynı kararı iki kez verir, ki 32k'nın (*"iki tasarım
 sesi varsa uygulayan hakem yapılmaz"*) karar tarafındaki hâli budur.
 
+## pm NE ZAMAN ÖLÇER — sürekli değil, toplu inişte (22 Eylül 2026, kullanıcı kararı)
+
+Kullanıcının cümlesi: *"PM testlere sadece geliştirmeler maine toplu halde
+çıkıldığında girsin. Sürekli testte beklemesin."*
+
+**Eski düzen ve neye mal olduğu.** 21–22 Eylül turunda `pm` sürekli hazırda
+bekledi. Sonucu: **beş ayrı tazeleme**, üç kez bayat zeminde ölçüm, bir kez
+koşunun **ortasında** kayan zemin (yarısı çöpe gitti), ve bir raporda
+yanlış hash. Bunların hiçbiri `pm`'in hatası değildi — **bekleme düzeninin**
+hatasıydı.
+
+Ve o güne kurduğumuz araçların çoğu bu bekleyişi **yönetmek** için vardı:
+`SERVED_COMMIT.txt`, `MEASURING` bayrağı, bitiş tahmini, tazeleme öncesi
+haber. Hepsi işe yaradı; ama bir aracın varlık sebebi bir düzen kusuruysa,
+düzeni düzeltmek araçtan ucuzdur.
+
+**Yeni düzen:**
+
+1. **`pm` varsayılan olarak boştadır.** Her commit'ten sonra çağrılmaz, her
+   tazelemeyi beklemez, hazırda oturmaz.
+2. **Bir tur içinde iş biriktirilir.** `dev` ve `dev-ui` kendi hatlarında
+   çalışır, commit eder, birbirlerine rapor verir. Ölçüm için durmaz.
+3. **Toplu iniş olduğunda** — turun işi bittiğinde, ya da bir kapı kapandığında
+   — ana oturum **tek tazeleme** yapar ve `pm`'i **o zaman** çağırır.
+4. **`pm` bir koşuda tüm listeyi alır**, kırmızıları lidere verir, işi biter.
+5. Kırmızı çıkarsa: tek toplu düzeltme commit'i → tek tazeleme → `pm`
+   **yalnız kırmızıları** yeniden ölçer.
+
+**Bunun bozduğu şey ve kabul ettiğimiz bedel:** bir kusur, doğduğu commit'te
+değil turun sonunda bulunur, yani teşhis biraz daha uzağa düşer. Buna karşılık
+`pm` bir turda beş kez değil **bir ya da iki kez** ölçer, ve her ölçümü adı
+olan tek bir zemin üzerindedir.
+
+**Araçlar kalıyor, sebebi değişiyor.** `MEASURING` artık "beklerken zemin
+kaymasın" için değil, **ölçüm sürerken kimse tazelemesin** için. `SERVED_COMMIT.txt`
+artık her turda değil, her **toplu inişte** yazılıyor. İkisi de daha az
+kullanılacak — bu iyi işaret, kötü değil.
+
+**Ana oturuma düşen:** `pm`'i çağırmadan önce üç şeyi doğrula — ağaç temiz,
+kapılar yeşil, damga yazıldı. Çağırdığın anda `pm`'in önünde **tam bir liste**
+ve **sabit bir zemin** olsun; ikisi yoksa çağırma.
+
 ## ÖLÇÜM YÖNTEMİ — ölçmeden önce okunur
 
 Bu oturumda ölçüm **sekiz kez** yanılttı ve yedi ayrı kural doğurdu. Dağınık
