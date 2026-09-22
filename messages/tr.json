@@ -39,7 +39,7 @@
     "searching": "Aranıyor…",
     "searchFailed": "Arama şu anda yapılamıyor. Bağlantınızı kontrol edip tekrar deneyiniz.",
     "searchMinChars": "Aramak için en az iki harf yazın.",
-    "searchMore": "Tüm kayıtlar gösterilmiyor. Aradığınızı görmüyorsanız, yeni kayıt açmadan önce yazmaya devam edin.",
+    "searchMore": "Tüm kayıtlar gösterilmiyor. Aradığınızı görmüyorsanız yazmaya devam edin.",
     "searchOrType": "Ara veya yaz…",
     "addNew": "Ekle: \"{value}\"",
     "optional": "isteğe bağlı",

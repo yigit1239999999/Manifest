@@ -101,6 +101,23 @@ describe("Turkish house style", () => {
     expect(offenders.map(([k]) => k)).toEqual([]);
   });
 
+  // A note under a picker that has no "create" row underneath it was
+  // telling the reader to keep typing "before you create a new one".
+  // Four of the seven pickers it is shown in offer no such thing, and
+  // a fifth hides the row from a reader without the permission -- so
+  // the sentence pointed at a door that is not there.
+  //
+  // The invitation belongs to the row, which sits directly under this
+  // note when it exists. The note's job is the fact: the list is
+  // short of the clinic.
+  it("promises no door the picker may not have", () => {
+    const note = { tr: TR.get("common.searchMore"), en: EN.get("common.searchMore") };
+
+    expect(note.tr).toBeTruthy();
+    expect(note.tr).not.toMatch(/yeni kayıt|yeni bir kayıt/i);
+    expect(note.en).not.toMatch(/new record|before you create|creating/i);
+  });
+
   it("calls animals 'hayvan', never 'hasta'", () => {
     // A clinic's patient is the animal, but the Turkish word "hasta" reads as
     // a sick human. The one allowed use is the visit type "Hastalık viziti".

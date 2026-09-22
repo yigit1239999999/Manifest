@@ -230,6 +230,19 @@ interface ActionFormProps extends Omit<React.ComponentProps<"form">, "action"> {
    * Cleared when the submit goes through, so a saved visit does not
    * come back to haunt the next one; rewritten when the server rejects
    * it, so a failed submit is still a draft.
+   *
+   * FOR UNCONTROLLED FORMS ONLY, and the next person to add this prop
+   * is the one it bites. Restoring writes into the DOM and deliberately
+   * steps over controlled fields (`restoreValues`, at the bottom of
+   * this file: a controlled component still holds the user's value and
+   * owns its DOM). So on a form that holds its fields in React state --
+   * `invoice-form`'s line array, `reminder-form`'s pickers -- a draft
+   * comes back HALF: the rows a form opens with are refilled and the
+   * ones it does not render are gone, which is worse than nothing,
+   * because a three-line invoice returns looking like a one-line
+   * invoice somebody meant to write. Today only two forms carry this
+   * and both are uncontrolled; a third one needs the restore to hand
+   * the form data rather than write the DOM.
    */
   draftKey?: string;
 }
