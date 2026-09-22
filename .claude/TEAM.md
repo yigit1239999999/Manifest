@@ -2250,12 +2250,28 @@ araç.** value'nun isteğiyle toplandı.
 "Kod tabanına özgü" altında duruyor — oradakiler **neden**i anlatır, buradaki
 satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzeltilir.
 
-### Ölçümün yedi sütunu — `pm`, 22 Eylül 2026
+### Ölçümün yedi sütunu — `pm` topladı, 22 Eylül 2026
 
 Bir ölçüm sonucu, **kendi geçerlilik koşulunu taşımıyorsa** bilgi değildir.
-Aşağıdaki yedi soru o koşulu yazıya döker; `pm` bunları tek tek, her biri
-bir hatayı yakaladıktan **sonra** ekledi, ve 22 Eylül'de yedisinin de en az
-bir kez iş gördüğünü söyleyebildi — üçü kendi hatasını yakalayarak.
+Aşağıdaki yedi soru o koşulu yazıya döker. Her biri bir hatayı yakaladıktan
+**sonra** eklendi, ve 22 Eylül'de yedisi de en az bir kez iş gördü.
+
+**Listeyi `pm` topladı ama hepsi `pm`'den çıkmadı, ve bu ayrım kayda
+geçmeli:** altıncı sütun (*iddia ateşlenebilir mi*) `dev`'in — `clinical.spec.ts`'te
+`(?!new)` taşımayan bir URL iddiasının gönderilen formun kendisiyle
+eşleştiğini, yani yeşil olduğu hâlde hiçbir şey beklemediğini buldu.
+Dördüncü sütun (*sayfa gerçekten çizildi mi*) `ux`'ten geldi. `pm` ikisini
+ölçüm tarafına çevirdi ve geçmişe uyguladı.
+
+Bu düzeltmeyi `pm` kendisi istedi, ve gerekçesi maddelerden biri kadar
+değerli: **kolektif bir şeyi tek isme yazmak, bir sonraki turda kimin ne
+getirdiğini görünmez kılar.**
+
+Sütunların `pm`'in **kendi** hatalarını yakaladığı vaka sayısı: **beş** —
+geçiş süresi (1), yanlış eleman (2), eksik küme (3), çıkarımın zemini (5),
+yanlış kanal (7). Bunlardan yalnız sonuncusu **rapora kadar gitti**;
+dördü rapordan önce yakalandı. Bir aracın değerini ölçen şey, sahibini kaç
+kez durdurduğudur.
 
 Her ölçüm raporunda bu yedisi cevaplanır:
 
