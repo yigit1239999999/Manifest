@@ -359,6 +359,36 @@ describe("the animal opened inside the visit form", () => {
     expect(field("petId")).not.toBeNull();
   });
 
+  // The create row sits one keystroke from the rows above it, so it
+  // gets pressed by accident -- and by then the animal has a name and a
+  // species. Closing the whole block to undo the inner half would
+  // charge the vet for the work they got right.
+  it("closes the owner alone, leaving the animal as it was", () => {
+    mount();
+    askToCreate(/^hayvan$/i, "Limon", /Limon.*yeni hayvan aç/i);
+    fireEvent.click(screen.getByRole("button", { name: "Kedi" }));
+    askToCreate(/^sahibi$/i, "Ayşe Çelik", /Ayşe Çelik.*yeni müşteri aç/i);
+
+    // Two ways out now, and the count is part of the assertion: the
+    // block's own, and the owner's. The owner's is the second, because
+    // it is further down the same form.
+    const ways = screen.getAllByRole("button", { name: /vazgeç/i });
+    expect(ways).toHaveLength(2);
+    fireEvent.click(ways[1]);
+
+    expect(field("newOwner[intent]")).toBeNull();
+    expect(field("newOwner[firstName]")).toBeNull();
+    // Everything above it survives, including the name that was typed
+    // into the picker: asking for it a third time is the cost this is
+    // about.
+    expect(field("newPet[intent]")!.value).toBe("1");
+    expect(field("newPet[name]")!.value).toBe("Limon");
+    expect(field("newPet[species]")!.value).toBe("CAT");
+    expect((screen.getByLabelText(/^sahibi$/i) as HTMLInputElement).value).toBe(
+      "Ayşe Çelik",
+    );
+  });
+
   // 4. Rejected, and still open. A block that shut on a rejection would
   // throw away everything typed into it and show the complaint about a
   // field that is no longer on screen.

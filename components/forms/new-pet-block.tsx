@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { flushSync } from "react-dom";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
@@ -146,7 +147,7 @@ export function NewPetBlock({
           (`intake-fields.ts`). */}
       <input type="hidden" name="newPet[intent]" value="1" />
       {/* The way out of a block that one keystroke opened.
-          
+
           Not inside the `legend`: a legend is laid out by the engine
           rather than by its parent, so a control in it lands somewhere
           no two browsers agree on -- and on a phone it would squeeze
@@ -236,12 +237,21 @@ export function NewPetBlock({
           // owner past the cap, and this form has no way to ask -- the
           // honest gap, and the same one `defaultOwnerLabel` closes on
           // `/pets/new` with a server lookup a draft restore cannot do.
+          // What is in the box while no owner is chosen: the name that
+          // was typed, whether it came in with the block or was typed
+          // into this picker and then thought better of. Coming back
+          // from a cancelled owner to an empty box would make the vet
+          // type it a third time.
+          //
+          // For a chosen one this is only needed when the picker
+          // cannot name the id itself; it looks its own options up. An
+          // owner past the cap is the honest gap -- `/pets/new` closes
+          // it with a server lookup that a draft restore cannot ask
+          // for.
           defaultLabel={
-            creatingOwner
-              ? ownerName || undefined
-              : openedOwnerId
-                ? matchedOwner?.label
-                : ownerQuery || undefined
+            openedOwnerId && !creatingOwner
+              ? matchedOwner?.label
+              : ownerName || undefined
           }
           placeholder={tCommon("searchOrType")}
           noResultsLabel={tCommon("noResults")}
@@ -272,6 +282,28 @@ export function NewPetBlock({
         <FormSection title={tVisit("newOwner")} className="sm:col-span-2">
           {/* Same intent, one branch in. */}
           <input type="hidden" name="newOwner[intent]" value="1" />
+          {/* And its own way out, which is not the one above it.
+
+              The create row is one keystroke from the rows over it, so
+              it gets pressed by accident -- and the block above has by
+              then been given a name and a species. Closing the whole
+              thing to undo the inner half would charge the vet for the
+              work they got right. This closes the owner alone: the
+              animal, its name and its species stay, and the name that
+              was typed stays in the picker above as a query. */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              // Flushed for the reason the outer one is: the draft is
+              // written by the form's own click handler as this click
+              // bubbles past it, and an intent still in the DOM at
+              // that moment comes back as an open block tomorrow.
+              onClick={() => flushSync(() => setCreatingOwner(false))}
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
+            >
+              {tCommon("nevermind")}
+            </button>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label={tClient("firstName")}
