@@ -294,7 +294,12 @@ export function VisitForm({
             onCreate={
               visit || !canCreatePet
                 ? undefined
-                : (typed) => setCreating(offerFor(typed))
+                : (typed) =>
+                    // Asked for by hand, so the caret comes with it --
+                    // unlike a block put back by a draft or a
+                    // rejection, where the reader has their own idea of
+                    // where to carry on.
+                    setCreating({ ...offerFor(typed), takeFocus: true })
             }
             createLabel={(typed) => {
               const offer = offerFor(typed);
@@ -323,6 +328,7 @@ export function VisitForm({
         <NewPetBlock
           petName={creating.petName}
           ownerQuery={creating.ownerQuery}
+          takeFocus={creating.takeFocus}
           values={blockValues}
           errors={state.fieldErrors}
           // Flushed, because the draft is written by the form's own

@@ -61,12 +61,28 @@ export function IntakeReceipt({
   }, [said, next]);
 
   return (
-    <Callout variant="info">
-      <span className="flex flex-col gap-1">
-        <span>{said}</span>
-        {next && <span className="text-muted-foreground">{next}</span>}
-      </span>
+    <>
+      {/* `live="none"`, and the `Announcer` outside rather than in.
+
+          Both were live regions: a `Callout` announces by default and
+          the announcer is one by definition, so the same sentence sat
+          in a `role="status"` inside another `role="status"` and pm's
+          mutation record showed it twice. Two copies of one fact is
+          not twice the information; it is the same sentence read
+          twice, over the top of whatever the reader was doing.
+
+          The one that stays is the announcer, because it is the one
+          that works: a live region only speaks for text that arrives
+          AFTER it mounts, and the box is painted with its words
+          already in it. Nested, it also breaks the rule the consent
+          row was fixed for -- one channel per sentence. */}
+      <Callout variant="info" live="none">
+        <span className="flex flex-col gap-1">
+          <span>{said}</span>
+          {next && <span className="text-muted-foreground">{next}</span>}
+        </span>
+      </Callout>
       <Announcer message={spoken} />
-    </Callout>
+    </>
   );
 }

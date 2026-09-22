@@ -258,6 +258,24 @@ describe("the animal opened inside the visit form", () => {
       expect(field("newPet[ownerId]")!.value).toBe("c-1");
     });
 
+    // The picker above is remounted as the block opens -- that is what
+    // empties the animal somebody moved on from -- and a focused input
+    // removed from the document drops focus to `body`. pm measured
+    // eleven samples of exactly that: a block on screen with nowhere
+    // to type, and for a keyboard user nothing under the cursor at all.
+    it("brings the cursor with it, onto the answer that is missing", () => {
+      mount();
+      askToCreate(/^hayvan$/i, "Limon", /Limon.*yeni hayvan aç/i);
+
+      // Named already, so the species is the first thing nobody has
+      // said. The chip with the keyboard's stop on it, which is where
+      // an arrow key would have gone.
+      expect(document.activeElement).toBe(
+        document.querySelector('[role="group"] button[tabindex="0"]'),
+      );
+      expect(document.activeElement).not.toBe(document.body);
+    });
+
     it("falls back to the animal when two owners answer to the name", () => {
       const container = document.createElement("div");
       document.body.querySelector("main")!.appendChild(container);
@@ -431,6 +449,27 @@ describe("the animal opened inside the visit form", () => {
     expect(field("newOwner[intent]")).toBeNull();
     expect(field("newPet[name]")!.value).toBe("Limon");
     expect(field("newPet[species]")!.value).toBe("CAT");
+  });
+
+  // A block put BACK is not a block asked for, and the difference is
+  // where the reader already is. Somebody returning to a form they
+  // left has their own idea of where to carry on; a page that grabs
+  // the caret on load takes it from them -- the rule `focusFirstEmpty`
+  // is opt-in for (`action-form.tsx`).
+  it("does not take the cursor when it is a draft coming back", () => {
+    window.sessionStorage.setItem(
+      "pettrack.draft.v1.u-1.visit:new",
+      JSON.stringify({
+        "newPet[intent]": "1",
+        "newPet[name]": "Limon",
+        "newPet[species]": "CAT",
+      }),
+    );
+
+    mount();
+
+    expect(field("newPet[intent]")!.value).toBe("1");
+    expect(document.activeElement).toBe(document.body);
   });
 
   // 4. Rejected, and still open. A block that shut on a rejection would

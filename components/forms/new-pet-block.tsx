@@ -32,6 +32,18 @@ export interface OpenedWith {
   petName: string;
   /** The owner's name, empty when what was typed named the animal. */
   ownerQuery: string;
+  /**
+   * Whether the cursor should come with it.
+   *
+   * True when the vet just asked for this block, false when it is
+   * being put back -- by a draft or by a rejected submit. The
+   * difference is where the reader already is: somebody who has just
+   * pressed "create" is looking at the block and cannot type into it
+   * until the caret arrives, while somebody returning to a form has
+   * their own idea of where to carry on, and a page that grabs focus
+   * on load takes it from them.
+   */
+  takeFocus?: boolean;
 }
 
 interface Props extends OpenedWith {
@@ -78,6 +90,7 @@ interface Props extends OpenedWith {
 export function NewPetBlock({
   petName,
   ownerQuery,
+  takeFocus = false,
   values,
   errors,
   onCancel,
@@ -131,12 +144,49 @@ export function NewPetBlock({
     | ConsentAnswer
     | null;
 
+  // Where the caret goes when this block appears, and why it has to be
+  // put there rather than left where it was.
+  //
+  // The picker above is REMOUNTED as the block opens -- that is what
+  // empties the animal id somebody moved on from (`visit-form.tsx`) --
+  // and a focused input that is removed from the document drops focus
+  // to `body`. pm measured exactly that: eleven samples from 50ms to
+  // 3s, all of them on `body`. So the vet who asked for a new animal
+  // was left with a block on screen and nowhere to type, and a
+  // keyboard user with nothing under the cursor at all.
+  //
+  // Which control depends on what is still unanswered, which is the
+  // same question `autoFocus` used to answer for one of the two cases:
+  // opened on an owner's name, the animal has no name yet and that box
+  // is the work; opened on the animal's, the name is already in and
+  // the species is the first thing nobody has said.
+  //
+  // The chip with `tabIndex="0"` rather than the first one: that is
+  // the roving stop, the chip a keyboard would land on, and after a
+  // species is chosen it is the chosen one (`species-picker.tsx`).
+  const block = React.useRef<HTMLFieldSetElement>(null);
+  React.useEffect(() => {
+    if (!takeFocus) return;
+    const el = block.current;
+    if (!el) return;
+    const target = openedName
+      ? el.querySelector<HTMLElement>('[role="group"] button[tabindex="0"]')
+      : el.querySelector<HTMLElement>('input[name="newPet[name]"]');
+    target?.focus();
+    // On open only. Moving the caret later would take it off whatever
+    // is being typed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     // The frame the SOAP notes and the vitals are drawn in, on the
     // same form a few fields down (`visit-form.tsx`). A block that
     // invents its own hierarchy mark teaches the reader a second
     // vocabulary for the same idea.
-    <fieldset className={cn(surface, "grid gap-4 p-4 sm:grid-cols-2")}>
+    <fieldset
+      ref={block}
+      className={cn(surface, "grid gap-4 p-4 sm:grid-cols-2")}
+    >
       <legend className="px-2 text-sm font-semibold text-foreground">
         {tVisit("newPet")}
       </legend>
@@ -169,12 +219,6 @@ export function NewPetBlock({
           name="newPet[name]"
           defaultValue={openedName}
           required
-          // The cursor goes to the box that is empty, which is the
-          // whole of what the block is asking for: opened from an
-          // OWNER's name, the animal has none yet. Opened from the
-          // animal's, this box is already filled and the caret stays
-          // where the vet put it.
-          autoFocus={!openedName}
         />
       </Field>
 
