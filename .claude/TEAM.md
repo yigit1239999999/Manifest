@@ -2250,6 +2250,49 @@ araç.** value'nun isteğiyle toplandı.
 "Kod tabanına özgü" altında duruyor — oradakiler **neden**i anlatır, buradaki
 satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzeltilir.
 
+### Ölçümün yedi sütunu — `pm`, 22 Eylül 2026
+
+Bir ölçüm sonucu, **kendi geçerlilik koşulunu taşımıyorsa** bilgi değildir.
+Aşağıdaki yedi soru o koşulu yazıya döker; `pm` bunları tek tek, her biri
+bir hatayı yakaladıktan **sonra** ekledi, ve 22 Eylül'de yedisinin de en az
+bir kez iş gördüğünü söyleyebildi — üçü kendi hatasını yakalayarak.
+
+Her ölçüm raporunda bu yedisi cevaplanır:
+
+1. **Ne kadar sürdü?** Geçişli bir şeyi tek kare ölçmek, o şeyi hiç
+   ölçmemektir. İki iskeletin arka arkaya çizildiği kusur yalnız zaman
+   serisinde göründü (t=1627 → t=1880).
+2. **Hangi elemanı yakaladım?** İskelet ile form aynı elemanları
+   taşımaz; eşleştirme kimlikle değil konumla yapılır. İskeletin son
+   kutusunu gönder düğmesi sanmak anlamsız bir sayı üretti (+445).
+3. **Kaç hâl var, kaçını gördüm?** İskeleti **tek hâl** sanmak, on rotalık
+   bir tabloyu yanlış zeminde ürettirdi; gezinme yoluna göre iki hâl vardı.
+4. **Sayfa gerçekten çizildi mi?** Nabız sayısı ve metin uzunluğu, ölçülen
+   şeyin beklenen sayfa olduğunu gösterir. Aleti bilinen bir değerle
+   sınamadan alınan okuma, iddia değildir.
+5. **Çıkarımın zemini ne?** Ölçüm doğru alınıp **şimdiki zamanla**
+   söylenirse bayatlığı görünmez olur. Rapor başlığı port + commit taşır;
+   iki canlı zemin varsa ikisi de yazılır.
+6. **İddia ateşlenebilir mi?** Yeşil olduğu hâlde hiçbir şey bekleyemeyen
+   bir iddia bilgi taşımaz. Bir gösterge yeşil olduğu için değil,
+   **kırmızıya dönebildiği için** bilgi taşır — mutasyonla gösterilir.
+7. **Hangi kanaldan baktım?** Uygulama mı, tarayıcı mı, sunucu mu. "Hata
+   yok" sonucu, *"hatayı gösterecek kanala baktım"* bilgisini içermiyordu:
+   native `required` `aria` yazmaz ve baloncuğunu Playwright çizmez, yani
+   aynı okuma hem "sessiz red" hem "tarayıcı durdurdu" ile uyumluydu. Bu
+   sütun eksikken bir kusur **rapora kadar gitti**.
+
+**Ve raporun kendisi için iki kural, aynı kökten:**
+
+- **Yan etkiye bakmadan rapor etme.** *"Ad boşken kayıt oluyor"* diye
+  yazılmak üzereydi; oluşan müşteriye bakılınca adının **seçiciye yazılan
+  metin** olduğu görüldü — alan hiç boş değilmiş. Ölçüm doğru çalışıyordu,
+  **kurulum** yanlıştı, ve ikisi ekranda birebir aynı görünüyordu.
+- **"Ölçemedim" bir sonuçtur, "yok" değildir.** Ayırt edilemeyen bir şey
+  için "yok" yazmak, ölçümün yokluğunu bulguya çevirir. Başka bir aletin
+  (bir e2e iddiası, bir kaynak satırı) aynı şeyi ölçmüş olması, boşluğu
+  silmeden doldurur.
+
 **Her ölçüm raporunun İLK SATIRI commit ve derleme zamanıdır — istenmiş
 olsun ya da olmasın.** (pm'in kuralı; gerekçesi: talimatla taşınan disiplin,
 talimat gelmeyince düşer.) Üretim derlemesinin kimliği
