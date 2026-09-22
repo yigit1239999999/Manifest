@@ -54,7 +54,9 @@ test.describe("Money is stored as the amount that was typed", () => {
     await page.getByPlaceholder(/^qty$|^adet$/i).fill("2");
     await page.getByPlaceholder(/unit price|birim fiyat/i).fill("500");
     await page.getByRole("button", { name: /save invoice|faturayı kaydet/i }).click();
-    await expect(page).toHaveURL(/\/invoices\/[\w-]+$/);
+    // Same trap as the client redirect above, and the same fix: the
+    // bill's own page, not the form it was raised from.
+    await expect(page).toHaveURL(/\/invoices\/(?!new)[\w-]+$/);
 
     // 500 is five hundred, not five: the total is 1000, not 10.
     await expect(page.getByText(/1[.,]000[.,]00/).first()).toBeVisible();
