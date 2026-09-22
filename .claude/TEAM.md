@@ -626,6 +626,41 @@ cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
    çift commit tarihe yerleşir ve bu depo `git blame`'i sürekli kullanır
    (AGENTS.md) — bütün dosyaların blame'i o çiftte düğümlenir.
 
+   **Beşinci madde, `ux`'ten, ve dördüncüyü tek başına bırakmamak için
+   yazıldı: sahnelenmiş diff'in SAYISI kadar İŞARETİ de okunur.**
+
+   `--name-only | wc -l` **kaç yol** olduğunu sorar, **hangi yöne**
+   gittiğini sormaz. Bayat bir indeks bu sorunun ikisinden yalnız birini
+   yanlış cevaplar: az önce inmiş bir işi geri alan diff, **doğru sayıda
+   doğru dosyadan** oluşur. Sayma kuralı yeşil verir, commit `a0711ef`'i
+   siler.
+
+   ```
+   git diff --cached --stat     # yön burada görünür
+   ```
+
+   **Beklemediğin bir silme görürsen dur.** 22 Eylül'de indeks üç yolda
+   tam olarak bunu tutuyordu: `timeline.tsx`'e kaldırılmış alfayı geri
+   koyan, ve 83 satırlık alfa yasağı testini **silen** bir hâl — sahnelenmemiş
+   diff'in birebir tersi. Kimse bir şeyi geri almak istemiyordu.
+
+   Üç alet artık üç ayrı hâli yakalıyor, ve karıştırılmamaları için:
+
+   | soru | alet |
+   |---|---|
+   | bu iş **sahnelenmiş mi** | `git log --all --find-object=<blob>` |
+   | bu iş **inmiş mi** | `git show HEAD:<yol> \| grep -c "<anahtar>"` |
+   | sahnelenmiş olan **ters mi** | `git diff --cached --stat`, işarete bak |
+
+   **Ve tekrarın kendisi bir bulgudur.** Paylaşımlı indeks aynı gün
+   **dört kez** bayat bulundu, her seferinde özel indeksle atılmış bir
+   commit'in ardından. Yukarıdaki "commit ile aynı satırda `git reset
+   <yollar>`" kuralı biliniyordu ve yine de atlandı — çünkü kuralı
+   uygulayan kişi ile bedelini ödeyen kişi **farklı**. Bu yüzden
+   temizlik yalnız commit atanın sorumluluğu değil: **`git status`'te
+   ikinci sütunu `M` olmayan ama birinci sütunu `M` olan her yol,
+   onu göreni ilgilendirir.**
+
 10. **Kimlik alanı yerinde düzeltilmez. Hekim bunu kendisi reddetti.**
    Bir seçicide yanlış kaydı seçmişken adı *"düzeltmek"*, gerçek bir
    insanın kaydını **sessizce başkasının adıyla** değiştirmektir.
