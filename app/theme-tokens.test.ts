@@ -540,7 +540,7 @@ describe("new code writes direction logically", () => {
    * Emptying a line is the point. When one reaches zero, delete the line.
    */
   const PREDATING: Record<string, readonly string[]> = {
-    "app/(app)/appointments/[id]/page.tsx": ["ml-2", "ml-2"],
+    "app/(app)/appointments/[id]/(record)/page.tsx": ["ml-2", "ml-2"],
     "app/(auth)/layout.tsx": ["right-4"],
     "components/command-palette.tsx": ["ml-2", "ml-auto", "ml-auto"],
     "components/notification-actions.tsx": ["ml-2"],

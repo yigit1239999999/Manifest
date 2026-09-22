@@ -88,3 +88,52 @@ describe("a form route waits under a form", () => {
     expect(wrong).toEqual([]);
   });
 });
+
+// A fallback covers the route it describes, and nothing below it.
+//
+// `loading.tsx` wraps its own segment AND everything nested under it, so
+// a skeleton drawn for a list is also the skeleton every route beneath
+// that list waits under. On a hard navigation the reader sees it first
+// and the route's own a moment later: pm measured `/visits/new` at
+// 60kbps and found two, the list's 28 pulses at t=1599 and the form's
+// own four SOAP boxes at t=1939. In-app navigation never shows the
+// first, which is why this survived a whole afternoon of measuring.
+//
+// The fix is a route group -- `visits/(list)/page.tsx` -- which keeps
+// the URL and puts the fallback beside the one page it is about. This
+// check is the rule rather than the fix: a `loading.tsx` may not sit in
+// a segment that has routes underneath it.
+//
+// NOT CHECKED: whether the fallback matches its page's shape. That is
+// what the rest of this file and pm's tape are for.
+describe("a fallback covers only its own route", () => {
+  const fallbacks = filesUnder(appDir).filter((file) =>
+    file.endsWith("loading.tsx"),
+  );
+
+  it("finds the fallbacks, so an empty scan cannot pass", () => {
+    expect(fallbacks.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it("never sits above another route", () => {
+    const covering: string[] = [];
+
+    for (const file of fallbacks) {
+      const dir = file.slice(0, file.lastIndexOf("/"));
+      // A page one level down or further is a route this fallback would
+      // be drawn for. Its own page sits beside it, so it does not count.
+      const below = filesUnder(dir).filter(
+        (f) =>
+          f.endsWith("page.tsx") && f.slice(dir.length + 1).includes("/"),
+      );
+      if (below.length > 0) {
+        covering.push(
+          `${routeOf(file)} is drawn for ${below.length} route(s) below it, ` +
+            `e.g. ${routeOf(below[0])}`,
+        );
+      }
+    }
+
+    expect(covering).toEqual([]);
+  });
+});

@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 // only ever asserts what somebody remembered to render. This asserts
 // that the detail page names the field at all.
 const page = readFileSync(
-  join(process.cwd(), "app/(app)/clients/[id]/page.tsx"),
+  join(process.cwd(), "app/(app)/clients/[id]/(record)/page.tsx"),
   "utf8",
 );
 

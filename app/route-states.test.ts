@@ -364,8 +364,24 @@ describe("the forms inside a record's page", () => {
     { page: "reminders", form: "ReminderForm", permission: "reminders.write" },
   ];
 
-  const sourceOf = (page: string) =>
-    readFileSync(`${appDir}/${page}/page.tsx`, "utf8");
+  // A route's page is not always the file beside its folder name. A
+  // segment that holds a `loading.tsx` AND has routes under it draws
+  // that fallback for all of them, so its own page moves into a route
+  // group -- `visits/[id]/(record)/page.tsx` -- which keeps the URL and
+  // leaves the fallback alone with the page it describes
+  // (`app/form-fallbacks.test.ts`). Routes with nothing underneath, like
+  // `invoices/[id]`, never needed the group. So the lookup asks where
+  // the page IS rather than where the URL says it should be.
+  const sourceOf = (page: string) => {
+    const dir = `${appDir}/${page}`;
+    const group = readdirSync(dir).find(
+      (entry) =>
+        entry.startsWith("(") &&
+        statSync(`${dir}/${entry}`).isDirectory() &&
+        readdirSync(`${dir}/${entry}`).includes("page.tsx"),
+    );
+    return readFileSync(`${dir}/${group ? `${group}/` : ""}page.tsx`, "utf8");
+  };
 
   it("every one of them is rendered behind its own permission", () => {
     // Behind it *when there is someone to keep out*. The same question the
