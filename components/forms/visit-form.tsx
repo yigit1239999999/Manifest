@@ -229,6 +229,23 @@ export function VisitForm({
   // Held here rather than read back off the DOM, because by the time
   // the cancel has run the input carrying it is gone.
   const [typedPet, setTypedPet] = useState("");
+  // Everything a clinic with nothing on file is told, from one
+  // condition, because the three places it reaches are one moment: the
+  // box names what to type, the line under the label and the list's
+  // body carry the SAME sentence.
+  //
+  // The same sentence twice is usually the defect. Here it is the fix,
+  // and a screenshot is why: the list is `absolute top-full`
+  // (`combobox.tsx:579`), so it covers the line under the label the
+  // instant it opens. Split between the two, the vet who clicks the
+  // box -- the likeliest move -- keeps the half that says what is
+  // missing and loses the half that says what to do.
+  //
+  // `!creating` because the block below is the thing this sentence
+  // asks for: left up, it tells the vet to do what they have just
+  // done. `canCreatePet` because without it the server refuses, and
+  // an instruction the server refuses is worse than silence.
+  const teachPet = pets.length === 0 && !visit && canCreatePet && !creating;
   const picker = useRef<HTMLDivElement>(null);
 
   // A rejected submit is a server response, not an event this form can
@@ -272,18 +289,7 @@ export function VisitForm({
         <Field
           label={tPet("one")}
           error={state.fieldErrors?.petId}
-          // Said before anything is touched, because the box says
-          // "search or type" and a clinic with nothing on file reads
-          // that as a search it cannot win. The two conditions are the
-          // same two `onCreate` below is given: an empty catalogue, and
-          // a picker that really does open the record. Without
-          // `pets.write` the line does not appear -- telling somebody
-          // to do what the server will refuse is worse than silence.
-          hint={
-            pets.length === 0 && !visit && canCreatePet
-              ? tCommon("typeToOpenHere")
-              : undefined
-          }
+          hint={teachPet ? tPet("noneYetTypeToOpen") : undefined}
           required
         >
           {/* See `InvoiceForm`: searchable only once the list is short
@@ -312,15 +318,16 @@ export function VisitForm({
                 ? creating.petName || creating.ownerQuery
                 : typedPet || defaultPetLabel
             }
-            placeholder={tCommon("searchOrType")}
+            // "Search or type" is written for a clinic that has
+            // records. With none, "search" is a dead word: it invites
+            // the vet to look for something that cannot be there.
+            placeholder={
+              teachPet ? tPet("typeNamePlaceholder") : tCommon("searchOrType")
+            }
             noResultsLabel={tCommon("noResults")}
-            // What the list says before anything is typed in a clinic
-            // that has no animals yet: the state of the clinic, where
-            // "no results" would have been an answer to a search
-            // nobody ran. The line under the label says what to do;
-            // this one says why the list is empty. Two facts, never
-            // the same sentence twice.
-            emptyCatalogueLabel={tPet("noneYet")}
+            // Deliberately the same string as the hint above: see
+            // `teachPet`.
+            emptyCatalogueLabel={teachPet ? tPet("noneYetTypeToOpen") : undefined}
             onSearch={petsCapped ? searchPetsAction : undefined}
             hasMore={petsCapped}
             searchHintLabel={tCommon("searchMinChars")}

@@ -105,6 +105,10 @@ export function PetForm({
   manageHref,
   next,
 }: Props) {
+  // See `teachPet` in `VisitForm`: one condition, three places, one
+  // sentence. No `creating` here -- this picker leaves for
+  // `/clients/new` rather than growing a block.
+  const teachOwner = owners.length === 0 && !pet;
   const ownerOptions = useMemo(
     () =>
       owners.map((o) => ({
@@ -205,13 +209,17 @@ export function PetForm({
           label={t("owner")}
           error={state.fieldErrors?.ownerId}
           // Its own sentence rather than the one the two inline
-          // pickers share: `onCreate` below leaves for
-          // `/clients/new`, so what is promised here is a form, not
-          // this form. A promise reused where it is not true is spent
-          // for both places it is made.
-          hint={
-            owners.length === 0 && !pet ? tClient("typeToOpenForm") : undefined
-          }
+          // pickers share: `onCreate` below leaves for `/clients/new`,
+          // so "on this form" would be a lie here. A promise reused
+          // where it is not true is spent for both places it is made.
+          //
+          // No permission in the condition, and it follows `onCreate`
+          // rather than leading it: this form has no such prop, and no
+          // role today holds `pets.write` without `clients.write`
+          // (`lib/permissions.ts`). A hidden dependency rather than a
+          // defect -- the day a role splits them, this line and the
+          // offer it describes go wrong together.
+          hint={teachOwner ? tClient("noneYetTypeToOpenForm") : undefined}
           required
         >
           {/* See `InvoiceForm`: searchable only once the list is short
@@ -223,11 +231,19 @@ export function PetForm({
             options={ownerOptions}
             defaultValue={pet?.ownerId ?? defaultOwnerId ?? ""}
             defaultLabel={defaultOwnerLabel}
-            placeholder={tCommon("searchOrType")}
+            // See `VisitForm`: with nothing on file, "search" is a
+            // dead word.
+            placeholder={
+              teachOwner
+                ? tClient("typeNamePlaceholder")
+                : tCommon("searchOrType")
+            }
             noResultsLabel={tCommon("noResults")}
-            // See `VisitForm`: the state of the clinic, said instead of
-            // a refusal to a search nobody ran.
-            emptyCatalogueLabel={tClient("noneYet")}
+            // Deliberately the same string as the hint above: see
+            // `teachPet` in `VisitForm`.
+            emptyCatalogueLabel={
+              teachOwner ? tClient("noneYetTypeToOpenForm") : undefined
+            }
             onSearch={ownersCapped ? searchClientsAction : undefined}
             hasMore={ownersCapped}
             searchHintLabel={tCommon("searchMinChars")}

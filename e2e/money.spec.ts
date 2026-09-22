@@ -33,7 +33,13 @@ async function createClient(page: Page) {
   await page.getByLabel(/last name|soyad/i).fill("Yılmaz");
   await page.getByLabel(/^phone$|^telefon$/i).fill("0532 123 45 67");
   await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
-  await expect(page).toHaveURL(/\/clients\/[\w-]+$/);
+  // Not `[\w-]+`: that matches `/clients/new`, which is where the form
+  // is standing while the save is still in flight -- so this waited for
+  // a condition that was already true and walked on to an invoice the
+  // client had not reached yet. The same trap `first-run.spec.ts`
+  // names at its own redirect, and it only bites when the server is
+  // slow enough to lose the race.
+  await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
 }
 
 test.describe("Money is stored as the amount that was typed", () => {

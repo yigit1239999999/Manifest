@@ -138,6 +138,9 @@ export function NewPetBlock({
   const [creatingOwner, setCreatingOwner] = React.useState(
     values?.["newOwner[intent]"] === "1",
   );
+  // See `teachPet` in `VisitForm`: one condition, three places, one
+  // sentence.
+  const teachOwner = owners.length === 0 && canCreateOwner && !creatingOwner;
   const [ownerName, setOwnerName] = React.useState(
     values?.["newOwner[firstName]"]
       ? [values["newOwner[firstName]"], values["newOwner[lastName]"]]
@@ -255,13 +258,9 @@ export function NewPetBlock({
       <Field
         label={t("owner")}
         error={errors?.["newPet[ownerId]"]}
-        // The animal picker's line, one block in, for the same reason
-        // and under the same two conditions as `onCreate` below.
-        hint={
-          owners.length === 0 && canCreateOwner
-            ? tCommon("typeToOpenHere")
-            : undefined
-        }
+        // The animal picker's sentence, one block in and under the
+        // same rule: see `teachPet` in `VisitForm`.
+        hint={teachOwner ? tClient("noneYetTypeToOpen") : undefined}
         required
         className="sm:col-span-2"
       >
@@ -310,11 +309,15 @@ export function NewPetBlock({
               ? ownerQuery || undefined
               : ownerName || undefined
           }
-          placeholder={tCommon("searchOrType")}
+          placeholder={
+            teachOwner
+              ? tClient("typeNamePlaceholder")
+              : tCommon("searchOrType")
+          }
           noResultsLabel={tCommon("noResults")}
-          // See `VisitForm`: the state of the clinic, said instead of
-          // a refusal to a search nobody ran.
-          emptyCatalogueLabel={tClient("noneYet")}
+          emptyCatalogueLabel={
+            teachOwner ? tClient("noneYetTypeToOpen") : undefined
+          }
           onSearch={ownersCapped ? searchClientsAction : undefined}
           hasMore={ownersCapped}
           searchHintLabel={tCommon("searchMinChars")}

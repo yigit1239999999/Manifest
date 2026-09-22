@@ -30,21 +30,24 @@ const guards = [
 // stand in front of. The two above have no such box -- somebody who
 // walked in from the side really can go no further -- so their doors
 // are right and stay.
-// `teaches` and `holds` are the two sentences a clinic with nothing on
-// file meets, and they are listed apart because they answer different
-// questions: the first says what typing does, said under the label
-// before anything is touched; the second says why the list is empty,
-// said in the list's own body. The vet who opened the first clinic read
-// "search or type" and did not work out that a name typed there opens
-// the record -- and the list, on focus alone, told them "no results"
-// for a search they had not run.
+// What a clinic with nothing on file meets, in the order it meets it.
+// `asks` is the empty box: "search or type" is written for a clinic
+// that has records, and the vet who opened the first one read it as a
+// search they could not win. `says` is the list, opened by focus alone,
+// which used to answer "no results" to a search nobody had run.
+//
+// `says` is asserted whole rather than by a fragment, and that is the
+// point of it: the sentence has to name what is missing AND what to do.
+// ui measured that the line under the label is covered by the list the
+// instant it opens (`combobox.tsx:579`), so a body that only reports a
+// state leaves the vet with no next move.
 const doorless = [
   {
     path: "/visits/new",
     field: /^pet$|^hayvan$/i,
     typed: "Limon",
-    teaches: /you open it on this form|aynı formda açarsınız/i,
-    holds: /No animals on file|henüz hayvan kaydı yok/i,
+    asks: /Type the animal's name|Hayvanın adını yazın/i,
+    says: /No animals on file in this clinic yet\. Type the name and you open it on this form\.|Bu klinikte henüz hayvan kaydı yok\. Adını yazın, aynı formda açarsınız\./i,
   },
   {
     // The one picker that does change the address, so it promises a
@@ -52,8 +55,8 @@ const doorless = [
     path: "/pets/new",
     field: /^owner$|^sahibi$/i,
     typed: "Ayşe Çelik",
-    teaches: /the client form opens|müşteri formu açılır/i,
-    holds: /No clients on file|henüz müşteri kaydı yok/i,
+    asks: /Type the owner's name|Sahibinin adını yazın/i,
+    says: /No clients on file in this clinic yet\. Type the name and the client form opens\.|Bu klinikte henüz müşteri kaydı yok\. Adını yazın, müşteri formu açılır\./i,
   },
 ];
 
@@ -77,13 +80,22 @@ test.describe("First run", () => {
         main.getByText(/comes first|önce .* gerekir/i),
       ).toHaveCount(0);
 
-      // Before a key is pressed: the field says what typing does.
-      await expect(main.getByText(screen.teaches)).toBeVisible();
+      // Before a key is pressed: the box asks for a name rather than
+      // offering a search.
+      await expect(box).toHaveAttribute("placeholder", screen.asks);
 
-      // And the list, opened by focus alone, says what the clinic
-      // holds rather than refusing a search nobody ran.
+      // Under the label, before focus, where it is the only copy.
+      await expect(main.getByText(screen.says)).toBeVisible();
+
+      // And again inside the list, opened by focus alone. Two nodes
+      // carrying one string is the design rather than a duplicate: the
+      // list covers the line under the label as it opens, so each has
+      // to be whole on its own. Scoped to the listbox for that reason
+      // -- an unscoped match is two elements and strict mode is right
+      // to say so.
       await box.focus();
-      await expect(main.getByText(screen.holds)).toBeVisible();
+      const list = main.getByRole("listbox");
+      await expect(list.getByText(screen.says)).toBeVisible();
       await expect(main.getByText(/no results|sonuç yok/i)).toHaveCount(0);
 
       // The way out is inside the field: typed text is searched first,
