@@ -6,7 +6,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
 }));
 vi.mock("@/modules/visits/actions", () => ({
-  createVisitAction: async () => ({}),
   createVisitIntakeAction: async () => ({}),
   updateVisitAction: async () => ({}),
 }));

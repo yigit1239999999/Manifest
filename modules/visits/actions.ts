@@ -9,26 +9,10 @@ import { intakeFrom, namedErrors, onScreen } from "./intake-fields";
 import { visitIntakeSchema, visitSchema } from "./schema";
 import {
   archiveVisit,
-  createVisit,
   createVisitWithIntake,
   restoreVisit,
   updateVisit,
 } from "./service";
-
-export const createVisitAction = action(
-  "visit.create",
-  async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
-    const parsed = parse(visitSchema(await getLocale()), formData);
-    if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
-
-    const visit = await createVisit(parsed.data, ctx);
-    revalidatePath("/visits");
-    revalidatePath(`/pets/${visit.petId}`);
-    revalidatePath(`/clients/${visit.clientId}`);
-    revalidatePath("/");
-    redirect(`/visits/${visit.id}`);
-  },
-);
 
 export const createVisitIntakeAction = action(
   "visit.createWithIntake",

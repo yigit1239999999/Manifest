@@ -25,11 +25,26 @@ import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
 import {
   archiveVisit,
-  createVisit,
   createVisitWithIntake,
   restoreVisit,
   updateVisit,
 } from "./service";
+
+/**
+ * A visit recorded against an animal already on file: the ordinary
+ * case, and the branch that used to have a service function of its own.
+ *
+ * `createVisit` and `createVisitWithIntake` did the same work through
+ * the same three helpers, and the form only ever called the second one
+ * -- so the first was deleted rather than left as a path nothing takes
+ * and nobody maintains. These tests came with it, because what they are
+ * about is still here: which clinic an animal has to belong to, who may
+ * be recorded as the vet, and what currency a total is stamped in.
+ */
+const onFile = (
+  over: Partial<Parameters<typeof createVisitWithIntake>[0]> = {},
+) =>
+  createVisitWithIntake({ ...validInput, ...over, newPet: undefined }, ctx);
 
 const ctx = {
   clinicId: "clinic-1",
@@ -66,11 +81,11 @@ beforeEach(() => {
   );
 });
 
-describe("createVisit", () => {
+describe("a visit against an animal already on file", () => {
   it("rejects a visit on a pet from another clinic", async () => {
     vi.mocked(prisma.pet.findFirst).mockResolvedValue(null);
 
-    await expect(createVisit(validInput, ctx)).rejects.toBeInstanceOf(AppError);
+    await expect(onFile()).rejects.toBeInstanceOf(AppError);
     expect(prisma.visit.create).not.toHaveBeenCalled();
   });
 
@@ -86,16 +101,18 @@ describe("createVisit", () => {
     } as never);
     vi.mocked(prisma.visit.create).mockResolvedValue({ id: "v-1" } as never);
 
-    await createVisit(validInput, ctx);
+    await onFile();
 
-    expect(prisma.visit.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        clinicId: "clinic-1",
-        petId: "pet-1",
-        clientId: "owner-1",
-        vetId: null,
+    expect(prisma.visit.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          clinicId: "clinic-1",
+          petId: "pet-1",
+          clientId: "owner-1",
+          vetId: null,
+        }),
       }),
-    });
+    );
   });
 
   // The screens offer only clinicians, and a screen's filter is not a
@@ -109,11 +126,13 @@ describe("createVisit", () => {
     vi.mocked(prisma.user.findFirst).mockResolvedValue({ id: "vet-1" } as never);
     vi.mocked(prisma.visit.create).mockResolvedValue({ id: "v-1" } as never);
 
-    await createVisit({ ...validInput, vetId: "vet-1" }, ctx);
+    await onFile({ vetId: "vet-1" });
 
-    expect(prisma.visit.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ vetId: "vet-1" }),
-    });
+    expect(prisma.visit.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ vetId: "vet-1" }),
+      }),
+    );
   });
 
   it("refuses one it does not", async () => {
@@ -127,7 +146,7 @@ describe("createVisit", () => {
     vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
 
     await expect(
-      createVisit({ ...validInput, vetId: "reception-1" }, ctx),
+      onFile({ vetId: "reception-1" }),
     ).rejects.toMatchObject({
       details: { fieldErrors: { vetId: ["error.validation.vetRequired"] } },
     });
@@ -207,11 +226,13 @@ describe("restoreVisit", () => {
     } as never);
     vi.mocked(prisma.visit.create).mockResolvedValue({ id: "v-1" } as never);
 
-    await createVisit({ ...validInput, total: 25_000 }, ctx);
+    await onFile({ total: 25_000 });
 
-    expect(prisma.visit.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ totalCents: 25_000, currency: "TRY" }),
-    });
+    expect(prisma.visit.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ totalCents: 25_000, currency: "TRY" }),
+      }),
+    );
   });
 
   it("records no currency when there is no total", async () => {
@@ -223,11 +244,13 @@ describe("restoreVisit", () => {
     } as never);
     vi.mocked(prisma.visit.create).mockResolvedValue({ id: "v-1" } as never);
 
-    await createVisit({ ...validInput, total: null }, ctx);
+    await onFile({ total: null });
 
-    expect(prisma.visit.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ totalCents: null, currency: null }),
-    });
+    expect(prisma.visit.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ totalCents: null, currency: null }),
+      }),
+    );
   });
 });
 

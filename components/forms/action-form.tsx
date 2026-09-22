@@ -347,7 +347,8 @@ export function ActionForm({
   // sends the submission home again.
   //
   // Not on success, because the successful case often never reports
-  // one: `createVisitAction` redirects, this component unmounts, and a
+  // one: `createVisitIntakeAction` redirects, this component unmounts,
+  // and a
   // draft waiting for a success that never arrives would be handed to
   // the next visit as though it were unsaved work. The browser's own
   // `required` check is what makes clearing this early safe -- a

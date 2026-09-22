@@ -6,7 +6,6 @@ import tr from "@/messages/tr.json";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/modules/visits/actions", () => ({
-  createVisitAction: async () => ({}),
   updateVisitAction: async () => ({}),
 }));
 vi.mock("@/modules/appointments/actions", () => ({

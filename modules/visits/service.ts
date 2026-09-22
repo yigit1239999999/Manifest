@@ -62,40 +62,6 @@ async function resolveVet(
   return id;
 }
 
-export async function createVisit(input: VisitInput, ctx: ActionContext) {
-  requirePermission(ctx.userRole, "visits.write");
-  const pet = await resolvePetAndOwner(input.petId, ctx.clinicId);
-  const { petId, vetId, total, ...rest } = input;
-  // Was `vetId || ctx.userId`: leaving the field blank made whoever filled
-  // the form in the vet on the record, so a receptionist writing up a
-  // visit became the clinician who performed it. Unrecorded is the honest
-  // answer, and the person who typed it is in the audit trail either way.
-  const vet = await resolveVet(vetId, ctx.clinicId);
-  const currency = await stampCurrency(total, ctx.clinicId);
-
-  return withAudited(
-    {
-      clinicId: ctx.clinicId,
-      actorId: ctx.userId,
-      action: "CREATE",
-      entityType: "Visit",
-      changes: redact(input),
-    },
-    (tx) =>
-      tx.visit.create({
-        data: {
-          ...rest,
-          totalCents: total,
-          currency,
-          clinicId: ctx.clinicId,
-          petId,
-          clientId: pet.ownerId,
-          vetId: vet,
-        },
-      }),
-  );
-}
-
 export async function updateVisit(
   id: string,
   input: VisitInput,

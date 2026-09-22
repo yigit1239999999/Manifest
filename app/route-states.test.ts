@@ -178,12 +178,17 @@ describe("the permission a screen reads is the one a service enforces", () => {
     // mean the route no longer names a single one. Then a module got a
     // second create path for real -- `createVisitWithIntake`, the visit
     // that brings its animal with it -- and the question this test asks
-    // still had a well-defined answer: both demand `visits.write`, so
-    // that is what the link offers. What must not pass is two paths
-    // that DISAGREE, because then the link's promise depends on which
-    // one the form happens to call, and that is exactly the guess the
-    // old rule was refusing to make. So: collect, dedupe, and give up
-    // only when the answers differ.
+    // still had a well-defined answer: both demanded `visits.write`, so
+    // that is what the link offered.
+    //
+    // Visits are back to one path: the form calls the intake one
+    // whether or not it is bringing an animal, and `createVisit` was
+    // deleted rather than kept as a branch nothing takes. The rule
+    // stays plural anyway, because it is about what must NOT pass --
+    // two paths that DISAGREE, where the link's promise depends on
+    // which one the form happens to call, and that is exactly the
+    // guess the old rule refused to make. So: collect, dedupe, and
+    // give up only when the answers differ.
     const asked = new Set(
       declarations.map(
         (d) =>

@@ -11,7 +11,6 @@ const server = vi.hoisted(() => ({ next: {} as Record<string, unknown> }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/modules/visits/actions", () => ({
-  createVisitAction: async () => ({}),
   createVisitIntakeAction: async () => server.next,
   updateVisitAction: async () => ({}),
 }));
