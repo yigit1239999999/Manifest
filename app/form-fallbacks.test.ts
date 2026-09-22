@@ -25,6 +25,7 @@ import { describe, expect, it } from "vitest";
 //     to use the form shell, and that is what is checked.
 
 const appDir = fileURLToPath(new URL("./(app)", import.meta.url));
+const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 
 function filesUnder(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -135,5 +136,159 @@ describe("a fallback covers only its own route", () => {
     }
 
     expect(covering).toEqual([]);
+  });
+});
+
+// What the fallback reserves, against what the form actually renders.
+//
+// The rest of this file is about SHAPE -- that a form route waits under a
+// form and not under a list. This is the other half, and it is the half
+// that rots: `dev` put a "there is no number" tick into the telephone
+// field (`PhoneOrNone`), the skeleton went on drawing a plain field, and
+// nothing anywhere went red. pm found it with a tape measure, 36px on
+// `/clients/new`, an afternoon later.
+//
+// Counting controls would not have caught it. The form had four things
+// above its fold and the skeleton drew four boxes; what changed was
+// WHICH four. So the comparison is by kind: a telephone is not a field,
+// a consent question is not a field, and a skeleton that swaps one for
+// another is reserving the wrong height while agreeing on the count.
+//
+// Read from source rather than rendered, deliberately. Rendering the
+// real forms needs a page's worth of fixtures each -- species lists,
+// capped client lists, a locale -- and a test that heavy gets skipped
+// the first time it is inconvenient. This one reads two files.
+//
+// NOT CHECKED, and the line is worth knowing:
+//   - heights. Kinds line up here; whether a `rows={4}` textarea box is
+//     the same 98px in both is pm's tape, not this.
+//   - controls behind the fold, which the skeleton is right not to draw.
+//   - anything a form renders conditionally (the new-animal block on
+//     `/visits/new` opens for a returning draft and is not reserved).
+
+/**
+ * Every form route, the component it settles into, and -- where the
+ * fallback deliberately stops early -- why.
+ *
+ * The ledger is checked against the routes found on disk below, so a new
+ * form route cannot be added without landing here.
+ */
+const FORM_ROUTES: readonly {
+  route: string;
+  form: string;
+  partial?: string;
+}[] = [
+  { route: "appointments/new", form: "appointment-form" },
+  { route: "appointments/[id]/edit", form: "appointment-form" },
+  { route: "invoices/new", form: "invoice-form" },
+  { route: "visits/new", form: "visit-form" },
+  { route: "visits/[id]/edit", form: "visit-form" },
+  { route: "clients/new", form: "client-form" },
+  { route: "staff/new", form: "staff-form" },
+  {
+    route: "clients/[id]/edit",
+    form: "client-form",
+    partial: "the fold opens on data this page has not loaded yet",
+  },
+  {
+    route: "pets/new",
+    form: "pet-form",
+    partial: "the species chips are one per species the clinic enabled",
+  },
+  {
+    route: "pets/[id]/edit",
+    form: "pet-form",
+    partial: "the species chips, and the fold on top of them",
+  },
+];
+
+type Kinds = Record<string, number>;
+
+const countOf = (source: string, patterns: Record<string, RegExp>): Kinds => {
+  const out: Kinds = {};
+  for (const [kind, pattern] of Object.entries(patterns)) {
+    const n = source.match(pattern)?.length ?? 0;
+    if (n > 0) out[kind] = n;
+  }
+  return out;
+};
+
+// Everything above the fold, which is everything the skeleton is ever on
+// screen for. `OptionalDetails` closes over the rest.
+const aboveTheFold = (source: string) => {
+  const fold = source.indexOf("<OptionalDetails");
+  return fold === -1 ? source : source.slice(0, fold);
+};
+
+const formKinds = (form: string): Kinds =>
+  countOf(aboveTheFold(readFileSync(`${projectRoot}components/forms/${form}.tsx`, "utf8")), {
+    field: /<Field[\s>]/g,
+    phone: /<PhoneOrNone[\s>]/g,
+    consent: /<ConsentChoice[\s>]/g,
+  });
+
+const skeletonKinds = (route: string): Kinds =>
+  countOf(readFileSync(`${appDir}/${route}/loading.tsx`, "utf8"), {
+    field: /<FieldSkeleton[\s/>]/g,
+    phone: /<PhoneFieldSkeleton[\s/>]/g,
+    consent: /<ConsentSkeleton[\s/>]/g,
+  });
+
+describe("a fallback reserves the controls the form renders", () => {
+  it("has a ledger entry for every form route on disk", () => {
+    // Discovered, not listed: a route added without an entry fails here
+    // rather than being quietly left out of the checks below.
+    expect(new Set(FORM_ROUTES.map((r) => r.route))).toEqual(
+      new Set(formPages.map((f) => routeOf(f).replace("/page.tsx", ""))),
+    );
+  });
+
+  it("reads real controls out of every form, so an empty scan cannot pass", () => {
+    for (const { form } of FORM_ROUTES) {
+      const total = Object.values(formKinds(form)).reduce((a, b) => a + b, 0);
+      expect(total, `${form} above its fold`).toBeGreaterThanOrEqual(3);
+    }
+    for (const { route } of FORM_ROUTES) {
+      const total = Object.values(skeletonKinds(route)).reduce((a, b) => a + b, 0);
+      expect(total, `${route} fallback`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("draws the same kinds the form does, one for one", () => {
+    const mismatched: string[] = [];
+
+    for (const { route, form, partial } of FORM_ROUTES) {
+      const wanted = formKinds(form);
+      const drawn = skeletonKinds(route);
+
+      if (partial) {
+        // A route that stops early may draw FEWER of a kind, never a
+        // kind the form does not have and never more of one.
+        for (const [kind, n] of Object.entries(drawn)) {
+          if (n > (wanted[kind] ?? 0)) {
+            mismatched.push(
+              `${route}: draws ${n} ${kind} box(es), form renders ${wanted[kind] ?? 0}`,
+            );
+          }
+        }
+        continue;
+      }
+
+      for (const kind of new Set([...Object.keys(wanted), ...Object.keys(drawn)])) {
+        if ((wanted[kind] ?? 0) !== (drawn[kind] ?? 0)) {
+          mismatched.push(
+            `${route}: form renders ${wanted[kind] ?? 0} ${kind}, fallback draws ${drawn[kind] ?? 0}`,
+          );
+        }
+      }
+    }
+
+    expect(mismatched).toEqual([]);
+  });
+
+  it("says why, wherever it stops early", () => {
+    for (const entry of FORM_ROUTES.filter((r) => r.partial)) {
+      expect(entry.partial!.length, entry.route).toBeGreaterThan(20);
+    }
   });
 });

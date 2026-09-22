@@ -3,6 +3,7 @@ import {
   FieldSkeleton,
   FormSectionSkeleton,
   FormSkeleton,
+  PhoneFieldSkeleton,
 } from "@/components/loaders";
 
 /**
@@ -30,7 +31,7 @@ export default function Loading() {
             <FieldSkeleton />
             <FieldSkeleton hint />
           </div>
-          <FieldSkeleton hint />
+          <PhoneFieldSkeleton />
         </FormSectionSkeleton>
         <ConsentSkeleton />
       </div>

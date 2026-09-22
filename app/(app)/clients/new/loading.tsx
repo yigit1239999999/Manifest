@@ -4,6 +4,7 @@ import {
   FoldSkeleton,
   FormSectionSkeleton,
   FormSkeleton,
+  PhoneFieldSkeleton,
   SubmitSkeleton,
 } from "@/components/loaders";
 
@@ -34,7 +35,7 @@ export default function Loading() {
             <FieldSkeleton />
             <FieldSkeleton hint />
           </div>
-          <FieldSkeleton hint />
+          <PhoneFieldSkeleton />
         </FormSectionSkeleton>
         <ConsentSkeleton />
         <FoldSkeleton />

@@ -200,6 +200,26 @@ export function FieldSkeleton({
   );
 }
 
+/**
+ * The telephone, which is a field and the tick that says there is none
+ * (`PhoneOrNone`).
+ *
+ * Two boxes in one, because the control is two: pm measured
+ * `/clients/new` at 36px short and the number is the tick exactly --
+ * 28px of target plus the 8px that holds the pair together. It looked
+ * like the consent answers wrapping in Turkish, which is the same 36,
+ * and it is not: this one is the same in both languages and at every
+ * width.
+ */
+export function PhoneFieldSkeleton() {
+  return (
+    <div className="flex flex-col gap-2">
+      <FieldSkeleton hint />
+      <Skeleton className="h-7 w-40 max-w-full" />
+    </div>
+  );
+}
+
 /** A `FormSection`: its heading block, its rule, and its fields. */
 export function FormSectionSkeleton({
   description = false,
