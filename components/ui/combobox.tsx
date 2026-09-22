@@ -485,14 +485,26 @@ export function Combobox({
   const showCapNote = effectiveHasMore && Boolean(hasMoreLabel);
   const showSearchHint = belowThreshold && Boolean(searchHintLabel);
 
-  // "Nobody has looked yet" and "there is nothing to look through" are
-  // one state here, and only together: a query that was typed and
-  // matched nothing is a real answer and keeps the real answer's
-  // sentence, whatever the catalogue holds. `remote` counts too, so a
-  // searching picker that has already been handed matches is never
-  // called empty.
+  // One test, not two, and the missing half is implied rather than
+  // dropped: the body below only draws when there are no rows at all,
+  // and with nothing typed `filtered` hands back every option there is.
+  // So no rows AND an untouched query already means the catalogue is
+  // empty, and asking again is a condition that cannot fail.
+  //
+  // It was written as `untouched && options.length === 0 && ...` and
+  // taken back out by ux, who had paid for the same mistake one file
+  // over: the dashboard's `v.pet?.name ?? "?"` guarded a case the
+  // schema forbids, and the next reader took the `?.` as proof the
+  // field was nullable. A condition that cannot fail is not a guard,
+  // it is a comment wearing code -- and it is read as evidence that
+  // the state it names is reachable. So this is the comment.
+  //
+  // What the one test is for: a query that WAS typed and matched
+  // nothing is a real answer, and keeps the real answer's sentence
+  // even on an empty clinic. `typed` never goes back to false, so the
+  // query is asked about too -- a field wiped back out is untouched
+  // again.
   const untouched = !typed || query.trim().length === 0;
-  const catalogueEmpty = options.length === 0 && remote.length === 0;
 
   const rows: Array<{
     key: string;
@@ -663,9 +675,7 @@ export function Combobox({
                 {(belowThreshold ? searchHintLabel : undefined) ??
                   (status === "failed" ? searchFailedLabel : undefined) ??
                   (status === "asking" ? searchingLabel : undefined) ??
-                  (untouched && catalogueEmpty
-                    ? emptyCatalogueLabel
-                    : undefined) ??
+                  (untouched ? emptyCatalogueLabel : undefined) ??
                   noResultsLabel ??
                   "-"}
               </li>
