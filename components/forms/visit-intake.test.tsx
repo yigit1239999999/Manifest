@@ -356,6 +356,15 @@ describe("the animal opened inside the visit form", () => {
     // owner half written down belongs to the animal that is going
     // away with it.
     expect(field("newOwner[intent]")).toBeNull();
+    // And nothing of either is left in the browser. The draft is
+    // written as this click bubbles past the form, so a block still in
+    // the DOM at that instant comes back open tomorrow.
+    const stored = JSON.parse(
+      window.sessionStorage.getItem("pettrack.draft.v1.u-1.visit:new") ?? "{}",
+    ) as Record<string, string>;
+    expect(
+      Object.keys(stored).filter((key) => key.startsWith("new")),
+    ).toEqual([]);
     expect(field("petId")).not.toBeNull();
   });
 
@@ -387,6 +396,41 @@ describe("the animal opened inside the visit form", () => {
     expect((screen.getByLabelText(/^sahibi$/i) as HTMLInputElement).value).toBe(
       "Ayşe Çelik",
     );
+  });
+
+  // The other half of closing the owner alone, and the half that is
+  // invisible: what the browser was left holding.
+  //
+  // The draft is written by the form's own click handler as this click
+  // bubbles past it, so an owner block still in the DOM at that instant
+  // is stored as an OPEN branch. The vet would come back tomorrow to a
+  // closed block over a draft that submits an owner they cancelled --
+  // which is the defect the outer button was flushed for, copied one
+  // level in.
+  it("leaves nothing of the owner in the draft it was cancelled out of", () => {
+    const first = mount();
+    askToCreate(/^hayvan$/i, "Limon", /Limon.*yeni hayvan aç/i);
+    fireEvent.click(screen.getByRole("button", { name: "Kedi" }));
+    askToCreate(/^sahibi$/i, "Ayşe Çelik", /Ayşe Çelik.*yeni müşteri aç/i);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /vazgeç/i })[1]);
+
+    const stored = JSON.parse(
+      window.sessionStorage.getItem("pettrack.draft.v1.u-1.visit:new") ?? "{}",
+    ) as Record<string, string>;
+    expect(
+      Object.keys(stored).filter((key) => key.startsWith("newOwner[")),
+    ).toEqual([]);
+    expect(stored["newPet[intent]"]).toBe("1");
+
+    // And the walk back proves it: the form that comes up is the one
+    // that was left, not the one before the cancel.
+    first.unmount();
+    mount();
+
+    expect(field("newOwner[intent]")).toBeNull();
+    expect(field("newPet[name]")!.value).toBe("Limon");
+    expect(field("newPet[species]")!.value).toBe("CAT");
   });
 
   // 4. Rejected, and still open. A block that shut on a rejection would
