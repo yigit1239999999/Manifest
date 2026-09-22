@@ -363,9 +363,7 @@ test.describe("First run", () => {
     await page.getByRole("button", { name: /create visit|viziti kaydet/i }).click();
     // Not `[^/]+`: that matches `/visits/new`, which is where a
     // refused save leaves the vet standing.
-    // The address it lands on carries WHAT was made, not the names:
-    // the names are the page's own, read from the database.
-    await expect(page).toHaveURL(/\/visits\/(?!new)[^/]+\?created=animal,owner$/);
+    await expect(page).toHaveURL(/\/visits\/(?!new)[^/?]+(\?|$)/);
     await expect(main).toContainText("Limon");
     await expect(main).toContainText("Ayşe");
 
@@ -387,10 +385,16 @@ test.describe("First run", () => {
       /search for the name on the Pets page|Hayvanlar sayfasında adını arayın/,
     );
 
-    // And it says itself once. The flag leaves the address as soon as
-    // the words are on screen, so a reload does not report a save that
-    // already happened -- and a bookmark of this page is a visit, not a
-    // receipt.
+    // And it says itself once. That the flag ARRIVED is what the box
+    // above proves -- the page draws nothing without it. That it does
+    // not stay is this: it leaves the address as soon as the words are
+    // on screen, so a reload does not report a save that already
+    // happened and a bookmark of this page is a visit, not a receipt.
+    //
+    // Deliberately not asserted the other way round. A `toHaveURL` on
+    // `?created=` would be racing the effect that removes it, and an
+    // assertion whose truth depends on which of two things the browser
+    // does first is a red suite waiting for a faster machine.
     await expect(page).toHaveURL(/\/visits\/(?!new)[^/?]+$/);
     await page.reload();
     await expect(main).toContainText("Limon");
