@@ -139,9 +139,13 @@ import { surface } from "@/components/ui/card";
  * becomes a lie about a message the clinic thinks is going out (ux).
  *
  * And the four are one length class on purpose: subject plus passive
- * verb, none of them much longer than the others. One line at twice
- * the length of its neighbours swells the block and breaks the sense
- * of a sequence, which is the only thing the block is for (ui).
+ * verb. The test of that is not character count -- what a reader sees
+ * is WRAPPING, so on a narrow screen the four should wrap together or
+ * not at all. A line that wraps on its own swells the block and breaks
+ * the sense of a sequence, which is the only thing the block is for.
+ * Measured at 390px on `dcf8809`: Turkish wraps the fourth line alone
+ * and English wraps all four, so Turkish sits exactly on that limit
+ * and was accepted. Shorten the words before crossing it (ui).
  */
 const CHAIN = ["visit", "invoice", "appointment", "reminder"] as const;
 
