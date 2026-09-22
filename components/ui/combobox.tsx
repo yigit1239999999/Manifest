@@ -585,7 +585,7 @@ export function Combobox({
         onChange={(e) => handleInput(e.target.value)}
         onFocus={openList}
         onKeyDown={handleKeyDown}
-        className="h-10 w-full rounded-control border border-input bg-card px-3 pr-9 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+        className="h-10 w-full rounded-control border border-input bg-card px-3 pr-9 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
       />
       <button
         type="button"

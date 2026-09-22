@@ -709,3 +709,44 @@ describe("every focusable thing has a focus mark of ours", () => {
     expect(focusRule()).toContain("--color-ring");
   });
 });
+
+// A placeholder is the one piece of text in a field that the product
+// wrote, and it spent this release being told to be quiet with alpha.
+//
+// The numbers, on `app/globals.css` tokens composited against the card
+// these three controls sit on, at 14px regular, where AA asks 4.5:
+// `--muted-fg` alone is 5.78:1 light and 6.90:1 dark; at `/80` it is
+// 3.73 and 4.89; at `/70`, which is what shipped, 3.05 and 4.05. Both
+// themes under the bar, the light one badly.
+//
+// It stopped being a cosmetic argument when the empty pickers started
+// teaching through the placeholder -- "type the animal's name" is the
+// product telling a vet what to do, drawn at 3.05:1.
+//
+// The alpha is not replaced with a smaller one. The distinction it was
+// drawing is already carried by the token: placeholder against entered
+// value is 5.78 against 16.81 in light and 6.90 against 15.05 in dark.
+// Which is the rule this repo already writes down -- hierarchy comes
+// from size, weight and token choice, never from transparency -- and
+// the command palette's own input has been alpha-free all along.
+describe("a placeholder is not held back by transparency", () => {
+  const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+
+  it("carries no alpha in any control that has one", () => {
+    const controls = ["input", "textarea", "combobox"].map(
+      (name) => `${projectRoot}components/ui/${name}.tsx`,
+    );
+
+    const offenders: string[] = [];
+    for (const file of controls) {
+      const source = readFileSync(file, "utf8");
+      // The file has to have a placeholder at all: a rule that passes
+      // because the thing it guards was renamed is worse than no rule.
+      expect(source).toContain("placeholder:text-muted-foreground");
+      for (const hit of source.matchAll(/placeholder:[\w-]+\/\d+/g)) {
+        offenders.push(`${file.slice(projectRoot.length)} ${hit[0]}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

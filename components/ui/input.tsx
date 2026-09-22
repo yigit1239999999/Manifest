@@ -18,7 +18,7 @@ export function Input({
         // border, so its outline has to carry the whole signal on its
         // own. Two different marks because they are two different
         // shapes, not because nobody looked.
-        "h-10 w-full rounded-control border border-input bg-card px-3 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60",
+        "h-10 w-full rounded-control border border-input bg-card px-3 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}
       {...props}
