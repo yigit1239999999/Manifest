@@ -750,3 +750,86 @@ describe("a placeholder is not held back by transparency", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// Transparency on text is barred in this repo, and the rule was written
+// down after a keyboard-highlighted row measured 4.35:1 against a 4.5
+// threshold -- the emphasis was costing the legibility it was meant to
+// add. Written down, and then broken three more times: the placeholder
+// in every form control, the date beside a timeline heading at 2.42:1,
+// and an id in the audit table at 2.73:1 on a muted row.
+//
+// Each was found by somebody looking. Nobody was going to find the
+// fourth, so the rule stops being prose and becomes a scan (ux).
+//
+// TEXT ONLY, and the boundary is the point rather than an omission. A
+// fill, a border, a ring and an overlay are not text and have no
+// contrast threshold to fail: the command palette's backdrop and the
+// dashed box on the animal page are correct code, and a scan that
+// swept them up would be building the wrong set -- which this team has
+// done once already.
+//
+// NO EXEMPTION LIST. `timeline`'s note body was passing at 8.81:1 and
+// was changed anyway, because a list of blessed exceptions becomes the
+// thing people read instead of the rule.
+describe("text is never held back by transparency", () => {
+  const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+  const roots = ["app", "components"].map((d) => `${projectRoot}${d}`);
+
+  // Assembled rather than written out, because this file lives under
+  // `app/` and a pattern spelled in full would match itself -- a rule
+  // whose first offender is the rule is a rule nobody keeps.
+  const alphaOnText = new RegExp(
+    ["\\btext-", "[\\w-]*", "foreground", "\\/", "\\d+"].join(""),
+  );
+
+  function sourceFiles(dir: string, out: string[] = []): string[] {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) sourceFiles(path, out);
+      else if (
+        /\.tsx?$/.test(entry.name) &&
+        !path.endsWith("theme-tokens.test.ts")
+      ) {
+        out.push(path);
+      }
+    }
+    return out;
+  }
+
+  it("draws no text colour through an alpha, anywhere", () => {
+    const files = roots.flatMap((root) => sourceFiles(root));
+    // A scan with nothing to scan passes for the wrong reason.
+    expect(files.length).toBeGreaterThan(50);
+
+    const offenders: string[] = [];
+    for (const file of files) {
+      readFileSync(file, "utf8")
+        .split("\n")
+        .forEach((line, i) => {
+          const hit = alphaOnText.exec(line);
+          if (hit) {
+            offenders.push(`${file.slice(projectRoot.length)}:${i + 1} ${hit[0]}`);
+          }
+        });
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("knows what it is looking for, and what it is not", () => {
+    // The three that shipped, including the two variant prefixes -- a
+    // pattern anchored at the start of the class would have missed both.
+    expect(alphaOnText.test('className="text-muted-foreground/60"')).toBe(true);
+    expect(alphaOnText.test('className="placeholder:text-muted-foreground/70"')).toBe(
+      true,
+    );
+    expect(alphaOnText.test('className="text-foreground/80"')).toBe(true);
+    expect(alphaOnText.test('className="dark:hover:text-foreground/50"')).toBe(true);
+
+    // Not text, and none of this rule's business.
+    expect(alphaOnText.test('className="bg-foreground/30"')).toBe(false);
+    expect(alphaOnText.test('className="border-muted-foreground/30"')).toBe(false);
+    expect(alphaOnText.test('className="ring-ring/30"')).toBe(false);
+    // Alpha is not the only thing with a slash in it.
+    expect(alphaOnText.test('className="text-muted-foreground"')).toBe(false);
+  });
+});
