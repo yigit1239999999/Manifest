@@ -2918,6 +2918,57 @@ doğruladı — `font-semibold` taşıyan yalnız üç şey var, `font-bold`,
 o sırada yarım bir işle kirliydi; kopyadan okunsaydı hem sayım hem tez
 başka çıkardı.
 
+### YEŞİL BİR TEST, DOĞRU SEBEPLE yeşil olmayabilir — bir turda üç örnek
+
+Üçü de aynı gün, üç ayrı kişi tarafından, üç ayrı yerde bulundu. Ortak
+şekil: **iddia yazılmış, ama düşemeyecek hâlde yazılmış.**
+
+**1. Ürünün sevk etmediği bir yapılandırmayı sınayan test** (`pm`).
+`components/ui/combobox.test.tsx:724` *"eşleşmeyen sorguda 'Sonuç yok.'
+görünür"* garantisini savunuyor ve yeşil. Ama yardımcısı Combobox'ı
+**`onCreate` vermeden** kuruyor — üründe o seçicilerin hiçbiri öyle
+çizilmiyor. `onCreate` varken "Oluştur" satırı bir `row` olduğu için
+`rows.length === 0` hiç doğru olmuyor ve boş satır hiç çıkmıyor
+(`combobox.tsx:666`). Yani test **hiçbir zaman kırmızıya dönemez**, ve
+garantinin gerçek hâli üründe yıllardır yok.
+
+**2. Yanlış sebeple geçen bir e2e** (`dev`).
+`e2e/money.spec.ts` `toHaveURL(/\/clients\/[\w-]+$/)` ile bekliyordu ve
+**`[\w-]+` "new" ile eşleşiyor**. Test, kayıt oluşmadan bir sonraki
+ekrana geçiyordu; yeşilliği bir şey kanıtlamıyordu, ve sunucu yavaşladığı
+an kırmızıya dönüyordu (üç koşuda üçü). `(?!new)` ile kapandı, aynı
+dosyadaki ikinci örneği de, ve `e2e/` tarandı.
+
+**3. Şartnamenin istediği ama testi hiç yazılmamış bir koşul** (`dev`,
+mutasyon sınavıyla). `!creatingOwner` mutantı ilk turda **hayatta kaldı**
+— o koşulu hiçbir test tutmuyormuş. Çıkan kural `dev`'in cümlesi, ve
+`ux` onu kendi işine bağladı:
+
+> **Mutasyon sınavı yalnız testin gücünü değil, ŞARTNAMENİN KAPSAMINI da
+> ölçer.**
+
+`ux`'in bağladığı hâli: bundan sonra bir şartnameye koşul yazarken
+yanına *"bu koşul düşerse hangi test kırmızıya döner"* sorusu da
+yazılır. Bugüne kadar istenen şey (**düşebilir iddia**) bundan zayıftı:
+iddianın yanlışlanabilir olmasını istiyor ama **kimin yanlışlayacağını**
+söylemiyor.
+
+### Metinle bulunan bir eleman, tek başına ELEMAN KİMLİĞİ değildir
+
+Aynı gün iki kişi aynı kapıdan girdi. `ui` bir sarmalayıcıdan okuyup
+*"iki cümle aynı anda ekranda"* dedi; `ux` piksellerle çürüttü. `pm` bir
+sarmalayıcı yakalayıp *"açılır liste ipucunu örtmüyor"* dedi; ekran
+görüntüsüyle kendi kendini çürüttü.
+
+> **Kural (`pm`): metinden bulduğun elemanın `getBoundingClientRect`'i,
+> ekran görüntüsüyle karşılaştırılmadan sayı olarak yazılmaz.**
+
+Ve ayrımın kendisi kayda geçsin, çünkü ikisi çelişmiyor: `Field` ipucu
+`position: static` — akışta durur, **örtmez, yer açar**; örten şey
+açılır liste panelidir (`absolute top-full`), ve yalnız **açıkken**.
+Kapalı hâlde hiçbir şey örtülmüyor. İki ölçüm farklı öğeden söz ederken
+birbirini yalanlıyor göründü.
+
 ### Ölçüm noktaları koddan türetilir, cihazdan değil
 
 *"İki nokta bir bandı kapsamaz"* tespitinin yanlış çözümü nokta eklemektir:
