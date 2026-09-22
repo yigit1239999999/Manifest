@@ -4,6 +4,7 @@ import { getFormatContext } from "@/lib/format-context";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
 import { listClinicians } from "@/modules/staff/queries";
+import { defaultVetFor } from "@/modules/staff/default-vet";
 import { can } from "@/lib/permissions";
 import { getPetLabel, listCustomSpecies, listPets } from "@/modules/pets/queries";
 import { getEnabledSpecies } from "@/modules/species/queries";
@@ -118,25 +119,9 @@ export default async function NewVisitPage({
           }))}
           petsCapped={pets.hasMore}
           vets={vets}
-          // Who performed it, answered before the form opens.
-          //
-          // The service will not guess this any more -- `vetId ||
-          // ctx.userId` put the receptionist who typed a visit up on
-          // the record as the clinician who performed it, and nobody
-          // goes back to correct that field. What was wrong there was
-          // the guessing, not the answer: a vet filling in their own
-          // examination is the ordinary case, and the honest place to
-          // say so is the screen, where they can see it and change it.
-          //
-          // Read off the list the form is already showing rather than
-          // asked for again (`isClinician` is the same predicate over
-          // the same rows): one fewer round trip, and the default is
-          // guaranteed to be an option the picker actually has.
-          defaultVetId={
-            vets.some((v) => v.id === session.user.id)
-              ? session.user.id
-              : undefined
-          }
+          // Who performed it, answered before the form opens; the
+          // reasoning and the receptionist case live in the helper.
+          defaultVetId={defaultVetFor(vets, session.user.id)}
           defaultPetId={petId}
           defaultPetLabel={defaultPetLabel}
           owners={owners.items.map((o) => ({

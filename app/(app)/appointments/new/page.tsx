@@ -4,6 +4,7 @@ import { getFormatContext } from "@/lib/format-context";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
 import { listClinicians } from "@/modules/staff/queries";
+import { defaultVetFor } from "@/modules/staff/default-vet";
 import { can } from "@/lib/permissions";
 import { getPetLabel, listPets } from "@/modules/pets/queries";
 import { MissingLink } from "@/components/missing-link";
@@ -56,16 +57,9 @@ export default async function NewAppointmentPage({
             }))}
             petsCapped={pets.hasMore}
             vets={vets}
-            // Who it is booked with, answered before the form opens --
-            // the same rule, the same word and the same source as
-            // `visits/new`: read off the clinician list this form is
-            // already showing, so the default cannot be an id the
-            // picker has no option for.
-            defaultVetId={
-              vets.some((v) => v.id === session.user.id)
-                ? session.user.id
-                : undefined
-            }
+            // Who it is booked with, by the same rule and out of the
+            // same helper as `visits/new`.
+            defaultVetId={defaultVetFor(vets, session.user.id)}
             defaultPetId={petId}
             defaultPetLabel={defaultPetLabel}
           />
