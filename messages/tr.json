@@ -157,7 +157,25 @@
     "overdueVaccinationsDismiss": "Kapat",
     "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
     "overdueVaccinationsUndo": "Geri al",
-    "previewNote": "Örnek bir hafta. İlk randevunuzu yazdığınızda yaklaşan randevular burada böyle listelenir."
+    "previewNote": "İlk vizitten sonra yolunuz şöyle devam eder.",
+    "previewChain": {
+      "visit": {
+        "term": "Vizit",
+        "result": "hayvanın geçmişine işlenir."
+      },
+      "invoice": {
+        "term": "Fatura",
+        "result": "aynı vizitten kesilir."
+      },
+      "appointment": {
+        "term": "Randevu",
+        "result": "hayvanın sayfasından açılır."
+      },
+      "reminder": {
+        "term": "Hatırlatma",
+        "result": "izin verildiyse sahibine gider."
+      }
+    }
   },
   "client": {
     "createNamed": "\"{name}\" adıyla yeni müşteri aç",

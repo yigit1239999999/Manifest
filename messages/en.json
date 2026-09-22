@@ -157,7 +157,25 @@
     "overdueVaccinationsDismiss": "Close",
     "overdueVaccinationsDismissed": "Vaccination row closed.",
     "overdueVaccinationsUndo": "Undo",
-    "previewNote": "An example week. Once you book your first appointment, upcoming appointments are listed here like this."
+    "previewNote": "After the first visit, this is how it carries on.",
+    "previewChain": {
+      "visit": {
+        "term": "The visit",
+        "result": "goes into the animal's history."
+      },
+      "invoice": {
+        "term": "The invoice",
+        "result": "is raised from the same visit."
+      },
+      "appointment": {
+        "term": "The appointment",
+        "result": "is opened from the animal's page."
+      },
+      "reminder": {
+        "term": "The reminder",
+        "result": "goes to the owner, if they have agreed."
+      }
+    }
   },
   "client": {
     "createNamed": "Add \"{name}\" as a new client",

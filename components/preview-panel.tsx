@@ -1,61 +1,91 @@
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
-import { formatTime, formatWeekday } from "@/lib/format";
 
 /**
- * What this dashboard will look like once the clinic has records in it.
+ * Where the first visit leads, on a dashboard that has nothing in it
+ * yet.
  *
  * A clinic on its first morning otherwise reads a grid of zeroes and a
  * column of "nothing yet" sentences: a page that works perfectly and
  * says only that you have done nothing.
  *
- * This is the second shape it has had, and the first one failed for a
- * reason worth keeping. It was the loading skeleton's outline -- seven
- * tiles and four cards, all grey bars, no words. Two vets looked at it
- * independently and both said the same thing: "the page isn't
- * loading." The bars measured 1.33:1 in the light theme and 1.27:1 in
- * the dark against the card they sit on, where WCAG asks 3:1 of any
- * graphic that carries meaning -- so they were either meaningful and
- * failing, or decoration filling most of the screen. One of the vets
- * added the thing none of us could see from inside: the real panel's
- * charts and invoice boxes were not in that outline at all, so it was
- * not even a preview of the panel.
+ * This is the third shape, and the first two failed in the same place.
+ * Both were pictures of the dashboard.
  *
- * So it says something now. Names, a weekday, a time.
+ * The first was the loading skeleton's outline -- seven tiles and four
+ * cards, all grey bars, no words. Two vets looked at it independently
+ * and both said the same thing: "the page isn't loading." The bars
+ * measured 1.33:1 in the light theme and 1.27:1 in the dark against the
+ * card they sat on, where WCAG asks 3:1 of any graphic that carries
+ * meaning -- so they were either meaningful and failing, or decoration
+ * filling most of the screen. One of the vets added the thing none of
+ * us could see from inside: the real panel's charts and invoice boxes
+ * were not in that outline at all, so it was not even a preview of the
+ * panel.
  *
- * And it says WHICH PART of the panel it is a picture of, which is the
- * third shape and the same complaint arriving a second time: the owner
- * read "this is how your panel will look" over four grey lines and said
- * the panel will not look like that. Both times the block obeyed the
- * rule below and the SENTENCE was the thing that could not be kept. It
- * was promising the dashboard; it can only draw one card. So it now
- * carries that card's own title, from the key the card itself uses, and
- * the sentence claims the card rather than the panel.
+ * The second said names, a weekday and a time under the title of the
+ * "upcoming appointments" card, and the owner said of it what that vet
+ * had said: the panel will not look like that. The wording was only the
+ * first of three faults. The screen was teaching TWO first actions,
+ * because the card asks for a VISIT and the sentence under it taught an
+ * appointment. The note repeated what `readyFor` says two lines above.
+ * And copying the real `CardTitle` made the preview the heaviest type
+ * on a page whose whole job is to ask for one visit, so the example
+ * outweighed the errand.
  *
- * WHAT IT STILL MAY NOT SAY, and the boundary moved rather than
- * dissolved. No counter, no amount, no percentage, no chart silhouette.
- * The rule came from a vet who left a product after seeing 11 on screen
- * and 4 in the drawer -- "what made me leave was not that the number
- * was wrong, it was learning that a number COULD be wrong" -- and that
- * same vet drew this line: their story was a story about a COUNTER. A
- * date does not tell anyone that figures here are arbitrary; a total
- * does.
+ * So it stopped being a picture. A mock is a promise about how a screen
+ * will look, and this product failed to keep that promise twice. What
+ * is left is the thing a vet cannot see anywhere on their first evening
+ * and has to be told: where writing one visit leads. That stays true
+ * whatever the dashboard ends up looking like.
  *
- * NOTHING HERE IS A RECORD, and the protection is not the sentence at
- * the top. The vet was blunt about that: "a little badge is no
- * protection, I would not read it either." What protects is that these
- * rows go nowhere. They are not links, they are not in any list, they
- * do not answer a search, nothing is written to the database, and the
- * whole panel is gone the moment a real record exists -- the dashboard
- * only renders it while the clinic has no clients, no animals and no
- * visits.
+ * EVERY LINK HAD TO BE SHOWN TO EXIST, and the first draft of this
+ * block failed that test. It had five: visit, invoice, vaccination
+ * date, reminder, appointment. Checked against the code, the middle one
+ * was inert -- `followupAt` is written on the visit page and read
+ * nowhere -- and the last two pointed the wrong way round. A reminder
+ * does not grow out of a date in this product; it comes from an
+ * appointment (`app/api/cron/reminders/route.ts`). An appointment is
+ * opened from the animal's page, not from a reminder. Turning the order
+ * the right way round left four, and all four are routes that exist
+ * today (ux).
  *
- * The names are checked, not chosen carefully. Twice now a name picked
- * for an example turned out to exist -- once in a real clinic, once in
- * our own seed script -- and the second time was after being warned
- * about the first. `preview-panel.test` is what stops a third: hand
- * checking did not work, and the answer to that is not more care.
+ * IT IS A ROUTE, NOT A PROMISE, and that is carried by the words rather
+ * than by the layout: "after the first visit, this is how it carries
+ * on". An earlier wording said what the first visit STARTS, which
+ * claims every visit produces all four. And the reminder line says "if
+ * they have agreed", because the sweep only runs for clinics with
+ * messaging switched on (`modules/notifications/service.ts`) and a new
+ * clinic's consent is off by default. Two words are the difference
+ * between describing the product and over-promising it.
+ *
+ * NOT A CHECKLIST, which is a different thing wearing the same shape. A
+ * checklist asks the reader for four jobs; this asks for nothing. The
+ * one thing the screen wants is still the card above it. So there are
+ * no numbers, no boxes and no ticks -- and the arrow, not a bullet,
+ * because an arrow is a direction and a bullet is an item.
+ *
+ * WHAT IT STILL MAY NOT SAY. No counter, no amount, no percentage, no
+ * chart silhouette. The rule came from a vet who left a product after
+ * seeing 11 on screen and 4 in the drawer -- "what made me leave was
+ * not that the number was wrong, it was learning that a number COULD be
+ * wrong".
+ *
+ * NOTHING HERE IS A RECORD, and it no longer has to be argued. The two
+ * shapes before this one drew example rows, and the protection was that
+ * they went nowhere: not links, not in any list, not answering a
+ * search, nothing written to the database. This shape draws no example
+ * at all -- no name, no date, no time -- so there is nothing to mistake
+ * for a record in the first place. Twice a name we picked for an
+ * example turned out to exist, once in a real clinic and once in our
+ * own seed script; the whole class of mistake is gone rather than
+ * guarded.
+ *
+ * NOTHING HERE MAY OUTWEIGH THE CARD ABOVE IT. The ceiling is
+ * `text-sm font-medium`: no `text-lg`, no `font-semibold`. The screen's
+ * focus is built by holding this block back, and the second shape lost
+ * it by borrowing a real card's title.
  *
  * Held back by a dashed border and no shadow, and NOT by a fill. That
  * was tried and measured, and the numbers are the reason it is not
@@ -80,53 +110,39 @@ import { formatTime, formatWeekday } from "@/lib/format";
  * (#161c18 against #0f1411) and opacity dissolves what little
  * separation there is. A dashed frame already means "nothing here yet"
  * in this codebase (`empty-state.tsx`).
+ *
+ * And no `Card` inside the frame, one level down from the same
+ * argument: a `Card` brings its own `shadow-sm`, and a block whose
+ * insides float exactly as the real cards do has inverted the one
+ * signal saying it is not real.
  */
 
 /**
- * The example week, as data rather than as markup.
+ * The four links, in the order they happen in the clinic.
  *
- * Names carry across both languages because names do not translate: a
- * Turkish clinic's animals are called these things whichever language
- * the vet reads the interface in. The day and the time do translate,
- * and go through `lib/format` like every other date in the product --
- * Turkish writes 09:30, English writes 9:30 AM, and a preview that got
- * that wrong would be teaching the reader the wrong shape.
+ * Order is the content. A reader who takes these in any other sequence
+ * learns something false about the product -- the draft that put the
+ * reminder before the appointment had the causation backwards -- so the
+ * order is carried by the arrows and by this array, and by nothing that
+ * could drift from it.
  *
- * `inDays` rather than a fixed date: a written-out calendar day is a
- * claim about a day the clinic can go and check, and this is an
- * example of a week, not of a Tuesday in January.
+ * Not numbered, because numbers would make it a list of jobs. The
+ * clinic is asked for one thing on this screen, and it is on the card
+ * above.
  */
-const EXAMPLE_WEEK = [
-  { name: "Poyraz", inDays: 1, hour: 9, minute: 30 },
-  { name: "Maviş", inDays: 1, hour: 14, minute: 0 },
-  { name: "Lokum", inDays: 2, hour: 11, minute: 15 },
-  { name: "Nazlı", inDays: 3, hour: 16, minute: 45 },
-] as const;
-
-export const EXAMPLE_NAMES = EXAMPLE_WEEK.map((row) => row.name);
+const CHAIN = ["visit", "invoice", "appointment", "reminder"] as const;
 
 export async function PreviewPanel() {
-  const [t, locale] = await Promise.all([
-    getTranslations("dashboard"),
-    getLocale(),
-  ]);
-
-  const now = new Date();
-  const rows = EXAMPLE_WEEK.map((row) => {
-    const when = new Date(now);
-    when.setDate(when.getDate() + row.inDays);
-    when.setHours(row.hour, row.minute, 0, 0);
-    return { name: row.name, when };
-  });
+  const t = await getTranslations("dashboard");
 
   return (
     <div
       className={cn(
         surface,
-        "flex flex-col gap-6 border-dashed p-6 shadow-none",
+        "flex flex-col gap-4 border-dashed p-6 shadow-none",
       )}
     >
-      {/* Read, unlike the rows below it. Describing a shape to somebody
+      {/* Read, unlike the chain below it. Describing a shape to somebody
           who cannot see it is noise; telling them what this region is
           costs one sentence and there is no reason to withhold it.
 
@@ -136,47 +152,46 @@ export async function PreviewPanel() {
           badge's job and the caption's. */}
       <p className="text-sm text-muted-foreground">{t("previewNote")}</p>
 
-      {/* Not reachable, not selectable: nothing in the picture is an
-          action. The two halves below are hidden from a screen reader
-          separately rather than from here, because the test that keeps
-          the rows silent reads the attribute off the `ul` itself. */}
-      <div className="pointer-events-none select-none flex flex-col gap-4">
-        {/* The section this is a picture OF, in the words the real card
-            uses -- the same key `app/(app)/(overview)/page.tsx` passes
-            to its own title, so renaming the card renames the preview.
+      <ul
+        // Not reachable, not selectable, not focusable, not announced:
+        // nothing here is an action, and a tab stop on a picture is a
+        // promise that something will happen.
+        //
+        // Still hidden now that the lines are sentences rather than
+        // rows: the paragraph above says where the first visit leads,
+        // and four fragments plus three arrows is the same fact again
+        // in a form that reads aloud as a jumble.
+        className="pointer-events-none select-none flex flex-col gap-1"
+        aria-hidden="true"
+      >
+        {CHAIN.map((step, i) => (
+          <li key={step} className="text-sm text-muted-foreground">
+            {/* An element rather than `before:content`, because the
+                arrows are the only thing carrying the order and a thing
+                that carries meaning should be readable by whoever reads
+                the markup -- a test included. On its own line and at
+                the terms' left edge, so the eye runs down one column.
 
-            Not a heading element and not announced: it is part of the
-            picture, and a landmark in a screen reader's heading list is
-            the same broken promise a tab stop would be. The sentence
-            above already says what this block is. */}
-        <div
-          aria-hidden="true"
-          className="text-lg font-semibold tracking-tight text-foreground"
-        >
-          {t("sections.upcomingAppointments")}
-        </div>
-
-        <ul className="flex flex-col gap-1" aria-hidden="true">
-          {rows.map((row) => (
-            // The real card's row, minus everything that would make it a
-            // record: no link, no hover fill, no rounded target. What is
-            // left is the anatomy -- the animal's name at full weight,
-            // the time under it at footnote weight -- which is the part
-            // a vet is being shown.
-            //
-            // No owner beside the name, unlike the real row. A second
-            // name per row doubles the surface `preview-panel.test`
-            // guards, and a name picked for an example has turned out to
-            // be a real one twice already.
-            <li key={row.name} className="flex min-w-0 flex-col px-2 py-2">
-              <span className="truncate text-sm font-medium">{row.name}</span>
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {formatWeekday(locale, row.when)} {formatTime(locale, row.when)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
+                Not an icon and not a drawn rule: an `svg` is barred
+                here, and a rule needs a height and a fill on one
+                element, which is barred too. Both guards exist because
+                a silhouette of a chart is a claim about data. */}
+            {i > 0 && (
+              <span className="block text-xs text-muted-foreground">↓</span>
+            )}
+            {/* Subject and predicate of one sentence, so there is no
+                separator between them: "Vizit hayvanın geçmişine
+                işlenir" breaks if a dot or a colon is put in the middle,
+                and in Turkish it breaks the agreement as well (ux). The
+                weight marks which word is the term without cutting the
+                sentence in two. */}
+            <span className="font-medium text-foreground">
+              {t(`previewChain.${step}.term` as never)}
+            </span>{" "}
+            {t(`previewChain.${step}.result` as never)}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

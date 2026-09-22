@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { createTranslator } from "next-intl";
@@ -11,11 +10,11 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "tr",
 }));
 
-import { EXAMPLE_NAMES, PreviewPanel } from "@/components/preview-panel";
+import { PreviewPanel } from "@/components/preview-panel";
 
 /**
- * The preview is a picture of a dashboard, and every one of these is a
- * condition a vet attached to it rather than a preference.
+ * The block is no longer a picture of anything, and every one of these
+ * is a condition a vet attached to it rather than a preference.
  *
  * Half of the first-run conditions can be held by a test and half cannot,
  * and the next person needs to know which half they are standing on. The
@@ -25,10 +24,24 @@ import { EXAMPLE_NAMES, PreviewPanel } from "@/components/preview-panel";
  * Held here, so nobody can undo one quietly: no counter, amount or
  * percentage; no money or volume card; the rows carrying no link and no
  * tab stop; the rows hidden from a screen reader while the sentence
- * above them is not; the block naming the one card it draws, in that
- * card's own words, and naming it without becoming a heading; no
- * animation; and the example names not existing anywhere the product's
- * own data does. `first-step-card.test` holds the
+ * above them is not; no animation; the block describing where the first
+ * visit leads rather than drawing an example record, so no name, date
+ * or time appears in it at all; the order of those steps being carried
+ * by something that is actually in the markup; the block never carrying
+ * heavier type than the card above it, which is how the shape before
+ * this one went wrong while passing every test here; and nothing inside
+ * the dashed frame floating on a shadow of its own.
+ *
+ * The example-name guard that used to live at the bottom of this file
+ * is gone, and the reason matters more than the deletion. Twice a name
+ * we picked for an example turned out to be a real one -- once in a
+ * clinic, once in our own seed script -- and the answer was a test
+ * comparing our list against every file that prints names. There is no
+ * list now: this shape draws no example at all. So the guard was turned
+ * around rather than dropped, and what replaced it is wider than what
+ * it replaced -- "no name may collide" became "nothing may be drawn
+ * that did not come out of the catalogue", which the next person
+ * putting an example back trips over on the first run. `first-step-card.test` holds the
  * card drawing one link at a time, the branch that falls back for a
  * reader who cannot write a visit, and the waiting sentence shown to a
  * reader who can reach neither -- both that it appears and that it
@@ -99,25 +112,54 @@ describe("the panel a clinic sees before it has records", () => {
     }
   });
 
-  it("names the one card it is a picture of", async () => {
+  it("draws no example record: nothing but its own sentences", async () => {
     const { container } = render(await PreviewPanel());
-    const said = container.textContent ?? "";
 
-    // The whole reason this version exists: twice a reader was told
-    // "this is how your panel will look" over a block that is not a
-    // panel. The block draws one card, so it says which one -- in the
-    // card's own words, read from the key the dashboard passes to its
-    // own title, so a rename cannot leave the two disagreeing.
-    expect(said).toContain(tr.dashboard.sections.upcomingAppointments);
+    // The guard that replaced the example-name list. Everything the
+    // block says has to come out of the catalogue, and what is left
+    // over once those sentences are removed may only be the arrows and
+    // whitespace. A name, a date, a clock or a figure put back here is
+    // left over, and this fails on the first run.
+    const chain = Object.values(tr.dashboard.previewChain);
+    const written = [
+      tr.dashboard.previewNote,
+      ...chain.map((step) => step.term),
+      ...chain.map((step) => step.result),
+    ];
 
-    // Part of the picture, not of the document. A heading here would put
-    // a stop in a screen reader's heading list pointing at four animals
-    // that do not exist -- the same broken promise a tab stop would be,
-    // one channel over.
+    let rest = container.textContent ?? "";
+    for (const sentence of written) rest = rest.split(sentence).join("");
+
+    expect(rest.replace(/[\u2193\s]/g, "")).toBe("");
+  });
+
+  it("carries the order in the markup, not only in the eye", async () => {
+    const { container } = render(await PreviewPanel());
+
+    // Order is the entire content: the draft of this block had the
+    // reminder growing out of a date and the appointment out of the
+    // reminder, which is backwards in this product. It is drawn with a
+    // glyph because an icon and a drawn rule are both barred here, so
+    // the glyph is the only thing carrying it -- and a rewrite that
+    // loses it loses the meaning while still looking like a list.
+    const steps = container.querySelectorAll("li");
+    expect(steps).toHaveLength(4);
+    expect(container.textContent?.match(/\u2193/g)).toHaveLength(
+      steps.length - 1,
+    );
+  });
+
+  it("is never the heaviest thing on the screen", async () => {
+    const { container } = render(await PreviewPanel());
+
+    // The fault that was invisible in review: borrowing the real card's
+    // title made the preview the heaviest type on a page whose whole
+    // job is to ask for one visit, so the example outweighed the
+    // errand. The ceiling is the weight the card itself uses.
+    expect(container.innerHTML).not.toContain("text-lg");
+    expect(container.innerHTML).not.toContain("font-semibold");
+    expect(container.innerHTML).not.toContain("font-bold");
     expect(container.querySelector("h1, h2, h3, h4, h5, h6")).toBeNull();
-    expect(
-      container.querySelector("ul")!.previousElementSibling,
-    ).toHaveAttribute("aria-hidden", "true");
   });
 
   it("does not pretend to be loading", async () => {
@@ -171,51 +213,11 @@ describe("the panel a clinic sees before it has records", () => {
     // separation the dark theme has (#161c18 on #0f1411).
     expect(frame.className).not.toMatch(/\bbg-muted\b/);
     expect(frame.className).not.toMatch(/\bopacity-/);
-  });
-});
 
-/**
- * The guard that exists because care did not work.
- *
- * An example name that turns out to be a real one is the exact thing the
- * preview is built to avoid: a reader meeting their own animal in a
- * panel that is not their data. It has now happened twice -- once with
- * names a vet recognised from their own clinic, and once with a name
- * sitting in our own seed script -- and the second time was after we had
- * been warned about the first.
- *
- * So the names are checked rather than chosen carefully, and the check
- * is against the files that actually put names in front of somebody: the
- * seed script the development database is built from, and the message
- * catalogues. A list without this test collides again within months, and
- * the collision is invisible on the day it happens.
- */
-describe("the example names", () => {
-  const sources = {
-    "scripts/seed-states.mjs": readFileSync("scripts/seed-states.mjs", "utf8"),
-    "messages/tr.json": readFileSync("messages/tr.json", "utf8"),
-    "messages/en.json": readFileSync("messages/en.json", "utf8"),
-  };
-
-  it("are not names the product uses anywhere else", () => {
-    expect(EXAMPLE_NAMES.length).toBeGreaterThan(0);
-
-    for (const name of EXAMPLE_NAMES) {
-      for (const [file, text] of Object.entries(sources)) {
-        expect(
-          text.includes(name),
-          `${name} already appears in ${file}`,
-        ).toBe(false);
-      }
-    }
-  });
-
-  it("are all actually on screen, so the check covers what is shown", async () => {
-    const { container } = render(await PreviewPanel());
-    const said = container.textContent ?? "";
-
-    for (const name of EXAMPLE_NAMES) {
-      expect(said).toContain(name);
-    }
+    // And nothing inside it floats either. A `Card` carries its own
+    // `shadow-sm`, and real cards on this page are told apart from this
+    // block by shadow -- filling the frame with cards would invert the
+    // one signal saying it is not real.
+    expect(container.querySelector('[class*="shadow-sm"]')).toBeNull();
   });
 });
