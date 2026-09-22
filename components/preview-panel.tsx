@@ -24,6 +24,15 @@ import { formatTime, formatWeekday } from "@/lib/format";
  *
  * So it says something now. Names, a weekday, a time.
  *
+ * And it says WHICH PART of the panel it is a picture of, which is the
+ * third shape and the same complaint arriving a second time: the owner
+ * read "this is how your panel will look" over four grey lines and said
+ * the panel will not look like that. Both times the block obeyed the
+ * rule below and the SENTENCE was the thing that could not be kept. It
+ * was promising the dashboard; it can only draw one card. So it now
+ * carries that card's own title, from the key the card itself uses, and
+ * the sentence claims the card rather than the panel.
+ *
  * WHAT IT STILL MAY NOT SAY, and the boundary moved rather than
  * dissolved. No counter, no amount, no percentage, no chart silhouette.
  * The rule came from a vet who left a product after seeing 11 on screen
@@ -114,7 +123,7 @@ export async function PreviewPanel() {
     <div
       className={cn(
         surface,
-        "flex flex-col gap-4 border-dashed p-6 shadow-none",
+        "flex flex-col gap-6 border-dashed p-6 shadow-none",
       )}
     >
       {/* Read, unlike the rows below it. Describing a shape to somebody
@@ -127,25 +136,47 @@ export async function PreviewPanel() {
           badge's job and the caption's. */}
       <p className="text-sm text-muted-foreground">{t("previewNote")}</p>
 
-      <ul
-        // Not reachable, not selectable, not focusable, not announced:
-        // nothing here is an action, and a tab stop on a picture of a
-        // dashboard is a promise that something will happen.
-        className="pointer-events-none select-none flex flex-col gap-3"
-        aria-hidden="true"
-      >
-        {rows.map((row) => (
-          <li
-            key={row.name}
-            className="flex items-baseline justify-between gap-4 text-sm text-muted-foreground"
-          >
-            <span className="min-w-0 truncate">{row.name}</span>
-            <span className="shrink-0 tabular-nums">
-              {formatWeekday(locale, row.when)} {formatTime(locale, row.when)}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {/* Not reachable, not selectable: nothing in the picture is an
+          action. The two halves below are hidden from a screen reader
+          separately rather than from here, because the test that keeps
+          the rows silent reads the attribute off the `ul` itself. */}
+      <div className="pointer-events-none select-none flex flex-col gap-4">
+        {/* The section this is a picture OF, in the words the real card
+            uses -- the same key `app/(app)/(overview)/page.tsx` passes
+            to its own title, so renaming the card renames the preview.
+
+            Not a heading element and not announced: it is part of the
+            picture, and a landmark in a screen reader's heading list is
+            the same broken promise a tab stop would be. The sentence
+            above already says what this block is. */}
+        <div
+          aria-hidden="true"
+          className="text-lg font-semibold tracking-tight text-foreground"
+        >
+          {t("sections.upcomingAppointments")}
+        </div>
+
+        <ul className="flex flex-col gap-1" aria-hidden="true">
+          {rows.map((row) => (
+            // The real card's row, minus everything that would make it a
+            // record: no link, no hover fill, no rounded target. What is
+            // left is the anatomy -- the animal's name at full weight,
+            // the time under it at footnote weight -- which is the part
+            // a vet is being shown.
+            //
+            // No owner beside the name, unlike the real row. A second
+            // name per row doubles the surface `preview-panel.test`
+            // guards, and a name picked for an example has turned out to
+            // be a real one twice already.
+            <li key={row.name} className="flex min-w-0 flex-col px-2 py-2">
+              <span className="truncate text-sm font-medium">{row.name}</span>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {formatWeekday(locale, row.when)} {formatTime(locale, row.when)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

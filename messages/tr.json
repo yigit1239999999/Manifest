@@ -156,7 +156,7 @@
     "overdueVaccinationsDismiss": "Kapat",
     "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
     "overdueVaccinationsUndo": "Geri al",
-    "previewNote": "Örnek bir klinik. Kayıtlarınız girmeye başladığında paneliniz böyle görünecek."
+    "previewNote": "Örnek bir hafta. İlk randevunuzu yazdığınızda yaklaşan randevular burada böyle listelenir."
   },
   "client": {
     "createNamed": "\"{name}\" adıyla yeni müşteri aç",

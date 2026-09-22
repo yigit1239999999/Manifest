@@ -25,8 +25,10 @@ import { EXAMPLE_NAMES, PreviewPanel } from "@/components/preview-panel";
  * Held here, so nobody can undo one quietly: no counter, amount or
  * percentage; no money or volume card; the rows carrying no link and no
  * tab stop; the rows hidden from a screen reader while the sentence
- * above them is not; no animation; and the example names not existing
- * anywhere the product's own data does. `first-step-card.test` holds the
+ * above them is not; the block naming the one card it draws, in that
+ * card's own words, and naming it without becoming a heading; no
+ * animation; and the example names not existing anywhere the product's
+ * own data does. `first-step-card.test` holds the
  * card drawing one link at a time, the branch that falls back for a
  * reader who cannot write a visit, and the waiting sentence shown to a
  * reader who can reach neither -- both that it appears and that it
@@ -95,6 +97,27 @@ describe("the panel a clinic sees before it has records", () => {
     ]) {
       expect(said).not.toContain(heading);
     }
+  });
+
+  it("names the one card it is a picture of", async () => {
+    const { container } = render(await PreviewPanel());
+    const said = container.textContent ?? "";
+
+    // The whole reason this version exists: twice a reader was told
+    // "this is how your panel will look" over a block that is not a
+    // panel. The block draws one card, so it says which one -- in the
+    // card's own words, read from the key the dashboard passes to its
+    // own title, so a rename cannot leave the two disagreeing.
+    expect(said).toContain(tr.dashboard.sections.upcomingAppointments);
+
+    // Part of the picture, not of the document. A heading here would put
+    // a stop in a screen reader's heading list pointing at four animals
+    // that do not exist -- the same broken promise a tab stop would be,
+    // one channel over.
+    expect(container.querySelector("h1, h2, h3, h4, h5, h6")).toBeNull();
+    expect(
+      container.querySelector("ul")!.previousElementSibling,
+    ).toHaveAttribute("aria-hidden", "true");
   });
 
   it("does not pretend to be loading", async () => {

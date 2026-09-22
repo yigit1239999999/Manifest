@@ -156,7 +156,7 @@
     "overdueVaccinationsDismiss": "Close",
     "overdueVaccinationsDismissed": "Vaccination row closed.",
     "overdueVaccinationsUndo": "Undo",
-    "previewNote": "An example clinic. This is how your panel will look once records start coming in."
+    "previewNote": "An example week. Once you book your first appointment, upcoming appointments are listed here like this."
   },
   "client": {
     "createNamed": "Add \"{name}\" as a new client",
