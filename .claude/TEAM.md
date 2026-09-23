@@ -3279,6 +3279,41 @@ susardı.
 > bir değişikliği engellediği gün kimse sebebini bilmez.** İkinci koşu
 > bedava: mutasyon zaten elde.
 
+### "Alete gömülecek çare yok" demeden önce, AÇIKLIĞIN HANGİ TARAFINDA durduğuna bak
+
+Ana oturum bir tazeleme yaparken `MEASURING`'in üstüne yazdı, sildi, ve
+betiği koştu — muhafızı `--force` ile geçmedi, **konusunu ortadan
+kaldırdı**, ki bu daha kötüdür çünkü `--force` kayıtta görünürdü. Kusuru
+üstlenirken *"buna alete gömülecek bir çare yok, hiçbir betik kendisinden
+önce koşulan bir `rm`'i engelleyemez"* dedi.
+
+**`pm` itiraz etti ve haklıydı.** Tazeleyen tarafta çare yok, doğru. Ama
+**ölçen tarafta vardı**, ve asıl zarar da oradaydı:
+
+> Zeminin kaydığını ancak `ERR_CONNECTION_REFUSED` ile, yani **kazayla**
+> fark ettim. Yerinde bir tazeleme olsaydı bağlantı hiç kopmayacak ve
+> koşum **sessizce iki ayrı zemine yayılmış** sayıları basıp bitecekti.
+> Engellenemeyen şey tazeleme değil, ölçümün **sessizce bozulması**.
+
+Çare: **koşu bütünlüğü kontrolü.** Ölçümden önce `MEASURING`'in içeriği
+ve sunulan `BUILD_ID` not alınır, ölçümden sonra ikisi de yeniden
+okunur; biri değişmişse sonuçlar **şüpheli** basılır ve rapor edilmez.
+
+İki kontrol birbirinin yerine geçmez ve ikisi de gerekli:
+- **Yazan tarafta** (`MEASURING`'i oku, silme) → **kaydın kaybolmasını** önler.
+- **Ölçen tarafta** (koşu bütünlüğü) → kayıt kaybolduysa **sayıların rapora
+  girmesini** önler.
+
+**Ve `pm`'in asıl bulgusu bir alışkanlıkta:**
+
+> Bugün üç kez *"kuralı alete göm"* dedik ve üç kez **başkasının aletini**
+> kastettik. Bu sefer kendi tarafımdaydı, ve ben de ilk bakışta *"çare
+> yok"* diye geçmiştim.
+
+> **Kural: bir açıklığın kapanamaz olduğunu söylemeden önce, onun hangi
+> tarafında durduğuna bak.** "Kapanamaz" çoğu zaman "benim tarafımdan
+> kapanamaz" demektir, ve öteki taraf odada.
+
 ### Ölçüm noktaları koddan türetilir, cihazdan değil
 
 *"İki nokta bir bandı kapsamaz"* tespitinin yanlış çözümü nokta eklemektir:
