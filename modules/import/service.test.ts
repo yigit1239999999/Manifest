@@ -197,6 +197,83 @@ describe("writing", () => {
     expect(pets[0].sex).toBe("UNKNOWN");
   });
 
+  it("writes what the screen showed, for every line the vet did not touch", async () => {
+    // The defect this closes: the tables arrive filled in, so agreeing with
+    // a line means touching nothing -- and a commit that read only what came
+    // back would write every cat as "other" and every "Erkek" as "not
+    // known", under a screen that said otherwise.
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+
+    await commitImport(
+      [["Ada", "Kaya", "0532 111 22 33", "Boncuk", "Kedi", "Erkek"]],
+      answers({ mapping: { ...MAPPING, 5: "pet.sex" } }),
+      admin,
+    );
+
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets[0].species).toBe("CAT");
+    expect(pets[0].sex).toBe("MALE");
+  });
+
+  it("adds an untouched clinic species rather than losing its name", async () => {
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+    tx.customSpecies.findMany.mockResolvedValue([{ id: "cs-1", name: "Kirpi" }]);
+
+    await commitImport(
+      [["Ada", "Kaya", "0532 111 22 33", "Boncuk", "Kirpi"]],
+      answers(),
+      admin,
+    );
+
+    expect(tx.customSpecies.createMany).toHaveBeenCalledTimes(1);
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets[0].species).toBe("OTHER");
+    expect(pets[0].customSpeciesId).toBe("cs-1");
+  });
+
+  it("keeps a breed the vet emptied empty", async () => {
+    // An answer replaces its proposal whole. Merging the two would put the
+    // split back after the vet took it off.
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+
+    await commitImport(
+      [["Ada", "Kaya", "0532 111 22 33", "Boncuk", "Tekir Kedi"]],
+      answers({
+        species: { "Tekir Kedi": { target: { kind: "builtIn", key: "CAT" } } },
+      }),
+      admin,
+    );
+
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets[0].breed ?? null).toBeNull();
+  });
+
+  it("proposes the split when the vet leaves the line alone", async () => {
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+
+    await commitImport(
+      [["Ada", "Kaya", "0532 111 22 33", "Boncuk", "Tekir Kedi"]],
+      answers(),
+      admin,
+    );
+
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets[0].species).toBe("CAT");
+    expect(pets[0].breed).toBe("Tekir");
+  });
+
   it("creates a clinic species once for the whole file, not once per animal", async () => {
     const tx = fakeTx();
     tx.client.findMany.mockResolvedValue([

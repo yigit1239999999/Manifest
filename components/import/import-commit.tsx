@@ -40,7 +40,8 @@ import type { Sex, Species } from "@/generated/prisma/enums";
 
 type Phase =
   | { kind: "idle" }
-  | { kind: "planning" }
+  /** Re-planning keeps the previous plan on screen; see `answerDuplicate`. */
+  | { kind: "planning"; summary: PlanSummary | null }
   | { kind: "planned"; summary: PlanSummary }
   | { kind: "planFailed" }
   | { kind: "saving"; summary: PlanSummary }
@@ -103,7 +104,10 @@ export function ImportCommit({
 
   const plan = React.useCallback(
     async (duplicateAnswers: Record<string, DuplicateAnswer>) => {
-      setPhase({ kind: "planning" });
+      setPhase((previous) => ({
+        kind: "planning",
+        summary: "summary" in previous ? previous.summary : null,
+      }));
       try {
         const data = (await post("/api/import/plan", duplicateAnswers)) as {
           summary: PlanSummary;
@@ -203,9 +207,16 @@ export function ImportCommit({
     );
   }
 
-  const summary = phase.kind === "planned" || phase.kind === "saving" || phase.kind === "saveFailed"
-    ? phase.summary
-    : null;
+  // The previous plan stays up while a new one is being worked out. It used
+  // to be cleared, which took the radio the vet had just clicked off the
+  // screen and put it back a moment later with the answer in it.
+  const summary =
+    phase.kind === "planned" ||
+    phase.kind === "saving" ||
+    phase.kind === "saveFailed" ||
+    phase.kind === "planning"
+      ? phase.summary
+      : null;
   const openQuestions = summary
     ? summary.questions.filter((q) => !duplicates[q.key]).length
     : 0;

@@ -282,12 +282,41 @@ export async function commitImport(
   }
 
   const resolved = resolveGroups(plan, answers.duplicates);
+
+  /**
+   * The enum tables the vet actually looked at, with their answers on top.
+   *
+   * The proposals are rebuilt here rather than taken from the request, and
+   * that is the whole point: the screen shows every distinct value with a
+   * reading already filled in, and a vet who agrees with a line does not
+   * touch it. Reading only what came back would mean every line they agreed
+   * with arrives EMPTY -- so every cat would be written as "other" and every
+   * "Erkek" as "not known", under a screen that said otherwise. The
+   * agreement has to be the same function on both sides.
+   */
   const speciesTable = new Map(
-    Object.entries(answers.species).map(([raw, answer]) => [
-      raw,
-      { raw, target: answer.target, breed: answer.breed, rows: 0, settled: true } as SpeciesProposal,
-    ]),
+    proposeSpecies(columnValues(body, answers.mapping, "pet.species"), custom).map(
+      (proposal) => [proposal.raw, proposal] as const,
+    ),
   );
+  for (const [raw, answer] of Object.entries(answers.species)) {
+    // The answer replaces the proposal whole, breed included: a breed the
+    // vet emptied comes back absent, and merging the two would put it back.
+    speciesTable.set(raw, {
+      raw,
+      target: answer.target,
+      breed: answer.breed,
+      rows: 0,
+      settled: true,
+    } as SpeciesProposal);
+  }
+
+  const sexTable = new Map<string, Sex>(
+    proposeSex(columnValues(body, answers.mapping, "pet.sex")).flatMap((proposal) =>
+      proposal.target ? [[proposal.raw, proposal.target] as const] : [],
+    ),
+  );
+  for (const [raw, target] of Object.entries(answers.sex)) sexTable.set(raw, target);
 
   return prisma.$transaction(
     async (tx) => {
@@ -385,7 +414,7 @@ export async function commitImport(
           breed: answer.breed,
           // An unanswered value is recorded as "not known", which is what
           // it is. `deceased` is left alone entirely -- see `PetDraft`.
-          sex: row.pet.sexRaw ? (answers.sex[row.pet.sexRaw] ?? "UNKNOWN") : "UNKNOWN",
+          sex: row.pet.sexRaw ? (sexTable.get(row.pet.sexRaw) ?? "UNKNOWN") : "UNKNOWN",
           birthDate: row.pet.birthDate,
           microchipId: row.pet.microchipId,
           color: row.pet.color,

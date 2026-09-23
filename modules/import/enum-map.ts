@@ -1,4 +1,5 @@
 import { fold } from "@/lib/search";
+import { isBlank } from "./infer";
 import { SPECIES } from "@/modules/pets/schema";
 import { builtInSpeciesNamed } from "@/modules/pets/species-names";
 import trMessages from "@/messages/tr.json";
@@ -179,11 +180,20 @@ export function proposeSex(values: readonly string[]): SexProposal[] {
   });
 }
 
+/**
+ * The distinct values of a column, ignoring the ways a clinic writes
+ * "nothing".
+ *
+ * `isBlank` rather than a check for the empty string, and that is the same
+ * reading `plan.ts` gives the same cell. A column with "-" in it would
+ * otherwise grow a line offering to add a species called "-" to the
+ * clinic, and a vet who agrees with the table would get one.
+ */
 function countDistinct(values: readonly string[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const value of values) {
     const key = value.trim();
-    if (key === "") continue;
+    if (key === "" || isBlank(key)) continue;
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   return counts;
