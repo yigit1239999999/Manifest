@@ -142,7 +142,20 @@ export default async function VisitPage({
       <PageHeader
         title={visit.chiefComplaint ?? tType(visit.type as never)}
         description={`${formatDateTime(fmt, visit.visitedAt)} · ${visit.pet.name} · ${ownerLabel(visit.client)}`}
-        badge={<Badge>{tType(visit.type as never)}</Badge>}
+        // The badge names the kind of visit, and the title falls back to
+        // the same words when nobody wrote a complaint -- so a wellness
+        // check with no complaint read "Genel kontrol" twice, side by
+        // side, which is the shape of a placeholder rather than of a
+        // record (pm, on a first-run clinic).
+        //
+        // Dropped rather than replaced. Putting the animal's name in the
+        // title instead would also fix it and is a bigger change than a
+        // repetition deserves: the description line already carries the
+        // animal and the owner, and which of the two should head this
+        // page is a question about the page, not about this defect (ux).
+        badge={
+          visit.chiefComplaint ? <Badge>{tType(visit.type as never)}</Badge> : undefined
+        }
       >
         {canArchive && (
           <Link
