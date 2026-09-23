@@ -195,7 +195,7 @@ export function NewPetBlock({
     // vocabulary for the same idea.
     <fieldset
       ref={block}
-      className={cn(surface, "grid gap-4 p-4 sm:grid-cols-2")}
+      className={cn(surface, "relative grid gap-4 p-4 sm:grid-cols-2")}
     >
       <legend className="px-2 text-sm font-semibold text-foreground">
         {tVisit("newPet")}
@@ -208,21 +208,35 @@ export function NewPetBlock({
       <input type="hidden" name="newPet[intent]" value="1" />
       {/* The way out of a block that one keystroke opened.
 
-          Not inside the `legend`: a legend is laid out by the engine
-          rather than by its parent, so a control in it lands somewhere
-          no two browsers agree on -- and on a phone it would squeeze
-          the heading. First row of the contents instead, right-aligned,
-          which is where a form's secondary action sits everywhere else
-          in this product. */}
-      <div className="flex justify-end sm:col-span-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className={buttonVariants({ variant: "ghost", size: "sm" })}
-        >
-          {tCommon("nevermind")}
-        </button>
-      </div>
+          Not inside the `legend`, and the reason has not changed: a
+          legend is laid out by the engine rather than by its parent, so
+          a control in it lands somewhere no two browsers agree on, and
+          on a phone it would squeeze the heading.
+
+          But it is not a row of its own either, which is what it was.
+          As the grid's first cell it took a full line and pushed the
+          first thing the vet came here for -- the animal's name -- 36px
+          down behind an empty band (measured: legend at y=311, the
+          button at y=347 with ~660px of nothing to its left). A block
+          that opens under the cursor has to open ON the field, not on
+          its own furniture.
+
+          So it sits on the top edge beside the legend, out of the grid:
+          same line, opposite end, `bg-card` so the border does not run
+          through it. `top-0 -translate-y-1/2` puts it where the legend
+          already is -- centred on the frame's own line, and `end-3`
+          rather than `right-3` because the product writes direction
+          logically (`theme-tokens.test` caught the physical one). */}
+      <button
+        type="button"
+        onClick={onCancel}
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "sm" }),
+          "absolute end-3 top-0 -translate-y-1/2 bg-card",
+        )}
+      >
+        {tCommon("nevermind")}
+      </button>
 
       <Field label={t("name")} error={errors?.["newPet[name]"]} required>
         <Input
