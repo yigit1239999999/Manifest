@@ -1,13 +1,32 @@
 import * as React from "react";
+import { cn } from "@/lib/utils";
 
 export function PageHeader({
   title,
   description,
   badge,
+  clampTitle = false,
   children,
 }: {
   title: string;
   description?: string;
+  /**
+   * Cut the heading off at three lines.
+   *
+   * ASK FOR THIS ONLY WHERE THE WHOLE TITLE IS ALSO SOMEWHERE ELSE ON
+   * THE PAGE. Clipping text that has no other home stops being a
+   * presentation decision and becomes one about the record, and the
+   * person making it does not notice (ux). `visits/[id]` qualifies
+   * because the complaint is the first row of its SOAP card; it is the
+   * only caller, and `page-header.test` says so out loud rather than
+   * leaving that to whoever adds the second one.
+   *
+   * Off everywhere else, and that is not caution: other headings are a
+   * name or a screen's name, so a clip would never fire -- and a
+   * setting that never fires is how the rule above gets copied to a
+   * page where it does.
+   */
+  clampTitle?: boolean;
   /**
    * A status badge belonging to the record this page is about.
    *
@@ -23,28 +42,22 @@ export function PageHeader({
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Clipped at three lines. Titles here are usually a name or
-              a screen's name and never reach it; the one that can is a
-              visit's, which takes the vet's own words for why the
-              animal came. Simulated at 1280 and 390 by replacing the
-              text in the browser -- the geometry is real, the strings
-              are invented -- and at 280 characters the heading ate
-              about 60% of a phone screen and pushed the record's
-              particulars below the fold (ui).
-              
-              Three, and the number has a rule behind it rather than a
-              preference: the clip may not fall below the longest thing
-              the product has actually shown. The longest real complaint
-              on file is 75 characters, which is three lines at 390 --
-              so this crops nothing that exists today. Two would crop
-              it; four would be a wall of `text-2xl` on a phone.
-              
-              This is only honest because the whole complaint is on the
-              page: `visits/[id]` prints it as the first row of the SOAP
-              card. A clipped title with no home for the full text stops
-              being a presentation decision and becomes one about the
-              record (ux). */}
-          <h1 className="line-clamp-3 text-2xl font-semibold tracking-tight text-foreground">
+          {/* Three lines when the caller asks, and the number has a
+              rule behind it rather than a preference: a clip may not
+              fall below the longest thing the product has actually
+              shown. The longest complaint on file is 75 characters,
+              which is three lines at 390px, so this crops nothing that
+              exists today. Two would crop it; four would be a wall of
+              `text-2xl` on a phone. ui simulated 140 and 280 in the
+              browser -- real geometry, invented strings -- and at 280
+              the heading took about 60% of a phone screen and pushed
+              the record's particulars below the fold. */}
+          <h1
+            className={cn(
+              "text-2xl font-semibold tracking-tight text-foreground",
+              clampTitle && "line-clamp-3",
+            )}
+          >
             {title}
           </h1>
           {badge}

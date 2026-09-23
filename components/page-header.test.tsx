@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { PageHeader } from "@/components/page-header";
@@ -112,5 +113,61 @@ describe("PageHeader", () => {
       ),
     );
     expect(physical).toEqual([]);
+  });
+});
+
+/**
+ * The clip is off unless a page says it has somewhere to put the rest.
+ *
+ * A heading cut at three lines is a presentation decision only while
+ * the whole of the text is also on the page. Without that it is a
+ * decision about the record, and the person making it does not notice
+ * (ux). The clip therefore belongs to the caller, and the list of
+ * callers is checked here rather than trusted to a comment: the first
+ * version of this shipped as `line-clamp-3` on every heading in the
+ * product, where the precondition holds on exactly one page.
+ */
+describe("the title clip", () => {
+  it("is off by default", () => {
+    const { container } = render(<PageHeader title="Zeytin" />);
+
+    expect(container.querySelector("h1")!.className).not.toContain(
+      "line-clamp",
+    );
+  });
+
+  it("is on when the page asks", () => {
+    const { container } = render(<PageHeader title="Zeytin" clampTitle />);
+
+    expect(container.querySelector("h1")!.className).toContain("line-clamp-3");
+  });
+
+  it("is asked for by one page, and a second one has to be argued", () => {
+    // Not a style rule: each page that clips owes the same argument --
+    // where does a reader find the part that was cut. Adding a caller
+    // turns this red on purpose, so the argument gets made rather than
+    // inherited.
+    // `process.cwd()` rather than `import.meta.url`: this file runs in
+    // jsdom, where `import.meta.url` is not a file URL.
+    const projectRoot = `${process.cwd()}/`;
+    const callers: string[] = [];
+    let scanned = 0;
+    (function walk(dir: string) {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) walk(path);
+        else if (/\.tsx$/.test(entry.name) && !path.endsWith("page-header.tsx")) {
+          scanned++;
+          if (/\bclampTitle\b/.test(readFileSync(path, "utf8"))) {
+            callers.push(path.slice(projectRoot.length));
+          }
+        }
+      }
+    })(`${projectRoot}app`);
+
+    // A scan that found nothing to scan would pass for the wrong
+    // reason -- the same trap the locator guard names.
+    expect(scanned).toBeGreaterThan(20);
+    expect(callers).toEqual(["app/(app)/visits/[id]/(record)/page.tsx"]);
   });
 });

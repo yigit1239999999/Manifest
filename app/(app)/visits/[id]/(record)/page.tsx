@@ -152,6 +152,11 @@ export default async function VisitPage({
         // here" (ux). Two copies where one can act: the idle one
         // goes, and the one that stays is the one that acts.
         description={formatDateTime(fmt, visit.visitedAt)}
+        // Asked for here and nowhere else: this heading can carry the
+        // vet's own words for why the animal came, and the whole of
+        // them is the first row of the SOAP card below. That second
+        // copy is what makes the clip honest.
+        clampTitle
         // The badge names the kind of visit, and the title falls back to
         // the same words when nobody wrote a complaint -- so a wellness
         // check with no complaint read "Genel kontrol" twice, side by
@@ -309,37 +314,28 @@ export default async function VisitPage({
         <CardContent>
           <DescriptionList
             layout="row"
+            // A grid so a pair stays a pair. In one column across 976px
+            // the label sits at the left edge and the value at the
+            // right, and reading one of them is a journey the eye makes
+            // five times down the card (ui measured it; it is the same
+            // fault this team named on the first-run screen a few hours
+            // earlier). Cells about a third of that put the value back
+            // beside its label.
+            //
+            // Wrapping only -- no `grid-flow-col`, no column placement.
+            // A grid that reorders shows one sequence to the eye and
+            // reads another to a screen reader, and "identity first"
+            // would then be true only for people who can see it (ux).
+            className="grid gap-x-8 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
             items={[
-              { label: t("vet"), value: visit.vet?.name },
-              {
-                label: t("followupAt"),
-                // A follow-up is a day, not a moment -- the field stopped
-                // asking for a time, so the card stops printing 00:00.
-                value: formatDate(fmt, visit.followupAt),
-              },
-              {
-                label: t("totalCost"),
-                value:
-                  visit.totalCents != null
-                    ? // The visit's own currency, not the clinic's current
-                      // setting -- the same rule invoices follow. The
-                      // fallback covers rows recorded before the column
-                      // existed and backfilled to the clinic's value of
-                      // that day.
-                      formatMoney(fmt, visit.totalCents, visit.currency ?? currency)
-                    : null,
-                numeric: true,
-              },
-              // The two records this visit is ABOUT, and the way out of
-              // it. A vet who opens a visit from the dashboard reads the
-              // animal's name and then wants what happened last time --
-              // and the way there used to be back out into the list and
-              // a search for a name they were already looking at.
-              //
-              // Here rather than in the heading, and that is a rule
-              // rather than a layout note: the heading names the record
-              // and carries what to DO with it; where it SITS among
-              // other records belongs in its particulars.
+              // The animal and the owner first, and this is error
+              // catching rather than tidiness: identity is what a
+              // reader checks before anything else. A vet who has
+              // landed on the wrong visit -- a stale link, a back
+              // button, two tabs -- finds out by looking at whose
+              // animal it is. With identity last, under a money total,
+              // that discovery is late, and everything read before it
+              // was read about the wrong animal (ux).
               {
                 label: tPet("one"),
                 value: (
@@ -361,6 +357,26 @@ export default async function VisitPage({
                     {ownerLabel(visit.client)}
                   </Link>
                 ),
+              },
+              { label: t("vet"), value: visit.vet?.name },
+              {
+                label: t("followupAt"),
+                // A follow-up is a day, not a moment -- the field stopped
+                // asking for a time, so the card stops printing 00:00.
+                value: formatDate(fmt, visit.followupAt),
+              },
+              {
+                label: t("totalCost"),
+                value:
+                  visit.totalCents != null
+                    ? // The visit's own currency, not the clinic's current
+                      // setting -- the same rule invoices follow. The
+                      // fallback covers rows recorded before the column
+                      // existed and backfilled to the clinic's value of
+                      // that day.
+                      formatMoney(fmt, visit.totalCents, visit.currency ?? currency)
+                    : null,
+                numeric: true,
               },
             ]}
           />
