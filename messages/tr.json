@@ -498,7 +498,22 @@
       "week": "{count, plural, one {1 hafta} other {# hafta}}",
       "month": "{count, plural, one {1 ay} other {# ay}}",
       "year": "{count, plural, one {1 yıl} other {# yıl}}"
-    }
+    },
+    "sourceList": "{interval}, listeden geldi.",
+    "sourceClinic": "{interval}, kliniğinizin ayarından geldi.",
+    "sourceAsk": "Bu aşı için tekrar tarihi önerilmiyor: aralık hekimden hekime değişiyor. Siz belirleyin.",
+    "seriesLine": "{doses} dozluk başlangıç serisi, dozlar arası {min}-{max} hafta.",
+    "seriesLineSingle": "{doses} dozluk başlangıç serisi, dozlar arası {min} hafta.",
+    "seriesLastNotBefore": "Son doz {weeks}. haftadan önce yapılmaz.",
+    "seriesPosition": "Bu, bu hayvanın {of} dozluk serisindeki {number}. dozu.",
+    "seriesDone": "Bu hayvan {of} dozluk seriyi tamamlamış görünüyor.",
+    "doseNumber": "Kaçıncı doz",
+    "doseNumberHint": "Bu hayvanın bu aşıdan kaç dozu kayıtlı olduğuna göre sayıldı. Değiştirebilirsiniz.",
+    "startAtRange": "İlk doz {min}-{max}. haftada yapılır.",
+    "startAtFrom": "İlk doz {min}. haftadan sonra yapılır.",
+    "noteInsideCombination": "Karma aşının içinde geliyor.",
+    "noteTestFirst": "Önce test yapılır; şema yalnız sonuç negatifse geçerlidir.",
+    "noteByAgreement": "Her hayvana yapılmaz; sahibiyle konuşarak karar verilir."
   },
   "prescription": {
     "title": "Reçeteler",

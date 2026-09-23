@@ -138,6 +138,17 @@ export interface VaccineOffer {
   /** Catalogue key, or `clinic:<folded name>` for the clinic's own. */
   key: string;
   name: string;
+  /**
+   * Every folded name this offer answers to, including its current one.
+   *
+   * Carried on the offer rather than looked up again, because the thing
+   * that needs it most is counting an animal's past doses: a dose written
+   * last year under the old long name is still one of the three, and a
+   * count that only matches today's name would restart a series the vet
+   * had almost finished -- which is the exact failure this feature exists
+   * to stop.
+   */
+  names: readonly string[];
   bookName?: string;
   note?: VaccineNote;
   startAt?: WeekRange;
@@ -178,6 +189,7 @@ function offerFor(
   return {
     key: vaccine.key,
     name: vaccine.name,
+    names: vaccineKeys(vaccine),
     ...(vaccine.bookName ? { bookName: vaccine.bookName } : {}),
     ...(vaccine.note ? { note: vaccine.note } : {}),
     ...(vaccine.startAt ? { startAt: vaccine.startAt } : {}),
@@ -213,6 +225,7 @@ export function clinicVaccineList(
     offers.push({
       key: `clinic:${folded}`,
       name: own.name,
+      names: [folded],
       due: own.interval
         ? { kind: "clinic", interval: own.interval }
         : measured
@@ -235,9 +248,5 @@ export function clinicVaccineList(
 export function offerByName(offers: readonly VaccineOffer[], name: string): VaccineOffer | null {
   const wanted = fold(name.trim());
   if (wanted === "") return null;
-  return (
-    offers.find(
-      (offer) => fold(offer.name) === wanted || offer.key === `clinic:${wanted}`,
-    ) ?? null
-  );
+  return offers.find((offer) => offer.names.includes(wanted)) ?? null;
 }

@@ -30,6 +30,9 @@ const validInput = {
   site: null,
   administeredAt: new Date("2026-05-22T10:00:00.000Z"),
   nextDueAt: null,
+  doseNumber: null,
+  seriesOf: null,
+  nextDueSource: null,
   notes: null,
 };
 
@@ -38,6 +41,44 @@ beforeEach(() => {
 });
 
 describe("createVaccination", () => {
+  it("will not record where a date came from when there is no date", async () => {
+    // A source without a date claims a provenance for something that is
+    // not there, and reads six months later as a schedule somebody
+    // deleted. The pair travels together or not at all.
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    vi.mocked(prisma.vaccination.create).mockResolvedValue({ id: "v-1", petId: "pet-1" } as never);
+
+    await createVaccination({ ...validInput, nextDueSource: "LIST" }, ctx);
+
+    expect(prisma.vaccination.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ nextDueAt: null, nextDueSource: null }),
+    });
+  });
+
+  it("records the dose and the source the screen showed", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    vi.mocked(prisma.vaccination.create).mockResolvedValue({ id: "v-1", petId: "pet-1" } as never);
+
+    await createVaccination(
+      {
+        ...validInput,
+        nextDueAt: new Date("2027-05-22T10:00:00.000Z"),
+        nextDueSource: "LIST",
+        doseNumber: 2,
+        seriesOf: 3,
+      },
+      ctx,
+    );
+
+    expect(prisma.vaccination.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        nextDueSource: "LIST",
+        doseNumber: 2,
+        seriesOf: 3,
+      }),
+    });
+  });
+
   it("allows VET_TECH to administer", async () => {
     vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
     vi.mocked(prisma.vaccination.create).mockResolvedValue({ id: "v-1", petId: "pet-1" } as never);

@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { fold } from "@/lib/search";
 import { intervalOf, type IntervalSuggestion } from "@/lib/vaccination-interval";
+import {
+  clinicVaccineList,
+  normalizeVaccineSettings,
+  offerByName,
+  type VaccineOffer,
+} from "./catalogue";
 
 export async function listVaccinationsForPet(
   clinicId: string,
@@ -199,4 +205,52 @@ export async function vaccinationIntervalSuggestions(
     suggestions[key] = best.interval;
   }
   return suggestions;
+}
+
+
+/**
+ * This clinic's vaccine list for one animal, and how many doses that animal
+ * has already had of each.
+ *
+ * Three reads and no more, whatever the list's length: the clinic's own
+ * settings, the interval history for the species, and this animal's own
+ * vaccinations. Counting the doses per vaccine in a loop would be a query
+ * per line of the list, on a screen a vet opens all day.
+ *
+ * WHY THE DOSE COUNT IS HERE AT ALL. "Karma üç doz, sahibi ikinci dozdan
+ * sonra kayboluyor, üç ay sonra geliyor. O an sorduğum şey 'en son ne
+ * zaman' değil, 'kaçıncı dozdaydık'." The form can only propose "this is
+ * dose 3 of 3" if somebody has counted the first two, and the count has to
+ * follow the vaccine through its renames -- a dose written last year under
+ * the old long name is still one of the three.
+ */
+export async function vaccineOffersForPet(
+  clinicId: string,
+  petId: string,
+  species: string,
+): Promise<{ offers: VaccineOffer[]; priorDoses: Record<string, number> }> {
+  const [clinic, history, given] = await Promise.all([
+    prisma.clinic.findUnique({ where: { id: clinicId }, select: { settings: true } }),
+    vaccinationIntervalSuggestions(clinicId, species),
+    prisma.vaccination.findMany({
+      where: { clinicId, petId },
+      select: { name: true },
+      // A series is three doses and an animal's whole record is short; this
+      // is a ceiling against a pathological row count, not a page size.
+      take: 200,
+    }),
+  ]);
+
+  const settings = normalizeVaccineSettings(
+    ((clinic?.settings ?? {}) as { vaccines?: unknown }).vaccines,
+  );
+  const offers = clinicVaccineList(species, settings, history);
+
+  const priorDoses: Record<string, number> = {};
+  for (const row of given) {
+    const offer = offerByName(offers, row.name);
+    if (!offer) continue;
+    priorDoses[offer.key] = (priorDoses[offer.key] ?? 0) + 1;
+  }
+  return { offers, priorDoses };
 }

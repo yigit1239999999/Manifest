@@ -160,6 +160,17 @@ describe("reading the settings block", () => {
 });
 
 describe("finding the offer behind a typed name", () => {
+  it("matches a name the clinic stopped using, so past doses still count", () => {
+    // The dose count is what this is for: a "Karma" written last year under
+    // the old long name is still one of the three, and a count that only
+    // matched today's name would restart a series the vet had nearly
+    // finished -- the failure the whole feature exists to stop.
+    const offers = clinicVaccineList("DOG", EMPTY);
+    expect(
+      offerByName(offers, "Karma - Parvo, Gençlik, Hepatit, Parainfluenza (DHPPi)")?.key,
+    ).toBe("dog.core");
+  });
+
   it("matches the catalogue name and the clinic's own", () => {
     const offers = clinicVaccineList("CAT", {
       ...EMPTY,

@@ -8,7 +8,7 @@ import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
 import { countPets } from "@/modules/pets/queries";
 import { getInvoiceForVisit } from "@/modules/invoices/queries";
-import { vaccinationIntervalSuggestions } from "@/modules/vaccinations/queries";
+import { vaccineOffersForPet } from "@/modules/vaccinations/queries";
 import {
   archiveVisitAction,
   restoreVisitAction,
@@ -130,8 +130,9 @@ export default async function VisitPage({
 
   // Needs the animal's species, so it follows the load rather than joining
   // it. See `/pets/[id]`, which renders the same form.
-  const vaccineIntervals = await vaccinationIntervalSuggestions(
+  const { offers: vaccineOffers, priorDoses } = await vaccineOffersForPet(
     clinicId,
+    visit.petId,
     visit.pet.species,
   );
 
@@ -505,7 +506,8 @@ export default async function VisitPage({
                 <VaccinationForm
                   petId={visit.petId}
                   visitId={visit.id}
-                  suggestions={vaccineIntervals}
+                  offers={vaccineOffers}
+                  priorDoses={priorDoses}
                 />
               </div>
             </details>

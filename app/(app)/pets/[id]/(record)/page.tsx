@@ -10,7 +10,7 @@ import { petTimeline } from "@/modules/timeline/queries";
 import { archivePetAction, restorePetAction } from "@/modules/pets/actions";
 import {
   listVaccinationsForPet,
-  vaccinationIntervalSuggestions,
+  vaccineOffersForPet,
 } from "@/modules/vaccinations/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
 import { listPrescriptionsForPet } from "@/modules/prescriptions/queries";
@@ -107,8 +107,9 @@ export default async function PetPage({
   // Needs the species, so it cannot join the batch above. One indexed read
   // of this clinic's own vaccination history; the form shows nothing at all
   // when it comes back empty (backlog 20).
-  const vaccineIntervals = await vaccinationIntervalSuggestions(
+  const { offers: vaccineOffers, priorDoses } = await vaccineOffersForPet(
     clinicId,
+    pet.id,
     pet.species,
   );
 
@@ -386,7 +387,11 @@ export default async function PetPage({
                     {tVacc("new")}
                   </summary>
                   <div className="mt-3">
-                    <VaccinationForm petId={pet.id} suggestions={vaccineIntervals} />
+                    <VaccinationForm
+                      petId={pet.id}
+                      offers={vaccineOffers}
+                      priorDoses={priorDoses}
+                    />
                   </div>
                 </details>
               )}

@@ -498,7 +498,22 @@
       "week": "{count, plural, one {1 week} other {# weeks}}",
       "month": "{count, plural, one {1 month} other {# months}}",
       "year": "{count, plural, one {1 year} other {# years}}"
-    }
+    },
+    "sourceList": "{interval}, from the list.",
+    "sourceClinic": "{interval}, from your clinic's setting.",
+    "sourceAsk": "No repeat date is proposed for this vaccine: the interval differs from vet to vet. Please set it yourself.",
+    "seriesLine": "A starting series of {doses} doses, {min}-{max} weeks apart.",
+    "seriesLineSingle": "A starting series of {doses} doses, {min} weeks apart.",
+    "seriesLastNotBefore": "The last dose is not given before week {weeks}.",
+    "seriesPosition": "This is dose {number} of this animal's series of {of}.",
+    "seriesDone": "This animal appears to have completed the series of {of}.",
+    "doseNumber": "Which dose",
+    "doseNumberHint": "Counted from how many doses of this vaccine this animal already has on record. You can change it.",
+    "startAtRange": "The first dose is given at week {min}-{max}.",
+    "startAtFrom": "The first dose is given from week {min}.",
+    "noteInsideCombination": "Comes inside the combination vaccine.",
+    "noteTestFirst": "A test comes first; the schedule applies only if it is negative.",
+    "noteByAgreement": "Not given to every animal; decided with the owner."
   },
   "prescription": {
     "title": "Prescriptions",

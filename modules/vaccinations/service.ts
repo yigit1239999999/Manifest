@@ -28,6 +28,13 @@ export async function createVaccination(
       site: input.site,
       administeredAt: input.administeredAt,
       nextDueAt: input.nextDueAt,
+      // The source belongs to the date. Writing one without the other
+      // would leave a record claiming a provenance for a date it does not
+      // have -- and a null date with a source reads, six months later, as
+      // a schedule somebody deleted.
+      nextDueSource: input.nextDueAt ? (input.nextDueSource ?? null) : null,
+      doseNumber: input.doseNumber ?? null,
+      seriesOf: input.seriesOf ?? null,
       notes: input.notes,
     },
   });
