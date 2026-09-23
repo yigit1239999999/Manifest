@@ -130,6 +130,11 @@ export function VaccinationForm({
   const given = offer ? (priorDoses[offer.key] ?? 0) : 0;
   const series = offer?.series;
   const proposedDose = series ? Math.min(given + 1, series.doses) : null;
+  // What the sentence under the field counts: the number in the field, not
+  // the number we proposed for it. They are the same until the vet changes
+  // one, and after that the sentence has to follow, or the screen argues
+  // with itself about which dose this is.
+  const doseShown = Number(dose ?? "") || proposedDose;
   const seriesFinished = series ? given >= series.doses : false;
 
   // The clinic's own list, with the book's name beside the vet's where
@@ -139,10 +144,21 @@ export function VaccinationForm({
   // takes the vet's previous answer with it. Adjusted during render rather
   // than in an effect, the way `resetToken` above is handled: an effect
   // would paint the old number for a frame.
+  //
+  // The DATE goes with it too, but only if the date came from a proposal:
+  // a proposed date is a claim about the vaccine that proposed it, and
+  // leaving it behind would put one vaccine's schedule on another under
+  // that vaccine's source. A date the vet typed themselves stays, because
+  // it was never ours to withdraw -- and it is already MANUAL, so nothing
+  // it says about where it came from becomes false.
   const [seenOffer, setSeenOffer] = useState(offer?.key ?? "");
   if (seenOffer !== (offer?.key ?? "")) {
     setSeenOffer(offer?.key ?? "");
     setDose(null);
+    if (dueSource !== "" && dueSource !== "MANUAL") {
+      setNextDue("");
+      setDueSource("");
+    }
   }
 
   const options = offers.map((entry) => ({
@@ -258,11 +274,7 @@ export function VaccinationForm({
           "where did this come from", and the screen already says it in
           words one line up. */}
       {nextDue && dueSource && (
-        <input
-          type="hidden"
-          name="nextDueSource"
-          value={dueSource === "CLINIC" ? "LIST" : dueSource}
-        />
+        <input type="hidden" name="nextDueSource" value={dueSource} />
       )}
 
       {/* The starting series, and the question a single date cannot answer:
@@ -305,7 +317,7 @@ export function VaccinationForm({
           <p className="text-xs text-foreground">
             {seriesFinished
               ? t("seriesDone", { of: series.doses })
-              : t("seriesPosition", { number: proposedDose ?? 1, of: series.doses })}
+              : t("seriesPosition", { number: doseShown ?? 1, of: series.doses })}
           </p>
         </div>
       )}

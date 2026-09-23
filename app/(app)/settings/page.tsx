@@ -151,10 +151,13 @@ export default async function SettingsPage() {
             }))}
             added={vaccineSettings.added}
             speciesOptions={SPECIES.map((s) => ({ value: s, label: tSpecies(s) }))}
+            // Bare units, not "1 hafta": these label a selector that sits
+            // next to a number box, so the row reads "400 hafta" and not
+            // "400 [1 hafta]". The counted form belongs to a sentence.
             unitLabels={{
-              week: tVaccination("interval.week", { count: 1 }),
-              month: tVaccination("interval.month", { count: 1 }),
-              year: tVaccination("interval.year", { count: 1 }),
+              week: t("vaccines.unit.week"),
+              month: t("vaccines.unit.month"),
+              year: t("vaccines.unit.year"),
             }}
             labels={{
               onList: t("vaccines.onList"),

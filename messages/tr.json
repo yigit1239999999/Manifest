@@ -487,7 +487,12 @@
       "save": "Aşı listesini kaydedin",
       "saved": "Aşı listesi kaydedildi.",
       "listValue": "liste: {interval}",
-      "listAsks": "listede yok"
+      "listAsks": "liste aralık önermiyor",
+      "unit": {
+        "week": "hafta",
+        "month": "ay",
+        "year": "yıl"
+      }
     }
   },
   "vaccination": {

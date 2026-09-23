@@ -17,8 +17,11 @@
 -- `nextDueSource` is the second question: an interval this clinic has
 -- measured for itself and one the product shipped are different claims,
 -- and a screen showing them identically turns a default into a medical
--- fact nobody stated. Three values and no fourth: HISTORY (the clinic's
--- own records), LIST (what we shipped), MANUAL (a person typed it).
+-- fact nobody stated. Four values: HISTORY (measured from this clinic's
+-- own records), CLINIC (an interval this clinic typed into its settings),
+-- LIST (what we shipped), MANUAL (a person typed this date on the form).
+-- CLINIC is not LIST: folding the two would record our default on a
+-- number a clinic chose, and no later read could tell them apart.
 --
 -- NOTHING IS BACK-FILLED, and that is deliberate. Every existing row has
 -- a null source, which reads as "we do not know where this came from" --
@@ -30,7 +33,7 @@
 
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DueSource') THEN
-    CREATE TYPE "DueSource" AS ENUM ('HISTORY', 'LIST', 'MANUAL');
+    CREATE TYPE "DueSource" AS ENUM ('HISTORY', 'CLINIC', 'LIST', 'MANUAL');
   END IF;
 END $$;
 

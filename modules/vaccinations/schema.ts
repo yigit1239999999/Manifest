@@ -37,7 +37,7 @@ export const vaccinationSchema = z.object({
    * no date, and absent is honest: "nobody said" is exactly what a row
    * with no source means.
    */
-  nextDueSource: optionalEnum(["HISTORY", "LIST", "MANUAL"] as const),
+  nextDueSource: optionalEnum(["HISTORY", "CLINIC", "LIST", "MANUAL"] as const),
   notes: optionalText(1000),
 });
 

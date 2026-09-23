@@ -513,6 +513,10 @@ model Visit {
 enum DueSource {
   /// Measured from this clinic's own records for this vaccine and species.
   HISTORY
+  /// An interval this clinic typed into its own vaccine list (settings).
+  /// Deliberately not folded into LIST: one is their claim, the other is
+  /// ours, and a record that cannot tell them apart cannot be questioned.
+  CLINIC
   /// The list the product ships with (`lib/vaccines.ts`).
   LIST
   /// Typed by a person, agreeing with neither or asked for by the list.
