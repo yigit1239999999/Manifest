@@ -105,7 +105,7 @@ fi
 
 RUN_SUITE="${*:-tam-süit}"
 if ! acquire; then
-  OWNER_PID=$(sed -n 's/.*pid=\([0-9]*\).*/\1/p' "$LOCK" 2>/dev/null)
+  OWNER_PID=$(sed -n 's/.* pid=\([0-9]*\).*/\1/p' "$LOCK" 2>/dev/null)
   # `kill -0`: süreç yaşıyor mu. İki sınırı var ve ikisi de bilerek çözülmedi:
   #   - PID yeniden kullanılmışsa canlı sanır ve gereksiz bekletir. Bugüne
   #     kadar görülmedi; görülmeden çözüm eklemek, bu ekibin reddettiği şey.
@@ -135,7 +135,15 @@ fi
 # Yalnız KENDİ kilidimizi sileriz: biri --force ile üzerimize yazdıysa, bizim
 # çıkışımız ONUN kilidini silmemeli -- yoksa kilit, çözdüğü problemi geri
 # getirir (lider).
-trap '[ "$(sed -n "s/.*pid=\([0-9]*\).*/\1/p" "$LOCK" 2>/dev/null)" = "$$" ] && rm -f "$LOCK"' EXIT
+# DİKKAT: bu desen ` pid=` arıyor, `pid=` değil -- ve boşluk bir süs değil.
+# Kilide `ppid=` alanı eklendiği gün `.*pid=` deseni ONU yakaladı (aç gözlü
+# `.*` en sağdaki eşleşmeyi seçiyor) ve üç ayrı ayrıştırıcı birden sessizce
+# yanlış sayıyı okudu: trap kendi kilidini silemedi, bayat kilit kontrolü
+# yanlış süreci sordu, pre-commit kancası yanlış pid bildirdi. Hiçbiri
+# hata vermedi. Alana bir isim eklemek, o ismi İÇEREN her alanı okuyan
+# ayrıştırıcıyı bozar; ` pid=` bunu kapatıyor çünkü " ppid=" içinde " pid="
+# geçmez.
+trap '[ "$(sed -n "s/.* pid=\([0-9]*\).*/\1/p" "$LOCK" 2>/dev/null)" = "$$" ] && rm -f "$LOCK"' EXIT
 
 # Artefaktın sahibi belli olsun: paylaşımlı `test-results/` yüzünden iki süit
 # aynı dizine yazıp son yazan kazanıyordu, ve bugün dört hata bağlamının

@@ -79,7 +79,7 @@ build_lock_acquire() {
   ) 2>/dev/null
 }
 if ! build_lock_acquire; then
-  OWNER_PID=$(sed -n 's/.*pid=\([0-9]*\).*/\1/p' "$BUILD_LOCK" 2>/dev/null)
+  OWNER_PID=$(sed -n 's/.* pid=\([0-9]*\).*/\1/p' "$BUILD_LOCK" 2>/dev/null)
   if [ -n "$OWNER_PID" ] && kill -0 "$OWNER_PID" 2>/dev/null; then
     echo "DURDUM: başka bir derleme sürüyor -- $(cat "$BUILD_LOCK" 2>/dev/null)" >&2
     echo "  Bitmesini bekle. Şimdi derlersen ONUN sunduğu .next-prod'u sökersin" >&2
@@ -93,7 +93,15 @@ if ! build_lock_acquire; then
     exit 4
   fi
 fi
-trap '[ "$(sed -n "s/.*pid=\([0-9]*\).*/\1/p" "$BUILD_LOCK" 2>/dev/null)" = "$$" ] && rm -f "$BUILD_LOCK"' EXIT
+# DİKKAT: bu desen ` pid=` arıyor, `pid=` değil -- ve boşluk bir süs değil.
+# Kilide `ppid=` alanı eklendiği gün `.*pid=` deseni ONU yakaladı (aç gözlü
+# `.*` en sağdaki eşleşmeyi seçiyor) ve üç ayrı ayrıştırıcı birden sessizce
+# yanlış sayıyı okudu: trap kendi kilidini silemedi, bayat kilit kontrolü
+# yanlış süreci sordu, pre-commit kancası yanlış pid bildirdi. Hiçbiri
+# hata vermedi. Alana bir isim eklemek, o ismi İÇEREN her alanı okuyan
+# ayrıştırıcıyı bozar; ` pid=` bunu kapatıyor çünkü " ppid=" içinde " pid="
+# geçmez.
+trap '[ "$(sed -n "s/.* pid=\([0-9]*\).*/\1/p" "$BUILD_LOCK" 2>/dev/null)" = "$$" ] && rm -f "$BUILD_LOCK"' EXIT
 
 COMMIT="$(git rev-parse --short HEAD)"
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
