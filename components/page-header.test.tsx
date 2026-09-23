@@ -127,7 +127,7 @@ describe("PageHeader", () => {
  * version of this shipped as `line-clamp-3` on every heading in the
  * product, where the precondition holds on exactly one page.
  */
-describe("the title clip", () => {
+describe("a title that is free text rather than a name", () => {
   it("is off by default", () => {
     const { container } = render(<PageHeader title="Zeytin" />);
 
@@ -137,7 +137,7 @@ describe("the title clip", () => {
   });
 
   it("is on when the page asks", () => {
-    const { container } = render(<PageHeader title="Zeytin" clampTitle />);
+    const { container } = render(<PageHeader title="Zeytin" titleIsFreeText />);
 
     expect(container.querySelector("h1")!.className).toContain("line-clamp-3");
   });
@@ -158,7 +158,7 @@ describe("the title clip", () => {
         if (entry.isDirectory()) walk(path);
         else if (/\.tsx$/.test(entry.name) && !path.endsWith("page-header.tsx")) {
           scanned++;
-          if (/\bclampTitle\b/.test(readFileSync(path, "utf8"))) {
+          if (/\btitleIsFreeText\b/.test(readFileSync(path, "utf8"))) {
             callers.push(path.slice(projectRoot.length));
           }
         }

@@ -5,16 +5,24 @@ export function PageHeader({
   title,
   description,
   badge,
-  clampTitle = false,
+  titleIsFreeText = false,
   children,
 }: {
   title: string;
   description?: string;
   /**
-   * Cut the heading off at three lines.
+   * Whether this page's title is something a vet typed rather than a
+   * record's name.
    *
-   * ASK FOR THIS ONLY WHERE THE WHOLE TITLE IS ALSO SOMEWHERE ELSE ON
-   * THE PAGE. Clipping text that has no other home stops being a
+   * It names a CATEGORY and not an effect, which is the difference
+   * between a rule and a style switch (ux). `clampTitle` would have
+   * been the effect, and the next person would have read it as a
+   * look they could take or leave; "this heading is free text" is a
+   * fact about the page, and a second page of that kind gets the
+   * right behaviour without anyone deciding again.
+   *
+   * What it buys today is a three-line clip, and the clip is only
+   * honest where the whole title is also somewhere else on the page. Clipping text that has no other home stops being a
    * presentation decision and becomes one about the record, and the
    * person making it does not notice (ux). `visits/[id]` qualifies
    * because the complaint is the first row of its SOAP card; it is the
@@ -26,7 +34,7 @@ export function PageHeader({
    * setting that never fires is how the rule above gets copied to a
    * page where it does.
    */
-  clampTitle?: boolean;
+  titleIsFreeText?: boolean;
   /**
    * A status badge belonging to the record this page is about.
    *
@@ -55,7 +63,7 @@ export function PageHeader({
           <h1
             className={cn(
               "text-2xl font-semibold tracking-tight text-foreground",
-              clampTitle && "line-clamp-3",
+              titleIsFreeText && "line-clamp-3",
             )}
           >
             {title}

@@ -152,11 +152,11 @@ export default async function VisitPage({
         // here" (ux). Two copies where one can act: the idle one
         // goes, and the one that stays is the one that acts.
         description={formatDateTime(fmt, visit.visitedAt)}
-        // Asked for here and nowhere else: this heading can carry the
-        // vet's own words for why the animal came, and the whole of
-        // them is the first row of the SOAP card below. That second
-        // copy is what makes the clip honest.
-        clampTitle
+        // The only page whose heading is free text: it carries the
+        // vet's own words for why the animal came. The whole of them
+        // is the first row of the SOAP card below, which is what lets
+        // the heading be clipped at all.
+        titleIsFreeText
         // The badge names the kind of visit, and the title falls back to
         // the same words when nobody wrote a complaint -- so a wellness
         // check with no complaint read "Genel kontrol" twice, side by
