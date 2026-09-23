@@ -397,23 +397,40 @@ export function DetailSkeleton() {
  * The dashboard's waiting shape: seven counter tiles and four list cards,
  * written to the same grids the real panel uses.
  *
- * The grids line up and the header block does not, and the second half is
- * deliberate. Measured on `cb827ed`: the tiles land at the same x and the
- * same 235x96 as the loaded page, but the whole block sat 166px higher
- * here, because a first-run dashboard carries a greeting, a
- * `FirstStepCard` and a centred line above the panel while this file
- * carries two rules.
+ * The grids line up and the header block does not, and the second half
+ * is deliberate. It was measured on `cb827ed` as a 166px offset, and
+ * that figure is DEAD -- re-measured on `0ce9ee6`, on the stamped
+ * production ground at 1280x720 with a fresh clinic, eight runs, by
+ * dev:
  *
- * THAT 166 IS STALE as of `8ab2f8e` and nobody has re-measured it. The
- * first-run screen changed on both sides of the sum: the example panel
- * and the header's description line left it, and the card grew (`p-6`
- * rather than `p-4`, a `text-lg` ask, its button stacked underneath
- * rather than beside). Whether the offset is now larger or smaller is
- * not derivable from the classes -- it needs the same measurement on a
- * current build, and this session has no browser. The argument below
- * does not depend on the figure, only on the offset being real; the
- * figure is what would have to be quoted again, and it may not be
- * quoted from here until somebody takes it.
+ *   block 1   skeleton  96   loaded  96    (`PageHeader`, 56 tall)
+ *   block 2   skeleton 176   loaded 184    (`FirstStepCard`, 166 tall)
+ *   block 3   skeleton 412   loaded  --
+ *
+ * So the jump this comment was written about is 0px in the first block
+ * and 8px in the second, which is far under anything a reader notices.
+ * The 166 did not shrink gradually: the first-run screen lost the
+ * example panel and gained a heavier card, and the two happened to
+ * cancel.
+ *
+ * WHAT IS LEFT IS NOT A JUMP AT ALL, and it is the finding worth
+ * carrying forward: the skeleton's third block has nothing to become.
+ * A clinic with nothing in it is shown seven counter tiles and four
+ * list cards, and then the screen ENDS at 350 where the card does. For
+ * half a second the product draws a mock-up of a full dashboard to a
+ * clinic that has none of it -- which is the same promise the example
+ * panel was removed for making, one layer down. That is its own task
+ * and not this file's to fix alone: `loading.tsx` is drawn before any
+ * data and cannot know which of the two screens is coming.
+ *
+ * Two things about that measurement that have to travel with it. Its
+ * SECOND ROW is already one commit old: `3e9a724` capped the card at
+ * `max-w-xl`, so its text wraps in a narrower box and both 166 and the
+ * 8 may have moved; nobody has read them since. And the card measuring
+ * 166 tall, exactly the old offset, is a coincidence as far as anyone
+ * can show -- there is no measurement connecting the two numbers, and
+ * it is written here only so the next reader does not build a
+ * mechanism out of it.
  *
  * It cannot carry more. `loading.tsx` is drawn before any data, so it does
  * not know whether that card will render. Reserving that height would pay
@@ -427,9 +444,13 @@ export function DetailSkeleton() {
  * It is a jump the vet really takes, which was worth checking before
  * settling for it: on an empty clinic the insight queries run against
  * empty tables, and the skeleton could have been drawn too briefly to
- * register. Sampled every 8ms across a real soft navigation, five runs
- * out of five painted it, for 376ms to 514ms -- several times over the
- * ~100ms where a change stops being noticed.
+ * register. It used to say five runs out of five painted it, for 376ms
+ * to 514ms -- and the ground that reading was taken on was never
+ * written down, so it cannot be compared with anything. On the stamped
+ * ground it paints in SIX runs out of eight, for roughly 410ms to
+ * 440ms, and twice it does not paint at all. Still several times over
+ * the ~100ms where a change stops being noticed, on the runs where it
+ * happens.
  *
  * Moving the card below the preview is the other way to reach zero, and
  * it would work: the grids would hold the skeleton's y, and the card
