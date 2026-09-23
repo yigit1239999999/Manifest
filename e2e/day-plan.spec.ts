@@ -18,17 +18,17 @@ async function signUp(page: import("@playwright/test").Page, stamp: number) {
 
 async function createPet(page: import("@playwright/test").Page, name: string) {
   await page.goto("/clients/new");
-  await page.getByLabel(/first name/i).fill("Ayse");
-  await page.getByLabel(/last name/i).fill("Yilmaz");
-  await page.getByLabel(/^phone$/i).fill("+905321112233");
-  await page.getByRole("button", { name: /create client/i }).click();
+  await page.getByLabel(/first name|^ad$/i).fill("Ayse");
+  await page.getByLabel(/last name|soyad/i).fill("Yilmaz");
+  await page.getByLabel(/^phone$|^telefon$/i).fill("+905321112233");
+  await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
   await expect(page.getByRole("heading", { name: /ayse yilmaz/i })).toBeVisible();
 
   await page.goto("/pets/new");
-  await pickOption(page, page.getByLabel(/owner/i));
-  await page.getByLabel(/^name$/i).fill(name);
-  await page.getByRole("button", { name: /^cat$/i }).click();
-  await page.getByRole("button", { name: /create pet/i }).click();
+  await pickOption(page, page.getByLabel(/^owner$|^sahibi$/i));
+  await page.getByLabel(/^name$|^[İi]sim$/i).fill(name);
+  await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
+  await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
   await expect(
     page.getByRole("heading", { name: new RegExp(name, "i") }),
   ).toBeVisible();
@@ -36,9 +36,9 @@ async function createPet(page: import("@playwright/test").Page, name: string) {
 
 async function book(page: import("@playwright/test").Page, wallTime: string) {
   await page.goto("/appointments/new");
-  await pickOption(page, page.getByLabel(/^pet$/i));
-  await page.getByLabel(/starts at/i).fill(wallTime);
-  await page.getByRole("button", { name: /create appointment/i }).click();
+  await pickOption(page, page.getByLabel(/^pet$|^hayvan$/i));
+  await page.getByLabel(/starts at|başlangıç/i).fill(wallTime);
+  await page.getByRole("button", { name: /create appointment|randevu oluştur/i }).click();
   await expect(page).toHaveURL(/\/appointments\/(?!new)[\w-]+$/);
 }
 
@@ -74,7 +74,7 @@ test.describe("Appointments day plan", () => {
     await expect(page.getByText("+905321112233").last()).toBeVisible();
 
     // Tomorrow, via the arrow, and the day stays in the URL.
-    await page.getByRole("link", { name: /next day/i }).click();
+    await page.getByRole("link", { name: /next day|sonraki gün/i }).click();
     await expect(page).toHaveURL(new RegExp(`date=${dayKey(1)}`));
     await expect(page.getByText(/\b(14:00|2:00 PM)\b/)).toBeVisible();
     await expect(page.getByText(/\b0?9:15\b/)).toHaveCount(0);
@@ -85,16 +85,16 @@ test.describe("Appointments day plan", () => {
 
     // A day with nothing on it says so. The URL first, so a failure here
     // says whether the day moved at all or moved and rendered wrongly.
-    await page.getByRole("link", { name: /next day/i }).click();
+    await page.getByRole("link", { name: /next day|sonraki gün/i }).click();
     await expect(page).toHaveURL(new RegExp(`date=${dayKey(2)}`));
     await expect(page.getByText(/no appointments on|randevu bulunmuyor/i)).toBeVisible();
 
     // Back to today.
-    await page.getByRole("link", { name: /^today$/i }).click();
+    await page.getByRole("link", { name: /^today$|^bugün$/i }).click();
     await expect(page.getByText(/\b0?9:15\b/)).toBeVisible();
 
     // All dates brings back the full list, including the past.
-    await page.getByRole("link", { name: /all dates/i }).click();
+    await page.getByRole("link", { name: /all dates|tüm tarihler/i }).click();
     await expect(page.getByText(/\b(08:00|8:00 AM)\b/)).toBeVisible();
     await expect(page.getByText(/\b(14:00|2:00 PM)\b/)).toBeVisible();
   });
@@ -121,12 +121,12 @@ test.describe("Appointments day plan", () => {
     await book(page, `${dayKey(0)}T10:30`);
 
     await page.goto("/appointments");
-    await page.getByRole("link", { name: /^scheduled$/i }).click();
+    await page.getByRole("link", { name: /^scheduled$|^planlandı$/i }).click();
     await expect(page).toHaveURL(new RegExp(`date=${dayKey(0)}`));
     await expect(page).toHaveURL(/status=SCHEDULED/);
     await expect(page.getByText(/\b10:30\b/)).toBeVisible();
 
-    await page.getByRole("link", { name: /^completed$/i }).click();
+    await page.getByRole("link", { name: /^completed$|^tamamlandı$/i }).click();
     await expect(page).toHaveURL(new RegExp(`date=${dayKey(0)}`));
     // A filter that matches nothing says so as a filter, with a way out.
     await expect(

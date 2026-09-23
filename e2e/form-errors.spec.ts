@@ -88,9 +88,9 @@ test.describe("Form validation", () => {
 
     // Owner and name are filled so the browser lets the form through; the
     // empty species is caught on the server.
-    await pickOption(page, page.getByLabel(/owner/i), "Ayse");
-    await page.getByLabel(/^name$/i).fill("Boncuk");
-    await page.getByRole("button", { name: /create pet/i }).click();
+    await pickOption(page, page.getByLabel(/^owner$|^sahibi$/i), "Ayse");
+    await page.getByLabel(/^name$|^[İi]sim$/i).fill("Boncuk");
+    await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
 
     await expect(
       page.getByText(/species is required|select species/i).first(),
@@ -108,19 +108,19 @@ test.describe("Medical records", () => {
     await createOwner(page);
 
     await page.goto("/pets/new");
-    await pickOption(page, page.getByLabel(/owner/i), "Ayse");
-    await page.getByLabel(/^name$/i).fill("Boncuk");
-    await page.getByRole("button", { name: /^cat$/i }).click();
-    await page.getByRole("button", { name: /create pet/i }).click();
+    await pickOption(page, page.getByLabel(/^owner$|^sahibi$/i), "Ayse");
+    await page.getByLabel(/^name$|^[İi]sim$/i).fill("Boncuk");
+    await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
+    await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
     await expect(page).toHaveURL(/\/pets\/(?!new)[\w-]+$/);
 
-    await page.getByText("Add vaccination").click();
+    await page.getByText(/add vaccination|aşı ekle/i).click();
     const vaccination = page.locator("form").filter({
-      has: page.getByRole("button", { name: /save vaccination/i }),
+      has: page.getByRole("button", { name: /save vaccination|aşıyı kaydet/i }),
     });
-    await vaccination.getByLabel(/^vaccine$/i).fill("Rabies");
-    await vaccination.getByLabel(/manufacturer/i).fill("Acme");
-    await page.getByRole("button", { name: /save vaccination/i }).click();
+    await vaccination.getByLabel(/^vaccine$|^aşı$/i).fill("Rabies");
+    await vaccination.getByLabel(/manufacturer|üretici/i).fill("Acme");
+    await page.getByRole("button", { name: /save vaccination|aşıyı kaydet/i }).click();
 
     await expect(page.getByText("Rabies").first()).toBeVisible();
     await page.reload();
@@ -136,29 +136,29 @@ test.describe("Clinic time zone", () => {
     await signUp(page, Date.now() + 3);
 
     await page.goto("/clients/new");
-    await page.getByLabel(/first name/i).fill("Ayse");
-    await page.getByLabel(/last name/i).fill("Yilmaz");
-    await page.getByLabel(/^phone$/i).fill("+905321112233");
+    await page.getByLabel(/first name|^ad$/i).fill("Ayse");
+    await page.getByLabel(/last name|soyad/i).fill("Yilmaz");
+    await page.getByLabel(/^phone$|^telefon$/i).fill("+905321112233");
     // By role and by the words the counter reads out. This asked for
     // "gave consent", which is how the consent state is REPORTED on a
     // record's page; the question a receptionist puts to somebody
     // standing in front of them is answered yes or no, and the two
     // vocabularies are deliberately separate (`consent-choice.tsx`).
     await page.getByRole("radio", { name: /^(yes|evet)$/i }).check();
-    await page.getByRole("button", { name: /create client/i }).click();
+    await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
     await expect(page.getByRole("heading", { name: /ayse yilmaz/i })).toBeVisible();
 
     await page.goto("/pets/new");
-    await pickOption(page, page.getByLabel(/owner/i), "Ayse");
-    await page.getByLabel(/^name$/i).fill("Boncuk");
-    await page.getByRole("button", { name: /^cat$/i }).click();
-    await page.getByRole("button", { name: /create pet/i }).click();
+    await pickOption(page, page.getByLabel(/^owner$|^sahibi$/i), "Ayse");
+    await page.getByLabel(/^name$|^[İi]sim$/i).fill("Boncuk");
+    await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
+    await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
     await expect(page.getByRole("heading", { name: /boncuk/i })).toBeVisible();
 
     await page.goto("/appointments/new");
-    await pickOption(page, page.getByLabel(/^pet$/i));
-    await page.getByLabel(/starts at/i).fill("2026-11-23T11:30");
-    await page.getByRole("button", { name: /create appointment/i }).click();
+    await pickOption(page, page.getByLabel(/^pet$|^hayvan$/i));
+    await page.getByLabel(/starts at|başlangıç/i).fill("2026-11-23T11:30");
+    await page.getByRole("button", { name: /create appointment|randevu oluştur/i }).click();
     await expect(page).toHaveURL(/\/appointments\/(?!new)[\w-]+$/);
 
     // The heading, the details row and the message all say 11:30.
@@ -177,9 +177,9 @@ test.describe("Saving without leaving the page", () => {
     await createOwner(page);
 
     await page.goto("/reminders");
-    await pickOption(page, page.getByLabel(/^client$/i));
-    await page.getByLabel(/^name$|^title$/i).fill("Rabies booster due");
-    await page.getByRole("button", { name: /create reminder/i }).click();
+    await pickOption(page, page.getByLabel(/^client$|^müşteri$/i));
+    await page.getByLabel(/^name$|^title$|^başlık$/i).fill("Rabies booster due");
+    await page.getByRole("button", { name: /create reminder|hatırlatma oluştur/i }).click();
 
     await expect(page.getByText("Rabies booster due")).toBeVisible();
     await expect(page.getByText(/no reminders/i)).toHaveCount(0);

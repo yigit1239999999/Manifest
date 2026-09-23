@@ -50,10 +50,10 @@ import { describe, expect, it } from "vitest";
 
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 
-/** Every string in both catalogues, flattened. */
-function catalogueStrings(): string[] {
+/** Every string in a catalogue, flattened. Both, when none is named. */
+function catalogueStrings(locale?: "tr" | "en"): string[] {
   const out: string[] = [];
-  for (const name of ["tr", "en"]) {
+  for (const name of locale ? [locale] : ["tr", "en"]) {
     const json = JSON.parse(
       readFileSync(`${projectRoot}messages/${name}.json`, "utf8"),
     );
@@ -162,6 +162,80 @@ function deadLegs(): string[] {
   }
   return dead;
 }
+
+/**
+ * A label locator has to be able to find its field in BOTH languages.
+ *
+ * This is the rule `a bilingual locator` cannot state. That one checks the
+ * legs of a multi-leg pattern; `/^email$/i` has one leg, it matched the
+ * English catalogue, and it passed for months -- while the Turkish label
+ * said "E-posta" and the suite could not be run in Turkish at all. The
+ * product's default language is Turkish (`i18n/request.ts`), so the suite
+ * was only ever testing the deviation.
+ *
+ * WHY ONLY `getByLabel`. Measured on the tree this landed with: 126 label
+ * patterns, 0 violations -- so this rule starts with no exemptions. The
+ * same rule over every name locator flags 40 of 291, nearly all of them
+ * test data ("Ayse Yilmaz", "11:30", "Rabies") that belongs in no
+ * catalogue. A rule that ships with forty exemptions is read as "these are
+ * allowed", and the exemptions outlive the reason for them. A label names
+ * a field the product drew; that is what makes this one checkable.
+ *
+ * PLACEHOLDERS COME OUT FIRST, and that is not tidying. `/owner/i` was
+ * counted as bilingual for one measurement because `tr.json` contains
+ * "Yeni hayvan aç, sahibi: {owner}" -- the ICU argument NAME, which no
+ * vet ever sees. A scan whose universe includes text that is never on
+ * screen is wrong by exactly that much.
+ */
+function monolingualLabels(): string[] {
+  const strip = (value: string) => value.replace(/\{[^}]*\}/g, " ");
+  const tr = catalogueStrings("tr").map(strip);
+  const en = catalogueStrings("en").map(strip);
+  const found: string[] = [];
+
+  for (const file of readdirSync(`${projectRoot}e2e`)) {
+    if (!file.endsWith(".spec.ts")) continue;
+    const lines = readFileSync(`${projectRoot}e2e/${file}`, "utf8").split("\n");
+    lines.forEach((line, index) => {
+      if (line.trim().startsWith("//")) return;
+      for (const match of line.matchAll(
+        /getByLabel\(\/((?:[^/\\\n[]|\\.|\[[^\]]*\])+)\/([a-z]*)\)/g,
+      )) {
+        let pattern: RegExp;
+        try {
+          pattern = new RegExp(match[1], match[2]);
+        } catch {
+          continue;
+        }
+        const inTr = tr.some((value) => pattern.test(value));
+        const inEn = en.some((value) => pattern.test(value));
+        if (inTr && inEn) continue;
+        found.push(
+          `${file}:${index + 1}  /${match[1]}/  (tr: ${inTr ? "yes" : "no"}, en: ${inEn ? "yes" : "no"})`,
+        );
+      }
+    });
+  }
+  return found;
+}
+
+describe("a label locator", () => {
+  it("can find its field in either language", () => {
+    expect(monolingualLabels()).toEqual([]);
+  });
+
+  it("would catch one that cannot", () => {
+    // Without this the scan could stop finding label locators entirely and
+    // keep reporting an empty list -- the trap the rule below names, and
+    // the one this file already guards its own scraping against.
+    const strip = (value: string) => value.replace(/\{[^}]*\}/g, " ");
+    const tr = catalogueStrings("tr").map(strip);
+    // The exact pattern that shipped and stayed green for months.
+    expect(tr.some((value) => /^email$/i.test(value))).toBe(false);
+    // And the placeholder case that made one measurement of this wrong.
+    expect(tr.some((value) => /owner/i.test(value))).toBe(false);
+  });
+});
 
 describe("a bilingual locator", () => {
   it("has no leg that cannot match anything the product says", () => {
