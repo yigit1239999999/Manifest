@@ -155,26 +155,7 @@
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
     "overdueVaccinationsDismiss": "Kapat",
     "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
-    "overdueVaccinationsUndo": "Geri al",
-    "previewNote": "İlk vizitten sonra yolunuz şöyle devam eder.",
-    "previewChain": {
-      "visit": {
-        "term": "Vizit",
-        "result": "hayvanın geçmişine işlenir."
-      },
-      "invoice": {
-        "term": "Fatura",
-        "result": "aynı vizitten kesilir."
-      },
-      "appointment": {
-        "term": "Randevu",
-        "result": "hayvanın sayfasından açılır."
-      },
-      "reminder": {
-        "term": "Hatırlatma",
-        "result": "izin verildiyse sahibine gider."
-      }
-    }
+    "overdueVaccinationsUndo": "Geri al"
   },
   "client": {
     "createNamed": "\"{name}\" adıyla yeni müşteri aç",

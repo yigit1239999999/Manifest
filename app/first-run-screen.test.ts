@@ -104,6 +104,36 @@ describe("the screen an empty clinic meets", () => {
     expect(markup(firstRunBranch())).toContain('size="page"');
   });
 
+  it("invents nothing: no counter, amount, percentage or chart", () => {
+    const branch = markup(firstRunBranch());
+
+    // Inherited from `preview-panel.test`, which went with the block it
+    // guarded. The block is gone; the rule it enforced is not, because
+    // the rule was never about that component.
+    //
+    // It came from a vet who left a product after seeing 11 on one
+    // screen and 4 in the drawer: "what made me leave was not that the
+    // number was wrong, it was learning that a number COULD be wrong."
+    // A clinic with no records has nothing true to count, so anything
+    // countable drawn here is invented -- and the first screen is the
+    // worst place in the product to teach that a figure might be made
+    // up.
+    //
+    // The other guards on that block retired with it, and each was
+    // about the block being a PICTURE: the dashed frame, the
+    // `aria-hidden` rows, `pointer-events-none`, the arrow count, the
+    // example-name collision check. There is no picture now, so there
+    // is nothing for them to hold.
+    expect(branch).not.toMatch(/<(svg|ColumnBars|HorizontalBars)\b/);
+    expect(branch).not.toMatch(/[%\u20ba$\u20ac]/);
+    // A figure typed straight into the markup, which is what a "3
+    // records" line would look like arriving here.
+    expect(branch).not.toMatch(/>\s*\d/);
+    // A drawn bar: a height and a fill on one element. A silhouette of
+    // a chart is a claim about data even with no number beside it.
+    expect(branch).not.toMatch(/\bh-[\w.[\]-]+\s+[^"]*\bbg-/);
+  });
+
   it("places the content instead of parking it in a corner", () => {
     const branch = markup(firstRunBranch());
 

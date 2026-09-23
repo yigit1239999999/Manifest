@@ -155,26 +155,7 @@
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
     "overdueVaccinationsDismiss": "Close",
     "overdueVaccinationsDismissed": "Vaccination row closed.",
-    "overdueVaccinationsUndo": "Undo",
-    "previewNote": "After the first visit, this is how it carries on.",
-    "previewChain": {
-      "visit": {
-        "term": "The visit",
-        "result": "goes into the animal's history."
-      },
-      "invoice": {
-        "term": "The invoice",
-        "result": "is raised from the same visit."
-      },
-      "appointment": {
-        "term": "The appointment",
-        "result": "is opened from the animal's page."
-      },
-      "reminder": {
-        "term": "The reminder",
-        "result": "goes to the owner, if they have agreed."
-      }
-    }
+    "overdueVaccinationsUndo": "Undo"
   },
   "client": {
     "createNamed": "Add \"{name}\" as a new client",
