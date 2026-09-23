@@ -242,17 +242,24 @@ export default async function DashboardPage() {
         {/* Not `subtitle` ("today's summary"), which is a lie on day
             zero. The key stays for the other states.
 
-            `readyFor` lost its second sentence rather than the whole
-            line. It used to read "... is ready. The panel starts
-            filling with your first record", and that second half was
-            one side of a repetition: the example block underneath said
-            the same thing in its own words. With the block gone it
-            would have been the only line left describing what WILL
-            happen, on a screen whose job is to ask for something.
-            What stays is the clinic's own name -- the one personal
-            mark on the screen, and the reason the line is not dropped
-            altogether (ux). Same key, no new one, and `PageHeader` is
-            untouched. */}
+            `readyFor` lost its second sentence and kept its first.
+            It used to read "... is ready. The panel starts filling
+            with your first record", and that second half was one side
+            of a repetition: the example block underneath said the same
+            thing in its own words. With the block gone it would have
+            been the only line left describing what WILL happen, on a
+            screen whose job is to ask for something.
+
+            The first half stays on composition, and the reason it was
+            nearly kept for is worth recording because it was checked
+            and found false: it is NOT the only place the clinic's name
+            appears -- `topbar.tsx` draws it on every screen. What it
+            does is finish the greeting. Without it the header is a
+            lone "Hello <name>" over a sparse screen, and the card
+            below is left carrying the page by itself; ui read that on
+            screen rather than arguing it.
+
+            Same key, no new one, and `PageHeader` is untouched. */}
         <PageHeader
           title={t("greeting", { name: firstName(session.user.name ?? "") })}
           description={t("readyFor", { clinic: clinicName })}

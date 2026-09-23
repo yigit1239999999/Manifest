@@ -198,7 +198,28 @@ export async function FirstStepCard({
     <Card
       className={
         page
-          ? "flex flex-col items-start gap-5 p-6"
+          ? // Capped, because a card that takes whatever width the
+            // cabinet gives it stops being an object and becomes a
+            // band. ui measured the first version at 976x166 with
+            // roughly forty characters in it: the right 60% was empty
+            // and the button sat alone at the left end. The screen read
+            // as one that wants something, and not as a composition.
+            //
+            // `max-w-xl` (36rem) is the same cap the command palette
+            // puts on a floating surface, so it is a width this product
+            // already treats as "one readable object" rather than a new
+            // number. The criterion it has to meet is ui's: the space
+            // left over inside the card may not exceed half the width
+            // of the text itself. At 576 the padding leaves 528, and
+            // the longest ask is about 414 at `text-lg`, so roughly 114
+            // is left against a limit of 207. One step wider (`2xl`,
+            // 672) leaves about 210 and fails it -- which is why the
+            // cap is a token below the obvious one.
+            //
+            // Arithmetic on an estimated glyph width, not a measured
+            // box: the ratio is comfortable enough that the estimate
+            // cannot flip it, but the number to quote is ui's.
+            "flex w-full max-w-xl flex-col items-start gap-5 p-6"
           : "flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
       }
     >

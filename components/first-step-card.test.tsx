@@ -183,6 +183,17 @@ describe("the two shapes of the card", () => {
     expect(card.className).toContain("flex-col");
   });
 
+  it("stays an object rather than a band when it is the screen", async () => {
+    const container = await renderAs("VETERINARIAN", "visit", "page");
+    const card = container.firstElementChild as HTMLElement;
+
+    // Measured at 976x166 without this: forty characters in a card as
+    // wide as the cabinet, the right 60% empty and the button alone at
+    // the far left. A width inherited from the container is how a card
+    // stops reading as one thing.
+    expect(card.className).toMatch(/\bmax-w-/);
+  });
+
   it("leaves the later dashboard exactly as it was", async () => {
     const container = await renderAs("VETERINARIAN", "pet", "inline");
     const card = container.firstElementChild as HTMLElement;
@@ -193,5 +204,8 @@ describe("the two shapes of the card", () => {
     expect(ask(container).className).toContain("text-sm");
     expect(ask(container).className).not.toMatch(/font-(semibold|bold)/);
     expect(card.className).toContain("sm:flex-row");
+    // And no cap: the strip takes the dashboard's width on purpose, so
+    // it lines up with the tiles under it.
+    expect(card.className).not.toMatch(/\bmax-w-/);
   });
 });
