@@ -94,6 +94,49 @@ rm -rf test-results
 # Betik iki ucu zaten yazdırıyordu. Yazdırmak, karşılaştırmak değildir: iki
 # çıktı ekranda yan yana durur ve kimse bakmaz. Buradan sonrası KARŞILAŞTIRMA,
 # ve sonucu koşunun çıkış koduna bağlı.
+# ZEMİN BİR DOSYA DEĞİL, BİR SÜREÇ OLABİLİR (dev, 23 Eylül 2026).
+#
+# `npm install next@16.3.6` diskteki çatıyı değiştirdi. **Koşmakta olan
+# `next dev` süreci kendi sürümünü belleğinde taşımaya devam etti:**
+#
+#     ps   -> next-server (v16.2.6)      <- 3000'de dinleyen süreç
+#     disk -> node_modules/next 16.3.6   <- az önce kuruldu
+#
+# Süit yeni koda bakan bir sunucuya değil, **eski çatıyı taşıyan bir sürece**
+# istek atıyordu. Yeşil gelseydi 16.2.6'nın yeşili olurdu, ve raporda
+# "16.3.6 ile e2e 45/45" yazacaktı.
+#
+# Bu, bugün üçüncü kez çıkan sınıfın yeni üyesi: HEAD tutuluyor, izlenen
+# dosyalar tutuluyor, damga tutuluyor -- ama **hiçbiri sürecin ne yüklediğini
+# tutmuyor.** `git status` bunu göremez, çünkü `node_modules` izlenmiyor ve
+# süreç zaten diske bakmıyor.
+#
+# O yüzden port dinleyen sürecin kendi söylediği sürümü, diskteki sürümle
+# karşılaştırıyoruz. `next-server` sürümünü komut satırında taşıyor, yani
+# sormak bedava. Bulamazsak SESSİZ GEÇMİYORUZ: bilinmiyorsa öyle yazıyoruz --
+# ölçülmemiş bir şeyi ölçülmüş göstermek bu betiğin var oluş sebebinin tersi.
+BASE="${E2E_BASE_URL:-http://localhost:3000}"
+E2E_PORT="$(printf '%s' "$BASE" | sed -n 's/.*:\([0-9][0-9]*\).*/\1/p')"
+DISK_NEXT="$(node -e 'console.log(require("next/package.json").version)' 2>/dev/null || echo bilinmiyor)"
+SERVER_PID="$(lsof -nP -iTCP:"${E2E_PORT:-3000}" -sTCP:LISTEN -t 2>/dev/null | head -1)"
+if [ -n "$SERVER_PID" ]; then
+  SERVER_NEXT="$(ps -p "$SERVER_PID" -o command= 2>/dev/null | sed -n 's/.*next-server (v\([^)]*\)).*/\1/p')"
+else
+  SERVER_NEXT=""
+fi
+if [ -z "$SERVER_NEXT" ]; then
+  echo "NOT: ${E2E_PORT:-3000} portunda koşan sürecin çatı sürümü OKUNAMADI." >&2
+  echo "  (henüz başlamamış olabilir -- Playwright kendi sunucusunu kaldıracaksa normal.)" >&2
+  echo "  Diskteki next: $DISK_NEXT. Bu koşu 'sunucu sürümü doğrulanmadı' olarak raporlanmalı." >&2
+elif [ "$SERVER_NEXT" != "$DISK_NEXT" ]; then
+  echo "DURDUM: sunucu ile disk AYNI ÇATIYI ÇALIŞTIRMIYOR." >&2
+  echo "  ${E2E_PORT} portundaki süreç (pid $SERVER_PID): next $SERVER_NEXT" >&2
+  echo "  node_modules'taki:                              next $DISK_NEXT" >&2
+  echo "  Koşan süreç kendi sürümünü bellekte taşıyor; kurulum onu yeniden bağlamaz." >&2
+  echo "  Sunucuyu yeniden başlat, sonra koş. Yoksa ölçtüğün şey ESKİ çatıdır." >&2
+  exit 5
+fi
+
 START_HEAD=$(git rev-parse --short HEAD)
 START_TRACKED=$(git status --porcelain --untracked-files=no)
 START_UNTRACKED=$(git status --porcelain --untracked-files=all | grep '^??' || true)
