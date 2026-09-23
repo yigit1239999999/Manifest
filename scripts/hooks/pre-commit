@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# Bir koşu sürerken commit etmeyi HATIRLATAN kanca. Kilit DEĞİL.
+#
+# NEDEN VAR: `E2E_RUNNING` koşucu yuvasını tutuyor, AĞACI tutmuyor. 23 Eylül
+# 2026'da bu boşluk üç kez ısırdı ve üçünde de ısıran, koşan kişi değil COMMIT
+# ATAN kişiydi. Biri "e2e/'ye dokunmuyorum" diye düşünüp `app/` altına commit
+# attı -- ama süit UYGULAMAYI koşuyor, yani `app/` de o koşunun zemini. Koşu
+# yeşil bitti ve sayılamadı.
+#
+# Kök sebep, commit atanın kendi cümlesiyle: "koşmadan önce ağacı okuyordum,
+# COMMIT ETMEDEN ÖNCE okumuyordum. Kilit dosyası oradaydı, tek `ls` yeterdi."
+# Disiplin bir eyleme (koşmak) bağlanmıştı, tehlike ise başka bir eyleme de
+# (commit) bağlıydı.
+#
+# NE OLMADIĞI, ve bu satır kancanın en önemli parçası:
+#
+#     BU BİR KİLİT DEĞİL. `git commit --no-verify` onu atlar.
+#
+# Öyle yazılmazsa bir sonraki kişi ona GÜVENİR, ve güvenilen bir hatırlatıcı,
+# olmayan bir kilitten kötüdür. Gücü sanıldığından az olan bir mekanizmayı
+# düzelten tek şey, adının doğru konmasıdır.
+#
+# İKİNCİ SINIRI: kancalar `.git/hooks`'ta durur ve KLONLA GELMEZ. Kurulmamış
+# bir kanca, tek makinede yaşayan bir mekanizmadır -- üçüncü bir ortamda hiç
+# yoktur ama herkes var sanır. Kurulumu:
+#
+#     git config core.hooksPath scripts/hooks
+#
+# `core.hooksPath` seçildi, `.git/hooks`'a kopyalamak yerine: kopya, kaynağı
+# değişince sessizce eskir ve kimse fark etmez -- bugün tam bu sınıfı altı kez
+# saydık.
+#
+# ÜÇÜNCÜ SINIRI, ve ikisinden önemlisi: BU KANCA DÜZENLEME ANINI GÖREMEZ.
+# Kilit değil olması gücünü, klonla gelmemesi yayılımını sınırlıyor; bu ise
+# KAPSAMINI. Zemin commit'te oynamıyor, DOSYA KAYDEDİLDİĞİNDE oynuyor: süit
+# uygulamayı koşuyor, yani `app/`, `components/`, `lib/`, `messages/`,
+# `README.md`, `package.json` -- hepsi kaydedildiği anda o koşunun zemini
+# değişmiş olur. Git'te "dosya kaydedildi" diye bir kanca yok.
+#
+# Bunu yazan kişi aynı gün bunu YAŞADI: kanca commit'ini reddetmişti, o yüzden
+# commit etmedi, ve YİNE DE iki izlenen dosyayı düzenlediği için başkasının
+# koşusunu geçersiz kıldı. Yani kanca doğru kuralı yanlış anda uyguluyor.
+# Eksik yarısı koşan betiğin kendisine ait: `scripts/e2e.sh` iki ucu
+# karşılaştırıyor, ve koşu SÜRERKEN yoklama yapması ayrıca konuşuldu.
+set -uo pipefail
+
+# Yolun değişkenle verilmesi bir kolaylık değil, bir KAZANIN karşılığı: bu
+# kancayı yazan kişi onu üç hâlde sınarken sınavı GERÇEK kilit dosyası
+# üzerinde yaptı -- sahte içerik yazdı, sonra sildi -- ve o sırada gerçekten
+# koşan biri vardı. Kilit yarım dakika ortadan kalktı. Bir kilidi OKUYAN aleti
+# kilidin KENDİSİ üzerinde sınamak, aletin koruduğu şeyi sınav sırasında
+# kaldırıyor.
+LOCK="${E2E_LOCK:-E2E_RUNNING}"
+[ -f "$LOCK" ] || exit 0
+
+OWNER_PID="$(sed -n 's/.*pid=\([0-9]*\).*/\1/p' "$LOCK" 2>/dev/null)"
+
+# Bayat kilit commit'i engellemez. Koşu çökmüşse -- zaman aşımı, kapatılmış
+# süreç, arka plana düşmüş iş -- dosya kalır; onun yüzünden kimsenin commit'i
+# durmamalı. Aynı `kill -0` sınavı `scripts/e2e.sh`'te de var ve orada da
+# "söyleyerek devral" diyor.
+if [ -n "$OWNER_PID" ] && ! kill -0 "$OWNER_PID" 2>/dev/null; then
+  echo "not: BAYAT e2e kilidi duruyor (pid $OWNER_PID çalışmıyor) -- commit'e engel değil." >&2
+  echo "     içerik: $(cat "$LOCK" 2>/dev/null)" >&2
+  exit 0
+fi
+
+# Reddin NASIL reddettiği, reddetmesi kadar önemli: "reddedildi" insanı
+# `--no-verify`'a iter, "kim, ne zamandır, hangi HEAD'de" ise beklemeye.
+echo "DURDUM: bir e2e koşusu sürüyor, ve commit onun zeminini oynatır." >&2
+echo "  $(cat "$LOCK" 2>/dev/null)" >&2
+echo "" >&2
+echo "  Süit UYGULAMAYI koşuyor: 'e2e/'ye dokunmadım' yetmiyor -- app/, components/," >&2
+echo "  lib/, messages/ hepsi o koşunun zemini. Ağaç oynarsa koşu yeşil bitse bile" >&2
+echo "  sayılmaz (scripts/e2e.sh iki ucu karşılaştırıp exit 3 verir)." >&2
+echo "" >&2
+echo "  Koşunun bitmesini bekleyin. Gerçekten şimdi commit etmeniz gerekiyorsa:" >&2
+echo "    git commit --no-verify ...   (bu kanca bir kilit değil, hatırlatıcıdır)" >&2
+exit 1

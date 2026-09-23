@@ -70,6 +70,13 @@ and Tailwind CSS v4.
 - `npm test` — Vitest unit + integration tests
 - `npm run test:e2e` — Playwright E2E (needs a running app + DB)
 - `npm run lint` — ESLint
+- `npm run hooks` — install the repo's git hooks (`core.hooksPath`)
+
+  One command, and it is not optional equipment: `scripts/hooks/pre-commit`
+  stops a commit landing in the middle of somebody's e2e run, which invalidates
+  that run. Hooks do not travel with a clone, so an uninstalled hook is a
+  mechanism that exists on one machine while everyone assumes it exists
+  everywhere. It is a reminder, not a lock: `git commit --no-verify` passes it.
 
 ## Deployment
 
