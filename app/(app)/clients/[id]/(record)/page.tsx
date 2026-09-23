@@ -145,10 +145,18 @@ export default async function ClientPage({
                   // "not asked" back where it was before v0.9.0 — an
                   // absence indistinguishable from a no — and the
                   // whole of that release was separating those two.
-                  // `DescriptionList` prints nothing for a null
-                  // value, which is right for a missing phone number
-                  // and wrong here, so the third state is a string
-                  // like the other two.
+                  // So the third state is a string like the other two.
+                  //
+                  // The reason used to be written here as
+                  // "`DescriptionList` prints nothing for a null value",
+                  // and that is not what it does: it prints "-" and
+                  // KEEPS the row (`description-list.tsx`, `EMPTY`), so
+                  // an empty field says nobody filled it. The decision
+                  // was right and the reason was wrong, which is worse
+                  // than no reason -- the next reader takes it for a
+                  // fact about the component, and the fact it states is
+                  // the opposite of the one the animal page now relies
+                  // on to show a missing number.
                   // A fact, in the words a vet would use, and nothing
                   // about our plumbing. The three read flat on purpose:
                   // "not asked yet" is work still on the list, not a

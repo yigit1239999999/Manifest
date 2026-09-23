@@ -530,7 +530,12 @@ test.describe("First run", () => {
     // "Not now" of its own: they are different answers to different
     // questions and the block says both.
     await page
-      .getByRole("checkbox", { name: /no number|şimdi yok/i })
+      .getByRole("checkbox", {
+        // Follows the label, which changed with the control's meaning:
+        // "No number" described the record, "Save without a number"
+        // describes what the button will do.
+        name: /save without a number|numarasız kaydet/i,
+      })
       .check();
 
     // One save for all three.

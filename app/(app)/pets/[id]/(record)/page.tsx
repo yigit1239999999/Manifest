@@ -73,6 +73,7 @@ export default async function PetPage({
     tTreatment,
     tDiag,
     tDiagType,
+    tClient,
     timeline,
     vaccinations,
     prescriptions,
@@ -92,6 +93,7 @@ export default async function PetPage({
     getTranslations("treatment"),
     getTranslations("diagnostic"),
     getTranslations("enum.diagnosticType"),
+    getTranslations("client"),
     petTimeline(clinicId, id),
     listVaccinationsForPet(clinicId, id, 20),
     listPrescriptionsForPet(clinicId, id, 20),
@@ -257,6 +259,26 @@ export default async function PetPage({
                       {ownerLabel(pet.owner)}
                     </Link>
                   ),
+                },
+                {
+                  // The owner's number, on the screen the vet is looking
+                  // at while the animal is on the table.
+                  //
+                  // It is read from the client record and shown, not
+                  // asked for: `DescriptionList` prints "-" for an empty
+                  // value and keeps the row, so an owner with no number
+                  // reads as a fact rather than as a request repeated
+                  // every visit. A surface may show an ABSENCE; it may
+                  // not repeat a question that has already been answered
+                  // once (ux).
+                  //
+                  // Not a link and not a field. This card is a reading
+                  // surface, and making one row of it interactive is the
+                  // "two classes of row in one shape" that `/pets` was
+                  // corrected for; the owner's name above is already the
+                  // way through to the record where a number is edited.
+                  label: tClient("phone"),
+                  value: pet.owner.phone,
                 },
                 { label: t("breed"), value: pet.breed },
                 { label: t("color"), value: pet.color },

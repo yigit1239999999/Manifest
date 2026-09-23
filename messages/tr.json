@@ -226,7 +226,7 @@
     "one": "Müşteri",
     "lastNameHint": "Bilmiyorsanız boş bırakın.",
     "phoneHint": "Telefonsuz müşteriye hatırlatma gönderilemez.",
-    "phoneLater": "Numarası yok"
+    "phoneLater": "Numarasız kaydet"
   },
   "pet": {
     "createNamed": "\"{name}\" adıyla yeni hayvan aç",
@@ -933,7 +933,7 @@
       "invalidChoice": "Geçersiz seçim.",
       "email": "Geçerli bir e-posta adresi giriniz.",
       "phone": "Geçerli bir telefon numarası giriniz.",
-      "phoneOrLater": "Telefon yazın ya da \"Numarası yok\" işaretleyin.",
+      "phoneOrLater": "Telefon yazın ya da \"Numarasız kaydet\" işaretleyin.",
       "emailTooLong": "E-posta adresi çok uzun.",
       "passwordMin": "Şifre en az {min} karakter olmalı.",
       "date": "Geçerli bir tarih giriniz.",

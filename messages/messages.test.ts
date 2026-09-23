@@ -294,3 +294,46 @@ describe("the style rules have teeth", () => {
     expect(INFORMAL_PRONOUN.test("Bu hayvan arşivlensin mi?")).toBe(false);
   });
 });
+
+/**
+ * A sentence that quotes a control has to quote the one on screen.
+ *
+ * `error.form.phoneOrLater` tells the reader to tick a box and names
+ * it: "Enter a phone number, or tick ...". The name in that sentence
+ * is a copy of `client.phoneLater`, and copies drift -- the two live
+ * in different parts of the file, so a translator who improves the
+ * label has no reason to look at the error.
+ *
+ * It drifts per LANGUAGE, which is what makes a comment useless here:
+ * a change that updates both halves in Turkish and only the label in
+ * English leaves a sentence pointing at a control nobody can see, in
+ * one language, and every test still passes. So the tie is checked in
+ * each language against that language's own label (ux).
+ */
+describe("a sentence that names a control", () => {
+  /** A dotted path into a catalogue, which is read here as plain data. */
+  const at = (catalogue: Record<string, unknown>, path: string): string =>
+    path
+      .split(".")
+      .reduce<unknown>(
+        (node, key) => (node as Record<string, unknown> | undefined)?.[key],
+        catalogue,
+      ) as string;
+
+  it("names the control that language actually draws", () => {
+    for (const [lang, catalogue] of Object.entries({ tr, en })) {
+      expect(
+        at(catalogue, "error.form.phoneOrLater"),
+        `${lang}: the error does not quote its own label`,
+      ).toContain(at(catalogue, "client.phoneLater"));
+    }
+  });
+
+  it("would catch a label improved in one language only", () => {
+    // The mutation this exists for: the label is reworded, the sentence
+    // that quotes it is not.
+    expect('Telefon yazın ya da "Numarası yok" işaretleyin.').not.toContain(
+      "Numarasız kaydet",
+    );
+  });
+});

@@ -50,7 +50,17 @@ test.describe("Clients", () => {
     // No number, said out loud: the owner who will not give one is the
     // case the tick exists for, and it has to reach the list like any
     // other client.
-    await page.getByRole("checkbox", { name: /no number|şimdi yok/i }).check();
+    //
+    // Named from the label, so it moves when the label does. It did:
+    // the tick used to read "No number" and now reads "Save without a
+    // number", because a control that describes the record was really
+    // describing what the save will do. The Turkish half of this
+    // pattern had been stale since before that -- it looked for "şimdi
+    // yok" against a label reading "Numarası yok" -- and nobody noticed,
+    // because the suite runs in English.
+    await page
+      .getByRole("checkbox", { name: /save without a number|numarasız kaydet/i })
+      .check();
     await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
     await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
 
@@ -79,7 +89,7 @@ test.describe("Clients", () => {
     await page.goto("/clients/new");
     await page.getByLabel(/first name|^ad$/i).fill("Ayse");
     await page
-      .getByRole("checkbox", { name: /no number|numarası yok/i })
+      .getByRole("checkbox", { name: /save without a number|numarasız kaydet/i })
       .check();
     await page
       .getByRole("button", { name: /create client|müşteri oluştur/i })
@@ -91,7 +101,7 @@ test.describe("Clients", () => {
     // The absence comes back as the fact it is, rather than as an empty
     // box the form is about to ask them to fill.
     await expect(
-      page.getByRole("checkbox", { name: /no number|numarası yok/i }),
+      page.getByRole("checkbox", { name: /save without a number|numarasız kaydet/i }),
     ).toBeChecked();
 
     await page
