@@ -57,9 +57,27 @@ function firstRunBranch(): string {
   return source.slice(start, end);
 }
 
-/** JSX comments carry the reasoning and none of the markup. */
+/**
+ * The branch with its reasoning taken out, in both forms it is written
+ * in: `{/* … *\/}` between elements and `//` lines inside a JSX
+ * attribute list.
+ *
+ * The second one was missed at first and the miss was invisible: the
+ * placement assertion looked for `pb-` and found it in a COMMENT
+ * explaining `pb-16`, so removing the class from the element left the
+ * test green. A rule that reads its own explanation instead of the
+ * code is the shape TEAM.md calls a test that is green for the wrong
+ * reason -- caught here only because the mutation was run.
+ *
+ * Only whole comment lines are dropped, so a `//` inside a string --
+ * a URL, say -- is left where it is.
+ */
 function markup(branch: string): string {
-  return branch.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  return branch
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("//"))
+    .join("\n");
 }
 
 describe("the screen an empty clinic meets", () => {
@@ -84,6 +102,30 @@ describe("the screen an empty clinic meets", () => {
     // looks like; this holds which one this screen orders, because the
     // card cannot know it is alone on the page.
     expect(markup(firstRunBranch())).toContain('size="page"');
+  });
+
+  it("places the content instead of parking it in a corner", () => {
+    const branch = markup(firstRunBranch());
+
+    // The screen held one greeting and one card in the top-left of
+    // roughly 976x800, and ui read it as a page cut off early rather
+    // than a page with one thing on it. Centring does not fill the
+    // emptiness -- nothing honest fills it -- it makes the emptiness
+    // deliberate.
+    expect(branch).toContain("items-center");
+    expect(branch).toContain("justify-center");
+    // A field to centre in. Without a height the centring is a no-op
+    // and the block sits back in the corner with the classes still on
+    // it, which is the version of this that passes review by looking
+    // right in the diff.
+    expect(branch).toMatch(/min-h-/);
+    // Above the true middle. `justify-center` alone puts a lone object
+    // lower than the eye expects a subject to sit.
+    expect(branch).toMatch(/\bpb-\d+/);
+    // One column, so the greeting and the card share a left edge --
+    // two blocks of different widths centred separately are each
+    // centred and together look misaligned.
+    expect(branch).toMatch(/\bmax-w-/);
   });
 
   it("puts no weight of its own beside the card", () => {

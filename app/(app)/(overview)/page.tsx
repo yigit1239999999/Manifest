@@ -238,43 +238,70 @@ export default async function DashboardPage() {
 
   if (firstRun) {
     return (
-      <div className="flex flex-col gap-8">
-        {/* Not `subtitle` ("today's summary"), which is a lie on day
-            zero. The key stays for the other states.
+      // Placed rather than stacked, and only on this branch.
+      //
+      // With the example block gone the screen held one greeting and
+      // one card in the top-left corner of roughly 976x800, and ui read
+      // it as a page whose content had been cut off early rather than a
+      // page with one thing on it. The emptiness is not filled -- there
+      // is nothing honest to fill it with -- it is made deliberate: a
+      // single object placed in a large field reads as "this is the one
+      // job", where the same object parked in a corner reads as "the
+      // rest is missing".
+      //
+      // Optical rather than true centre: `pb-16` lifts the block above
+      // the middle, which is where the eye expects a subject to sit.
+      // `min-h` is read off the viewport minus the top bar and this
+      // element's own padding, so it claims the field it centres in
+      // without inventing scroll.
+      //
+      // The column is capped to the card's own width so the greeting
+      // and the card share a left edge; two blocks of different widths
+      // centred separately would each be centred and together look
+      // misaligned.
+      //
+      // Only here. Every other dashboard flows from the top, which is
+      // right when there is something to read in order, and that branch
+      // has its own test saying so.
+      <div className="flex min-h-[calc(100vh-10rem)] flex-col items-center justify-center pb-16">
+        <div className="flex w-full max-w-xl flex-col gap-8">
+          {/* Not `subtitle` ("today's summary"), which is a lie on day
+              zero. The key stays for the other states.
 
-            `readyFor` lost its second sentence and kept its first.
-            It used to read "... is ready. The panel starts filling
-            with your first record", and that second half was one side
-            of a repetition: the example block underneath said the same
-            thing in its own words. With the block gone it would have
-            been the only line left describing what WILL happen, on a
-            screen whose job is to ask for something.
+              `readyFor` lost its second sentence and kept its first.
+              It used to read "... is ready. The panel starts filling
+              with your first record", and that second half was one side
+              of a repetition: the example block underneath said the same
+              thing in its own words. With the block gone it would have
+              been the only line left describing what WILL happen, on a
+              screen whose job is to ask for something.
 
-            The first half stays on composition, and the reason it was
-            nearly kept for is worth recording because it was checked
-            and found false: it is NOT the only place the clinic's name
-            appears -- `topbar.tsx` draws it on every screen. What it
-            does is finish the greeting. Without it the header is a
-            lone "Hello <name>" over a sparse screen, and the card
-            below is left carrying the page by itself; ui read that on
-            screen rather than arguing it.
+              The first half stays on composition, and the reason it was
+              nearly kept for is worth recording because it was checked
+              and found false: it is NOT the only place the clinic's name
+              appears -- `topbar.tsx` draws it on every screen. What it
+              does is finish the greeting. Without it the header is a
+              lone "Hello <name>" over a sparse screen, and the card
+              below is left carrying the page by itself; ui read that on
+              screen rather than arguing it.
 
-            Same key, no new one, and `PageHeader` is untouched. */}
-        <PageHeader
-          title={t("greeting", { name: firstName(session.user.name ?? "") })}
-          description={t("readyFor", { clinic: clinicName })}
-        />
+              Same key, no new one, and `PageHeader` is untouched. */}
+          <PageHeader
+            title={t("greeting", { name: firstName(session.user.name ?? "") })}
+            description={t("readyFor", { clinic: clinicName })}
+          />
 
-        {/* The one fully present thing on the screen: full contrast,
-            its own shadow. The focus is built by holding everything
-            else back rather than by making this bigger.
+          {/* The one fully present thing on the screen: full contrast,
+              its own shadow. The focus is built by holding everything
+              else back rather than by making this bigger.
 
-            `visit`, not `client`, and the difference is the whole
-            first-run idea: a clinic with nothing at all is asked for
-            the thing it came to do, and the owner and animal it needs
-            get made on the way there. The card falls back to the
-            client ask by itself for anyone who cannot write a visit. */}
-        <FirstStepCard need="visit" size="page" />
+              `visit`, not `client`, and the difference is the whole
+              first-run idea: a clinic with nothing at all is asked for
+              the thing it came to do, and the owner and animal it needs
+              get made on the way there. The card falls back to the
+              client ask by itself for anyone who cannot write a visit. */}
+          <FirstStepCard need="visit" size="page" />
+        </div>
       </div>
     );
   }

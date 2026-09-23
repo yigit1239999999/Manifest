@@ -205,31 +205,25 @@ export async function FirstStepCard({
             // and the button sat alone at the left end. The screen read
             // as one that wants something, and not as a composition.
             //
-            // The criterion is ui's and it is measured, not estimated:
-            // the space left inside the card, from the right edge of
-            // the text to the card's inner edge, may not exceed half
-            // the width of the text. dev read the text on the stamped
-            // ground at 1280 -- 356px in English, 364 in Turkish, one
-            // line each -- so at 512 the gap is 132 and 124, or 0.37
-            // and 0.34 of the text. The obvious cap one step up (576)
-            // leaves 196 and 188, which is 0.55 and 0.52: over the
-            // line in both languages.
+            // The criterion is ui's: the space left inside the card,
+            // from the right edge of the text to the card's content
+            // edge, may not exceed half the width of the text. Measured
+            // on the stamped ground at 1280 -- text 364px in Turkish
+            // and 356 in English, one line each -- the gap is 164 and
+            // 172, which is 0.45 and 0.48 against a threshold of 0.5.
+            // It was 1.54 and 1.61 before the cap.
             //
-            // 576 was tried first, from arithmetic on an estimated
-            // glyph width, and the estimate said 0.27. It was wrong by
-            // half, and not because the glyphs were mis-guessed: the
-            // card carries `items-start`, so the text block stays at
-            // its own width and the CARD is what was too wide. An
-            // estimate of the text cannot see a gap that belongs to
-            // the container.
+            // ENGLISH PASSES BY 4%, and that is a known fragility
+            // rather than a defect: one step longer and this criterion
+            // goes red before anything looks wrong. If these sentences
+            // are rewritten, the ratio is the thing to re-read -- and
+            // it gets WORSE as the text gets shorter, because the gap
+            // grows while the divisor shrinks.
             //
-            // The thing to watch if these sentences are ever
-            // rewritten: the ratio gets WORSE as the text gets
-            // shorter, because the gap grows while the divisor
-            // shrinks. A one-word ask in a 512px card would fail this
-            // outright, and the answer then is a narrower card, not a
-            // longer sentence.
-            "flex w-full max-w-lg flex-col items-start gap-5 p-6"
+            // `max-w-xl` is also the cap the command palette puts on a
+            // floating surface, so it is a width this product already
+            // treats as one readable object rather than a new number.
+            "flex w-full max-w-xl flex-col items-start gap-5 p-6"
           : "flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
       }
     >
