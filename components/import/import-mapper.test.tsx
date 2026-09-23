@@ -184,15 +184,23 @@ describe("the mapping screen", () => {
     expect(screen.queryByText(tr.import.fieldUnset)).toBeNull();
   });
 
-  it("offers no import button, because nothing is saved yet", async () => {
+  it("leads to the saving step, and still writes nothing on its own", async () => {
+    // This test used to assert the opposite: that the screen ended in the
+    // sentence "nothing is created in this step" and offered no button at
+    // all. That sentence was true for exactly as long as there was no step
+    // behind it, and the step is here now (#40). What survives the change
+    // is the half that was never about the missing screen: reading a file
+    // and answering questions about it saves nothing by itself, and the
+    // vet asks for the next move.
     mount([sheet(WITH_HEADING)]);
     await settle();
     fireEvent.click(screen.getByLabelText(tr.import.headerOption.names));
 
-    expect(screen.getByText(tr.import.summaryNoWriteYet)).toBeInTheDocument();
-    // The only button on the screen is the one that asks for the unanswered
-    // questions; a disabled "Import" here would promise a screen that does
-    // not exist.
-    expect(screen.queryByRole("button", { name: /aktar/i })).toBeNull();
+    expect(screen.getByRole("button", { name: tr.import.planButton })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: tr.import.commitButton })).toBeNull();
+    // Nothing has been asked of the server beyond the one upload that read
+    // the file: no plan, and certainly no write, until the vet asks.
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/import");
   });
 });

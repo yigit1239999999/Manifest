@@ -88,6 +88,13 @@ export type PlanSummary = {
   }>;
   species: SpeciesProposal[];
   sex: SexProposal[];
+  /**
+   * The clinic's own species, so the picker beside a species line can offer
+   * them. Sent with the plan rather than fetched separately: the plan
+   * already read them to make the proposals, and a second round trip for a
+   * list of a handful of names would be a request for nothing.
+   */
+  customSpecies: Array<{ id: string; name: string }>;
   /** Rows whose species column says nothing. Recorded as the "other" species. */
   speciesUnknownRows: number;
 };
@@ -159,6 +166,7 @@ export async function planImport(
       })),
     species,
     sex,
+    customSpecies: custom,
     speciesUnknownRows: plan.rows.filter((r) => r.pet && !r.pet.speciesRaw).length,
   };
 }

@@ -8,6 +8,7 @@ import { Callout } from "@/components/ui/callout";
 import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ColumnCard } from "@/components/import/column-card";
+import { ImportCommit } from "@/components/import/import-commit";
 import { classifyColumn, type ColumnEvidence } from "@/modules/import/infer";
 import { propose, type ImportField, type Proposal } from "@/modules/import/fields";
 import { MAX_IMPORT_BYTES, MAX_IMPORT_MB } from "@/modules/import/limits";
@@ -58,8 +59,13 @@ export function ImportMapper() {
     Record<number, "dayFirst" | "monthFirst">
   >({});
   const [showUnanswered, setShowUnanswered] = React.useState(false);
+  // Kept only to say it back: the saving step records the vet's own file
+  // name on the batch, so the list of imports they can undo reads
+  // "musteriler-2024.xlsx" rather than a time.
+  const [fileName, setFileName] = React.useState("");
 
   async function onFile(file: File) {
+    setFileName(file.name);
     setSheetIndex(0);
     setHeaderAnswer(null);
     setFields({});
@@ -129,8 +135,14 @@ export function ImportMapper() {
   // A settled column arrives with its answer; an unsettled one arrives with
   // none, and stays that way until the vet gives one. The two used to look
   // the same on screen, which made the second an answer nobody gave.
-  const chosen = (col: number, proposal: Proposal): ImportField | "" =>
-    fields[col] ?? (proposal.settled ? (proposal.candidates[0] ?? "skip") : "");
+  // Memoised because the saving step's mapping is built from it: without a
+  // stable identity that list would be rebuilt on every keystroke anywhere
+  // on the page, and the rule itself would have to be written twice.
+  const chosen = React.useCallback(
+    (col: number, proposal: Proposal): ImportField | "" =>
+      fields[col] ?? (proposal.settled ? (proposal.candidates[0] ?? "skip") : ""),
+    [fields],
+  );
 
   const openDateQuestions = columns.filter(
     (c) => c.evidence.dateOrder === "ambiguous" && !dateOrders[c.col],
@@ -138,6 +150,19 @@ export function ImportMapper() {
   const unanswered = columns.filter((c) => chosen(c.col, c.proposal) === "").length;
   const skipped = columns.filter((c) => chosen(c.col, c.proposal) === "skip").length;
   const mapped = columns.length - unanswered - skipped;
+
+  // The answers as the saving step needs them: one field per column, and
+  // only the columns that have an answer. An unanswered column is absent
+  // rather than `skip`, because those are different things and the saving
+  // step refuses to run while any are open.
+  const chosenMapping = React.useMemo(() => {
+    const out: Record<number, ImportField> = {};
+    for (const column of columns) {
+      const field = chosen(column.col, column.proposal);
+      if (field !== "") out[column.col] = field;
+    }
+    return out;
+  }, [columns, chosen]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -355,14 +380,39 @@ export function ImportMapper() {
                 {t("summaryOpenDates", { count: openDateQuestions })}
               </Callout>
             )}
-            {/* No button. Nothing is saved in this slice, and a disabled
-                "Import" here would promise a screen that does not exist --
-                the same dead promise this product removed from its
-                dashboard. The sentence says where the work stops instead. */}
-            <p className="text-sm text-muted-foreground">{t("summaryNoWriteYet")}</p>
           </CardContent>
         </Card>
       )}
+
+      {/* The saving step, and the sentence that used to stand in its place
+          is gone: "nothing is created in this step" was true for exactly as
+          long as there was no step. The screen carries the rows across
+          rather than re-uploading the file -- the browser read them out of
+          a file the browser chose, and the server rebuilds the plan from
+          them against the clinic's own clients, which is the half that
+          cannot be done here. */}
+      {columns.length > 0 && sheet && (
+        <ImportCommit
+          rows={bodyRowsForCommit(sheet, headerAnswer)}
+          fileName={fileName}
+          sheetIndex={sheetIndex}
+          headerRow={headerAnswer === "names"}
+          mapping={chosenMapping}
+          dateOrders={dateOrders}
+          blocked={unanswered > 0 || openDateQuestions > 0}
+        />
+      )}
     </div>
   );
+}
+
+/**
+ * The sheet as plain text, with the heading row still on it when there is
+ * one. The header answer travels beside the rows rather than being applied
+ * here, so the server reads the file the same way the screen did and the
+ * row numbers in its plan are the row numbers the vet answered about.
+ */
+function bodyRowsForCommit(sheet: SheetTable, headerAnswer: HeaderAnswer): string[][] {
+  if (headerAnswer === null) return [];
+  return sheet.rows.map((row) => row.map((cell) => cell.text));
 }

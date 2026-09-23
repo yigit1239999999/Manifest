@@ -145,7 +145,7 @@ test.describe("Importing a spreadsheet", () => {
     await expect(main.getByText(/over the .* limit|sınırını aşıyor/i)).toBeVisible();
   });
 
-  test("ends in a summary and offers no button it cannot honour", async ({ page }) => {
+  test("ends in a summary of the file it read", async ({ page }) => {
     const main = await openImport(page);
     await main.locator('input[type="file"]').setInputFiles(file("header-row-is-names.xlsx"));
     await main.getByRole("radio").first().check();
@@ -153,13 +153,67 @@ test.describe("Importing a spreadsheet", () => {
     await expect(
       main.getByText(/rows were read|satır okundu/i),
     ).toBeVisible();
+  });
+
+  /**
+   * The whole point of the feature, walked end to end: the rows the vet is
+   * looking at become records, and the records can be taken back.
+   *
+   * Three things here can only be checked in a browser, and each of them
+   * was a real risk rather than a ceremony. The rows have to survive the
+   * trip to the server a SECOND time (the screen reads the file once and
+   * then hands the same rows to the plan and to the write). The dedup has
+   * to fold this fixture's two "Ayşe Yılmaz" rows into one client, which no
+   * unit test of the planner can prove about the screen. And undo has to
+   * empty a list that a moment ago had records in it -- the state a vet
+   * ends up in when they regret the import.
+   *
+   * The selects are driven by id and by field VALUE rather than by their
+   * labels: the answer is `pet.name` in both languages, and a locator
+   * written in words would be a Turkish leg nobody ever runs (see
+   * `e2e/locator-legs.test.ts`).
+   */
+  test("writes the rows, and takes them back", async ({ page }) => {
+    const main = await openImport(page);
+    await main.locator('input[type="file"]').setInputFiles(file("header-row-is-names.xlsx"));
+    await main.getByRole("radio").first().check();
+
+    await page.locator("#import-column-0").selectOption("pet.name");
+    await page.locator("#import-column-1").selectOption("client.firstName");
+    await page.locator("#import-column-2").selectOption("client.phone");
+
+    await main
+      .getByRole("button", { name: /show what will happen|ne olacağını gösterin/i })
+      .click();
+
+    // Three rows, two people: the third row is the first person's second
+    // animal, and the phone is what says so.
     await expect(
-      main.getByText(/nothing is saved at this step|kayıt oluşturulmuyor/i),
+      main.getByText(/2 clients will be created|2 müşteri oluşturulacak/i),
     ).toBeVisible();
-    // No import button anywhere: this slice does not write, and a disabled
-    // one would promise a screen that does not exist.
     await expect(
-      main.getByRole("button", { name: /import|aktar/i }),
-    ).toHaveCount(0);
+      main.getByText(/3 animals will be created|3 hayvan oluşturulacak/i),
+    ).toBeVisible();
+
+    await main.getByRole("button", { name: /^(save|kaydedin)$/i }).click();
+    await expect(main.getByText(/^(Imported|İçe aktarıldı)$/)).toBeVisible();
+
+    // Really there, on the screen the vet would open next.
+    await page.goto("/clients");
+    await expect(page.getByText("Ayşe Yılmaz")).toHaveCount(1);
+    await expect(page.getByText("Mehmet Demir")).toHaveCount(1);
+
+    // And gone again, from the list of imports rather than from the result
+    // card: that list is the one that is still there at noon.
+    await page.goto("/import");
+    await page
+      .getByRole("button", { name: /undo this import|bu içe aktarmayı geri alın/i })
+      .click();
+    await expect(
+      page.getByText(/were taken back|geri alındı/i).first(),
+    ).toBeVisible();
+
+    await page.goto("/clients");
+    await expect(page.getByText("Ayşe Yılmaz")).toHaveCount(0);
   });
 });
