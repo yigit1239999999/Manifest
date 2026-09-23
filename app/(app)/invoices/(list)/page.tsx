@@ -100,11 +100,20 @@ export default async function InvoicesPage({
             }
           />
         ) : needsClient ? (
-          <MissingLink need="client" next="/invoices" />
+          <MissingLink
+            need="client"
+            next="/invoices"
+            title={t("empty")}
+            description={t("emptyHint")}
+          />
         ) : (
           <EmptyState
             icon={Receipt}
             title={t("empty")}
+            // The same sentence the gated version above shows, because
+            // it is one fact about the screen and not two: an invoice
+            // is issued to a client, and this is where they collect.
+            description={t("emptyHint")}
             action={
               canCreate ? (
                 <Link href="/invoices/new" className={buttonVariants()}>

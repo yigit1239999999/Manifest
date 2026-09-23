@@ -351,7 +351,17 @@ export default async function RemindersPage({
           drops an unlisted destination silently, so it would have looked
           like it worked and quietly not. */}
       {clients.items.length === 0 ? (
-        <MissingLink need="client" next="/reminders" />
+        <MissingLink
+          need="client"
+          next="/reminders"
+          // This gate replaces the new-reminder CARD, not the list, so
+          // it takes that card's title and says what a reminder is for.
+          // Deliberately not `emptyHint`: the list below already shows
+          // it, and the same sentence twice on one screen reads as a
+          // fault rather than an answer.
+          title={t("new")}
+          description={t("needsClientHint")}
+        />
       ) : (
       <Card>
         <CardHeader>

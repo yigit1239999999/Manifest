@@ -48,6 +48,45 @@ describe("the missing link", () => {
   // The walk down the chain has to remember what it was for. Without
   // it the vet saves the new record, lands on its page, and has to
   // reconstruct the errand -- two manual steps on an empty clinic.
+  // A list screen is about something; a `/new` route is not. When the
+  // gate replaced a list's empty state it took the screen's subject
+  // away with it, and a vet who came to look around was told only to
+  // go and create something else -- pm graded all three C for that.
+  // The way out stays; it stops being the only thing said.
+  it("lets a screen keep its own voice, and still offers the way out", async () => {
+    session.user.role = "ADMIN";
+    render(
+      await MissingLink({
+        need: "pet",
+        title: tr.appointment.empty,
+        description: tr.appointment.emptyHint,
+      }),
+    );
+
+    expect(screen.getByText(tr.appointment.empty)).toBeInTheDocument();
+    // The screen's sentence, then the gate's -- composed here rather
+    // than by the caller, so a caller cannot drop the reason. The gate
+    // is no longer the heading, and it is still on the screen:
+    // `e2e/first-run.spec.ts:201` holds every empty list to naming it.
+    expect(
+      screen.getByText(
+        `${tr.appointment.emptyHint} ${tr.common.missingPetSecond}`,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(tr.common.missingPet)).toBeNull();
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/pets/new");
+  });
+
+  // The `/new` routes pass neither, and have nothing else to say:
+  // there the gate IS the news. Byte-identical to before this prop
+  // existed, which is what keeps this change to the three list screens.
+  it("still says the gate itself where the screen has no subject", async () => {
+    await renderAs("ADMIN", "client");
+
+    expect(screen.getByText(tr.common.missingClient)).toBeInTheDocument();
+    expect(screen.getByText(tr.common.missingClientHint)).toBeInTheDocument();
+  });
+
   it("carries the errand down to the next form", async () => {
     await renderAs("ADMIN", "client");
     render(await MissingLink({ need: "pet", next: "/visits/new" }));

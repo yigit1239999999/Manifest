@@ -45,8 +45,34 @@ import { safeNext } from "@/lib/next-param";
 export async function MissingLink({
   need,
   next,
+  title,
+  description,
 }: {
   need: "client" | "pet";
+  /**
+   * What the screen would have said if the chain were whole.
+   *
+   * Two kinds of place render this, and only one of them has a subject
+   * of its own. A `/new` route has nothing to say except why it cannot
+   * open: the gate IS the news, and these stay unset there. A list
+   * screen is about something -- appointments, invoices, reminders --
+   * and when the gate replaces its empty state the screen loses its
+   * voice entirely: a vet who came to look around is told only to go
+   * and create something else. pm graded all three C for that, and
+   * graded `/prescriptions` A for the opposite: it says what lives
+   * there and where it comes from, and offers no button at all.
+   *
+   * So the missing link stays -- it is true, the button is the way out,
+   * and `e2e/first-run.spec.ts:201` holds every empty list to naming it
+   * -- but it becomes the screen's SECOND sentence rather than its only
+   * one. That is why the description is composed here rather than by
+   * the caller: a caller that forgot the second half would take the
+   * whole reason off the screen, and the guard would be the only thing
+   * that noticed. The pair is passed together because a title without
+   * its description is the gate again, under a friendlier heading.
+   */
+  title?: string;
+  description?: string;
   /**
    * Where to come back to once the missing link exists.
    *
@@ -68,6 +94,7 @@ export async function MissingLink({
     icon: typeof Users;
     title: "missingClient" | "missingPet";
     hint: "missingClientHint" | "missingPetHint";
+    second: "missingClientSecond" | "missingPetSecond";
     href: string;
     namespace: "client" | "pet";
     permission: Permission;
@@ -77,6 +104,7 @@ export async function MissingLink({
           icon: Users,
           title: "missingClient",
           hint: "missingClientHint",
+          second: "missingClientSecond",
           href: "/clients/new",
           namespace: "client",
           permission: "clients.write",
@@ -85,6 +113,7 @@ export async function MissingLink({
           icon: PawPrint,
           title: "missingPet",
           hint: "missingPetHint",
+          second: "missingPetSecond",
           href: "/pets/new",
           namespace: "pet",
           permission: "pets.write",
@@ -105,8 +134,10 @@ export async function MissingLink({
   return (
     <EmptyState
       icon={Icon}
-      title={t(variant.title)}
-      description={t(variant.hint)}
+      title={title ?? t(variant.title)}
+      description={
+        description ? `${description} ${t(variant.second)}` : t(variant.hint)
+      }
       action={
         can(session.user.role, variant.permission) ? (
           <Link href={href} className={buttonVariants()}>

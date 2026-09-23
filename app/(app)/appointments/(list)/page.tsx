@@ -187,7 +187,16 @@ export default async function AppointmentsPage({
           // yet. The day is not worth naming here -- no day has any --
           // so this replaces the empty-day sentence rather than sitting
           // under it.
-          <MissingLink need="pet" next="/appointments" />
+          <MissingLink
+            need="pet"
+            next="/appointments"
+            // The screen keeps its own voice; the missing link becomes
+            // its second sentence rather than its only one. pm graded
+            // this C when the gate was all there was, and graded
+            // `/prescriptions` A for saying what lives on the screen.
+            title={t("empty")}
+            description={t("emptyHint")}
+          />
         ) : (
           <EmptyState
             icon={CalendarClock}
