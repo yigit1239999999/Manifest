@@ -42,7 +42,14 @@ async function createDog(page: Page) {
   return page.url();
 }
 
-/** One dose through the real form, with the two answers a vet gives. */
+/**
+ * One dose through the real form, with the two answers a vet gives.
+ *
+ * `administered` carries a time because the field asks for one
+ * (`datetime-local`); the next-due field is a day and does not. Two
+ * granularities, deliberately, and `DateTimeInput` is where that is
+ * decided -- passing a bare day here fails as "Malformed value".
+ */
 async function recordDose(
   page: Page,
   vaccine: string,
@@ -71,8 +78,8 @@ test.describe("What the animal's own record says", () => {
     // The vet's scenario: two doses of three are in, and the third was
     // due while the owner was away. The next date is typed by hand and
     // is in the past, which is exactly how the vet would have left it.
-    await recordDose(page, "Karma", "2026-06-01", { dose: "1" });
-    await recordDose(page, "Karma", "2026-06-25", { dose: "2", nextDue: "2026-07-20" });
+    await recordDose(page, "Karma", "2026-06-01T10:00", { dose: "1" });
+    await recordDose(page, "Karma", "2026-06-25T10:00", { dose: "2", nextDue: "2026-07-20" });
 
     await page.reload();
     await expect(page.getByText(/Karma series: 2\/3|Karma serisi: 2\/3/)).toBeVisible();
@@ -91,8 +98,8 @@ test.describe("What the animal's own record says", () => {
     await signUp(page, Date.now() + 1);
     await createDog(page);
 
-    await recordDose(page, "Kuduz", "2024-05-10");
-    await recordDose(page, "Kuduz", "2026-05-10");
+    await recordDose(page, "Kuduz", "2024-05-10T10:00");
+    await recordDose(page, "Kuduz", "2026-05-10T10:00");
 
     await page.reload();
     // 2025 is the hole, and it has to read as a hole rather than as a
