@@ -26,26 +26,54 @@ LOCK="E2E_RUNNING"
 FORCE=""
 [ "${1:-}" = "--force" ] && { FORCE=1; shift; }
 
-if [ -f "$LOCK" ]; then
-  OWNER_PID=$(sed -n 's/.*pid=\([0-9]*\).*/\1/p' "$LOCK")
-  if [ -n "$OWNER_PID" ] && kill -0 "$OWNER_PID" 2>/dev/null; then
-    if [ -z "$FORCE" ]; then
-      echo "DURDUM: koşu sürüyor -- $(cat "$LOCK")" >&2
-      echo "  bitmesini bekle. Gerçekten ezmek istiyorsan: $0 --force ..." >&2
-      exit 1
-    fi
-    echo "UYARI: canlı bir koşu (pid $OWNER_PID) --force ile eziliyor." >&2
+# ALMAK ATOMİK OLMAK ZORUNDA (dev). Naif hâli -- önce `[ -f ]` ile bak, sonra
+# yaz -- bir yarış: aynı saniyede başlayan iki koşucunun İKİSİ de "kilit yok"
+# görür, ikisi de yazar, ikisi de koşar. Bugün altı kez neredeyse aynı saniyede
+# başladık, yani bu yarış bizde teorik değil. Ve sonucu bugünkünden KÖTÜ
+# olurdu: kilit varken iki koşu olursa kimse şüphelenmez.
+#
+# `set -C` (noclobber) ile `>` yönlendirmesi, dosya varsa yazmayı REDDEDER ve
+# bu POSIX'te atomiktir.
+acquire() {
+  ( set -C
+    printf 'who=%s pid=%s at=%s head=%s suite=%s\n' \
+      "${E2E_RUNNER:-bilinmiyor}" "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      "$(git rev-parse --short HEAD)" "${RUN_SUITE:-tam-süit}" > "$LOCK"
+  ) 2>/dev/null
+}
+
+RUN_SUITE="${*:-tam-süit}"
+if ! acquire; then
+  OWNER_PID=$(sed -n 's/.*pid=\([0-9]*\).*/\1/p' "$LOCK" 2>/dev/null)
+  # `kill -0`: süreç yaşıyor mu. İki sınırı var ve ikisi de bilerek çözülmedi:
+  #   - PID yeniden kullanılmışsa canlı sanır ve gereksiz bekletir. Bugüne
+  #     kadar görülmedi; görülmeden çözüm eklemek, bu ekibin reddettiği şey.
+  #   - BAŞKA BİR KULLANICININ süreci için izin hatası verip "canlı" okunur.
+  #     Tek makinede tek kullanıcıyla çalıştığımız sürece sorun değil (dev).
+  if [ -n "$OWNER_PID" ] && kill -0 "$OWNER_PID" 2>/dev/null && [ -z "$FORCE" ]; then
+    echo "DURDUM: koşu sürüyor -- $(cat "$LOCK" 2>/dev/null)" >&2
+    echo "  bitmesini bekle. Gerçekten ezmek istiyorsan: $0 --force ..." >&2
+    exit 1
+  fi
+  if [ -n "$FORCE" ]; then
+    echo "UYARI: kilit --force ile eziliyor -- $(cat "$LOCK" 2>/dev/null)" >&2
   else
-    echo "BAYAT KİLİT devralınıyor: $(cat "$LOCK")" >&2
+    echo "BAYAT KİLİT devralınıyor: $(cat "$LOCK" 2>/dev/null)" >&2
     echo "  (pid ${OWNER_PID:-yok} çalışmıyor -- koşu çökmüş ya da kapatılmış.)" >&2
+  fi
+  rm -f "$LOCK"
+  # Silme ile alma arasına başkası girerse bu deneme de REDDEDİLİR -- yarış
+  # orada da kapanıyor, ve ikinci kez denemiyoruz: iki bayat devralma üst üste
+  # gelirse durmak, ikisinin birden koşmasından iyidir.
+  if ! acquire; then
+    echo "DURDUM: kilidi devralırken başkası aldı -- $(cat "$LOCK" 2>/dev/null)" >&2
+    exit 1
   fi
 fi
 
-printf 'who=%s pid=%s at=%s head=%s suite=%s\n' \
-  "${E2E_RUNNER:-bilinmiyor}" "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  "$(git rev-parse --short HEAD)" "${*:-tam-süit}" > "$LOCK"
-# Yalnız KENDİ kilidimizi sileriz: başkasının kilidini silmek, çözdüğümüz
-# problemi geri getirir.
+# Yalnız KENDİ kilidimizi sileriz: biri --force ile üzerimize yazdıysa, bizim
+# çıkışımız ONUN kilidini silmemeli -- yoksa kilit, çözdüğü problemi geri
+# getirir (lider).
 trap '[ "$(sed -n "s/.*pid=\([0-9]*\).*/\1/p" "$LOCK" 2>/dev/null)" = "$$" ] && rm -f "$LOCK"' EXIT
 
 # Artefaktın sahibi belli olsun: paylaşımlı `test-results/` yüzünden iki süit
