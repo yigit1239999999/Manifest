@@ -22,9 +22,10 @@ export function PageHeader({
    * right behaviour without anyone deciding again.
    *
    * What it buys today is a three-line clip, and the clip is only
-   * honest where the whole title is also somewhere else on the page. Clipping text that has no other home stops being a
-   * presentation decision and becomes one about the record, and the
-   * person making it does not notice (ux). `visits/[id]` qualifies
+   * honest where the whole title is also somewhere else on the page.
+   * Clipping text that has no other home stops being a presentation
+   * decision and becomes one about the record, and the person making
+   * it does not notice (ux). `visits/[id]` qualifies
    * because the complaint is the first row of its SOAP card; it is the
    * only caller, and `page-header.test` says so out loud rather than
    * leaving that to whoever adds the second one.
