@@ -599,7 +599,6 @@
     "filterAll": "Tümü",
     "emptyClosed": "Kapatılmış hatırlatma yok.",
     "emptyClosedHint": "Tamamladığınız ya da gerek kalmadığı için kapattığınız hatırlatmalar burada birikir.",
-    "needsClientHint": "Hatırlatma bir müşteriye açılır: aşı zamanı, kontrol, takip.",
     "sendNow": "Şimdi gönder",
     "customTitleHint": "Bu başlık müşteriye aynen gönderilir.",
     "log": {

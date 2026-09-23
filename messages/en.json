@@ -599,7 +599,6 @@
     "filterAll": "All",
     "emptyClosed": "No closed reminders.",
     "emptyClosedHint": "Reminders you have completed, or closed because they were no longer needed, collect here.",
-    "needsClientHint": "A reminder is raised for a client: a vaccination due, a check-up, a follow-up.",
     "sendNow": "Send now",
     "customTitleHint": "This title is sent to the client word for word.",
     "log": {

@@ -354,13 +354,17 @@ export default async function RemindersPage({
         <MissingLink
           need="client"
           next="/reminders"
-          // This gate replaces the new-reminder CARD, not the list, so
-          // it takes that card's title and says what a reminder is for.
-          // Deliberately not `emptyHint`: the list below already shows
-          // it, and the same sentence twice on one screen reads as a
-          // fault rather than an answer.
-          title={t("new")}
-          description={t("needsClientHint")}
+          // The same shape as /appointments and /invoices: what the
+          // screen is, then what is missing. It used to take the form
+          // card's title instead -- "New reminder", the name of an
+          // action, above a body explaining the vet cannot take it.
+          //
+          // It can carry the list's own hint now because the list's
+          // empty state stands down below (see `reminders.length`):
+          // this IS the screen's empty state on a clinic with no
+          // clients, rather than a card that happens to sit above one.
+          title={t("empty")}
+          description={t("emptyHint")}
         />
       ) : (
       <Card>
@@ -573,6 +577,15 @@ export default async function RemindersPage({
               </Link>
             }
           />
+        ) : clients.items.length === 0 ? (
+          // Nothing: the gate at the top of the screen is already this
+          // news, in the same words. Both were drawn until pm measured
+          // it -- two centred boxes 428px apart, each with an icon,
+          // saying "vaccination due, check-up, follow-up" twice. The
+          // card being a different element from the list was never
+          // visible to the reader; keeping them apart in the source
+          // does not keep them apart on the screen.
+          null
         ) : (
           <EmptyState
             icon={ClipboardList}

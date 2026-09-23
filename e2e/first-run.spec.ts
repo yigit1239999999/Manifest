@@ -255,6 +255,19 @@ test.describe("First run", () => {
     await expect(
       main.getByText(/a client comes first|önce müşteri gerekir/i),
     ).toBeVisible();
+    // One box, not two. This screen used to draw the gate above the
+    // list's own empty state: two centred boxes 428px apart, each with
+    // an icon, telling a vet what a reminder is for twice (pm). The
+    // three examples are the cheapest fingerprint of that sentence,
+    // and counting them says nothing about how the screen is built --
+    // which is the point, because the version that was wrong had the
+    // two boxes in different components and looked right in the source.
+    await expect(
+      main.getByText(
+        /vaccination due, check-up, follow-up|aşı zamanı, kontrol, takip/i,
+      ),
+    ).toHaveCount(1);
+
     // The form is gone rather than disabled: a picker that opens on
     // nothing is the thing being removed, not decorated.
     await expect(main.getByRole("combobox")).toHaveCount(0);
