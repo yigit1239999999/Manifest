@@ -135,15 +135,15 @@
     },
     "firstStep": {
       "visit": {
-        "title": "Bugün baktığınız bir hayvanın vizitini yazınız.",
+        "title": "Baktığınız bir hayvanın vizitini yazınız.",
         "hint": "Hayvanı ve sahibini aynı formda yazarsınız."
       },
       "client": {
-        "title": "Bugün gelen bir hayvan sahibini ekleyiniz.",
+        "title": "Kliniğinize gelen bir hayvan sahibini ekleyiniz.",
         "hint": "Hayvanı, viziti ve faturası ona bağlanır."
       },
       "pet": {
-        "title": "Bugün baktığınız bir hayvanı sahibine ekleyiniz.",
+        "title": "Baktığınız bir hayvanı sahibine ekleyiniz.",
         "hint": "Vizit, aşı ve reçete kaydı ona bağlanır."
       },
       "waiting": {

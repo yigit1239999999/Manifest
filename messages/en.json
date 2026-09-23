@@ -135,15 +135,15 @@
     },
     "firstStep": {
       "visit": {
-        "title": "Write up a visit for an animal you saw today.",
+        "title": "Write up a visit for an animal you have seen.",
         "hint": "The animal and its owner go on the same form."
       },
       "client": {
-        "title": "Add an owner who came in today.",
+        "title": "Add an owner who has been to the clinic.",
         "hint": "Their animal, its visits and its invoices all hang off that record."
       },
       "pet": {
-        "title": "Add an animal you saw today to its owner.",
+        "title": "Add an animal you have seen to its owner.",
         "hint": "Its visits, vaccinations and prescriptions hang off that record."
       },
       "waiting": {
