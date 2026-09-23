@@ -399,12 +399,24 @@ export function DetailSkeleton() {
  *
  * The grids line up and the header block does not, and the second half is
  * deliberate. Measured on `cb827ed`: the tiles land at the same x and the
- * same 235x96 as the loaded page, but the whole block sits 166px higher
- * here, because a first-run dashboard carries a greeting, a `FirstStepCard`
- * and a centred line above the panel while this file carries two rules.
+ * same 235x96 as the loaded page, but the whole block sat 166px higher
+ * here, because a first-run dashboard carries a greeting, a
+ * `FirstStepCard` and a centred line above the panel while this file
+ * carries two rules.
+ *
+ * THAT 166 IS STALE as of `8ab2f8e` and nobody has re-measured it. The
+ * first-run screen changed on both sides of the sum: the example panel
+ * and the header's description line left it, and the card grew (`p-6`
+ * rather than `p-4`, a `text-lg` ask, its button stacked underneath
+ * rather than beside). Whether the offset is now larger or smaller is
+ * not derivable from the classes -- it needs the same measurement on a
+ * current build, and this session has no browser. The argument below
+ * does not depend on the figure, only on the offset being real; the
+ * figure is what would have to be quoted again, and it may not be
+ * quoted from here until somebody takes it.
  *
  * It cannot carry more. `loading.tsx` is drawn before any data, so it does
- * not know whether that card will render. Reserving the 166px would pay
+ * not know whether that card will render. Reserving that height would pay
  * for the clinics that see the card with an equal jump, upward, on every
  * dashboard of every clinic that is past first run -- the opposite trade,
  * and much the larger one, though not as lopsided as it first looked: the
