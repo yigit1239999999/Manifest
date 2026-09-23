@@ -3239,6 +3239,46 @@ birisi, aynı adda iki hayvanı ayırmak için **rengi hayvanın adına
 gömmüş.** Kullanıcının verisindeki bir çözüm yolu, üründeki bir eksiğin
 raporudur.
 
+### CANLI KAYNAĞI OLAN olguyu rapor etme — KAYNAĞINI göster
+
+`dev-ui` bir nota *"damga bayat"* yazdı, not doğruydu, ve **yazıldıktan
+sonra yaşlandı** — ana oturum bu arada tazelemişti. Zararı, notun
+önlemek istediği şeyle **aynı cinsten**: ölçüme girecek biri ona bakıp
+gereksiz yere durabilirdi. **Bayat bir "bayat" uyarısı da bayattır.**
+
+`ux` ile birlikte çıkardıkları ayrım:
+
+| olgu | nasıl yazılır |
+|---|---|
+| **canlı kaynağı var** — damga, `git status`, HEAD, `BUILD_ID` | **kaynağı göster, değeri değil.** Rapor yaşlanıyor, dosya yaşlanmıyor. |
+| **canlı kaynağı yok** — kontrast okuması, ekran ölçümü, bir gözlem | **değeri yaz, ama zeminiyle ve anıyla** — yeniden türetilemez. |
+
+Pratik hâli: *"şu an zemin bayat"* yerine **"ölçmeden önce
+`SERVED_COMMIT.txt`'e bak"** — ikincisi hiçbir zaman yanlış olmuyor.
+
+Bu, `pm`'in aynı gün koyduğu kuralın kardeşi: kontrolü **hatırlamaya**
+değil, **okunabilir tek bir kaynağa** bağlamak.
+
+### BİR NÖBETÇİ İKİ YÖNÜ BİRDEN SINANIR: yanlışı yakalamalı, doğruya İZİN VERMELİ
+
+Bu ekibin bütün mutasyon sınavları bugüne kadar tek soru sordu:
+*"kırmızıya dönebiliyor mu?"* `dev-ui` ilkini ikiye çıkardı, ve
+şartın yarısı **"yeşil kalmalı"** oldu:
+
+1. temiz ağaç → **yeşil**
+2. isteği bir linkten gönderen bir düğmeye çeviren **meşru** değişiklik
+   → **yine yeşil**
+3. ikinci bir istek eklemek → **kırmızı**
+
+Sebebi: iddia eskiden isteğin bir **link** olmasını şart koşuyordu.
+Kart bir gün gönderen düğmeye dönseydi sayı **sıfır** okunacak ve test
+**sessizce yeşil** kalacaktı — bekçi, koruduğu kuralın sınandığı anda
+susardı.
+
+> **Kural: yalnız "kırmızıya dönüyor mu" diye sınanan bir bekçi, meşru
+> bir değişikliği engellediği gün kimse sebebini bilmez.** İkinci koşu
+> bedava: mutasyon zaten elde.
+
 ### Ölçüm noktaları koddan türetilir, cihazdan değil
 
 *"İki nokta bir bandı kapsamaz"* tespitinin yanlış çözümü nokta eklemektir:
