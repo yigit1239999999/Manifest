@@ -105,10 +105,25 @@ function isLetter(char: string): boolean {
 /**
  * The samples for one column: distinct, masked, and few.
  *
- * `limit` is 3 by default and is not a performance number -- it is the number
- * the vet will be shown next to their own header on the mapping screen, and
- * the same three that describe the column to a model. Distinct, because three
- * identical values say a third as much as three different ones.
+ * `limit` is 3 by default and is not a performance number -- it is how many
+ * values it takes to describe a column to a model without describing anybody.
+ * Distinct, because three identical values say a third as much as three
+ * different ones.
+ *
+ * NOT FOR THE SCREEN, and the first draft of this comment said otherwise --
+ * it claimed these were "what the vet will be shown next to their own header".
+ * That is exactly backwards and the design does not survive it. `decidable:
+ * false` means a HUMAN has to decide, and a human looking at `Xxxx Xxxxx`
+ * next to a heading reading "Adı" can no more tell the pet from the owner
+ * than the model could. #19 says it plainly: each proposal is shown to the vet
+ * with their own column name and THEIR OWN SAMPLE ROWS.
+ *
+ *   the screen -> real values (`ColumnEvidence.samples`)
+ *   the model  -> masked values (here)
+ *
+ * Never the other way, and never both from one function. Masking protects the
+ * vet's clients from a third party; it was never meant to protect the vet from
+ * their own file.
  *
  * Blanks are dropped rather than masked: `""` masks to `""`, which would spend
  * a sample slot saying nothing. How often a column is blank is reported
