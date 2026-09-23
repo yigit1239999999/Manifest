@@ -98,7 +98,7 @@
     "title": "Dashboard",
     "greeting": "Hi, {name}",
     "subtitle": "Here's what's happening today.",
-    "readyFor": "{clinic} is ready. The panel starts filling with your first record.",
+    "readyFor": "{clinic} is ready.",
     "metrics": {
       "clients": "Clients",
       "pets": "Pets",

@@ -48,7 +48,8 @@ import { surface } from "@/components/ui/card";
  * had said: the panel will not look like that. The wording was only the
  * first of three faults. The screen was teaching TWO first actions,
  * because the card asks for a VISIT and the sentence under it taught an
- * appointment. The note repeated what `readyFor` says two lines above.
+ * appointment. The note repeated what `readyFor` said two lines above
+ * -- that line has since lost the sentence it repeated.
  * And copying the real `CardTitle` made the preview the heaviest type
  * on a page whose whole job is to ask for one visit, so the example
  * outweighed the errand.

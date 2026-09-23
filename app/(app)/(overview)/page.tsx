@@ -17,7 +17,7 @@ import { requireSession } from "@/lib/session";
 import { dashboardInsights } from "@/modules/dashboard/queries";
 import { blockedReminders } from "@/modules/notifications/queries";
 import { unreadDiagnostics } from "@/modules/diagnostics/queries";
-import { getClinicCurrency } from "@/modules/clinics/queries";
+import { getClinicCurrency, getClinicSettings } from "@/modules/clinics/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
 import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
 import { FirstStepCard } from "@/components/first-step-card";
@@ -52,6 +52,7 @@ export default async function DashboardPage() {
     insights,
     blocked,
     unread,
+    clinicSettings,
     currency,
     fmt,
   ] = await Promise.all([
@@ -68,6 +69,9 @@ export default async function DashboardPage() {
       // Rows, not just a number: one link cannot take a vet to three
       // results, and the job finishes where each result's text is.
       unreadDiagnostics(session.user.clinicId),
+      // Only the first-run header says the clinic's name; the query is
+      // request-cached and the layout has already asked for it.
+      getClinicSettings(session.user.clinicId),
       getClinicCurrency(session.user.clinicId),
       getFormatContext(),
     ]);
@@ -225,6 +229,8 @@ export default async function DashboardPage() {
   //
   // Read from counts the page already has, so a clinic past this asks
   // the database nothing extra to be told nothing.
+  const clinicName = clinicSettings?.name ?? "";
+
   const firstRun =
     insights.counts.clients === 0 &&
     insights.counts.pets === 0 &&
@@ -233,19 +239,23 @@ export default async function DashboardPage() {
   if (firstRun) {
     return (
       <div className="flex flex-col gap-8">
-        {/* No description, and `subtitle` ("today's summary") was never
-            it either -- that one is a lie on day zero and the key stays
-            for the other states.
+        {/* Not `subtitle` ("today's summary"), which is a lie on day
+            zero. The key stays for the other states.
 
-            `readyFor` used to sit here saying the panel would start
-            filling with the first record. It was half of a repetition:
-            the example block below said the same thing in its own
-            words, and when that block left this screen the sentence was
-            the only line still talking about what WILL happen. The
-            screen now asks for something instead of describing what
-            follows (ui). The key is untouched and so is `PageHeader`. */}
+            `readyFor` lost its second sentence rather than the whole
+            line. It used to read "... is ready. The panel starts
+            filling with your first record", and that second half was
+            one side of a repetition: the example block underneath said
+            the same thing in its own words. With the block gone it
+            would have been the only line left describing what WILL
+            happen, on a screen whose job is to ask for something.
+            What stays is the clinic's own name -- the one personal
+            mark on the screen, and the reason the line is not dropped
+            altogether (ux). Same key, no new one, and `PageHeader` is
+            untouched. */}
         <PageHeader
           title={t("greeting", { name: firstName(session.user.name ?? "") })}
+          description={t("readyFor", { clinic: clinicName })}
         />
 
         {/* The one fully present thing on the screen: full contrast,
