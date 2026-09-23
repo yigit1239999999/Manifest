@@ -53,7 +53,10 @@ function escapeRegExp(value: string): string {
  *   precisely because its input was markup. A guard whose input is not
  *   markup cannot be silenced that way.
  *
- * Its limit, and it is a real one: this fires when the boundary MOUNTS.
+ * Two limits, both real. It watches `page`, so a second tab or context
+ * would be outside it -- no test opens one today, and widening the net
+ * for a road nobody walks is its own kind of defect. And it fires when
+ * the boundary MOUNTS.
  * A throw the server swallows, one a retry recovers, or one that never
  * reaches a boundary is invisible here. A net over the suite is not a
  * perfect net.
@@ -63,7 +66,7 @@ function escapeRegExp(value: string): string {
 // not added here, this guard goes quiet on that screen: the two lists
 // are one list kept in two places, which is the shape of defect this
 // file exists to catch.
-const BOUNDARY_NAMES = ["app.error", "app.section"];
+export const BOUNDARY_NAMES = ["app.error", "app.section"];
 
 export const test = base.extend<{ noErrorBoundary: void }>({
   noErrorBoundary: [
