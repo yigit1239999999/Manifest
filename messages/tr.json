@@ -970,7 +970,8 @@
       "invoice": "Fatura",
       "clinic": "Klinik",
       "species": "Tür",
-      "user": "Personel"
+      "user": "Personel",
+      "importBatch": "İçe aktarma"
     },
     "conflict": {
       "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",
@@ -1004,7 +1005,9 @@
       "speciesInUse": "Bu tür hayvanlarda kullanıldığı için silinemez.",
       "speciesNoneEnabled": "En az bir tür seçili olmalı.",
       "timezoneUnknown": "Geçersiz saat dilimi.",
-      "noteTarget": "Bir hayvan veya müşteri belirtmelisiniz."
+      "noteTarget": "Bir hayvan veya müşteri belirtmelisiniz.",
+      "importDuplicatesUnanswered": "Aynı kişi olabilecek kayıtlar için karar verilmeden içe aktarma tamamlanamaz.",
+      "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış."
     },
     "form": {
       "required": "{field} gerekli.",

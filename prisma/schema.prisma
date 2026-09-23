@@ -73,6 +73,7 @@ model Clinic {
   documents     Document[]
   auditLogs     AuditLog[]
   messages      MessageLog[]
+  importBatches ImportBatch[]
 
   @@map("clinics")
 }
@@ -115,6 +116,7 @@ model User {
   notesBy           Note[]         @relation("NoteAuthor")
   documentsBy       Document[]     @relation("DocumentUploadedBy")
   auditLogs         AuditLog[]     @relation("AuditActor")
+  importBatches     ImportBatch[]  @relation("ImportBatchCreator")
 
   @@index([clinicId])
   @@map("users")
@@ -195,6 +197,16 @@ model Client {
   /// simplifying this to "unaccent is enough" takes the full-name search
   /// away again, and nothing on screen will connect the two.
   searchKey          String?
+  /// The spreadsheet import that created this row, and nothing else.
+  ///
+  /// Set only when the import CREATED the client. A client the import
+  /// matched to an existing record keeps a null here, because undoing the
+  /// import must not be able to delete somebody the vet typed in
+  /// themselves -- see `modules/import/service.ts`, where undo is
+  /// "delete the rows carrying this batch" and that sentence is only
+  /// safe while this column means "we made this one".
+  importBatchId      String?
+  importBatch        ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
   archivedAt         DateTime?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -217,6 +229,10 @@ model Client {
   @@index([clinicId, phone])
   @@index([clinicId, archivedAt])
   @@index([clinicId, createdAt(sort: Desc)])
+  /// Undo reads by batch, so the batch leads. `clinicId` is still in front
+  /// of it: every query in this product is clinic-scoped, and an index
+  /// that is not costs more as the table grows rather than less.
+  @@index([clinicId, importBatchId])
   @@map("clients")
 }
 
@@ -280,6 +296,10 @@ model Pet {
   /// in here: a generated column cannot read another table, so a search
   /// for an owner goes through `owner.searchKey`.
   searchKey         String?
+  /// The spreadsheet import that created this animal. See
+  /// `Client.importBatchId` -- same column, same promise, same undo.
+  importBatchId     String?
+  importBatch       ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -302,7 +322,50 @@ model Pet {
   @@index([clinicId, name])
   @@index([clinicId, microchipId])
   @@index([clinicId, archivedAt])
+  @@index([clinicId, importBatchId])
   @@map("pets")
+}
+
+/// One run of the spreadsheet import, so it can be undone as one thing.
+///
+/// A row exists because of what happens AFTER the import: the vet closes
+/// the screen, opens the client list, and sees two hundred rows they now
+/// have to judge. Without this table "undo" would mean selecting them by
+/// hand, and an import nobody dares to run is not an import. With it,
+/// undo is one statement over one indexed column.
+///
+/// `undoneAt` rather than deleting the batch row: what was imported and
+/// then taken back is a fact about the clinic's day, and the audit log
+/// points at this id.
+model ImportBatch {
+  id          String    @id @default(cuid())
+  clinicId    String
+  clinic      Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  /// Null once the user is gone; the batch and its undo outlive them.
+  createdById String?
+  createdBy   User?     @relation("ImportBatchCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  /// The vet's own file name, shown back to them when they pick a batch
+  /// to undo. "musteriler-2024.xlsx" is how they know which run this was;
+  /// a timestamp alone is not.
+  fileName    String
+  sheetName   String
+  /// What this run actually created, counted at commit time. Kept here
+  /// rather than counted on demand so the list of batches is one query
+  /// no matter how many batches there are, and so the numbers still read
+  /// correctly after the rows are undone and gone.
+  clientCount Int       @default(0)
+  petCount    Int       @default(0)
+  /// How many existing clients the run attached animals to. Not
+  /// deletable by undo and not counted with the created ones.
+  mergedCount Int       @default(0)
+  undoneAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  clients Client[]
+  pets    Pet[]
+
+  @@index([clinicId, createdAt(sort: Desc)])
+  @@map("import_batches")
 }
 
 /// Clinic-defined species beyond the built-in enum (e.g. "Kirpi", "At").

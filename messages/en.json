@@ -970,7 +970,8 @@
       "invoice": "Invoice",
       "clinic": "Clinic",
       "species": "Species",
-      "user": "Staff member"
+      "user": "Staff member",
+      "importBatch": "Import"
     },
     "conflict": {
       "invoiceDuplicate": "Invoice number is already in use.",
@@ -1004,7 +1005,9 @@
       "speciesInUse": "This species is in use and can't be deleted.",
       "speciesNoneEnabled": "Select at least one species.",
       "timezoneUnknown": "Unknown timezone.",
-      "noteTarget": "Pick a pet or a client to attach the note to."
+      "noteTarget": "Pick a pet or a client to attach the note to.",
+      "importDuplicatesUnanswered": "The import cannot finish while rows that may be the same person are unanswered.",
+      "importAlreadyUndone": "This import has already been undone."
     },
     "form": {
       "required": "{field} is required.",
