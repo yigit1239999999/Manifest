@@ -31,7 +31,7 @@ test.describe("Clients", () => {
     await page.getByLabel(/^phone$|^telefon$/i).first().fill(PHONE);
     // The email lives behind the fold now: nine fields a counter does
     // not stop for while somebody is standing there.
-    await page.getByText(/optional details|isteğe bağlı bilgiler/i).click();
+    await page.getByText(/optional details|[İi]steğe bağlı detaylar/i).click();
     await page.getByLabel(/^email$/i).fill("jamie@example.com");
     await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
 

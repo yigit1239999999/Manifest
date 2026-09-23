@@ -511,7 +511,7 @@ test.describe("First run", () => {
     // The whole point, asserted first: the vet is still on the form
     // they were filling in.
     await expect(page).toHaveURL("/visits/new");
-    await expect(page.getByLabel(/^name$|^isim$/i)).toHaveValue("Limon");
+    await expect(page.getByLabel(/^name$|^[İi]sim$/i)).toHaveValue("Limon");
 
     await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
 
@@ -680,7 +680,7 @@ test.describe("First run", () => {
       .click();
     await expect(page).toHaveURL(/\/pets\/new\?.*ownerId=/);
 
-    await page.getByLabel(/^name$|^isim$/i).fill("Pamuk");
+    await page.getByLabel(/^name$|^[İi]sim$/i).fill("Pamuk");
     await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
     await page.getByLabel(/^sex$|^cinsiyet$/i).selectOption("FEMALE");
     await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();

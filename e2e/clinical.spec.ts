@@ -33,7 +33,7 @@ async function createClient(page: Page) {
 async function createPet(page: Page) {
   await page.goto("/pets/new");
   await pickOption(page, page.getByLabel(/^owner$|^sahibi$/i));
-  await page.getByLabel(/^name$|^isim$/i).fill("Sarı");
+  await page.getByLabel(/^name$|^[İi]sim$/i).fill("Sarı");
   await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
   await page.getByLabel(/^breed$|^cins$/i).fill("Tekir");
   await page.getByLabel(/^sex$|^cinsiyet$/i).selectOption("MALE");

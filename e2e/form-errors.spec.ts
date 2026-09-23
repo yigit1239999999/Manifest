@@ -38,11 +38,11 @@ test.describe("Form validation", () => {
     await page.goto("/pets/new");
     const owner = page.getByLabel(/owner|sahibi/i);
     await pickOption(page, owner, "Ayse");
-    const name = page.getByLabel(/^name$|^i̇sim$|^isim$/i);
+    const name = page.getByLabel(/^name$|^[İi]sim$/i);
     await name.fill("Boncuk");
 
     // Optional details count too: a textarea and a checkbox.
-    await page.getByText(/optional details|i̇steğe bağlı detaylar/i).first().click();
+    await page.getByText(/optional details|[İi]steğe bağlı detaylar/i).first().click();
     const notes = page.getByLabel(/^notes$|^notlar$/i);
     await notes.fill("Allergic to penicillin");
     const neutered = page.getByLabel(/neutered|kısırlaştırılmış/i);
