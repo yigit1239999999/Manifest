@@ -66,6 +66,27 @@ export interface ButtonProps
 
 export function Button({ className, variant, size, ...props }: ButtonProps) {
   return (
-    <button className={cn(buttonVariants({ variant, size }), className)} {...props} />
+    <button
+      // `type="button"` unless the caller asks otherwise, because the
+      // browser's default is `submit` and that only shows itself inside
+      // a form: a button added to do something small -- clear a field,
+      // add a line, expand a section -- submits the form instead, and
+      // the report is "the form saved when I clicked X" rather than
+      // anything about a button.
+      //
+      // Counted before changing it, because the size of the problem
+      // decides the fix: nine call sites outside this file, and eight
+      // already pass a type by hand. The ninth is `error-state.tsx`,
+      // which sits in an error boundary with no form around it, so
+      // nothing in the product misbehaves today. What this removes is
+      // the tenth call site -- the one that will be written inside a
+      // form by somebody who does not know the default.
+      //
+      // Before the spread, so a caller that needs `submit` still wins:
+      // `submit-button.tsx` and the topbar's search both pass it.
+      type="button"
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...props}
+    />
   );
 }
