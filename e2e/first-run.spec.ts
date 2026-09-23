@@ -423,30 +423,35 @@ test.describe("First run", () => {
     // Counting the set pm counts is still what fixes it, for the reason
     // that survives: whichever markup the ask is made of, both tools
     // read the same number, so they cannot disagree about the rule.
-    // If you are reading this because the line below went red, check
-    // whether a second e2e suite was running before you touch the
-    // locator. This test read 2 in two full-suite runs while another
-    // agent's suite was running against the same `next dev` and the
-    // same database, and could not be made to read anything but 1
-    // alone -- file run, probe, and two uncontended full suites
-    // (35/35, tree hashes identical before and after).
+    // The 2 this line once read was REAL, and it was not about the
+    // locator. Under a concurrent suite the dashboard fell into its own
+    // error boundary, which renders as `{children}` and so lands inside
+    // `main`: `app/(app)/error.tsx` -> `ErrorState`, a "try again"
+    // button and a "go home" link. At the time `ui/button.tsx` emitted
+    // no `type`, so the button matched `button:not([type])` and the
+    // link matched `a[href]`. Exactly two, stable across 43 polls,
+    // invisible in a file run because nothing was under load, and
+    // invisible to the test above because that one runs earlier. The
+    // guard was right and the screen was broken (dev and dev-ui found
+    // it from source, independently).
     //
-    // The cause was NOT found, and that is the useful half. Ruled out
-    // by measurement: the route's skeleton, which holds no link and no
-    // button, and the layout, whose `<main>` wraps only `{children}` --
-    // the skip link is outside it. Also a second ask in the card or in
-    // the page's empty branch, though that one needs its date: when
-    // those two runs went red the test above still carried a count of
-    // its own, and it stayed green through both. It does not count any
-    // more -- cardinality was moved here, where the name promises it --
-    // so today a second call to action turns THIS test red and that one
-    // green, which is measured and is the intended shape. The argument
-    // that cleared the card is therefore history rather than something
-    // a reader can re-run; it is written down because it is the reason
-    // nobody should start there again.
+    // WHICH LEAVES A WORSE PROBLEM THAN THE ONE IT SOLVED, and it is
+    // the reason this paragraph is long. 556ceef gave `Button` a
+    // default `type="button"` -- correct on its own terms, and unrelated
+    // to this file. The same crashed dashboard now offers that set
+    // exactly ONE member, the "go home" link, so this assertion PASSES
+    // on a page that has thrown. Measured, not reasoned: rendering
+    // `ErrorState` with `showHome` and running this exact selector over
+    // it counts 1.
     //
-    // So something reaches `main` from outside the page's empty branch,
-    // and needs a concurrent suite to appear at all (team-lead).
+    // So the guard that this whole round was spent making honest is now
+    // silent in the one case where the screen is actually broken, and
+    // no change to this file caused it. Counting asks cannot tell a
+    // first-run dashboard from a wreck with a way out; only something
+    // that asserts the screen RENDERED can. #26 carries that, and the
+    // fix wanted is the suite-wide one -- any test that lands on an
+    // error boundary should fail where it lands -- because this file is
+    // not the only one that would sit happily on a crashed page.
     const main = page.getByRole("main");
     const asks = main.locator(
       'a[href], button[type="submit"], button:not([type])',
