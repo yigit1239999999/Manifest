@@ -34,10 +34,21 @@ FORCE=""
 #
 # `set -C` (noclobber) ile `>` yönlendirmesi, dosya varsa yazmayı REDDEDER ve
 # bu POSIX'te atomiktir.
+# AD YOKSA İZ OLSUN (dev). `E2E_RUNNER` zorunlu DEĞİL, ve olmamalı: koşuyu
+# engelleyen bir kilit `--force`u öğretir, ve öğrenilen `--force` kilidi kâğıda
+# çevirir. Ama 23 Eylül 2026'da `who=bilinmiyor` gören biri koşanı bulmak için
+# elinde HİÇBİR ŞEY olmadığını gördü ve sonunda lidere sordu -- yani adın
+# eksikliğinin bedelini başkasının zamanı ödedi.
+#
+# `dev`in ayrımı: sorun "ad yok" değil, **İZ YOK**tu. Ad verilmediğinde kilit
+# ölü bir kelime yerine çekilecek bir ip yazsın -- `ppid` ile ebeveyn süreci,
+# onun komutu, ve `cwd`. Ad verildiğinde bu alanlar gereksiz ama zararsız.
 acquire() {
   ( set -C
-    printf 'who=%s pid=%s at=%s head=%s suite=%s\n' \
-      "${E2E_RUNNER:-bilinmiyor}" "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    printf 'who=%s pid=%s ppid=%s parent=%s cwd=%s at=%s head=%s suite=%s\n' \
+      "${E2E_RUNNER:-bilinmiyor}" "$$" "$PPID" \
+      "$(ps -p "$PPID" -o command= 2>/dev/null | tr -d '\n' | cut -c1-60)" \
+      "$PWD" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
       "$(git rev-parse --short HEAD)" "${RUN_SUITE:-tam-süit}" > "$LOCK"
   ) 2>/dev/null
 }
@@ -192,7 +203,70 @@ START_TRACKED=$(git status --porcelain --untracked-files=no)
 START_UNTRACKED=$(git status --porcelain --untracked-files=all | grep '^??' || true)
 
 echo "== KOŞU BAŞI =="; echo "$START_HEAD"; git status --porcelain
-npx playwright test "$@"; STATUS=$?
+[ -z "${E2E_RUNNER:-}" ] && echo "NOT: E2E_RUNNER verilmedi -- kilitte adın yerine izin duracak." >&2
+
+# KOŞU SÜRERKEN YOKLAMA, ve oynarsa HIZLI DÜŞME (dev'in tasarımı).
+#
+# İki uçtaki karşılaştırma kusuru yakalıyor ama SONRADAN: bugün üç kez "koşu
+# bitti, sonra geçersiz olduğu anlaşıldı" yaşandı, 3-11 dakika. Git'te "dosya
+# kaydedildi" kancası yok -- ama koşan betiğin kendisi bakabilir.
+#
+# Üç kazancı, üçü de bugün ölçülmüş bir kayba karşılık geliyor:
+#   - dakikalar geri gelir: 5 saniyede yakalar, koşuyu öldürür, kimse beklemez;
+#   - OYNATAN KİŞİ HÂLÂ ORADADIR ve geri alabilir -- sonradan anlaşıldığında
+#     "kim oynattı" bir `git log` arkeolojisi olur (bugün tam bunu yaşadık);
+#   - hangi yolun oynadığını söyler, "benim mi onun mu" diye sorulmaz.
+#
+# KISITI, ve yerine geçtiği şey yok: yoklama ARALIĞI KADAR KÖR. Beş saniyelik
+# pencerede girip çıkan bir değişikliği kaçırır. İki uçtaki karşılaştırma
+# duruyor; bu EK BİR AĞ, onun yerine geçen bir şey değil.
+#
+# Maliyeti: 5 saniyede bir `git status --porcelain`, bu depoda ~10 ms.
+DRIFT_FILE="$(mktemp)"
+npx playwright test "$@" &
+PW_PID=$!
+(
+  while kill -0 "$PW_PID" 2>/dev/null; do
+    NOW="$(git status --porcelain --untracked-files=no)"
+    if [ "$NOW" != "$START_TRACKED" ]; then
+      { echo ""
+        echo "ZEMİN KOŞU SÜRERKEN OYNADI -- KOŞU ÖLDÜRÜLÜYOR."
+        echo "  Oynayan yollar:"
+        diff <(printf '%s\n' "$START_TRACKED") <(printf '%s\n' "$NOW") | sed 's/^/    /'
+        echo "  Oynatan kişi ŞU AN hâlâ o dosyadadır -- geri alsın, sonra koş."
+      } > "$DRIFT_FILE"
+      kill "$PW_PID" 2>/dev/null
+      break
+    fi
+    sleep 5
+  done
+) &
+WATCH_PID=$!
+wait "$PW_PID"; STATUS=$?
+kill "$WATCH_PID" 2>/dev/null; wait "$WATCH_PID" 2>/dev/null
+
+if [ -s "$DRIFT_FILE" ]; then
+  cat "$DRIFT_FILE" >&2
+  rm -f "$DRIFT_FILE"
+  # YARIM ARTEFAKT SİLİNİR (dev): "yarım artefakt, olmayan artefakttan kötüdür,
+  # çünkü açılır, okunur ve bir şey anlatıyor sanılır."
+  #
+  # İKİ KEZ, ve sebebi ölçüldü: ilk gösterimde bir kez sildim ve dizin GERİ
+  # GELDİ. `wait` npx'in çıkışını bekliyor, ama öldürülen işçiler ve tarayıcı
+  # süreçleri diske yazmayı o andan SONRA bitiriyor. Yani tek silme, yarışın
+  # yanlış tarafında duruyordu -- ve bu tam olarak sildiğimizi sandığımız
+  # şeyin geri gelmesi, yani kusurun en sinsi hâli.
+  rm -rf test-results
+  sleep 1
+  rm -rf test-results
+  # AYRI ÇIKIŞ KODU, ve sebebi "ayrı olgu"dan somut: ikisi okuyucuya FARKLI İŞ
+  # veriyor. `exit 3` = koşu tamamlandı, sonucu sayma -> ağaç durunca AYNI
+  # koşuyu tekrarla. `exit 7` = koşu hiç tamamlanmadı -> önce KİMİN oynattığını
+  # bul, sonra koş. Rakam otomasyon için, yukarıdaki cümleler insan için.
+  echo "  (exit 7: koşu tamamlanmadı. exit 3 olsaydı 'koştu ama sayma' demekti.)" >&2
+  exit 7
+fi
+rm -f "$DRIFT_FILE"
 END_HEAD=$(git rev-parse --short HEAD)
 END_TRACKED=$(git status --porcelain --untracked-files=no)
 END_UNTRACKED=$(git status --porcelain --untracked-files=all | grep '^??' || true)
@@ -225,6 +299,15 @@ if [ -n "$DRIFT" ]; then
   echo "  Playwright sonucu: $STATUS (yeşil de olsa sayma)." >&2
   echo "  Ağaç durunca tekrar koş. Kimin oynattığını 'git log --oneline $START_HEAD..HEAD' söyler." >&2
   exit 3
+fi
+
+# SONDA DA SÖYLE (dev): baştaki uyarı 45 test sonra akıp gitmiştir; sondaki
+# satır ise RAPORU YAZARKEN gözünün önündedir, ve `E2E_RUNNER` vermeyi bir
+# sonraki sefer hatırlatacak yer orasıdır.
+if [ -z "${E2E_RUNNER:-}" ]; then
+  echo "" >&2
+  echo "NOT: bu koşu adsız yapıldı (kilitte who=bilinmiyor)." >&2
+  echo "  Sonraki sefer: E2E_RUNNER=<ad> $0 ...  -- koşanı arayan kimse sana sormaz." >&2
 fi
 
 if [ "$START_UNTRACKED" != "$END_UNTRACKED" ]; then
