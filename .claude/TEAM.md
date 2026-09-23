@@ -3105,6 +3105,140 @@ koşmuş ve damgayı güncellememişti.
 3118'in üç sütununa (ÖLÇÜLEMEDİ · ÖLÇÜLMEDİ · AÇIKLANAMADI) eklenen şey:
 üçüncüsü **kime sorulacağını** da taşır.
 
+### BİR KİŞİNİN hata listesi dikkatsizlik gibi okunur; BEŞ KİŞİNİNKİ sınıfı gösterir
+
+23 Eylül'de görevde *"`ui`'nin altı düzeltmesi"* diye bir liste birikti.
+`dev-ui`'nin önerisiyle `ui` onu yeniden adlandırdı: **"bu turda herkes
+düştü."**
+
+| kim | ne |
+|---|---|
+| `ui` | uydurulmuş bir sayı · yanlış bir kayıt · aşırı bir hüküm · bir yokluk iddiası · adsız bir zemin · yanlış bir etiket |
+| `dev-ui` | `pb-16`'yı sınıfta değil onu **açıklayan yorumda** bulan test |
+| `pm` | dar kapsamlı arama — dosya `e2e/` altında değil `app/` altındaydı |
+| ana oturum | `MEASURING` almadan koşulmuş iki derleme |
+| `ux` | doğrulamadan devralınıp iddiaya çevrilmiş bir niteleme |
+
+**Sınıf tek cümlede duruyor: doğrulamadan kurulmuş bir dayanak.** Ve
+beşinin ortak yanı, onu bir karakter kusuru olmaktan çıkarıyor: **hepsi
+tek komutla doğrulanabilirdi, hepsi bedavaydı, hiçbiri yapılmadı.**
+
+> **Kural: bir hata listesi tek kişinin adıyla birikiyorsa, yanlış
+> adlandırılmıştır.** Aynı biçimi başkalarında ara; bulunuyorsa liste
+> kişinin değil **sınıfın** listesidir, ve çaresi de kişisel olamaz.
+
+### TABAN SINAVININ ŞARTI: sınav değeri, ÖLÇÜLEN DEĞİŞİKLİKTEN BAĞIMSIZ olmalı
+
+`pm` kabul betiğine *"bilinen taban değerleri tutmazsa önce aleti
+şüphelen"* yazdı — ve **koşmadan önce kendi kuralında bir kusur buldu:**
+
+> Seçtiğim taban değerlerinden biri (kartın yüksekliği), **ölçümün
+> değiştirmesi beklenen** bir değerdi. Tutmaması beklenen sonuç;
+> onu alet arızası sayarsam **doğru bir ürün değişikliğini alet hatası
+> diye okur, durur ve yanlış şey yazarım.**
+
+Düzeltilmiş sınavı **değişmemesi gereken** iki şeye bağladı: CTA sayısı
+(turun konusu değil) ve kabinin blok sayısı (**bir testin koruduğu
+sabit**).
+
+**Ve aynı gün işe yaradı:** ilk koşuda K2 **tek blok** okudu, sınav
+**iki** diyordu; `pm` ürünü değil **aleti** şüphelendi ve seçicinin
+`ui`'nin eklediği ortalayıcı sütunu yakaladığını buldu. Kendi cümlesi:
+**"O sınav olmasaydı K2'yi yanlışlıkla geçirecektim, çünkü atıl blok
+görünmüyordu."**
+
+### İKİ UCU ADLANDIRMAK YETMEZ — ölçüt HANGİ ÖĞEYİ ölçtüğünü de söyler
+
+Aynı kart üç kişi tarafından ölçüldü, üç sayı çıktı, ve **hiçbiri yanlış
+ölçmedi**: `pm` 0,272 · `ui` 0,337 · `dev` 0,516. Üçü de farklı ucu
+ölçmüştü.
+
+İlk ders *"açıklığın iki ucu adlandırılmalı"*ydı. `ui` bir kat derinini
+buldu:
+
+> Tanımda *"dolgu hariç"* **yazılıydı** — ve ben yine sert tarafı ölçüp
+> onu **tanımın etiketiyle** yayınladım. Yazılı olması yetmemiş;
+> **ölçen kişinin seçtiği öğe kuralı sessizce değiştirmiş.**
+
+Ve `pm` ölçerken paydada bir boşluk buldu: sarmalayıcı 364px, içindeki
+iki paragraf da 364px — **paragraflar kabı dolduruyor**, yani ölçütün
+paydası bir **yerleşim** genişliği, bir **metin** genişliği değil.
+Bugün hüküm değişmedi (hepsi eşiğin çok altında) ama **eşiğe
+yaklaşıldığı gün ikiye bölünürdü.**
+
+> **Kural: bir ölçüt, (a) hangi iki kenar, (b) hangi kapsayıcıda, ve
+> (c) hangi öğe yakalanarak ölçüldüğünü söylemeden tamam değildir.**
+> Üçü yazılınca üç kişinin sayısı ±0,004 içinde uzlaştı.
+
+### DENETİM KAYDI bir günlüktür, DURUM DEPOSU değildir
+
+`value` bir durumu (*"hekim bu kaydı doğruladı mı"*) denetim
+kaydından türetmeyi düşündü; `ux` türetilebileceğini gösterdi ve yine de
+reddetti:
+
+> Bugünkü hâli günlükten türetmek, durumu **amacı geçmişi anlatmak
+> olan** bir yapıya emanet etmektir. Günlük budanır; budandığı gün
+> 41 hayvan sessizce cevapsızlar kümesine döner ve kimse sebebini
+> bulamaz.
+
+Ve usulü de kayda değer: ***"alternatif yok"* yerine *"alternatif var ve
+şu yüzden reddedildi"* demek, onay isterken daha sağlam duruyor.**
+
+### KAPATILAMAYAN LİSTE — bir kümeyi bildirmek, onu kapatılabilir kılmıyorsa işe yaramaz
+
+`ux`'in yakaladığı hâl: aktarımdan gelen bir kaydı hekim **onayladığında
+kayıtta hiçbir şey değişmiyorsa**, o kayıt kümede **sonsuza kadar**
+kalır ve liste hiç kapanmaz.
+
+Emsali kayıtta (`/reminders`). **Ve bir liste kapatılamıyorsa insanlar
+ona bakmayı bırakır** — o zaman "yüksek sesle bildir" kazancı da
+"sonradan bulunabilir olsun" şartı da boşa gider.
+
+Kök sebep: **köken** (nereden geldi) ile **doğrulama** (bakıldı mı) iki
+ayrı olgu; birini ötekinin yerine kullanan her çözüm ikisinden birini
+yok ediyor.
+
+Yanına iki kuyruk, ikisi de `value`'dan:
+- **Sessiz atlama tuzağı:** *"aynı değeri seçmek de onaydır"* dersek,
+  *"değişiklik yok, yazma"* optimizasyonu **hiçbir test kırmadan**
+  değişmezi bozar — hekim hepsini onaylar, liste hiç kısalmaz, sebebi
+  ekranda görünmez. **Şart olarak yazılır, "iyileştirme" diye değil.**
+- **41 jest doğru, 41 sayfa değil:** *"karar sayısı satır sayısından
+  bağımsız"* ölçütünün kuyruğu, satır başına bir sayfa yüklemesine
+  dönüşmemeli. Küme bir **rapor** değil, üstünde çalışılan bir **yüzey**
+  olur.
+
+### VARSAYILANI, KANITI HANGİ TARAFIN İSTEYECEĞİNE göre seç
+
+`value` bir mekanizmayı geniş başlatıp *"gürültülü olursa daraltırız"*
+diye yazdı. `ux` kararı değiştirmedi, **yönünü çevirdi**:
+
+> Dar başlayıp genişletmek, geniş başlayıp geri çekilmekten **ucuz**.
+
+Gerekçe gürültüden ağırdı: genel bir listede satır içi denetim, aynı
+tabloda **iki sınıf satır** yaratır ve hekime **güvenilmez bir kural**
+öğretir — hangi satırın üstünde çalışabileceğini satıra bakana kadar
+bilemez. **Görünüm kusuru değil, öğrenilen kuralın kusuru**, ve
+gürültüden farklı olarak **ölçmeden de biliniyor.**
+
+### "HAYIR" KARARLARI DA KARARDIR — gerekçesiz kalırsa unutulmuş sanılır
+
+`value` arama anahtarına hangi alanların gireceğini karara bağlarken üç
+*"hayır"*ı da gerekçesiyle yazdı, ve birinin yanına bir **bağ** koydu:
+notlar ileride aranabilir yapılırsa, o gün kesilen **artık telefon
+numaraları** da bedavaya bulunabilir olacak — *"ikisi bağlı, karar
+kaydına öyle geçsin."*
+
+> **Kural: kapsam dışı bırakılan her şey, bırakılma gerekçesiyle
+> yazılır.** Gerekçesiz bir dışarıda-kalan, bir sonraki okuyucuya
+> **unutulmuş** görünür ve sessizce geri alınır.
+
+**Ve bir "evet"in kanıtı sahadan geldi:** `Pet.color` aranabilir
+olacak, çünkü `vet`'in dosyasında **`"Limon (siyah)"`** yazıyor —
+birisi, aynı adda iki hayvanı ayırmak için **rengi hayvanın adına
+gömmüş.** Kullanıcının verisindeki bir çözüm yolu, üründeki bir eksiğin
+raporudur.
+
 ### Ölçüm noktaları koddan türetilir, cihazdan değil
 
 *"İki nokta bir bandı kapsamaz"* tespitinin yanlış çözümü nokta eklemektir:
