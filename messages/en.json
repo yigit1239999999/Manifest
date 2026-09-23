@@ -473,6 +473,21 @@
       "save": "Save",
       "enabledHint": "Turns booking confirmations and reminders on and off for the whole clinic. It does not affect sending by hand.",
       "disabledNotice": "Off; nothing is sent on its own. You can set the timings now and switch this on later. Sending by hand is not affected by this switch."
+    },
+    "vaccines": {
+      "title": "Vaccine list",
+      "hint": "This decides which vaccines the new-vaccination form proposes, and at what repeat interval.",
+      "onList": "On my list",
+      "interval": "Repeat interval",
+      "intervalHint": "Leave an interval empty and the product looks at your own records first, then at the list. Type a number and it overrules both.",
+      "addTitle": "Your own vaccines",
+      "addName": "Vaccine name",
+      "addSpecies": "Choose a species",
+      "remove": "Clearing the name takes it off the list",
+      "save": "Save vaccine list",
+      "saved": "Vaccine list saved.",
+      "listValue": "list: {interval}",
+      "listAsks": "not on the list"
     }
   },
   "vaccination": {

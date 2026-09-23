@@ -254,3 +254,17 @@ export async function vaccineOffersForPet(
   }
   return { offers, priorDoses };
 }
+
+/**
+ * This clinic's changes to the shipped vaccine list, for the settings
+ * screen. The list itself is code; only the difference is stored.
+ */
+export async function getVaccineSettings(clinicId: string) {
+  const clinic = await prisma.clinic.findUnique({
+    where: { id: clinicId },
+    select: { settings: true },
+  });
+  return normalizeVaccineSettings(
+    ((clinic?.settings ?? {}) as { vaccines?: unknown }).vaccines,
+  );
+}

@@ -44,26 +44,26 @@ import {
  * that the question has no answer anywhere.
  */
 
-export interface VaccineInterval {
+export type VaccineInterval = {
   unit: "week" | "month" | "year";
   value: number;
-}
+};
 
 /** A vaccine this clinic added for itself. */
-export interface ClinicVaccine {
+export type ClinicVaccine = {
   species: string;
   name: string;
   interval?: VaccineInterval;
-}
+};
 
-export interface VaccineSettings {
+export type VaccineSettings = {
   /** Catalogue keys the clinic has taken off its list (ŞART C). */
   hidden: string[];
   /** Per catalogue key, an interval the clinic set by hand. */
   intervals: Record<string, VaccineInterval>;
   /** Entries of the clinic's own. */
   added: ClinicVaccine[];
-}
+};
 
 const UNITS = new Set(["week", "month", "year"]);
 

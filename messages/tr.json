@@ -473,6 +473,21 @@
       "save": "Kaydet",
       "enabledHint": "Randevu onaylarını ve hatırlatmaları klinik genelinde açar veya kapatır. Elle gönderimi etkilemez.",
       "disabledNotice": "Kapalı; hiçbir mesaj kendiliğinden gönderilmez. Ayarları şimdi yapıp bu anahtarı sonra açabilirsiniz. Elle gönderim bu anahtardan etkilenmez."
+    },
+    "vaccines": {
+      "title": "Aşı listesi",
+      "hint": "Yeni aşı formunda hangi aşıların önerileceğini ve tekrar aralıklarını buradan belirlersiniz.",
+      "onList": "Listemde",
+      "interval": "Tekrar aralığı",
+      "intervalHint": "Aralığı boş bırakırsanız ürün önce kendi kayıtlarınıza, kayıt yoksa listeye bakar. Bir sayı yazarsanız o sayı ikisinin de önüne geçer.",
+      "addTitle": "Kendi aşılarınız",
+      "addName": "Aşı adı",
+      "addSpecies": "Tür seçin",
+      "remove": "Adı silerseniz listeden çıkar",
+      "save": "Aşı listesini kaydedin",
+      "saved": "Aşı listesi kaydedildi.",
+      "listValue": "liste: {interval}",
+      "listAsks": "listede yok"
     }
   },
   "vaccination": {

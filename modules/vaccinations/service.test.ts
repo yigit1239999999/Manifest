@@ -4,6 +4,7 @@ vi.mock("@/lib/prisma", () => {
   const prismaMock = {
     vaccination: { create: vi.fn(), findFirst: vi.fn(), delete: vi.fn() },
     pet: { findFirst: vi.fn() },
+    clinic: { findUnique: vi.fn(), update: vi.fn() },
     auditLog: { create: vi.fn() },
   };
   return { prisma: prismaMock };
@@ -11,7 +12,7 @@ vi.mock("@/lib/prisma", () => {
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
-import { createVaccination, deleteVaccination } from "./service";
+import { createVaccination, deleteVaccination, setVaccineSettings } from "./service";
 
 const ctx = {
   clinicId: "clinic-1",
@@ -128,6 +129,51 @@ describe("deleteVaccination", () => {
     expect(prisma.vaccination.delete).toHaveBeenCalledWith({ where: { id: "v-1" } });
     expect(prisma.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: "DELETE", entityType: "Vaccination" }),
+    });
+  });
+});
+
+describe("setVaccineSettings", () => {
+  const admin = { ...ctx, userRole: "ADMIN" };
+
+  it("is settings-manage only, like every other list on that screen", async () => {
+    await expect(
+      setVaccineSettings({ hidden: [], intervals: {}, added: [] }, ctx),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.clinic.update).not.toHaveBeenCalled();
+  });
+
+  it("keeps the clinic's other settings and drops what it cannot read", async () => {
+    // Two rules in one save. The merge is the one every settings writer
+    // here has to get right; the normalisation is why a half-readable
+    // override cannot become a proposed date later.
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({
+      settings: { enabledSpecies: ["DOG"], timezone: "Europe/Istanbul" },
+    } as never);
+    vi.mocked(prisma.clinic.update).mockResolvedValue({} as never);
+
+    await setVaccineSettings(
+      {
+        hidden: ["dog.kennelCough"],
+        intervals: { "dog.rabies": { unit: "fortnight", value: 2 } } as never,
+        added: [{ species: "DOG", name: "Leishmania" }],
+      },
+      admin,
+    );
+
+    expect(prisma.clinic.update).toHaveBeenCalledWith({
+      where: { id: "clinic-1" },
+      data: {
+        settings: {
+          enabledSpecies: ["DOG"],
+          timezone: "Europe/Istanbul",
+          vaccines: {
+            hidden: ["dog.kennelCough"],
+            intervals: {},
+            added: [{ species: "DOG", name: "Leishmania" }],
+          },
+        },
+      },
     });
   });
 });

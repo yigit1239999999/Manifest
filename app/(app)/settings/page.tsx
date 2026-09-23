@@ -21,6 +21,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SpeciesSettingsForm } from "@/components/forms/species-settings-form";
+import { VaccineSettingsForm } from "@/components/forms/vaccine-settings-form";
+import { VACCINE_CATALOGUE } from "@/lib/vaccines";
+import { getVaccineSettings } from "@/modules/vaccinations/queries";
+import { setVaccineSettingsAction } from "@/modules/vaccinations/actions";
 import { CustomSpeciesDeleteButton } from "@/components/custom-species-delete-button";
 import { SpeciesIcon } from "@/components/species-icon";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -38,16 +42,27 @@ export default async function SettingsPage() {
   const session = await requireSession();
   if (!can(session.user.role, "settings.manage")) return <ForbiddenState />;
 
-  const [t, tSpecies, enabled, customs, profile, clinic, invoiceCount] =
-    await Promise.all([
-      getTranslations("settings"),
-      getTranslations("enum.species"),
-      getEnabledSpecies(session.user.clinicId),
-      listCustomSpeciesWithUsage(session.user.clinicId),
-      getClinicMessagingProfile(session.user.clinicId),
-      getClinicSettings(session.user.clinicId),
-      countClinicInvoices(session.user.clinicId),
-    ]);
+  const [
+    t,
+    tSpecies,
+    tVaccination,
+    enabled,
+    customs,
+    profile,
+    clinic,
+    invoiceCount,
+    vaccineSettings,
+  ] = await Promise.all([
+    getTranslations("settings"),
+    getTranslations("enum.species"),
+    getTranslations("vaccination"),
+    getEnabledSpecies(session.user.clinicId),
+    listCustomSpeciesWithUsage(session.user.clinicId),
+    getClinicMessagingProfile(session.user.clinicId),
+    getClinicSettings(session.user.clinicId),
+    countClinicInvoices(session.user.clinicId),
+    getVaccineSettings(session.user.clinicId),
+  ]);
   if (!profile || !clinic) redirect("/");
 
   const channel = profile.notifications.channel;
@@ -101,6 +116,57 @@ export default async function SettingsPage() {
             enabled={enabled}
             saveLabel={t("species.save")}
             savedMessage={t("species.saved")}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("vaccines.title")}</CardTitle>
+          <CardDescription>{t("vaccines.hint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <VaccineSettingsForm
+            action={setVaccineSettingsAction}
+            rows={VACCINE_CATALOGUE.map((vaccine) => ({
+              key: vaccine.key,
+              species: vaccine.species,
+              name: vaccine.name,
+              ...(vaccine.bookName ? { bookName: vaccine.bookName } : {}),
+              shown: !vaccineSettings.hidden.includes(vaccine.key),
+              ...(vaccineSettings.intervals[vaccine.key]
+                ? { override: vaccineSettings.intervals[vaccine.key] }
+                : {}),
+              // What the list would do if this box is left empty, in words.
+              // The vaccine we refuse to date says so here too, rather than
+              // showing an empty box that looks like an oversight.
+              listLabel:
+                vaccine.adult.kind === "every"
+                  ? t("vaccines.listValue", {
+                      interval: tVaccination(`interval.${vaccine.adult.unit}`, {
+                        count: vaccine.adult.value,
+                      }),
+                    })
+                  : t("vaccines.listAsks"),
+            }))}
+            added={vaccineSettings.added}
+            speciesOptions={SPECIES.map((s) => ({ value: s, label: tSpecies(s) }))}
+            unitLabels={{
+              week: tVaccination("interval.week", { count: 1 }),
+              month: tVaccination("interval.month", { count: 1 }),
+              year: tVaccination("interval.year", { count: 1 }),
+            }}
+            labels={{
+              onList: t("vaccines.onList"),
+              interval: t("vaccines.interval"),
+              intervalHint: t("vaccines.intervalHint"),
+              addTitle: t("vaccines.addTitle"),
+              addName: t("vaccines.addName"),
+              addSpecies: t("vaccines.addSpecies"),
+              remove: t("vaccines.remove"),
+              save: t("vaccines.save"),
+              saved: t("vaccines.saved"),
+            }}
           />
         </CardContent>
       </Card>
