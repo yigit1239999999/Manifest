@@ -94,7 +94,13 @@ export function VaccineSettingsForm({
                 className="flex flex-wrap items-center gap-3 rounded-control border border-border bg-card px-3 py-2.5"
               >
                 <input type="hidden" name="catalogueKey" value={row.key} />
-                <label className="flex flex-1 items-center gap-3 text-sm text-foreground">
+                {/* `py-2 -my-2` is the tap target, not decoration: the
+                    label is what a finger hits, and without it the row is
+                    20px tall on a phone -- under the 24px floor
+                    `e2e/touch-targets.spec.ts` holds, which is where this
+                    was measured. The negative margin keeps the row looking
+                    exactly as it did; only the hit area grows. */}
+                <label className="flex flex-1 cursor-pointer items-center gap-3 py-2 -my-2 text-sm text-foreground">
                   <input
                     type="checkbox"
                     name="shown"
