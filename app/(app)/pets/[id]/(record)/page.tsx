@@ -48,7 +48,7 @@ import {
   formatDateTime,
   petAge,
 } from "@/lib/format";
-import { ownerLabel } from "@/lib/pet-label";
+import { ownerLabel, ownerPhone } from "@/lib/pet-label";
 
 export default async function PetPage({
   params,
@@ -278,7 +278,14 @@ export default async function PetPage({
                   // corrected for; the owner's name above is already the
                   // way through to the record where a number is edited.
                   label: tClient("phone"),
-                  value: pet.owner.phone,
+                  // Both lines, because the row is read as "can I reach
+                  // this owner" and a client can be reached on the
+                  // second. Showing only the first told a vet "no
+                  // number" about somebody whose number was on file --
+                  // a wrong fact rather than a missing one, and worse
+                  // than the gap this row was added to close, since a
+                  // dash they trust is a question they do not ask.
+                  value: ownerPhone(pet.owner),
                 },
                 { label: t("breed"), value: pet.breed },
                 { label: t("color"), value: pet.color },

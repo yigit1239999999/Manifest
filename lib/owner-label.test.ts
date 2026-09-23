@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { ownerLabel } from "@/lib/pet-label";
+import { ownerLabel, ownerPhone } from "@/lib/pet-label";
 
 /**
  * A name that is two columns and one fact.
@@ -61,3 +61,55 @@ async function* walk(dir: string): AsyncGenerator<string> {
     else if (/\.tsx?$/.test(entry.name)) yield full;
   }
 }
+
+/**
+ * The number the animal's page prints for an owner.
+ *
+ * This is here because the rule was agreed, reported as done, relayed
+ * as verified -- and never landed. The row shipped reading only
+ * `owner.phone`, so a client reachable on a second line was shown as
+ * having none. Nobody saw it until somebody looked at the screen.
+ *
+ * So it is a test rather than a line: a rule that fell out silently
+ * once will fall out again, and the first time it took a single
+ * commit rather than six months.
+ */
+describe("which of an owner's numbers the animal's page shows", () => {
+  it("prefers the first line", () => {
+    expect(
+      ownerPhone({ phone: "0532 111 22 33", secondaryPhone: "0555 999 88 77" }),
+    ).toBe("0532 111 22 33");
+  });
+
+  it("falls back to the second, which is the case that was wrong", () => {
+    // The defect: this printed nothing, and the page said "-" to a vet
+    // standing in front of the animal.
+    expect(ownerPhone({ phone: null, secondaryPhone: "0555 999 88 77" })).toBe(
+      "0555 999 88 77",
+    );
+  });
+
+  it("says nothing when there is no number", () => {
+    expect(ownerPhone({ phone: null, secondaryPhone: null })).toBeNull();
+  });
+
+  it("does not widen to anything that is not a phone", () => {
+    // The row answers "has this owner a PHONE", so an e-mail does not
+    // make it answer yes. Written down because the fix for a row that
+    // says too little is tempting to overshoot (value).
+    expect(
+      ownerPhone({ phone: null, secondaryPhone: null, email: "a@b.c" } as {
+        phone: null;
+        secondaryPhone: null;
+      }),
+    ).toBeNull();
+  });
+
+  it("treats a blank string as no number, not as an empty one", () => {
+    // `??` would hand "" straight through and the page would print a
+    // number with no digits in it.
+    expect(ownerPhone({ phone: "   ", secondaryPhone: "0555 999 88 77" })).toBe(
+      "0555 999 88 77",
+    );
+  });
+});

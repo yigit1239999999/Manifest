@@ -62,6 +62,32 @@ export function ownerLabel(owner: {
 }
 
 /**
+ * The number to show for an owner, which is not the same as
+ * `owner.phone`.
+ *
+ * A client can be reached on a second line, and a screen that reads
+ * only the first one tells the vet "no number" about somebody whose
+ * number is on file. That is not a gap, it is a wrong fact, and it is
+ * worse than the gap it was meant to close: the animal's page shows
+ * this so the vet knows whether to ask, and a dash they trust stops
+ * them asking (pm found it on a client with only a second line).
+ *
+ * Empty strings count as missing, not as an answer. The schema nulls
+ * blank input, but a "" arriving from anywhere would be handed
+ * straight through by `??` and printed as a number with no digits.
+ *
+ * What it does NOT do is widen: if both lines are blank the answer is
+ * still nothing, even when the client has an e-mail. The row says
+ * whether this owner has a PHONE (value).
+ */
+export function ownerPhone(owner: {
+  phone?: string | null;
+  secondaryPhone?: string | null;
+}): string | null {
+  return owner.phone?.trim() || owner.secondaryPhone?.trim() || null;
+}
+
+/**
  * The picker row, which is a different job from `petLabel` above and is
  * kept apart on purpose.
  *
