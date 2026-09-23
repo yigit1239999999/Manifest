@@ -328,6 +328,25 @@ test.describe("First run", () => {
     await expect(firstStep).toHaveAttribute("href", "/pets/new");
   });
 
+  // The bound the test above was assumed to be holding and was not.
+  //
+  // It reads the card's own link by name and asserts where it goes, so
+  // a second call to action landing beside it -- "set up reminders",
+  // "invite your staff", a tour -- passes untouched. The thing the
+  // design actually promises is that a clinic with nothing in it is
+  // asked for exactly one thing, and that is a count, not an href (ux).
+  //
+  // Counted inside `main`, so the eleven sidebar entries and the topbar
+  // are out of scope: the question is what the CONTENT area asks for.
+  test("an empty clinic is asked for exactly one thing", async ({ page }) => {
+    await signUp(page, Date.now());
+    await page.goto("/");
+
+    const main = page.getByRole("main");
+    await expect(main.getByRole("link")).toHaveCount(1);
+    await expect(main.getByRole("button")).toHaveCount(0);
+  });
+
   // 390px, because the dashboard's chart card produced 140px of sideways
   // scroll at this width and nobody had looked. The card added above it is
   // a sentence and a button in a row, which is exactly the shape that

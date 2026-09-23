@@ -133,7 +133,34 @@ const STEPS = {
 // none for them.
 const WAITING = "waiting";
 
-export async function FirstStepCard({ need }: { need: keyof typeof STEPS }) {
+export async function FirstStepCard({
+  need,
+  size,
+}: {
+  need: keyof typeof STEPS;
+  /**
+   * How much of the screen this card is.
+   *
+   * Two call sites and two different jobs, which is why the caller says
+   * it rather than the component guessing from `need`.
+   *
+   * `page` is the first-run dashboard, where this card is the ONLY
+   * thing anyone can act on. It is the subject of the screen: the
+   * heaviest text in the content area, its button directly under its
+   * own sentence.
+   *
+   * `inline` is every later dashboard, where the card sits above six
+   * counter tiles, two charts and four lists. Here it is read on the
+   * way past, and the shape is deliberately a line and a button --
+   * given the other one it would outweigh the page it introduces.
+   * That trade is recorded at the top of this file and is the reason
+   * this prop exists instead of one card growing for everybody.
+   *
+   * Required rather than defaulted: a third caller picking a size by
+   * accident is exactly the mistake the two sentences above are about.
+   */
+  size: "page" | "inline";
+}) {
   const session = await requireSession();
 
   // One fall-back, and only from the visit ask: somebody who cannot
@@ -157,8 +184,24 @@ export async function FirstStepCard({ need }: { need: keyof typeof STEPS }) {
   const namespace = reachable ? resolved : WAITING;
   const label = reachable ? tAction("new") : null;
 
+  // Vertical on the first-run screen, and this is a trap rather than a
+  // taste: a `text-lg` heading and an `h-10` button in one
+  // `flex items-center` row leave the taller child setting the row, and
+  // the row's height stops matching the block beside it -- the same
+  // failure `field.tsx` records for its required `*`, which pm measured
+  // as +8/+12px of drift. Stacking removes the question, and it is what
+  // the criterion asks for anyway: the button belongs under the sentence
+  // that explains it, not 1100px to its right (ui).
+  const page = size === "page";
+
   return (
-    <Card className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card
+      className={
+        page
+          ? "flex flex-col items-start gap-5 p-6"
+          : "flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+      }
+    >
       {/* Two lines and not one paragraph, and the reason is weight
           rather than length (ux). The first says what to do; the second
           says what will happen on the way. Run together they are read at
@@ -171,12 +214,36 @@ export async function FirstStepCard({ need }: { need: keyof typeof STEPS }) {
 
           `min-w-0` so the longer of the two catalogues wraps inside the
           card instead of pushing the button off a 390px screen. */}
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <p className="text-sm text-foreground">{t(`${namespace}.title`)}</p>
+      <div className="flex min-w-0 flex-col gap-1">
+        {/* The ask carries the weight of the screen it is on. It used to
+            be `text-sm` with no weight at all, while the example block
+            beside it drew its four lines at `font-medium` -- so the one
+            thing the product wanted was the lightest text in the content
+            area. Third time this inversion has been found in two days,
+            and the rule it produced: on any screen the primary ask may
+            not be drawn lighter than any secondary text near it (ui).
+
+            Under the greeting's `text-2xl`, not level with it. The card
+            is what to do; the `h1` is whose screen this is.
+
+            Unchanged in `inline`, where the card is not the subject and
+            the tiles below it are. */}
+        <p
+          className={
+            page
+              ? "text-lg font-semibold tracking-tight text-foreground"
+              : "text-sm text-foreground"
+          }
+        >
+          {t(`${namespace}.title`)}
+        </p>
         <p className="text-sm text-muted-foreground">{t(`${namespace}.hint`)}</p>
       </div>
       {label !== null && (
-        <Link href={step.href} className={cn(buttonVariants(), "shrink-0")}>
+        <Link
+          href={step.href}
+          className={cn(buttonVariants({ size: page ? "lg" : "md" }), "shrink-0")}
+        >
           {label}
         </Link>
       )}

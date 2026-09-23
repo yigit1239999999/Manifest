@@ -14,9 +14,13 @@ vi.mock("@/lib/session", () => ({ requireSession: async () => session }));
 
 import { FirstStepCard } from "@/components/first-step-card";
 
-async function renderAs(role: string, need: "visit" | "client" | "pet") {
+async function renderAs(
+  role: string,
+  need: "visit" | "client" | "pet",
+  size: "page" | "inline" = "inline",
+) {
   session.user.role = role;
-  const { container } = render(await FirstStepCard({ need }));
+  const { container } = render(await FirstStepCard({ need, size }));
   return container;
 }
 
@@ -126,5 +130,68 @@ describe("the first ask of an empty clinic", () => {
     expect(container.textContent).toContain(tr.dashboard.firstStep.client.title);
     expect(container.textContent).toContain(tr.dashboard.firstStep.client.hint);
     expect(container.querySelector("a")).toHaveAttribute("href", "/clients/new");
+  });
+});
+
+/**
+ * The two shapes this card has, and why one component has both.
+ *
+ * On the first-run screen it is the only thing anyone can act on, so it
+ * is the subject: the heaviest text in the content area, its button
+ * under its own sentence. On every later dashboard it is read on the
+ * way past, above six counter tiles and four lists, and the same shape
+ * would outweigh the page it introduces -- which is the trade written
+ * at the top of the component and the reason the caller chooses.
+ *
+ * Held here because the first shape was invented to fix an inversion
+ * that had already happened three times in two days: the one thing the
+ * product was asking for was drawn lighter than the example text beside
+ * it. A rule that has been broken three times does not survive on being
+ * written down.
+ */
+describe("the two shapes of the card", () => {
+  const ask = (container: HTMLElement) =>
+    container.querySelectorAll("p")[0] as HTMLElement;
+  const hint = (container: HTMLElement) =>
+    container.querySelectorAll("p")[1] as HTMLElement;
+
+  it("gives the ask weight when the card is the screen", async () => {
+    const container = await renderAs("VETERINARIAN", "visit", "page");
+
+    // Heavier than the sentence under it, and by weight rather than by
+    // colour alone -- the two used to differ only in `--muted-fg`.
+    expect(ask(container).className).toContain("font-semibold");
+    expect(hint(container).className).not.toMatch(/font-(semibold|bold)/);
+
+    // And still under the greeting. The `h1` on that screen is
+    // `text-2xl`: the card says what to do, the heading says whose
+    // screen this is, and levelling them loses that.
+    expect(ask(container).className).toContain("text-lg");
+    expect(ask(container).className).not.toContain("text-2xl");
+  });
+
+  it("keeps the button under the sentence it belongs to", async () => {
+    const container = await renderAs("VETERINARIAN", "visit", "page");
+    const card = container.firstElementChild as HTMLElement;
+
+    // Two things at once, and they are the same class. The row form put
+    // the button ~1100px from its own sentence at 1280px; and a
+    // `text-lg` heading beside an `h-10` button in one
+    // `flex items-center` row lets the taller child set the row, which
+    // is the drift `field.tsx` records for its required `*`.
+    expect(card.className).not.toContain("sm:flex-row");
+    expect(card.className).toContain("flex-col");
+  });
+
+  it("leaves the later dashboard exactly as it was", async () => {
+    const container = await renderAs("VETERINARIAN", "pet", "inline");
+    const card = container.firstElementChild as HTMLElement;
+
+    // The second call site is not in this change's scope, and this is
+    // what says so out loud: a line and a button in a row, the ask at
+    // the same size as its hint.
+    expect(ask(container).className).toContain("text-sm");
+    expect(ask(container).className).not.toMatch(/font-(semibold|bold)/);
+    expect(card.className).toContain("sm:flex-row");
   });
 });

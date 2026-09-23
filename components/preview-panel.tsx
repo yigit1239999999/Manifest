@@ -3,8 +3,27 @@ import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
 
 /**
- * Where the first visit leads, on a dashboard that has nothing in it
- * yet.
+ * Where the first visit leads.
+ *
+ * NOTHING RENDERS THIS TODAY, and that is a decision rather than an
+ * oversight -- read this before deleting it as dead code. It was on the
+ * first-run dashboard until ui measured that screen: the block was the
+ * largest object on it (226px against the card's 76px), nothing in it
+ * could be clicked, and it answered a question nobody had asked yet.
+ * Four links about invoices, appointments and reminders mean little to
+ * a clinic that has no animal on file. The screen now asks for the one
+ * thing it wants, and this moves to the moment the chain becomes true:
+ * after the first visit is saved. That move is its own task and is
+ * owned by ux; it is not written yet, so this file and its ten guards
+ * wait here rather than being deleted and argued for again later.
+ *
+ * `preview-panel.test.tsx` still renders it directly, so every one of
+ * those guards is live. If the move is abandoned, the component and the
+ * tests go together and the reasons in both are answered one by one --
+ * a guard deleted along with its component is a price quietly refunded
+ * (ux).
+ *
+ * What it was written for, on a dashboard that has nothing in it yet:
  *
  * A clinic on its first morning otherwise reads a grid of zeroes and a
  * column of "nothing yet" sentences: a page that works perfectly and

@@ -17,12 +17,10 @@ import { requireSession } from "@/lib/session";
 import { dashboardInsights } from "@/modules/dashboard/queries";
 import { blockedReminders } from "@/modules/notifications/queries";
 import { unreadDiagnostics } from "@/modules/diagnostics/queries";
-import { getClinicSettings } from "@/modules/clinics/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
 import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
 import { FirstStepCard } from "@/components/first-step-card";
-import { PreviewPanel } from "@/components/preview-panel";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -54,7 +52,6 @@ export default async function DashboardPage() {
     insights,
     blocked,
     unread,
-    clinicSettings,
     currency,
     fmt,
   ] = await Promise.all([
@@ -71,9 +68,6 @@ export default async function DashboardPage() {
       // Rows, not just a number: one link cannot take a vet to three
       // results, and the job finishes where each result's text is.
       unreadDiagnostics(session.user.clinicId),
-      // Only the first-run header says the clinic's name; the query is
-      // request-cached and the layout has already asked for it.
-      getClinicSettings(session.user.clinicId),
       getClinicCurrency(session.user.clinicId),
       getFormatContext(),
     ]);
@@ -231,8 +225,6 @@ export default async function DashboardPage() {
   //
   // Read from counts the page already has, so a clinic past this asks
   // the database nothing extra to be told nothing.
-  const clinicName = clinicSettings?.name ?? "";
-
   const firstRun =
     insights.counts.clients === 0 &&
     insights.counts.pets === 0 &&
@@ -241,11 +233,19 @@ export default async function DashboardPage() {
   if (firstRun) {
     return (
       <div className="flex flex-col gap-8">
-        {/* Not `subtitle` ("today's summary"), which is a lie on day
-            zero. The key stays for the other states. */}
+        {/* No description, and `subtitle` ("today's summary") was never
+            it either -- that one is a lie on day zero and the key stays
+            for the other states.
+
+            `readyFor` used to sit here saying the panel would start
+            filling with the first record. It was half of a repetition:
+            the example block below said the same thing in its own
+            words, and when that block left this screen the sentence was
+            the only line still talking about what WILL happen. The
+            screen now asks for something instead of describing what
+            follows (ui). The key is untouched and so is `PageHeader`. */}
         <PageHeader
           title={t("greeting", { name: firstName(session.user.name ?? "") })}
-          description={t("readyFor", { clinic: clinicName })}
         />
 
         {/* The one fully present thing on the screen: full contrast,
@@ -257,18 +257,7 @@ export default async function DashboardPage() {
             the thing it came to do, and the owner and animal it needs
             get made on the way there. The card falls back to the
             client ask by itself for anyone who cannot write a visit. */}
-        <FirstStepCard need="visit" />
-
-        {/* Outside the two-column grid below on purpose -- that grid is
-            where a 140px overflow was measured at 390px -- and set off
-            by its own space. The sentence that used to sit here, centred
-            above the panel, is now the panel's first line: ux moved it
-            inside the frame so that what the block is and the fact that
-            it is an example are said once, in the place they are about,
-            rather than split between a caption and a badge. */}
-        <div className="mt-4">
-          <PreviewPanel />
-        </div>
+        <FirstStepCard need="visit" size="page" />
       </div>
     );
   }
@@ -280,7 +269,7 @@ export default async function DashboardPage() {
         description={t("subtitle")}
       />
 
-      {firstStep && <FirstStepCard need={firstStep} />}
+      {firstStep && <FirstStepCard need={firstStep} size="inline" />}
 
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
         {metrics.map(({ key, icon: Icon, value, href, hint }) => (
