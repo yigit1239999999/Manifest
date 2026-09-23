@@ -163,7 +163,7 @@ test.describe("Clinic time zone", () => {
 
     // The heading, the details row and the message all say 11:30.
     await expect(page.getByText("11:30").first()).toBeVisible();
-    await page.getByText(/view message/i).first().click();
+    await page.getByText(/view message|mesajı görüntüle/i).first().click();
     await expect(page.getByText(/11:30/).nth(1)).toBeVisible();
     await expect(page.getByText(/08:30/)).toHaveCount(0);
   });
@@ -188,11 +188,25 @@ test.describe("Saving without leaving the page", () => {
     // leaves the open list and is found under "Closed"; reopened, it comes
     // back. Each step is a server action followed by a client refresh
     // (components/forms/use-refresh-action.ts).
+    // The separator is read from the product rather than guessed: the
+    // accessible name is `common.actionFor` = "{action}: {subject}", so it
+    // is a colon and a space in both languages.
+    //
+    // It used to be `\b` after the alternation, and that could never match
+    // the Turkish label: `\b` is defined on [A-Za-z0-9_], and "geri aç"
+    // ends in `ç`, which is not in that class, so there is no boundary to
+    // find. "Tamam" happened to work, which is why only one of the two
+    // fell. Same family as the `İ` trap -- a pattern that reads as
+    // bilingual and is not.
+    //
+    // (My first fix guessed `[\s·]` for the separator and broke the half
+    // that had been passing. Reading `actionFor` would have taken less
+    // time than the run that caught it.)
     const done = page.getByRole("button", {
-      name: /^(mark done|tamam)\b.*rabies booster due/i,
+      name: /^(mark done|tamam): .*rabies booster due/i,
     });
     const reopen = page.getByRole("button", {
-      name: /^(reopen|geri aç)\b.*rabies booster due/i,
+      name: /^(reopen|geri aç): .*rabies booster due/i,
     });
     await done.click();
     await expect(done).toBeHidden();
