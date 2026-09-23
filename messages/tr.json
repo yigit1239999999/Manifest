@@ -586,7 +586,7 @@
     "acknowledge": "Tamam",
     "dismiss": "Kapat",
     "reopen": "Geri aç",
-    "emptyHint": "Oluşturduğunuz hatırlatmalar (aşı zamanı, kontrol, takip) siz kapatana kadar burada listelenir.",
+    "emptyHint": "Hatırlatma bir müşteriye açılır; oluşturduklarınız (aşı zamanı, kontrol, takip) siz kapatana kadar burada listelenir.",
     "statusFilter": "Durum",
     "filterOpen": "Açık",
     "filterBlocked": "Ulaşmayacak",

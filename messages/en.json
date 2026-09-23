@@ -586,7 +586,7 @@
     "acknowledge": "Mark done",
     "dismiss": "Dismiss",
     "reopen": "Reopen",
-    "emptyHint": "Reminders you create (vaccination due, check-up, follow-up) are listed here until you close them.",
+    "emptyHint": "A reminder is opened on a client; the ones you create (vaccination due, check-up, follow-up) are listed here until you close them.",
     "statusFilter": "Status",
     "filterOpen": "Open",
     "filterBlocked": "Will not reach",
