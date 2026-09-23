@@ -400,6 +400,10 @@ export function ImportMapper() {
           mapping={chosenMapping}
           dateOrders={dateOrders}
           blocked={unanswered > 0 || openDateQuestions > 0}
+          // The saving step refuses and hands the reason back up here: the
+          // unanswered cards say so themselves, which is where the vet can
+          // actually do something about it.
+          onBlocked={() => setShowUnanswered(true)}
         />
       )}
     </div>

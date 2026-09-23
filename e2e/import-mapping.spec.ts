@@ -156,6 +156,101 @@ test.describe("Importing a spreadsheet", () => {
   });
 
   /**
+   * The promise the screen makes when it refuses, which had no test at all.
+   *
+   * `:161` used to hold the neighbouring promise -- "do not show a button
+   * you cannot honour" -- with `toHaveCount(0)` over /import|aktar/. The
+   * product can honour it now, so that assertion had to go; what replaced
+   * it has to be the promise that TOOK ITS PLACE, or the screen keeps a
+   * word nobody checks. The refusal is now two-sided (the screen declines
+   * and the endpoint declines), and until this test neither side was
+   * walked: the journey below answers every question first, so it never
+   * reaches the branch.
+   *
+   * And no button on this screen is disabled, deliberately. A disabled
+   * button does not say what is in the way; this one is pressed, says no,
+   * and points at the cards that are still open.
+   */
+  test("asked before its questions are answered, it refuses and says why", async ({ page }) => {
+    const main = await openImport(page);
+    await main.locator('input[type="file"]').setInputFiles(file("header-row-is-names.xlsx"));
+    await main.getByRole("radio").first().check();
+
+    // Every column left exactly as the screen offered it: the two that ask
+    // are still unanswered.
+    await main
+      .getByRole("button", { name: /show what will happen|ne olacağını gösterin/i })
+      .click();
+
+    await expect(
+      main.getByText(
+        /answer the column and date questions first|sütun ve tarih sorularını cevaplayın/i,
+      ),
+    ).toBeVisible();
+    // And the cards themselves now say which ones, which is the half the
+    // vet can act on.
+    await expect(
+      main
+        .getByText(/no field has been chosen for this column|bu sütun için bir alan seçilmedi/i)
+        .first(),
+    ).toBeVisible();
+
+    // Nothing was planned, so nothing could have been written.
+    await page.goto("/clients");
+    await expect(page.getByText("Ayşe Yılmaz")).toHaveCount(0);
+  });
+
+  /**
+   * The other half of the refusal: a question the plan itself raises.
+   *
+   * Reached by importing the file once WITH its phone column and then
+   * offering the same file again WITHOUT it. The second run's "Ayşe
+   * Yılmaz" has no number to confirm her against the one already on file,
+   * which is exactly the case the product refuses to decide -- a wrong
+   * merge puts one family's animals in another family's file, and the vet
+   * would never see it.
+   */
+  test("will not merge a name it cannot confirm, and says so when asked to save", async ({
+    page,
+  }) => {
+    const main = await openImport(page);
+    await main.locator('input[type="file"]').setInputFiles(file("header-row-is-names.xlsx"));
+    await main.getByRole("radio").first().check();
+    await page.locator("#import-column-0").selectOption("pet.name");
+    await page.locator("#import-column-1").selectOption("client.firstName");
+    await page.locator("#import-column-2").selectOption("client.phone");
+    await main
+      .getByRole("button", { name: /show what will happen|ne olacağını gösterin/i })
+      .click();
+    await main.getByRole("button", { name: /^(save|kaydedin)$/i }).click();
+    await expect(main.getByText(/^(Imported|İçe aktarıldı)$/)).toBeVisible();
+
+    // The same file again, with the number thrown away this time.
+    await page.goto("/import");
+    const second = page.locator("main");
+    await second.locator('input[type="file"]').setInputFiles(file("header-row-is-names.xlsx"));
+    await second.getByRole("radio").first().check();
+    await page.locator("#import-column-0").selectOption("pet.name");
+    await page.locator("#import-column-1").selectOption("client.firstName");
+    await page.locator("#import-column-2").selectOption("skip");
+    await second
+      .getByRole("button", { name: /show what will happen|ne olacağını gösterin/i })
+      .click();
+
+    await expect(
+      second.getByText(/possibly the same person|aynı kişi olabilir/i),
+    ).toBeVisible();
+
+    await second.getByRole("button", { name: /^(save|kaydedin)$/i }).click();
+    await expect(
+      second.getByText(/answer the questions above first|yukarıdaki soruları cevaplayın/i),
+    ).toBeVisible();
+    // Refused, so the clinic still has exactly the two people it had.
+    await page.goto("/clients");
+    await expect(page.getByText("Ayşe Yılmaz")).toHaveCount(1);
+  });
+
+  /**
    * The whole point of the feature, walked end to end: the rows the vet is
    * looking at become records, and the records can be taken back.
    *

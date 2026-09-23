@@ -58,6 +58,7 @@ export function ImportCommit({
   mapping,
   dateOrders,
   blocked,
+  onBlocked,
 }: {
   /** The chosen sheet's rows, as text, exactly as the workbook had them. */
   rows: string[][];
@@ -68,6 +69,12 @@ export function ImportCommit({
   dateOrders: Record<number, "dayFirst" | "monthFirst">;
   /** True while the mapping screen still has a question of its own open. */
   blocked: boolean;
+  /**
+   * Called when the vet asks for something this step cannot do yet, so the
+   * mapping screen can show ITS unanswered questions. The button says no and
+   * points at the reason in one press; see the note on the buttons below.
+   */
+  onBlocked: () => void;
 }) {
   const t = useTranslations("import");
   const tSpecies = useTranslations("enum.species");
@@ -80,6 +87,18 @@ export function ImportCommit({
   const [undone, setUndone] = React.useState<UndoResult | null>(null);
   const [undoFailed, setUndoFailed] = React.useState(false);
   const [undoing, startUndo] = React.useTransition();
+  /**
+   * Why no button here is ever disabled.
+   *
+   * A disabled button does not say why it is disabled, and this screen has
+   * two different reasons -- an unanswered column up on the mapping screen,
+   * and an unanswered "same person?" down here. The house rule (the
+   * "Continue" button one card up does the same thing) is: the button is
+   * always pressable, and pressing it either does the work or SHOWS WHAT IS
+   * IN THE WAY. These two flags are what turns the press into the answer.
+   */
+  const [askedWhileBlocked, setAskedWhileBlocked] = React.useState(false);
+  const [askedWithQuestions, setAskedWithQuestions] = React.useState(false);
 
   const answers = React.useMemo(
     () => ({ fileName, sheetIndex, headerRow, mapping, dateOrders }),
@@ -126,6 +145,28 @@ export function ImportCommit({
     // The counts on screen are about to be wrong, so they are re-asked
     // rather than left to be read as if they still held.
     void plan(next);
+  }
+
+  function requestPlan() {
+    if (blocked) {
+      setAskedWhileBlocked(true);
+      onBlocked();
+      return;
+    }
+    void plan(duplicates);
+  }
+
+  function requestSave(summary: PlanSummary) {
+    if (blocked) {
+      setAskedWhileBlocked(true);
+      onBlocked();
+      return;
+    }
+    if (summary.questions.some((q) => !duplicates[q.key])) {
+      setAskedWithQuestions(true);
+      return;
+    }
+    void save(summary);
   }
 
   async function save(summary: PlanSummary) {
@@ -227,7 +268,9 @@ export function ImportCommit({
         <CardTitle>{t("commitTitle")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {blocked && <Callout variant="warning">{t("commitBlockedMapping")}</Callout>}
+        {askedWhileBlocked && blocked && (
+          <Callout variant="warning">{t("commitBlockedMapping")}</Callout>
+        )}
 
         {phase.kind !== "planning" && !summary && (
           <Button
@@ -235,8 +278,7 @@ export function ImportCommit({
             variant="secondary"
             size="sm"
             className="self-start"
-            disabled={blocked}
-            onClick={() => void plan(duplicates)}
+            onClick={requestPlan}
           >
             {t("planButton")}
           </Button>
@@ -451,15 +493,17 @@ export function ImportCommit({
               </section>
             )}
 
-            {openQuestions > 0 && <Callout variant="warning">{t("commitBlocked")}</Callout>}
+            {askedWithQuestions && openQuestions > 0 && (
+              <Callout variant="warning">{t("commitBlocked")}</Callout>
+            )}
             {phase.kind === "saveFailed" && (
               <Callout variant="danger">{t("commitFailed")}</Callout>
             )}
             <Button
               type="button"
               className="self-start"
-              disabled={openQuestions > 0 || phase.kind === "saving" || blocked}
-              onClick={() => void save(summary)}
+              disabled={phase.kind === "saving"}
+              onClick={() => requestSave(summary)}
             >
               {phase.kind === "saving" ? t("committing") : t("commitButton")}
             </Button>
