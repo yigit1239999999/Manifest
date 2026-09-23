@@ -62,3 +62,6 @@ MEASURING
 
 # Agent scratch scripts: screenshots, one-off probes. Never part of the product.
 *-tmp.mjs
+
+# Tek koşucu kilidi: scripts/e2e.sh koşarken var olur, bitince silinir.
+E2E_RUNNING
