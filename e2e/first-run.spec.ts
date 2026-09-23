@@ -423,6 +423,20 @@ test.describe("First run", () => {
     // Counting the set pm counts is still what fixes it, for the reason
     // that survives: whichever markup the ask is made of, both tools
     // read the same number, so they cannot disagree about the rule.
+    // If you are reading this because the line below went red, check
+    // whether a second e2e suite was running before you touch the
+    // locator. This test read 2 in two full-suite runs while another
+    // agent's suite was running against the same `next dev` and the
+    // same database, and could not be made to read anything but 1
+    // alone -- file run, probe, and two uncontended full suites
+    // (35/35, tree hashes identical before and after).
+    //
+    // The cause was NOT found, and that is the useful half: what was
+    // ruled out is a second ask in the card or the page's empty branch
+    // (that turns `:298` red too, measured, and `:298` stayed green
+    // both times) and the route's skeleton (it holds no link and no
+    // button). Whatever lands in `main` comes from somewhere else and
+    // needs a concurrent suite to appear at all (team-lead).
     const main = page.getByRole("main");
     const asks = main.locator(
       'a[href], button[type="submit"], button:not([type])',
