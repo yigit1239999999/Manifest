@@ -21,7 +21,7 @@ test.describe("Auth", () => {
     await page.goto("/sign-up");
     await page.getByLabel(/clinic name|klinik adı/i).fill(`Clinic ${stamp}`);
     await page.getByLabel(/your name|adın/i).fill("E2E Tester");
-    await page.getByLabel(/^email$/i).fill(email);
+    await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(email);
     await page.getByLabel(/^password|^şifre/i).fill(password);
     await page
       .getByRole("button", { name: /create account|hesap oluştur/i })
@@ -36,7 +36,7 @@ test.describe("Auth", () => {
     await page.getByRole("button", { name: /sign out|çıkış/i }).click();
     await expect(page).toHaveURL(/\/sign-in/);
 
-    await page.getByLabel(/^email$/i).fill(email);
+    await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(email);
     await page.getByLabel(/^password|^şifre/i).fill(password);
     await page.getByRole("button", { name: /sign in|giriş/i }).click();
     await expect(page).toHaveURL("/");

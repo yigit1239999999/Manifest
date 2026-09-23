@@ -4,7 +4,7 @@ async function signUp(page: import("@playwright/test").Page, stamp: number) {
   await page.goto("/sign-up");
   await page.getByLabel(/clinic name|klinik adı/i).fill(`Clinic ${stamp}`);
   await page.getByLabel(/your name|adın/i).fill("E2E Tester");
-  await page.getByLabel(/^email$/i).fill(`e2e+${stamp}@pettrack.test`);
+  await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(`e2e+${stamp}@pettrack.test`);
   await page.getByLabel(/^password|^şifre/i).fill("supersecret123");
   await page
     .getByRole("button", { name: /create account|hesap oluştur/i })
@@ -32,7 +32,7 @@ test.describe("Clients", () => {
     // The email lives behind the fold now: nine fields a counter does
     // not stop for while somebody is standing there.
     await page.getByText(/optional details|[İi]steğe bağlı detaylar/i).click();
-    await page.getByLabel(/^email$/i).fill("jamie@example.com");
+    await page.getByLabel(/^e-?mail$|^e-posta$/i).fill("jamie@example.com");
     await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
 
     await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);

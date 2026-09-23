@@ -32,6 +32,17 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    // Which language the product answers in, and therefore which half of
+    // every bilingual locator is doing the work. Unset by default, so the
+    // browser's own `Accept-Language` decides and the suite runs in
+    // English as it always has.
+    //
+    // `E2E_LOCALE=tr` exists because the natural cure for a dead Turkish
+    // locator leg -- run the suite in Turkish -- was not runnable at all:
+    // there was no way to ask for it. A cure nobody can execute is not a
+    // cure. `i18n/request.ts` reads `accept-language`, which is what
+    // Playwright's `locale` sets.
+    locale: process.env.E2E_LOCALE || undefined,
   },
   projects: [
     {

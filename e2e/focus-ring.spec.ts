@@ -54,7 +54,7 @@ async function signUp(page: Page, stamp: number) {
   await page.goto("/sign-up");
   await page.getByLabel(/clinic name|klinik adı/i).fill(`Clinic ${stamp}`);
   await page.getByLabel(/your name|adın/i).fill("E2E Tester");
-  await page.getByLabel(/^email$/i).fill(`e2e+${stamp}@pettrack.test`);
+  await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(`e2e+${stamp}@pettrack.test`);
   await page.getByLabel(/^password|^şifre/i).fill("supersecret123");
   await page
     .getByRole("button", { name: /create account|hesap oluştur/i })
