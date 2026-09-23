@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { fold } from "@/lib/search";
 import { intervalOf, type IntervalSuggestion } from "@/lib/vaccination-interval";
 
 export async function listVaccinationsForPet(
@@ -147,7 +148,16 @@ export async function vaccinationIntervalSuggestions(
   const byName = new Map<string, { name: string; days: number }[]>();
   for (const row of rows) {
     if (!row.nextDueAt) continue;
-    const key = row.name.trim().toLowerCase();
+    // Folded, not lower-cased, and the difference is a whole feature. The
+    // shipped catalogue (`lib/vaccines.ts`) matches names with `fold()`, so
+    // a key made with `toLowerCase()` agrees with it on "kuduz" and
+    // disagrees on "köpek öksürüğü" -- the clinic's own measured interval
+    // would reach the list for some vaccines and not for others, with
+    // nothing on screen to say which. Two definitions of "the same name" is
+    // the defect this repo has now closed three times.
+    // Trimmed before folding: `fold` normalises letters, not whitespace,
+    // and "Kuduz " typed with a stray space is the same vaccine.
+    const key = fold(row.name.trim());
     if (!key) continue;
     const bucket = byName.get(key) ?? [];
     if (bucket.length >= SUGGESTION_WINDOW) continue;

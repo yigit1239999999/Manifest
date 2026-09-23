@@ -509,21 +509,57 @@ model Visit {
 // Vaccinations
 // ===========================================================================
 
+/// Where a next-due interval came from. See `Vaccination.nextDueSource`.
+enum DueSource {
+  /// Measured from this clinic's own records for this vaccine and species.
+  HISTORY
+  /// The list the product ships with (`lib/vaccines.ts`).
+  LIST
+  /// Typed by a person, agreeing with neither or asked for by the list.
+  MANUAL
+}
+
 model Vaccination {
-  id               String    @id @default(cuid())
+  id               String     @id @default(cuid())
   clinicId         String
-  clinic           Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic           Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   petId            String
-  pet              Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  pet              Pet        @relation(fields: [petId], references: [id], onDelete: Cascade)
   visitId          String?
-  visit            Visit?    @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  visit            Visit?     @relation(fields: [visitId], references: [id], onDelete: SetNull)
   administeredById String?
-  administeredBy   User?     @relation("VaccinationBy", fields: [administeredById], references: [id], onDelete: SetNull)
+  administeredBy   User?      @relation("VaccinationBy", fields: [administeredById], references: [id], onDelete: SetNull)
   name             String
   manufacturer     String?
   lotNumber        String?
-  administeredAt   DateTime  @default(now())
+  administeredAt   DateTime   @default(now())
   nextDueAt        DateTime?
+  /// Where the interval behind `nextDueAt` came from, so the screen can
+  /// say it out loud. Null when there is no next date, or when the row
+  /// predates this column -- and those two are both "we do not know",
+  /// which is why nothing is back-filled.
+  ///
+  /// The distinction is the point of the field: an interval this clinic
+  /// has measured for itself and one the product shipped are not the
+  /// same claim, and showing them identically is how a default becomes
+  /// a medical fact nobody stated (#37, and TEAM.md #14).
+  nextDueSource    DueSource?
+  /// Which dose of the starting series this is, 1-based, and how many
+  /// the series had when it was written.
+  ///
+  /// The vet's most expensive problem, in their words: "Karma üç doz,
+  /// sahibi ikinci dozdan sonra kayboluyor, üç ay sonra geliyor. O an
+  /// sorduğum şey 'en son ne zaman' değil, 'kaçıncı dozdaydık'. Emin
+  /// olamayınca baştan başlatıyorum, sahibi de boşuna para veriyor."
+  /// `nextDueAt` cannot answer that: one date says when, never which.
+  ///
+  /// `seriesOf` is a SNAPSHOT rather than a lookup. A record says what
+  /// was believed when it was written; if the catalogue later says four
+  /// doses, a dose recorded as 2/3 stays 2/3, because that is what the
+  /// vet was told on the day. Reading the current catalogue instead
+  /// would silently restate history.
+  doseNumber       Int?
+  seriesOf         Int?
   /// Set when somebody closes this overdue row on the dashboard.
   ///
   /// It closes the ROW, not the animal: `Pet.archivedAt` is untouched,
@@ -542,8 +578,8 @@ model Vaccination {
   dueDismissedAt   DateTime?
   site             String?
   notes            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   @@index([clinicId, petId, administeredAt])
   @@index([clinicId, nextDueAt])

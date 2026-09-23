@@ -85,10 +85,18 @@ describe("every enum member a screen can draw has words for it", () => {
     const all = [...SCHEMA.matchAll(/enum\s+(\w+)\s*\{/g)].map((m) => m[1]);
     const undeclared = all.filter((name) => !(name in SHOWN));
 
-    // Not "there are none": there is one, and naming it here is the point.
-    // If a second appears, this line is where someone decides whether it
-    // is drawn or derived -- rather than discovering the answer from a
-    // clinic looking at a blank cell.
-    expect(undeclared).toEqual(["MessageDeliveryStatus"]);
+    // Not "there are none": naming them here is the point. If a third
+    // appears, this line is where someone decides whether it is drawn or
+    // derived -- rather than discovering the answer from a clinic looking
+    // at a blank cell.
+    //
+    // `DueSource` is not drawn, and the decision is worth the sentence.
+    // The screen does not print "LIST" or "HISTORY"; it prints what each
+    // of them MEANS, and those are different sentences rather than labels
+    // of one kind -- "measured from your last 4 records" against "came
+    // from the list". Giving the members labels would produce three
+    // strings nobody asks for, which is the dead-catalogue-entry defect
+    // this repo has already paid for once.
+    expect(undeclared).toEqual(["DueSource", "MessageDeliveryStatus"]);
   });
 });

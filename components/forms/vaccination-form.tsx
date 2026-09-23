@@ -14,6 +14,7 @@ import { createVaccinationAction } from "@/modules/vaccinations/actions";
 import { VACCINES } from "@/lib/procedures";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import { addInterval, type IntervalSuggestion } from "@/lib/vaccination-interval";
+import { fold } from "@/lib/search";
 import { formatPlainDate } from "@/lib/format";
 
 const VACCINE_OPTIONS = VACCINES.map((v) => ({ value: v, label: v }));
@@ -69,7 +70,9 @@ export function VaccinationForm({
     setNextDue("");
   }
 
-  const suggestion = suggestions[name.trim().toLowerCase()];
+  // Folded on both sides: the query keys these by `fold()`, and a lookup
+  // that lower-cases instead misses every name with a Turkish letter in it.
+  const suggestion = suggestions[fold(name.trim())];
   // Dated from the administration date on screen, not from today: a dose
   // recorded three weeks late is due a year after it was given.
   const suggestedDate =
