@@ -147,10 +147,23 @@ export function DescriptionList({
                 // On the pair because the alternatives do not work: a
                 // container query on the cell still passes `@2xs` at
                 // 501px, and a cap on the cell makes the grid's columns
-                // unequal. Capped, the spare width falls between pairs
-                // instead of inside one, which is where a separator
-                // belongs. Nothing below 320px changes -- 287px at 1280
+                // unequal. Nothing below 320px changes -- 287px at 1280
                 // and the vitals card's 176-310px are all under it.
+                //
+                // What the cap does NOT do, measured after it shipped:
+                // it does not move the space out from inside the pair.
+                // `justify-between` always fills its box, so the space
+                // inside a pair is the cap minus the content (~87px
+                // here) no matter how wide the cell is: at 1920 it is
+                // 233px inside against 213px between (ui). For the
+                // space between to win, the pair would have to be under
+                // ~187px, which would change 1280 -- the dominant case,
+                // where nothing is wrong today. The acute defect is
+                // closed and the grouping is no longer false; it is
+                // also not emphatic, and that is a limit of this
+                // structure rather than of the number. Moving it needs
+                // a fixed label-value gap, which costs the figure
+                // column its alignment -- not today's trade.
                 "flex flex-col gap-0.5 @2xs:flex-row @2xs:items-baseline @2xs:justify-between @2xs:gap-4 @2xs:max-w-80"
               : "flex flex-col gap-0.5"
           }
