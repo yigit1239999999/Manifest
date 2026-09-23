@@ -65,3 +65,7 @@ MEASURING
 
 # Tek koşucu kilidi: scripts/e2e.sh koşarken var olur, bitince silinir.
 E2E_RUNNING
+
+# Built by scripts/make-import-fixtures.mjs (definitions in e2e/import-fixtures.ts): spreadsheets to try the import
+# screen with. Generated, never collected, and never committed.
+/tmp/
