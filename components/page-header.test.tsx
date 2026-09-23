@@ -152,18 +152,29 @@ describe("a title that is free text rather than a name", () => {
     const projectRoot = `${process.cwd()}/`;
     const callers: string[] = [];
     let scanned = 0;
-    (function walk(dir: string) {
+    const walk = (dir: string) => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
         const path = `${dir}/${entry.name}`;
         if (entry.isDirectory()) walk(path);
-        else if (/\.tsx$/.test(entry.name) && !path.endsWith("page-header.tsx")) {
+        else if (
+          /\.tsx$/.test(entry.name) &&
+          !path.endsWith("page-header.tsx") &&
+          !path.endsWith("page-header.test.tsx")
+        ) {
           scanned++;
           if (/\btitleIsFreeText\b/.test(readFileSync(path, "utf8"))) {
             callers.push(path.slice(projectRoot.length));
           }
         }
       }
-    })(`${projectRoot}app`);
+    };
+    // `components` as well as `app`. Every caller today is a page, but
+    // the prop can be passed on by a wrapper, and a scan only guards
+    // the universe it walks -- the rule the dead locator legs taught.
+    // `loaders.tsx` already names `PageHeader`, in comments today,
+    // which is how close that universe is to needing the other half.
+    walk(`${projectRoot}app`);
+    walk(`${projectRoot}components`);
 
     // A scan that found nothing to scan would pass for the wrong
     // reason -- the same trap the locator guard names.
