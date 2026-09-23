@@ -47,6 +47,54 @@ if [ -f MEASURING ] && [ "${2:-}" != "--force" ]; then
   exit 3
 fi
 
+# İKİNCİ BİR DERLEME, BİRİNCİSİNİN SUNDUĞU ZEMİNİ SÖKER.
+#
+# `MEASURING` "biri ölçüyor mu" diye sorar. Sormadığı şey: **biri zaten
+# derliyor mu.** 23 Eylül 2026'da lider betiği iki kez koşturdu -- ikincisi
+# dikkatsizlikti -- ve ikinci derleme `.next-prod`'u silip yeniden kurarken
+# birinci derlemenin sunucusu hâlâ ayaktaydı. O aralıkta üretim şöyle
+# görünüyordu:
+#
+#     damga   SERVED_COMMIT.txt   dolu   (birinci derlemeninki)
+#     disk    .next-prod/BUILD_ID BOŞ
+#     sunucu  3005 /sign-in       500
+#
+# `pm` tam oraya baktı ve *"ürün çöktü"* demedi, çünkü kendi zemin sınavı
+# üçünü karşılaştırıp **ölçmeden durdu.** Onların ayrımı buraya geçiyor:
+#
+#   KİLİT       NİYETİ okur   -- "kimse derlemesin"     (burası)
+#   ZEMİN SINAVI ZEMİNİ okur  -- "ayrışıksa ölçme"      (ölçenin tarafı)
+#
+# İkisi ayrı iş ve biri ötekini gereksiz kılmıyor: kilit, ayrışmanın
+# OLUŞMASINI engeller; zemin sınavı, oluşmuşsa ölçülmesini. Bugün ikincisi
+# çalıştı ve birincisi yoktu.
+#
+# Desen `e2e.sh`'den: `set -C` ile atomik alma, `kill -0` ile bayat devralma,
+# ve trap YALNIZ kendi kilidini siler.
+BUILD_LOCK="BUILDING"
+build_lock_acquire() {
+  ( set -C
+    printf 'pid=%s at=%s port=%s head=%s\n' \
+      "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PORT" "$(git rev-parse --short HEAD)" > "$BUILD_LOCK"
+  ) 2>/dev/null
+}
+if ! build_lock_acquire; then
+  OWNER_PID=$(sed -n 's/.*pid=\([0-9]*\).*/\1/p' "$BUILD_LOCK" 2>/dev/null)
+  if [ -n "$OWNER_PID" ] && kill -0 "$OWNER_PID" 2>/dev/null; then
+    echo "DURDUM: başka bir derleme sürüyor -- $(cat "$BUILD_LOCK" 2>/dev/null)" >&2
+    echo "  Bitmesini bekle. Şimdi derlersen ONUN sunduğu .next-prod'u sökersin" >&2
+    echo "  ve 3005 birkaç dakika 500 verir." >&2
+    exit 4
+  fi
+  echo "BAYAT DERLEME KİLİDİ devralınıyor: $(cat "$BUILD_LOCK" 2>/dev/null)" >&2
+  rm -f "$BUILD_LOCK"
+  if ! build_lock_acquire; then
+    echo "DURDUM: kilidi devralırken başkası aldı -- $(cat "$BUILD_LOCK" 2>/dev/null)" >&2
+    exit 4
+  fi
+fi
+trap '[ "$(sed -n "s/.*pid=\([0-9]*\).*/\1/p" "$BUILD_LOCK" 2>/dev/null)" = "$$" ] && rm -f "$BUILD_LOCK"' EXIT
+
 COMMIT="$(git rev-parse --short HEAD)"
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   TREE="KİRLİ -- bu derleme $COMMIT DEĞİLDİR, $COMMIT + commit edilmemiş iş"
