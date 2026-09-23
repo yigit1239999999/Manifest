@@ -4,6 +4,8 @@ import {
   clinicVaccineList,
   normalizeVaccineSettings,
   offerByName,
+  officialYearsFrom,
+  seriesFrom,
   type VaccineSettings,
 } from "./catalogue";
 
@@ -179,5 +181,127 @@ describe("finding the offer behind a typed name", () => {
     expect(offerByName(offers, "karma")?.key).toBe("cat.core");
     expect(offerByName(offers, " FIP ")?.key).toBe("clinic:fip");
     expect(offerByName(offers, "bilinmeyen")).toBeNull();
+  });
+});
+
+/**
+ * Where the animal is, read from its own record (#45).
+ *
+ * The vet's loss, in their words: "sahibi ikinci dozdan sonra kayboluyor,
+ * üç ay sonra geliyor... emin olamayınca baştan başlatıyorum, sahibi de
+ * boşuna para veriyor." Everything here is about not making that mistake
+ * on the vet's behalf, in either direction: not inventing a position for
+ * doses that never stated one, and not hiding one that did.
+ */
+const DOG = clinicVaccineList("DOG", EMPTY);
+const at = (iso: string) => new Date(`${iso}T10:00:00Z`);
+const dose = (
+  name: string,
+  day: string,
+  doseNumber: number | null,
+  seriesOf: number | null,
+  nextDueAt: string | null = null,
+) => ({
+  name,
+  administeredAt: at(day),
+  nextDueAt: nextDueAt ? at(nextDueAt) : null,
+  doseNumber,
+  seriesOf,
+});
+
+describe("which dose we were on", () => {
+  it("reads the position from the latest dose that states one", () => {
+    const [progress] = seriesFrom(
+      DOG,
+      [dose("Karma", "2026-06-01", 1, 3), dose("Karma", "2026-06-25", 2, 3, "2026-07-20")],
+      at("2026-09-23"),
+    );
+    expect(progress).toMatchObject({ key: "dog.core", dose: 2, of: 3, overdue: true });
+  });
+
+  it("says nothing about doses that never stated a position", () => {
+    // Every row written before #37 is this. Counting them would use
+    // today's catalogue to restate a history that predates it.
+    expect(seriesFrom(DOG, [dose("Karma", "2026-06-01", null, null)])).toEqual([]);
+  });
+
+  it("does not read four annual boosters as an unfinished puppy series", () => {
+    const rows = ["2022-05-01", "2023-05-01", "2024-05-01", "2025-05-01"].map((day) =>
+      dose("Kuduz", day, null, null),
+    );
+    expect(seriesFrom(DOG, rows)).toEqual([]);
+  });
+
+  it("drops a series the animal has finished", () => {
+    expect(seriesFrom(DOG, [dose("Karma", "2026-07-20", 3, 3)])).toEqual([]);
+  });
+
+  it("keeps the number the record was written with when the list changes", () => {
+    // `seriesOf` is a snapshot. A dose written as 2 of 3 stays 2 of 3
+    // even if the shipped list later says four.
+    const [progress] = seriesFrom(DOG, [dose("Karma", "2026-06-25", 2, 3)]);
+    expect(progress.of).toBe(3);
+  });
+
+  it("claims nothing about lateness when the record carries no date", () => {
+    const [progress] = seriesFrom(DOG, [dose("Karma", "2020-01-01", 2, 3)], at("2026-09-23"));
+    expect(progress.overdue).toBe(false);
+  });
+
+  it("follows a dose written under a name the list no longer offers", () => {
+    const [progress] = seriesFrom(DOG, [dose("DHPPi", "2026-06-25", 2, 3)]);
+    expect(progress.key).toBe("dog.core");
+  });
+});
+
+describe("the pattern somebody outside the clinic asks about", () => {
+  const year = (d: Date) => Number(d.toISOString().slice(0, 4));
+
+  it("shows the gap between two years as a gap", () => {
+    const pattern = officialYearsFrom(
+      DOG,
+      [dose("Kuduz", "2023-05-10", null, null), dose("Kuduz", "2025-05-10", null, null)],
+      year,
+      2026,
+    );
+    expect(pattern?.name).toBe("Kuduz");
+    expect(pattern?.years).toEqual([
+      { year: 2023, given: true },
+      { year: 2024, given: false },
+      { year: 2025, given: true },
+      { year: 2026, given: false },
+    ]);
+  });
+
+  it("is silent about an animal this clinic never gave it to", () => {
+    // Not "every year missing": these are years that were never this
+    // clinic's to answer for.
+    expect(officialYearsFrom(DOG, [dose("Karma", "2024-05-10", 1, 3)], year, 2026)).toBeNull();
+  });
+
+  it("counts a dose written under the old name", () => {
+    const pattern = officialYearsFrom(
+      DOG,
+      [dose("Kuduz (Rabies)", "2025-05-10", null, null)],
+      year,
+      2025,
+    );
+    expect(pattern?.years).toEqual([{ year: 2025, given: true }]);
+  });
+
+  it("asks the caller which year a dose falls in, rather than assuming UTC", () => {
+    // 1 January 01:00 in Istanbul is 31 December in UTC. The clinic's
+    // calendar decides, so the year function is handed in.
+    const istanbul = (d: Date) =>
+      Number(
+        new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Istanbul", year: "numeric" }).format(d),
+      );
+    const pattern = officialYearsFrom(
+      DOG,
+      [{ ...dose("Kuduz", "2024-01-01", null, null), administeredAt: new Date("2023-12-31T22:30:00Z") }],
+      istanbul,
+      2024,
+    );
+    expect(pattern?.years[0]).toEqual({ year: 2024, given: true });
   });
 });

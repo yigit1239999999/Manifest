@@ -26,6 +26,7 @@ import { SpeciesIcon } from "@/components/species-icon";
 import { Timeline } from "@/components/timeline";
 import { NoteForm } from "@/components/forms/note-form";
 import { VaccinationForm } from "@/components/forms/vaccination-form";
+import { VaccineHistory } from "@/components/vaccine-history";
 import { PrescriptionForm } from "@/components/forms/prescription-form";
 import { TreatmentForm } from "@/components/forms/treatment-form";
 import { DiagnosticForm } from "@/components/forms/diagnostic-form";
@@ -107,7 +108,7 @@ export default async function PetPage({
   // Needs the species, so it cannot join the batch above. One indexed read
   // of this clinic's own vaccination history; the form shows nothing at all
   // when it comes back empty (backlog 20).
-  const { offers: vaccineOffers, priorDoses } = await vaccineOffersForPet(
+  const { offers: vaccineOffers, priorDoses, doses } = await vaccineOffersForPet(
     clinicId,
     pet.id,
     pet.species,
@@ -326,6 +327,14 @@ export default async function PetPage({
               <Badge>{vaccinations.length}</Badge>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
+              {/* Above the rows, because it answers the question the rows
+                  are being read FOR. The vet does not scan a date-sorted
+                  list for pleasure; they are looking for which dose they
+                  were on, and for whether the rabies record has holes in
+                  it (#45). Both are silent when the animal's record
+                  cannot answer them. */}
+              <VaccineHistory offers={vaccineOffers} doses={doses} />
+
               {vaccinations.length === 0 ? (
                 <EmptyState size="inline" title={tVacc("empty")} />
               ) : (

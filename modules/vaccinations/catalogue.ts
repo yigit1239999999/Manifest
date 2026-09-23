@@ -153,6 +153,8 @@ export interface VaccineOffer {
   note?: VaccineNote;
   startAt?: WeekRange;
   series?: VaccineSeries;
+  /** See `Vaccine.official`: the one an outside authority asks about. */
+  official?: true;
   due: DueProposal;
 }
 
@@ -194,6 +196,7 @@ function offerFor(
     ...(vaccine.note ? { note: vaccine.note } : {}),
     ...(vaccine.startAt ? { startAt: vaccine.startAt } : {}),
     ...(vaccine.series ? { series: vaccine.series } : {}),
+    ...(vaccine.official ? { official: vaccine.official } : {}),
     due,
   };
 }
@@ -249,4 +252,140 @@ export function offerByName(offers: readonly VaccineOffer[], name: string): Vacc
   const wanted = fold(name.trim());
   if (wanted === "") return null;
   return offers.find((offer) => offer.names.includes(wanted)) ?? null;
+}
+
+// ===========================================================================
+// What an animal's own record says about where it is (#45)
+// ===========================================================================
+
+/** One vaccination row, as much of it as the summary needs. */
+export interface DoseRow {
+  name: string;
+  administeredAt: Date;
+  nextDueAt: Date | null;
+  doseNumber: number | null;
+  seriesOf: number | null;
+}
+
+/** Where an animal is in a starting series, as its own records state it. */
+export interface SeriesProgress {
+  key: string;
+  name: string;
+  /** From the record, never counted: see `seriesFrom` for why. */
+  dose: number;
+  of: number;
+  nextDueAt: Date | null;
+  overdue: boolean;
+}
+
+/** One calendar year of the vaccine somebody outside the clinic asks about. */
+export interface OfficialYear {
+  year: number;
+  given: boolean;
+}
+
+/**
+ * Which dose of a starting series this animal is on, per vaccine.
+ *
+ * READ FROM THE RECORD, NEVER COUNTED, and this is the rule the whole
+ * function exists to keep. Counting an animal's rows for a vaccine would
+ * be using TODAY's catalogue to characterise doses written before it
+ * existed -- the same restating of history that `seriesOf` is stored to
+ * prevent. It also gets the commonest case wrong in the most expensive
+ * direction: a five-year-old dog with four annual boosters would read as
+ * an unfinished puppy series, which is precisely the mistake the vet is
+ * already making by hand and paying for ("emin olamayınca baştan
+ * başlatıyorum, sahibi de boşuna para veriyor").
+ *
+ * So the line appears from the first dose recorded WITH a position, and
+ * nothing is back-filled. An animal whose history predates this feature
+ * shows no series line, which is true: nobody wrote down which dose it
+ * was.
+ *
+ * A finished series is not progress and is left out entirely; from there
+ * the adult schedule owns the animal.
+ */
+export function seriesFrom(
+  offers: readonly VaccineOffer[],
+  rows: readonly DoseRow[],
+  now: Date = new Date(),
+): SeriesProgress[] {
+  const latest = new Map<string, DoseRow>();
+  for (const row of rows) {
+    if (row.doseNumber === null || row.seriesOf === null) continue;
+    const offer = offerByName(offers, row.name);
+    if (!offer?.series) continue;
+    const held = latest.get(offer.key);
+    // The most recent dose is the one that says where we are. Equal
+    // timestamps keep the first seen; two doses of one vaccine at the
+    // same instant is a data problem, not a question this can answer.
+    if (!held || row.administeredAt > held.administeredAt) {
+      latest.set(offer.key, row);
+    }
+  }
+
+  const out: SeriesProgress[] = [];
+  for (const offer of offers) {
+    const row = latest.get(offer.key);
+    if (!row || row.doseNumber === null || row.seriesOf === null) continue;
+    if (row.doseNumber >= row.seriesOf) continue;
+    out.push({
+      key: offer.key,
+      name: offer.name,
+      dose: row.doseNumber,
+      of: row.seriesOf,
+      nextDueAt: row.nextDueAt,
+      // Only ever claimed from a date the record carries. No date is not
+      // "on time" and not "late" -- it is nobody having said when, and
+      // the screen says that much and no more.
+      overdue: row.nextDueAt !== null && row.nextDueAt < now,
+    });
+  }
+  return out;
+}
+
+/**
+ * The year-by-year pattern for the vaccine somebody outside the clinic
+ * asks about, gaps included.
+ *
+ * The question this answers is not a date, it is a shape: "kuduz aşısı
+ * geçen sene yapıldı mı, ondan önce de düzenli miydi" -- asked after a
+ * bite, by someone who is not the vet. A list of records sorted by date
+ * cannot be read that way; a run of years with holes in it can.
+ *
+ * From the first year on record to this one, so the holes are visible as
+ * holes rather than as rows that are not there. Bounded by the animal's
+ * life, which is why there is no cap: twenty entries is the worst case a
+ * real animal can reach.
+ *
+ * `year` comes from the clinic's calendar, not the server's: a dose given
+ * at 01:00 on 1 January in Istanbul belongs to the year the clinic was
+ * standing in when it gave it.
+ */
+export function officialYearsFrom(
+  offers: readonly VaccineOffer[],
+  rows: readonly DoseRow[],
+  yearOf: (date: Date) => number,
+  thisYear: number,
+): { name: string; years: OfficialYear[] } | null {
+  const offer = offers.find((entry) => entry.official);
+  if (!offer) return null;
+
+  const given = new Set<number>();
+  for (const row of rows) {
+    if (offerByName(offers, row.name)?.key !== offer.key) continue;
+    given.add(yearOf(row.administeredAt));
+  }
+  // No record at all is not a pattern with every year missing: it is an
+  // animal this clinic has never given it to, and saying "2019 yok, 2020
+  // yok..." about records that were never this clinic's would be an
+  // accusation rather than an answer.
+  if (given.size === 0) return null;
+
+  const first = Math.min(...given);
+  const years: OfficialYear[] = [];
+  for (let year = first; year <= thisYear; year++) {
+    years.push({ year, given: given.has(year) });
+  }
+  return { name: offer.name, years };
 }

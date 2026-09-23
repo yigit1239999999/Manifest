@@ -5,6 +5,7 @@ import {
   clinicVaccineList,
   normalizeVaccineSettings,
   offerByName,
+  type DoseRow,
   type VaccineOffer,
 } from "./catalogue";
 
@@ -228,13 +229,30 @@ export async function vaccineOffersForPet(
   clinicId: string,
   petId: string,
   species: string,
-): Promise<{ offers: VaccineOffer[]; priorDoses: Record<string, number> }> {
+): Promise<{
+  offers: VaccineOffer[];
+  priorDoses: Record<string, number>;
+  /**
+   * The same rows the counts are made of, for the two questions the pet
+   * page asks of them (#45). Returned rather than re-read: this query
+   * already reads every vaccination this animal has, and asking again
+   * for four more columns of the same rows would be a second round trip
+   * for data already in hand.
+   */
+  doses: DoseRow[];
+}> {
   const [clinic, history, given] = await Promise.all([
     prisma.clinic.findUnique({ where: { id: clinicId }, select: { settings: true } }),
     vaccinationIntervalSuggestions(clinicId, species),
     prisma.vaccination.findMany({
       where: { clinicId, petId },
-      select: { name: true },
+      select: {
+        name: true,
+        administeredAt: true,
+        nextDueAt: true,
+        doseNumber: true,
+        seriesOf: true,
+      },
       // A series is three doses and an animal's whole record is short; this
       // is a ceiling against a pathological row count, not a page size.
       take: 200,
@@ -252,7 +270,7 @@ export async function vaccineOffersForPet(
     if (!offer) continue;
     priorDoses[offer.key] = (priorDoses[offer.key] ?? 0) + 1;
   }
-  return { offers, priorDoses };
+  return { offers, priorDoses, doses: given };
 }
 
 /**

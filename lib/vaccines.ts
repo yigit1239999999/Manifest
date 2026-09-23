@@ -104,6 +104,21 @@ export interface Vaccine {
   series?: VaccineSeries;
   adult: AdultSchedule;
   note?: VaccineNote;
+  /**
+   * Somebody outside this clinic asks about this one.
+   *
+   * The vet's second use for history, in their words: "Köpek birini
+   * ısırdı, ve o an 'kuduz aşısı geçen sene yapıldı mı, ondan önce de
+   * düzenli miydi' sorusu soruluyor, ve bu artık benim değil resmî bir
+   * soru." A screen that has to answer that needs to know WHICH vaccine
+   * is asked about, and marking it here keeps the answer with the
+   * vaccine rather than putting a catalogue key in a component (#45).
+   *
+   * A clinic's own added vaccines cannot carry this, which is correct:
+   * nobody outside the clinic asks about a vaccine only that clinic
+   * offers.
+   */
+  official?: true;
 }
 
 export const VACCINE_CATALOGUE: readonly Vaccine[] = [
@@ -133,6 +148,7 @@ export const VACCINE_CATALOGUE: readonly Vaccine[] = [
     // "12 haftadan sonra ilk doz", then yearly. Sure.
     startAt: { min: 12 },
     adult: { kind: "every", unit: "year", value: 1 },
+    official: true,
   },
   {
     key: "dog.lepto",
@@ -181,6 +197,7 @@ export const VACCINE_CATALOGUE: readonly Vaccine[] = [
     aliases: ["Kuduz (Rabies)", "Rabies"],
     startAt: { min: 12 },
     adult: { kind: "every", unit: "year", value: 1 },
+    official: true,
   },
   {
     key: "cat.felv",
