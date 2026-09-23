@@ -42,6 +42,56 @@ acquire() {
   ) 2>/dev/null
 }
 
+# VE ÜÇÜNCÜ BOŞLUK: HİÇBİR İŞARET "BU PORTTA BİRİ VAR" DEMİYOR (dev).
+#
+# Üç işaretimiz var ve üçü üç ayrı şeyi tutuyor:
+#
+#     E2E_RUNNING   koşucu yuvasını tutar   -- ağacı, PORTU tutmaz
+#     BUILDING      derlemeyi tutar         -- koşuyu tutmaz
+#     MEASURING     TAZELEMEYİ tutar        -- KOŞUYU tutmaz
+#
+# 23 Eylül 2026: `pm` 3005'te ekran ölçerken `dev`'in kapı koşusu aynı porta
+# 45 test atacaktı -- her spec klinik açıyor, form dolduruyor, sunucuyu
+# yüklüyor. `MEASURING` onları teknik olarak durdurmuyordu; **kendi
+# kararlarıyla** durdular. Bu sefer kimse bir şey kaybetmedi, ama bugün ısıran
+# şeyin tam da bu olduğunu dört kez gördük: kural doğruydu ve hatırlamak
+# yetmedi.
+#
+# Ölçmek okumaktır, koşmak YAZMAKTIR. Aynı portta ikisi olduğunda ölçen
+# kişinin gördüğü ekran, koşanın ürettiği veriyle ve yükle karışır -- ve
+# karıştığı görünmez.
+#
+# BAŞKA PORTA KOŞMAK SERBEST (dev'in şartı): kilit porta bakar, koşuya değil.
+#
+# `MEASURING` VAR AMA PORTU OKUNAMIYORSA da duruyoruz, ve bu bilinçli bir
+# tercih: "bilinmeyeni tamam saymak" bu betiğin var oluş sebebinin tersi.
+# Bedeli bir satır (`MEASURING`'e portu yaz) ya da bir `--force`; karşılığı,
+# formatın kendini düzeltmeye itilmesi.
+if [ -f MEASURING ] && [ -z "$FORCE" ]; then
+  M_TEXT="$(cat MEASURING 2>/dev/null)"
+  M_PORT="$(printf '%s' "$M_TEXT" | sed -n 's/.*[^0-9]\([0-9][0-9][0-9][0-9]\)[^0-9].*/\1/p' | head -1)"
+  WANT_PORT="$(printf '%s' "${E2E_BASE_URL:-http://localhost:3000}" | sed -n 's/.*:\([0-9][0-9]*\).*/\1/p')"
+  if [ -z "$M_PORT" ]; then
+    echo "DURDUM: biri ölçüyor ama HANGİ PORTTA olduğu yazmıyor." >&2
+    echo "  MEASURING: $M_TEXT" >&2
+    echo "  Ölçen kişi portu yazsın, ya da: $0 --force ..." >&2
+    echo "  (Bilinmeyeni 'tamam' saymıyoruz -- bu betik tam bunun için var.)" >&2
+    exit 6
+  fi
+  if [ "$M_PORT" = "$WANT_PORT" ]; then
+    echo "DURDUM: $WANT_PORT portunda biri ÖLÇÜYOR -- $M_TEXT" >&2
+    echo "  Koşarsan onun gördüğü ekran senin testlerinin verisiyle karışır." >&2
+    echo "  Bitmesini bekle, ya da başka porta koş (E2E_BASE_URL), ya da: $0 --force ..." >&2
+    exit 6
+  fi
+fi
+
+# SIRA: bu kontrol KİLİTTEN ÖNCE koşar. Sonraya koymak çalışıyordu ama
+# kirliydi -- ret kararı verilmeden önce kilit alınıyor, hatta bayat bir
+# kilit DEVRALINIYOR, sonra reddediliyordu. Bir koşucu yuvasını almayacaksan
+# ona hiç dokunma: devralma kaydı, gerçekleşmemiş bir koşuya ait olur ve
+# sonraki okuyan onu bir koşu sanır.
+
 RUN_SUITE="${*:-tam-süit}"
 if ! acquire; then
   OWNER_PID=$(sed -n 's/.*pid=\([0-9]*\).*/\1/p' "$LOCK" 2>/dev/null)
