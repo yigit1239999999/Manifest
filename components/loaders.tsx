@@ -423,14 +423,17 @@ export function DetailSkeleton() {
  * and not this file's to fix alone: `loading.tsx` is drawn before any
  * data and cannot know which of the two screens is coming.
  *
- * Two things about that measurement that have to travel with it. Its
- * SECOND ROW is already one commit old: `3e9a724` capped the card at
- * `max-w-xl`, so its text wraps in a narrower box and both 166 and the
- * 8 may have moved; nobody has read them since. And the card measuring
- * 166 tall, exactly the old offset, is a coincidence as far as anyone
- * can show -- there is no measurement connecting the two numbers, and
- * it is written here only so the next reader does not build a
- * mechanism out of it.
+ * The second row was read again after the card was capped, because a
+ * narrower card could have wrapped its text and changed the height:
+ * it did not. Both lines still fit on one line in either language, so
+ * `top` 184 and `height` 166 are the same numbers on `197287b` as on
+ * `0ce9ee6`. The doubt was worth having and it was answered rather
+ * than assumed.
+ *
+ * The card measuring 166 tall, exactly the old offset, is a
+ * coincidence as far as anyone can show -- there is no measurement
+ * connecting the two numbers, and it is written here only so the next
+ * reader does not build a mechanism out of two figures agreeing.
  *
  * It cannot carry more. `loading.tsx` is drawn before any data, so it does
  * not know whether that card will render. Reserving that height would pay
