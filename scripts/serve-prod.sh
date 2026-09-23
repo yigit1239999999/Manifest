@@ -7,7 +7,7 @@
 # commit the build did not contain, and the reading looked right at the
 # moment it was taken. A ground you can only learn by asking someone is not
 # a ground. So SERVED_COMMIT.txt is written HERE, after the build exits 0,
-# from `.next/BUILD_ID` itself rather than from what the operator believed.
+# from the build directory itself rather than from what the operator believed.
 #
 # It also records whether the tree was clean. A build taken from a dirty
 # tree is not the commit it names -- with two developers in one tree that
@@ -18,6 +18,18 @@ set -euo pipefail
 PORT="${1:-3005}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+
+# Give the production build its own directory. `next dev` and `next start`
+# both default to `.next`, so a build here and the dev server on 3000 were
+# writing over each other's chunks: the running server held a manifest in
+# memory while the other rewrote the files it pointed at, and pages died on
+# a chunk that was no longer on disk. `next.config.ts` has said so, and
+# named the cure, since the day it was read as a product defect twice --
+# but this script kept building into the default and nobody noticed,
+# because nobody touched 3000 while measuring. `dev` found it on the day
+# the tree was deliberately dirty and one request to 3000 would have taken
+# the stamped ground down with it.
+export NEXT_DIST_DIR=".next-prod"
 
 # A refresh while somebody is measuring silently invalidates their run --
 # the reading stays on screen and looks right. It happened: the ground moved
@@ -48,7 +60,7 @@ echo "==> derleniyor: $COMMIT ($TREE)"
 npx prisma generate >/dev/null
 npm run build
 
-BUILD_ID="$(cat .next/BUILD_ID)"
+BUILD_ID="$(cat "$NEXT_DIST_DIR/BUILD_ID")"
 
 # Written only now: an unfinished build leaves the previous stamp standing,
 # which is the honest answer, because the previous build is what is served.
