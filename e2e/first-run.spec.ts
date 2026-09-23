@@ -301,11 +301,45 @@ test.describe("First run", () => {
     await signUp(page, Date.now());
 
     const main = page.getByRole("main");
-    const firstStep = main.getByRole("link", {
-      name: /^(new|yeni) /i,
-    });
+    // The ask, found by what it SAYS rather than by what it is made of.
+    //
+    // This read `getByRole("link")` and asserted an `href`, which is the
+    // fault K6 was rewritten for, one test down: the name promises a
+    // behaviour -- the dashboard asks for the work -- and the assertion
+    // checked markup. The two fail in opposite directions and the second
+    // is the nastier one. A silent guard lets a regression through; this
+    // one turns red at somebody who has broken nothing, and they either
+    // "fix" the test or abandon a legitimate change (dev).
+    //
+    // So: click it and see where it goes. A link passes, and so does the
+    // submitting form the inline-field direction would make it.
+    //
+    // The set is the one pm's acceptance tool counts, so the two cannot
+    // disagree about what "one ask" means.
+    const asks = main.locator(
+      'a[href], button[type="submit"], button:not([type])',
+    );
 
-    await expect(firstStep).toHaveAttribute("href", "/visits/new");
+    // No filter here, and that is the stronger form: on this screen the
+    // set has exactly one member, so naming the ask would be picking it
+    // out of a crowd that does not exist -- and every way of naming it
+    // (role, text, href) is a dependency this line does not need.
+    //
+    // And no count either. CARDINALITY BELONGS TO THE TEST BELOW, which
+    // is named for it; this one is named for where the ask leads, and
+    // that is all it checks. The two assertions were briefly the same
+    // line in both tests, which meant a second call to action produced
+    // two reds -- one naming the rule it broke, one naming something it
+    // had not touched, sending the reader to look at a destination when
+    // what had changed was a number (dev). A guard whose NAME points at
+    // the wrong thing is the same fault this file was just cleaned of,
+    // wearing different clothes.
+    //
+    // `first()` rather than a count, so a crowded screen cannot make
+    // this fail as a strict-mode error about the tooling. If the wrong
+    // element is ever first, the URL assertion below is what says so.
+    await asks.first().click();
+    await expect(page).toHaveURL(/\/visits\/new(\?|$)/);
 
     await page.goto("/clients/new");
     await page.getByLabel(/first name|^ad$/i).fill("Devrim");
@@ -324,8 +358,37 @@ test.describe("First run", () => {
     // notification settings. That bound is the design: a card that can
     // name a third thing is a setup checklist.
     await page.goto("/");
-    await expect(firstStep).toHaveCount(1);
-    await expect(firstStep).toHaveAttribute("href", "/pets/new");
+
+    // Here the screen IS a crowd -- seven counter tiles, two charts and
+    // four lists, all of them links -- so the ask has to be named, and
+    // the only honest way to name it is by what the reader sees.
+    //
+    // WHICH MAKES THIS LINE DEPEND ON COPY, and the dependency is
+    // written down rather than discovered later. It reads the labels
+    // behind `visit.new` / `pet.new` / `client.new` ("Yeni vizit",
+    // "New visit"). Reword those and this locator finds nothing and
+    // goes red at somebody who broke nothing -- the same shape as the
+    // `href` assertion this test just stopped making, one axis over
+    // (team-lead, after pm hit it twice on `#21`: a locator that trusts
+    // a label is bound to the product's wording, and this repo rewords
+    // often).
+    //
+    // Kept anyway, and not swapped for a `data-testid`: the e2e suite
+    // finds things the way a reader does in 297 places and uses no test
+    // id in product markup anywhere. That is not an accident to work
+    // around -- a locator that breaks when the accessible name breaks
+    // is catching a real defect. Introducing the first product test id
+    // inside a test fix would set that policy sideways, which is a
+    // decision for a task of its own.
+    // Sharp edge, named because it is one keystroke away: a counter tile
+    // reading "Yeni müşteri" would join this set and the filter would
+    // quietly match two. Nothing does today -- the tiles read "Müşteri",
+    // "Hayvan", "Yaklaşan" -- and `toHaveCount(1)` below is what would
+    // notice if that changed (dev).
+    const ask = asks.filter({ hasText: /^(new|yeni) /i });
+    await expect(ask).toHaveCount(1);
+    await ask.click();
+    await expect(page).toHaveURL(/\/pets\/new(\?|$)/);
   });
 
   // The bound the test above was assumed to be holding and was not.
@@ -342,9 +405,29 @@ test.describe("First run", () => {
     await signUp(page, Date.now());
     await page.goto("/");
 
+    // The same set pm's acceptance tool counts, and that equality is
+    // the point of this line rather than a detail of it. Counting links
+    // and requiring zero buttons says the ask must be a LINK, which is
+    // a claim about markup and not about the design.
+    //
+    // The day the card's ask becomes a submit button -- the inline-field
+    // direction is parked, not dropped -- the old pair breaks the LOUD
+    // way, not the silent one: links reads 0 against `toHaveCount(1)`
+    // and buttons reads 1 against `toHaveCount(0)`, so both assertions
+    // fail at a change that keeps the rule perfectly. That is the same
+    // fault as the `href` assertion one test up, and it was worth
+    // getting right: this was written up the other way round -- "stays
+    // green while pm's tool reads one" -- and the wrong half is the one
+    // a reader would have trusted (team-lead).
+    //
+    // Counting the set pm counts is still what fixes it, for the reason
+    // that survives: whichever markup the ask is made of, both tools
+    // read the same number, so they cannot disagree about the rule.
     const main = page.getByRole("main");
-    await expect(main.getByRole("link")).toHaveCount(1);
-    await expect(main.getByRole("button")).toHaveCount(0);
+    const asks = main.locator(
+      'a[href], button[type="submit"], button:not([type])',
+    );
+    await expect(asks).toHaveCount(1);
   });
 
   // 390px, because the dashboard's chart card produced 140px of sideways
