@@ -255,16 +255,17 @@ export default async function DashboardPage() {
       // element's own padding, so it claims the field it centres in
       // without inventing scroll.
       //
-      // The column is capped to the card's own width so the greeting
-      // and the card share a left edge; two blocks of different widths
-      // centred separately would each be centred and together look
-      // misaligned.
+      // The column is capped to the card's own width -- the same
+      // token, so the two cannot drift apart -- and that gives the
+      // greeting and the card one left edge and one right edge. Two
+      // blocks of different widths centred separately are each centred
+      // and together look misaligned.
       //
       // Only here. Every other dashboard flows from the top, which is
       // right when there is something to read in order, and that branch
       // has its own test saying so.
       <div className="flex min-h-[calc(100vh-10rem)] flex-col items-center justify-center pb-16">
-        <div className="flex w-full max-w-xl flex-col gap-8">
+        <div className="flex w-full max-w-lg flex-col gap-8">
           {/* Not `subtitle` ("today's summary"), which is a lie on day
               zero. The key stays for the other states.
 

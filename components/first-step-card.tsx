@@ -206,24 +206,31 @@ export async function FirstStepCard({
             // as one that wants something, and not as a composition.
             //
             // The criterion is ui's: the space left inside the card,
-            // from the right edge of the text to the card's content
-            // edge, may not exceed half the width of the text. Measured
-            // on the stamped ground at 1280 -- text 364px in Turkish
-            // and 356 in English, one line each -- the gap is 164 and
-            // 172, which is 0.45 and 0.48 against a threshold of 0.5.
-            // It was 1.54 and 1.61 before the cap.
+            // from the right edge of the text to the card's edge, may
+            // not exceed half the width of the text. Measured on the
+            // stamped ground at 1280, the text is 364px in Turkish and
+            // 356 in English, one line each. It was 1.54 and 1.61
+            // before any cap.
             //
-            // ENGLISH PASSES BY 4%, and that is a known fragility
-            // rather than a defect: one step longer and this criterion
-            // goes red before anything looks wrong. If these sentences
-            // are rewritten, the ratio is the thing to re-read -- and
-            // it gets WORSE as the text gets shorter, because the gap
-            // grows while the divisor shrinks.
+            // THE VALUE IS 512 BECAUSE 512 PASSES ON EITHER READING OF
+            // THAT SENTENCE, and this class has already been changed
+            // three times over exactly that ambiguity. Two people
+            // measured the same card and reported 0.45 and 0.52,
+            // because one subtracted the card's right padding from the
+            // span and the other did not -- neither was careless, the
+            // criterion simply did not say which edge it meant. At 576
+            // the two readings straddle the threshold (0.45/0.48
+            // against 0.52/0.55), so the card's width depended on who
+            // held the ruler. At 512 they are 0.28/0.30 and 0.34/0.37:
+            // under the line whichever end of the span is used.
             //
-            // `max-w-xl` is also the cap the command palette puts on a
-            // floating surface, so it is a width this product already
-            // treats as one readable object rather than a new number.
-            "flex w-full max-w-xl flex-col items-start gap-5 p-6"
+            // It also buys the margin ui asked for. At 576 English
+            // cleared by 4%, so one longer translation would have
+            // turned the criterion red before anything looked wrong.
+            // The ratio gets worse as the text gets SHORTER, too --
+            // the gap grows while the divisor shrinks -- so a one-word
+            // ask would want a narrower card, not a longer sentence.
+            "flex w-full max-w-lg flex-col items-start gap-5 p-6"
           : "flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
       }
     >
