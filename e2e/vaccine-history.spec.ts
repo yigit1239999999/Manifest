@@ -56,6 +56,13 @@ async function recordDose(
   administered: string,
   options: { dose?: string; nextDue?: string } = {},
 ) {
+  // From a freshly loaded page every time, and that is not politeness.
+  // Saving one dose resets the form and refreshes the page underneath
+  // it, so a second dose typed into the same open disclosure is a race
+  // against a re-render: the first symptom was a 120-second timeout
+  // saying a field was "not visible", which is true and says nothing
+  // about why. Reloading costs a second and removes the question.
+  await page.reload();
   const form = page.locator("details", { hasText: /add vaccination|aşı ekle/i });
   await form.locator("summary").click();
   await form.getByLabel(/^vaccine$|^aşı$/i).fill(vaccine);
@@ -67,7 +74,9 @@ async function recordDose(
     await form.getByLabel(/next due|sonraki tarih/i).fill(options.nextDue);
   }
   await form.getByRole("button", { name: /save vaccination|aşıyı kaydet/i }).click();
-  await expect(page.getByText(/saved|kaydedildi/i).first()).toBeVisible();
+  // The row itself, not the toast: a toast is gone in seconds and a
+  // test that waits for one is waiting on a timer.
+  await expect(page.getByText(vaccine).first()).toBeVisible();
 }
 
 test.describe("What the animal's own record says", () => {
