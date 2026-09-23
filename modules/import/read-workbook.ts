@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { looksLikeDate, looksLikeNumber, looksLikePhone } from "./infer";
 
 /**
  * Turning a file into rows -- while keeping the two things a naive read loses.
@@ -163,8 +164,17 @@ export function headerEvidence(rows: Cell[][]): HeaderEvidence {
   return { differsFromBody, comparable, looksLikeHeader: comparable > 0 && differsFromBody === comparable };
 }
 
-/** Text that has a shape a name would not have: a phone, a date, a number. */
+/**
+ * Text that has a shape a name would not have: a phone, a date, a number.
+ *
+ * Asks infer.ts rather than owning a second set of regexes. The first version
+ * here had its own, slightly wider ones -- and two definitions of "phone
+ * shaped" in two files is not a duplicate that a test catches. Nothing fails
+ * when they disagree; they simply start answering differently, and the header
+ * check would quietly stop agreeing with the column reader about what a phone
+ * is. A file where the two disagree is a file where the header question and
+ * the column proposal are arguing, in front of the vet.
+ */
 function looksShaped(text: string): boolean {
-  const v = text.trim();
-  return /^[\d\s().+-]{7,}$/.test(v) || /^\d{1,4}[.\/-]\d{1,2}[.\/-]\d{2,4}$/.test(v) || /^-?\d+(?:[.,]\d+)?$/.test(v);
+  return looksLikePhone(text) || looksLikeDate(text) || looksLikeNumber(text);
 }

@@ -156,6 +156,21 @@ function dateOrder(values: string[]): DateOrder {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const NUMBER = /^-?\d+(?:[.,]\d+)?$/;
 
+/**
+ * A plain number, exported because one predicate should have one home.
+ *
+ * `read-workbook.ts` needed "does this value have a shape a name would not
+ * have" for its header check, and grew its own regexes for it -- a second,
+ * broader definition of phone-shaped sitting one file away from this one.
+ * Neither was wrong on the day it was written, and that is exactly how two
+ * definitions of the same idea drift apart: nothing fails when they disagree,
+ * they just start answering differently, and the one nobody is looking at
+ * becomes the one that decides something.
+ */
+export function looksLikeNumber(raw: string): boolean {
+  return NUMBER.test(raw.trim());
+}
+
 export type ColumnEvidence = {
   kind: ColumnKind;
   /** Share of NON-BLANK values that fit `kind`, 0..1. Blanks never count against a column. */

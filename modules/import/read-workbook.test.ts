@@ -126,3 +126,33 @@ describe("whether the top row is a header is EVIDENCE, never an assumption", () 
     expect(evidence.looksLikeHeader).toBe(false);
   });
 });
+
+describe("the header check and the column reader agree on what has a shape", () => {
+  it("calls a column shaped exactly when the reader gives it a non-text kind", async () => {
+    // The property, not the implementation. This file once owned its own
+    // regexes for "phone shaped" and infer.ts owned others; both were right
+    // the day they were written, and nothing would have failed when they
+    // drifted -- they would simply have begun answering differently, and the
+    // header question would have started arguing with the column proposal in
+    // front of the vet. So the agreement itself is what is pinned.
+    const columns = [
+      { values: ["0532 111 22 33", "0533 222 33 44"], shaped: true },
+      { values: ["14.03.2025", "02.04.2025"], shaped: true },
+      { values: ["12", "7"], shaped: true },
+      { values: ["Boncuk", "Limon"], shaped: false },
+      { values: ["Kedi/Tekir", "Köpek"], shaped: false },
+      { values: ["((((((( ", ")))))))"], shaped: false },
+    ];
+
+    for (const { values, shaped } of columns) {
+      // Read through the header check: a heading over these values counts as a
+      // heading only when the values below have a shape.
+      const file = await workbook({ Sayfa1: [["Başlık"], ...values.map((v) => [v])] });
+      const [sheet] = await readWorkbook(file);
+      expect(headerEvidence(sheet.rows).comparable, values.join("/")).toBe(shaped ? 1 : 0);
+
+      // And the reader must have reached the same verdict independently.
+      expect(classifyColumn(values).kind !== "text", values.join("/")).toBe(shaped);
+    }
+  });
+});
