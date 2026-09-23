@@ -323,7 +323,16 @@ export function ImportCommit({
 
             {summary.questions.length > 0 && (
               <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold text-foreground">{t("questionsTitle")}</h3>
+                {/* The screen's only unanswered question, and it used to
+                    carry its smallest heading -- lighter than "File", a
+                    step that is already finished (pm). An engine that shows
+                    where the obstacle is, in the lightest type on the page,
+                    has given direction without weight. `h4` because it sits
+                    under this card's own title; 16px because nothing else
+                    on the screen is still waiting for the vet. */}
+                <h4 className="text-base font-semibold text-foreground">
+                  {t("questionsTitle")}
+                </h4>
                 <p className="text-sm text-muted-foreground">{t("questionsHint")}</p>
                 {summary.questions.map((question) => (
                   <fieldset
@@ -384,7 +393,7 @@ export function ImportCommit({
 
             {summary.species.length > 0 && (
               <section className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold text-foreground">{t("speciesTitle")}</h3>
+                <h4 className="text-sm font-semibold text-foreground">{t("speciesTitle")}</h4>
                 <p className="text-sm text-muted-foreground">{t("speciesHint")}</p>
                 <ul className="flex flex-col gap-3">
                   {summary.species.map((proposal) => {
@@ -463,7 +472,7 @@ export function ImportCommit({
 
             {summary.sex.length > 0 && (
               <section className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold text-foreground">{t("sexTitle")}</h3>
+                <h4 className="text-sm font-semibold text-foreground">{t("sexTitle")}</h4>
                 <p className="text-sm text-muted-foreground">{t("sexHint")}</p>
                 <ul className="flex flex-col gap-3">
                   {summary.sex.map((proposal) => (

@@ -328,9 +328,15 @@ export function ImportMapper() {
 
       {columns.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-base font-semibold text-foreground">
+          {/* The same element and the same size as the steps around it, which
+              are `CardTitle` (an `h3` at `text-lg`). This was an `h2` at
+              `text-base`: a level ABOVE its neighbours drawn SMALLER than
+              them, so the outline and the eye disagreed (pm measured 16px
+              against their 18px). Columns is a step like the others, and
+              being outside a card is a layout fact, not a rank. */}
+          <h3 className="text-lg font-semibold tracking-tight text-foreground">
             {t("columnsTitle", { count: columns.length })}
-          </h2>
+          </h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {columns.map((column) => (
               <ColumnCard

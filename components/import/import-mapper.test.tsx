@@ -184,6 +184,27 @@ describe("the mapping screen", () => {
     expect(screen.queryByText(tr.import.fieldUnset)).toBeNull();
   });
 
+  // The outline and the eye have to agree. This heading was an `h2` at
+  // `text-base` sitting between steps that are `h3` at `text-lg`: a level
+  // ABOVE its neighbours, drawn SMALLER than them (pm measured 16px against
+  // 18px). Being outside a card is a layout fact, not a rank.
+  //
+  // Only the level and the size are checked here, because only they are in
+  // the source. Whether the screen's open question is heavier than the
+  // steps that are already finished is a rendered-page question and belongs
+  // to an acceptance run (`gate-matches-how-the-rule-breaks`).
+  it("gives the columns step the heading its neighbours have", async () => {
+    mount([sheet(WITH_HEADING)]);
+    await settle();
+    fireEvent.click(screen.getByLabelText(tr.import.headerOption.names));
+
+    const heading = screen.getByText(
+      tr.import.columnsTitle.replace("{count}", "2"),
+    );
+    expect(heading.tagName).toBe("H3");
+    expect(heading.className).toContain("text-lg");
+  });
+
   it("leads to the saving step, and still writes nothing on its own", async () => {
     // This test used to assert the opposite: that the screen ended in the
     // sentence "nothing is created in this step" and offered no button at
