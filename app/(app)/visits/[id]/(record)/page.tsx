@@ -141,7 +141,17 @@ export default async function VisitPage({
 
       <PageHeader
         title={visit.chiefComplaint ?? tType(visit.type as never)}
-        description={`${formatDateTime(fmt, visit.visitedAt)} · ${visit.pet.name} · ${ownerLabel(visit.client)}`}
+        // When, and only when. The animal and the owner used to be
+        // here too, and the reason they left is not repetition: the
+        // product has already taught that an animal's name is a link
+        // -- the dashboard's overdue-vaccination and unread-result
+        // cards draw it as one -- so a plain copy of that name in a
+        // heading is the unclickable twin of a thing the vet has
+        // learned to click. They click, nothing happens, and what
+        // they take away is "there is no way to the animal from
+        // here" (ux). Two copies where one can act: the idle one
+        // goes, and the one that stays is the one that acts.
+        description={formatDateTime(fmt, visit.visitedAt)}
         // The badge names the kind of visit, and the title falls back to
         // the same words when nobody wrote a complaint -- so a wellness
         // check with no complaint read "Genel kontrol" twice, side by
@@ -275,6 +285,88 @@ export default async function VisitPage({
         </Callout>
       )}
 
+      {/* The record's own particulars, above the examination.
+          
+          They used to sit at the bottom of a card headed "vitals",
+          which is how a vet reading for a temperature met the vet's
+          name, the follow-up date and the total instead. A heading is
+          a promise about what is under it, and four readings do not
+          cover seven rows (ux).
+          
+          Full width and first: this is what the visit IS -- who saw
+          the animal, whose animal, what it came to, what it cost --
+          and the examination is what was found. Reading order follows
+          that, which is also the order a vet opening somebody else's
+          visit asks for it in (ui, after measuring the alternatives).
+          
+          `common.details`, the same key the animal's page uses for
+          the same job. NOT `client.details`, which reads "İletişim
+          bilgileri" and would be taken silently. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{tCommon("details")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DescriptionList
+            layout="row"
+            items={[
+              { label: t("vet"), value: visit.vet?.name },
+              {
+                label: t("followupAt"),
+                // A follow-up is a day, not a moment -- the field stopped
+                // asking for a time, so the card stops printing 00:00.
+                value: formatDate(fmt, visit.followupAt),
+              },
+              {
+                label: t("totalCost"),
+                value:
+                  visit.totalCents != null
+                    ? // The visit's own currency, not the clinic's current
+                      // setting -- the same rule invoices follow. The
+                      // fallback covers rows recorded before the column
+                      // existed and backfilled to the clinic's value of
+                      // that day.
+                      formatMoney(fmt, visit.totalCents, visit.currency ?? currency)
+                    : null,
+                numeric: true,
+              },
+              // The two records this visit is ABOUT, and the way out of
+              // it. A vet who opens a visit from the dashboard reads the
+              // animal's name and then wants what happened last time --
+              // and the way there used to be back out into the list and
+              // a search for a name they were already looking at.
+              //
+              // Here rather than in the heading, and that is a rule
+              // rather than a layout note: the heading names the record
+              // and carries what to DO with it; where it SITS among
+              // other records belongs in its particulars.
+              {
+                label: tPet("one"),
+                value: (
+                  <Link
+                    href={`/pets/${visit.pet.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    {visit.pet.name}
+                  </Link>
+                ),
+              },
+              {
+                label: tPet("owner"),
+                value: (
+                  <Link
+                    href={`/clients/${visit.client.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    {ownerLabel(visit.client)}
+                  </Link>
+                ),
+              },
+            ]}
+          />
+        </CardContent>
+      </Card>
+
       {/* See `/invoices/[id]`: a grid item will not shrink below its own
           content, and these four pages share this line. */}
       <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
@@ -286,6 +378,21 @@ export default async function VisitPage({
             <DescriptionList
               className="grid gap-4 sm:grid-cols-2"
               items={[
+                {
+                  // The complaint's home, and the reason the heading may
+                  // now be cut short. A title clipped at three lines is a
+                  // presentation decision only while the whole of it is
+                  // somewhere else on the page; without that it quietly
+                  // becomes a decision about the record (ux).
+                  //
+                  // Labelled with the words the vet typed it under, so
+                  // the thing they are looking for is named the same on
+                  // both screens. Above the anamnesis because that is
+                  // what it is: what the owner said, before what was
+                  // found.
+                  label: t("chiefComplaint"),
+                  value: visit.chiefComplaint,
+                },
                 {
                   label: t("subjective"),
                   value: visit.subjective,
@@ -307,7 +414,15 @@ export default async function VisitPage({
           </CardContent>
         </Card>
 
-        <Card>
+        {/* `self-start`, and without it this fix leaves a hole where the
+            defect was. A grid item stretches to the tallest row by
+            default, so the vitals card was being pulled to the SOAP
+            card's 416px; with three rows gone it would hold four
+            readings over ~100px of nothing, which reads as a card that
+            failed to load rather than one with four numbers in it
+            (ui, measured). Shrinking to its content is the whole
+            point of taking the other rows out. */}
+        <Card className="self-start">
           <CardHeader>
             <CardTitle>{t("vitals")}</CardTitle>
           </CardHeader>
@@ -335,70 +450,6 @@ export default async function VisitPage({
                   label: t("respiratoryRateBpm"),
                   value: visit.respiratoryRateBpm,
                   numeric: true,
-                },
-                {
-                  label: t("followupAt"),
-                  // A follow-up is a day, not a moment — the field stopped
-                  // asking for a time, so the card stops printing 00:00.
-                  value: formatDate(fmt, visit.followupAt),
-                },
-                {
-                  label: t("totalCost"),
-                  value:
-                    visit.totalCents != null
-                      ? // The visit's own currency, not the clinic's
-                        // current setting — the same rule invoices follow.
-                        // The fallback covers rows recorded before the
-                        // column existed and backfilled to the clinic's
-                        // value of that day.
-                        formatMoney(fmt, visit.totalCents, visit.currency ?? currency)
-                      : null,
-                  numeric: true,
-                },
-                { label: t("vet"), value: visit.vet?.name },
-                // The two records this visit is ABOUT, as the way out of
-                // it. The vet who opens a visit from the dashboard reads
-                // the animal's name in the heading and then wants what
-                // happened last time -- and the way there was back out,
-                // into the list, and search for a name they were already
-                // looking at.
-                //
-                // In the list rather than the heading, and that is the
-                // rule rather than a layout note: the heading names the
-                // record and carries what to DO with it; where it SITS
-                // among other records belongs here. (`PageHeader`'s
-                // `title: string` would refuse a link today -- but it was
-                // never chosen to enforce this, so it is not what keeps
-                // the rule.)
-                //
-                // At the END of this list, and that is a compromise worth
-                // naming: the card is headed "vitals" but already carries
-                // the follow-up, the total and the vet, so it is the
-                // record's own column in everything but its title. The
-                // rows go where the other non-vitals are rather than
-                // above the readings, and the title is a separate
-                // question (reported, not decided here).
-                {
-                  label: tPet("one"),
-                  value: (
-                    <Link
-                      href={`/pets/${visit.pet.id}`}
-                      className="text-primary hover:underline"
-                    >
-                      {visit.pet.name}
-                    </Link>
-                  ),
-                },
-                {
-                  label: tPet("owner"),
-                  value: (
-                    <Link
-                      href={`/clients/${visit.client.id}`}
-                      className="text-primary hover:underline"
-                    >
-                      {ownerLabel(visit.client)}
-                    </Link>
-                  ),
                 },
               ]}
             />

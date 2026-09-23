@@ -23,7 +23,28 @@ export function PageHeader({
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          {/* Clipped at three lines. Titles here are usually a name or
+              a screen's name and never reach it; the one that can is a
+              visit's, which takes the vet's own words for why the
+              animal came. Simulated at 1280 and 390 by replacing the
+              text in the browser -- the geometry is real, the strings
+              are invented -- and at 280 characters the heading ate
+              about 60% of a phone screen and pushed the record's
+              particulars below the fold (ui).
+              
+              Three, and the number has a rule behind it rather than a
+              preference: the clip may not fall below the longest thing
+              the product has actually shown. The longest real complaint
+              on file is 75 characters, which is three lines at 390 --
+              so this crops nothing that exists today. Two would crop
+              it; four would be a wall of `text-2xl` on a phone.
+              
+              This is only honest because the whole complaint is on the
+              page: `visits/[id]` prints it as the first row of the SOAP
+              card. A clipped title with no home for the full text stops
+              being a presentation decision and becomes one about the
+              record (ux). */}
+          <h1 className="line-clamp-3 text-2xl font-semibold tracking-tight text-foreground">
             {title}
           </h1>
           {badge}
