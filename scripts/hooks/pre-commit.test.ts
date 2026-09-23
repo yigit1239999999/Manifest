@@ -36,15 +36,35 @@ async function hook(lockPath: string | null) {
   }
 }
 
-async function lockFile(pid: number) {
+/**
+ * A lock file in the shape the runner actually writes one.
+ *
+ * `ppid` is here because leaving it out is what let a real defect through.
+ * The hook reads the owner's pid with a regex, and while the fixture said
+ * only `pid=`, a pattern of `.*pid=` looked correct -- greedy `.*` takes
+ * the RIGHTMOST match, so the day `ppid=` was added to the real lock the
+ * hook started reading the parent's pid instead, and this test still
+ * passed. Three readers broke that way at once and none of them errored.
+ *
+ * So the two callers below give the fixture a `ppid` whose liveness is the
+ * OPPOSITE of the pid's: a live run parented by a dead pid, and a stale
+ * run parented by a live one. Either half read from the wrong field flips
+ * the hook's answer, which is what makes these two cases falsifiers rather
+ * than descriptions.
+ */
+async function lockFile(pid: number, ppid: number) {
   const dir = await mkdtemp(join(tmpdir(), "pettrack-hook-"));
   const path = join(dir, "E2E_RUNNING");
   await writeFile(
     path,
-    `who=test pid=${pid} at=2026-09-23T15:30:00Z head=abc1234 suite=tam-süit\n`,
+    `who=test pid=${pid} ppid=${ppid} parent=/bin/zsh cwd=/tmp ` +
+      `at=2026-09-23T15:30:00Z head=abc1234 suite=tam-süit\n`,
   );
   return path;
 }
+
+/** A pid nothing can be running under. */
+const DEAD_PID = 999999;
 
 describe("the pre-commit reminder", () => {
   it("says nothing when no run is in flight", async () => {
@@ -55,7 +75,7 @@ describe("the pre-commit reminder", () => {
 
   it("refuses while a run is in flight, and names who is running", async () => {
     // `process.pid` is alive by definition -- the test itself.
-    const { code, out } = await hook(await lockFile(process.pid));
+    const { code, out } = await hook(await lockFile(process.pid, DEAD_PID));
     expect(code).toBe(1);
     // The refusal has to carry the lock's contents. "Refused" on its own
     // pushes a person to `--no-verify`; "who, since when, which HEAD"
@@ -71,7 +91,7 @@ describe("the pre-commit reminder", () => {
     // A pid that cannot be running: a crashed run must not hold everyone's
     // commits hostage, or the first person to learn `--force`/`--no-verify`
     // turns every lock in the repo into paper.
-    const { code, out } = await hook(await lockFile(999999));
+    const { code, out } = await hook(await lockFile(DEAD_PID, process.pid));
     expect(code).toBe(0);
     expect(out).toContain("BAYAT");
   });

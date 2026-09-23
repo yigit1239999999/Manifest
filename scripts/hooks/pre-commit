@@ -53,7 +53,20 @@ set -uo pipefail
 LOCK="${E2E_LOCK:-E2E_RUNNING}"
 [ -f "$LOCK" ] || exit 0
 
-OWNER_PID="$(sed -n 's/.*pid=\([0-9]*\).*/\1/p' "$LOCK" 2>/dev/null)"
+# DESEN ` pid=` ARIYOR, `pid=` DEĞİL -- ve baştaki boşluk bir süs değil.
+#
+# Kilide `ppid=` alanı eklendiği gün (benim önerimdi: "ad yoksa iz olsun")
+# `.*pid=` deseni ONU yakaladı: aç gözlü `.*` en sağdaki eşleşmeyi seçiyor,
+# yani okunan sayı koşucunun değil EBEVEYNİNİN pid'iydi. Üç ayrı okuyucu
+# birden sessizce bozuldu -- `e2e.sh`'in trap'i kendi kilidini silemedi,
+# bayat kilit kontrolü yanlış sürece `kill -0` sordu, ve bu kanca
+# durdurduğu kişiye yanlış pid bildirdi. Hiçbiri hata vermedi.
+#
+# Ders, satırdan geniş: BİR ALANA İSİM EKLEMEK, O İSMİ İÇEREN HER ALANI
+# OKUYAN AYRIŞTIRICIYI BOZAR. " ppid=" içinde " pid=" geçmez, o yüzden
+# boşluk kuralı kapatıyor. Aynı düzeltme `e2e.sh` ve `serve-prod.sh`'te de
+# yapıldı (`a4ccad7`), ve üçü aynı deseni okumak zorunda.
+OWNER_PID="$(sed -n 's/.* pid=\([0-9]*\).*/\1/p' "$LOCK" 2>/dev/null)"
 
 # Bayat kilit commit'i engellemez. Koşu çökmüşse -- zaman aşımı, kapatılmış
 # süreç, arka plana düşmüş iş -- dosya kalır; onun yüzünden kimsenin commit'i
