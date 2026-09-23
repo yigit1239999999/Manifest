@@ -431,12 +431,22 @@ test.describe("First run", () => {
     // alone -- file run, probe, and two uncontended full suites
     // (35/35, tree hashes identical before and after).
     //
-    // The cause was NOT found, and that is the useful half: what was
-    // ruled out is a second ask in the card or the page's empty branch
-    // (that turns `:298` red too, measured, and `:298` stayed green
-    // both times) and the route's skeleton (it holds no link and no
-    // button). Whatever lands in `main` comes from somewhere else and
-    // needs a concurrent suite to appear at all (team-lead).
+    // The cause was NOT found, and that is the useful half. Ruled out
+    // by measurement: the route's skeleton, which holds no link and no
+    // button, and the layout, whose `<main>` wraps only `{children}` --
+    // the skip link is outside it. Also a second ask in the card or in
+    // the page's empty branch, though that one needs its date: when
+    // those two runs went red the test above still carried a count of
+    // its own, and it stayed green through both. It does not count any
+    // more -- cardinality was moved here, where the name promises it --
+    // so today a second call to action turns THIS test red and that one
+    // green, which is measured and is the intended shape. The argument
+    // that cleared the card is therefore history rather than something
+    // a reader can re-run; it is written down because it is the reason
+    // nobody should start there again.
+    //
+    // So something reaches `main` from outside the page's empty branch,
+    // and needs a concurrent suite to appear at all (team-lead).
     const main = page.getByRole("main");
     const asks = main.locator(
       'a[href], button[type="submit"], button:not([type])',
