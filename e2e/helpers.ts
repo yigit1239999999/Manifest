@@ -1,7 +1,5 @@
 import { test as base } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
-import enMessages from "@/messages/en.json";
-import trMessages from "@/messages/tr.json";
 
 /**
  * Picks an entry in a Combobox field (components/ui/combobox.tsx): the
@@ -29,77 +27,83 @@ function escapeRegExp(value: string): string {
 
 /**
  * The suite's `test`, with one thing added: a page that fell into an
- * error boundary fails the test that was on it.
+ * error boundary fails the test that was standing on it.
  *
- * Why this exists, and why it is not an assertion somebody remembers to
- * write. Under two concurrent suites the dashboard threw, `app/(app)/
+ * Why this exists, and why it is not a line somebody remembers to write.
+ * Under two concurrent suites the dashboard threw and `app/(app)/
  * error.tsx` rendered -- and it renders as `{children}`, so it sits
  * INSIDE `<main>` where every locator still finds things. Thirty-five
- * tests went on passing on a screen that had crashed; the only one that
- * noticed was counting links, and it noticed by accident. Then
- * `Button` was given the `type="button"` it should always have had, the
- * accident stopped happening, and the suite went completely blind to a
- * crashed page.
+ * tests went on passing on a screen that had crashed. One noticed, by
+ * accident: it counted the links in `main`, and the error state happens
+ * to carry two. Then `Button` was given the `type="button"` it should
+ * always have had, the crashed page started offering one, and the
+ * accident stopped. The suite went blind, and the way it had seen was
+ * never a decision in the first place.
  *
- * So the gate is a fixture rather than a line in one spec: a defect has
- * to be reported where it falls, and every test is standing somewhere it
- * could fall.
+ * The signal is the boundary's own `console.error(boundary, …)`
+ * (`components/error-state.tsx:33`), not the words on the screen and not
+ * a test id.
  *
- * Found by the error state's own words rather than a test id: the suite
- * reads the screen the way a reader does in 297 places and the product
- * carries no test ids. The words come from the message files, so a
- * rewording cannot leave this watching for a sentence nobody shows.
+ * - Not the words: they live in the message files and get reworded, and
+ *   a reworded sentence would leave this watching for something nobody
+ *   shows -- the guard itself going quiet, which is the defect this task
+ *   is about. `error.generic` can also legitimately appear elsewhere,
+ *   so a text scan can shout at an intact screen.
+ * - Not the DOM: `Button`'s default emptied the counting guard's set
+ *   precisely because its input was markup. A guard whose input is not
+ *   markup cannot be silenced that way.
  *
- * Sampled rather than checked once at the end: a boundary the test
- * navigated away from is still a crash the vet would have seen, and the
- * teardown check alone would miss it.
+ * Its limit, and it is a real one: this fires when the boundary MOUNTS.
+ * A throw the server swallows, one a retry recovers, or one that never
+ * reaches a boundary is invisible here. A net over the suite is not a
+ * perfect net.
  */
-const ERROR_BOUNDARY_TEXTS = [
-  trMessages.error.generic,
-  enMessages.error.generic,
-];
+// The same set as the `boundary=` call sites -- `app/error.tsx:16` and
+// `app/(app)/error.tsx:17`. If a third boundary is added and its name is
+// not added here, this guard goes quiet on that screen: the two lists
+// are one list kept in two places, which is the shape of defect this
+// file exists to catch.
+const BOUNDARY_NAMES = ["app.error", "app.section"];
 
 export const test = base.extend<{ noErrorBoundary: void }>({
   noErrorBoundary: [
-    async ({ page }, use, testInfo) => {
-      await page.addInitScript((texts: string[]) => {
-        const w = window as unknown as { __errorBoundary?: string };
-        const look = () => {
-          const body = document.body?.innerText ?? "";
-          const hit = texts.find((t) => body.includes(t));
-          if (hit && !w.__errorBoundary) {
-            // The digest, when the boundary printed one: it is the
-            // reference a reader would quote to support, and the only
-            // handle on WHICH throw this was.
-            const ref = /ref:\s*\S+/.exec(body)?.[0] ?? "no digest";
-            w.__errorBoundary = `${location.pathname} -- ${ref}`;
-          }
-        };
-        setInterval(look, 250);
-        document.addEventListener("DOMContentLoaded", look);
-      }, ERROR_BOUNDARY_TEXTS);
+    async ({ page }, use) => {
+      // Registered before the test navigates anywhere: a boundary that
+      // mounts on the first page is the one most worth catching.
+      const seen: Promise<string>[] = [];
+      page.on("console", (msg) => {
+        if (msg.type() !== "error") return;
+        const name = BOUNDARY_NAMES.find((b) => msg.text().startsWith(b));
+        if (!name) return;
+        const where = page.url();
+        // The digest is the second argument, and it is the only handle
+        // on WHICH throw this was -- the reference a reader would quote
+        // to support. Resolved rather than read off `text()`, which
+        // prints the object as `JSHandle@object`.
+        seen.push(
+          msg
+            .args()[1]
+            ?.jsonValue()
+            .then((v: unknown) => {
+              const d = (v as { digest?: string } | undefined)?.digest;
+              const m = (v as { message?: string } | undefined)?.message;
+              return `${name} at ${where} -- ${d ? `ref: ${d}` : "no digest"}${m ? ` -- ${m}` : ""}`;
+            })
+            .catch(() => `${name} at ${where}`) ?? Promise.resolve(`${name} at ${where}`),
+        );
+      });
 
       await use();
 
-      // Read from whatever document the test finished on, and stay quiet
-      // if the page is already gone: a closed context is the test's own
-      // business, not a crash.
-      let seen: string | undefined;
-      try {
-        seen = await page.evaluate(
-          () => (window as unknown as { __errorBoundary?: string }).__errorBoundary,
-        );
-      } catch {
-        seen = undefined;
-      }
-      if (seen) {
+      if (seen.length > 0) {
+        const lines = await Promise.all(seen);
         throw new Error(
-          `The page fell into an error boundary during this test (${seen}). ` +
-            `Whatever else passed, it passed on a crashed screen. ` +
-            `The server's log names the throw; see task #26.`,
+          `The page fell into an error boundary during this test:\n  ` +
+            lines.join("\n  ") +
+            `\nWhatever else passed, it passed on a crashed screen. The ` +
+            `server's log names the throw; see task #26.`,
         );
       }
-      void testInfo;
     },
     { auto: true },
   ],
