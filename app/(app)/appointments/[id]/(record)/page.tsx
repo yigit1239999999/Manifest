@@ -161,6 +161,41 @@ export default async function AppointmentPage({
           <DescriptionList
             className="grid gap-2 sm:grid-cols-2"
             items={[
+              // The two records this one is ABOUT, as the only way out of
+              // it. The vet who opens an appointment from the dashboard
+              // reads the animal's name in the heading and then wants
+              // what happened last time -- and until now the way there
+              // was back out, into the list, and search for a name they
+              // were already looking at.
+              //
+              // In the list rather than the heading, and that is the rule
+              // rather than a layout note: the heading names the record
+              // and carries what to DO with it; where it SITS among other
+              // records belongs here. (`PageHeader`'s `title: string`
+              // would refuse a link today -- but it was never chosen to
+              // enforce this, so it is not what keeps the rule.)
+              {
+                label: tPet("one"),
+                value: (
+                  <Link
+                    href={`/pets/${appointment.pet.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    {appointment.pet.name}
+                  </Link>
+                ),
+              },
+              {
+                label: tPet("owner"),
+                value: (
+                  <Link
+                    href={`/clients/${appointment.client.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    {ownerLabel(appointment.client)}
+                  </Link>
+                ),
+              },
               {
                 label: t("startsAt"),
                 value: formatDateTime(fmt, appointment.startsAt),

@@ -343,6 +343,50 @@ export default async function VisitPage({
                   numeric: true,
                 },
                 { label: t("vet"), value: visit.vet?.name },
+                // The two records this visit is ABOUT, as the way out of
+                // it. The vet who opens a visit from the dashboard reads
+                // the animal's name in the heading and then wants what
+                // happened last time -- and the way there was back out,
+                // into the list, and search for a name they were already
+                // looking at.
+                //
+                // In the list rather than the heading, and that is the
+                // rule rather than a layout note: the heading names the
+                // record and carries what to DO with it; where it SITS
+                // among other records belongs here. (`PageHeader`'s
+                // `title: string` would refuse a link today -- but it was
+                // never chosen to enforce this, so it is not what keeps
+                // the rule.)
+                //
+                // At the END of this list, and that is a compromise worth
+                // naming: the card is headed "vitals" but already carries
+                // the follow-up, the total and the vet, so it is the
+                // record's own column in everything but its title. The
+                // rows go where the other non-vitals are rather than
+                // above the readings, and the title is a separate
+                // question (reported, not decided here).
+                {
+                  label: tPet("one"),
+                  value: (
+                    <Link
+                      href={`/pets/${visit.pet.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {visit.pet.name}
+                    </Link>
+                  ),
+                },
+                {
+                  label: tPet("owner"),
+                  value: (
+                    <Link
+                      href={`/clients/${visit.client.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {ownerLabel(visit.client)}
+                    </Link>
+                  ),
+                },
               ]}
             />
           </CardContent>
