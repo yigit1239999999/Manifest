@@ -39,8 +39,9 @@ export function ColumnCard({
   heading?: string;
   evidence: ColumnEvidence;
   proposal: Proposal;
-  value: ImportField;
-  onChange: (field: ImportField) => void;
+  /** `""` while an unsettled column has no answer: a choice nobody made. */
+  value: ImportField | "";
+  onChange: (field: ImportField | "") => void;
   /** The answer to "day first or month first", once given. */
   dateOrder?: "dayFirst" | "monthFirst";
   onDateOrder: (order: "dayFirst" | "monthFirst") => void;
@@ -116,8 +117,18 @@ export function ColumnCard({
           <Select
             id={selectId}
             value={value}
-            onChange={(e) => onChange(e.target.value as ImportField)}
+            onChange={(e) => onChange(e.target.value as ImportField | "")}
           >
+            {/* An unsettled column starts on nothing. Preselecting the first
+                candidate put an answer on screen that nobody gave, under a
+                sentence promising the vet would give it -- and the summary
+                counted it. The vet says "fine" and `pet.name` becomes a
+                decision with no author. Same class as the dash that stood
+                where a recorded number should have been (#27): the product
+                stating a fact that does not exist. */}
+            {asks && (
+              <option value="">{t("fieldUnset")}</option>
+            )}
             {options.map((field) => (
               <option key={field} value={field}>
                 {t(`field.${field}`)}
@@ -134,6 +145,9 @@ export function ColumnCard({
           <p className={cn("text-sm", asks ? "text-foreground" : "text-muted-foreground")}>
             {asks ? t("asksYou") : t("settledNote")}
           </p>
+          {showUnanswered && asks && value === "" && (
+            <Callout variant="warning">{t("fieldUnanswered")}</Callout>
+          )}
         </div>
 
         {/* The file's own habits, reported and not corrected. The vet did not

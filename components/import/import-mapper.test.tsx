@@ -97,7 +97,8 @@ describe("the mapping screen", () => {
     const options = within(phoneCard)
       .getAllByRole("option")
       .map((o) => o.getAttribute("value"));
-    expect(options).toEqual(["client.phone", "client.secondaryPhone", "skip"]);
+    // The empty first entry is the unanswered state, not a field.
+    expect(options).toEqual(["", "client.phone", "client.secondaryPhone", "skip"]);
     // Two phone fields, so this is a question and not an answer: a heading
     // orders the candidates, it never settles which of the two this is.
     expect(within(phoneCard).getByText(tr.import.asksYou)).toBeInTheDocument();
@@ -141,6 +142,46 @@ describe("the mapping screen", () => {
     await settle();
 
     expect(screen.getByText(tr.import.sheetQuestion)).toBeInTheDocument();
+  });
+
+  // A choice nobody made used to sit in the select of every unsettled
+  // column -- the first candidate, preselected, under a sentence saying the
+  // vet would choose. The summary counted it as mapped, so "fine" wrote a
+  // decision with no author. Same class as the dash standing where a
+  // recorded number should have been (#27): a fact the product does not
+  // have, stated as one it does.
+  it("leaves an unsettled column unchosen, and says so in the summary", async () => {
+    mount([sheet(WITH_HEADING)]);
+    await settle();
+    fireEvent.click(screen.getByLabelText(tr.import.headerOption.names));
+
+    for (const select of screen.getAllByRole("combobox")) {
+      expect((select as HTMLSelectElement).value).toBe("");
+    }
+    // Both columns are questions here, and the summary counts them as open
+    // rather than reporting two fields it has not been given.
+    expect(
+      screen.getByText(tr.import.summaryUnanswered.replace("{count}", "2")),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the answer on a column the values do settle", async () => {
+    mount([
+      sheet([
+        ["Eposta"],
+        ["ayse@ornek.test"],
+        ["mehmet@ornek.test"],
+      ]),
+    ]);
+    await settle();
+    fireEvent.click(screen.getByLabelText(tr.import.headerOption.names));
+
+    // One candidate and decidable values: the product has the answer, and
+    // asking anyway would be work for the vet with nothing behind it.
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    expect(select.value).toBe("client.email");
+    expect(screen.getByText(tr.import.settledNote)).toBeInTheDocument();
+    expect(screen.queryByText(tr.import.fieldUnset)).toBeNull();
   });
 
   it("offers no import button, because nothing is saved yet", async () => {

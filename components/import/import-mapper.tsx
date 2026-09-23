@@ -53,7 +53,7 @@ export function ImportMapper() {
   const [phase, setPhase] = React.useState<Phase>({ kind: "idle" });
   const [sheetIndex, setSheetIndex] = React.useState(0);
   const [headerAnswer, setHeaderAnswer] = React.useState<HeaderAnswer>(null);
-  const [fields, setFields] = React.useState<Record<number, ImportField>>({});
+  const [fields, setFields] = React.useState<Record<number, ImportField | "">>({});
   const [dateOrders, setDateOrders] = React.useState<
     Record<number, "dayFirst" | "monthFirst">
   >({});
@@ -126,14 +126,18 @@ export function ImportMapper() {
     });
   }, [sheet, headerAnswer, bodyRows]);
 
-  const chosen = (col: number, proposal: Proposal): ImportField =>
-    fields[col] ?? proposal.candidates[0] ?? "skip";
+  // A settled column arrives with its answer; an unsettled one arrives with
+  // none, and stays that way until the vet gives one. The two used to look
+  // the same on screen, which made the second an answer nobody gave.
+  const chosen = (col: number, proposal: Proposal): ImportField | "" =>
+    fields[col] ?? (proposal.settled ? (proposal.candidates[0] ?? "skip") : "");
 
   const openDateQuestions = columns.filter(
     (c) => c.evidence.dateOrder === "ambiguous" && !dateOrders[c.col],
   ).length;
-  const mapped = columns.filter((c) => chosen(c.col, c.proposal) !== "skip").length;
-  const skipped = columns.length - mapped;
+  const unanswered = columns.filter((c) => chosen(c.col, c.proposal) === "").length;
+  const skipped = columns.filter((c) => chosen(c.col, c.proposal) === "skip").length;
+  const mapped = columns.length - unanswered - skipped;
 
   return (
     <div className="flex flex-col gap-6">
@@ -334,9 +338,18 @@ export function ImportMapper() {
             <p className="text-sm text-foreground">
               {t("summaryRows", { rows: bodyRows.length })}
             </p>
+            {/* Future tense, and the reason is a misreading pm measured:
+                "2 columns go to a field" is the language of finished work,
+                so a vet who then opens an empty client list concludes the
+                product is broken rather than unfinished. */}
             <p className="text-sm text-foreground">
               {t("summaryFields", { mapped, skipped })}
             </p>
+            {unanswered > 0 && (
+              <Callout variant="warning">
+                {t("summaryUnanswered", { count: unanswered })}
+              </Callout>
+            )}
             {openDateQuestions > 0 && (
               <Callout variant="warning">
                 {t("summaryOpenDates", { count: openDateQuestions })}

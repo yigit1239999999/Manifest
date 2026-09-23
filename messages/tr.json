@@ -741,6 +741,8 @@
     "samplesLabel": "Dosyanızdan örnekler",
     "samplesNone": "Bu sütunda dolu hücre yok.",
     "fieldLabel": "Alan",
+    "fieldUnset": "Seçilmedi",
+    "fieldUnanswered": "Bu sütun için bir alan seçilmedi.",
     "orderedBy": "Sıra, \"{heading}\" başlığına göre kuruldu.",
     "settledNote": "Değerler tek bir alana işaret ediyor.",
     "asksYou": "Değerler tek bir alana işaret etmiyor; bu sütunu siz seçersiniz.",
@@ -755,7 +757,8 @@
     "dateUnanswered": "Bu soru yanıtlanmadı.",
     "summaryTitle": "Özet",
     "summaryRows": "{rows} satır okundu.",
-    "summaryFields": "{mapped} sütun bir alana gidiyor, {skipped} sütun atlanıyor.",
+    "summaryFields": "{mapped} sütun bir alana gidecek, {skipped} sütun atlanacak.",
+    "summaryUnanswered": "{count} sütun için alan seçilmedi.",
     "summaryOpenDates": "{count} sütunda tarih sorusu yanıtlanmadı.",
     "summaryNoWriteYet": "Bu adımda kayıt oluşturulmuyor. Satırların yazılması ayrı bir iş ve henüz hazır değil.",
     "field": {
