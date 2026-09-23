@@ -3000,6 +3000,111 @@ doğrusu `.checked`. Sorulan soruyu (yazılan metin duruyor mu)
 bozmadığı için rapora girmedi ama `pm` yine de bildirdi. Bir okuma,
 yanlış olduğu hâlde **doğru cevabı vermiş** olabilir.
 
+### Bir kural zaten yazılıysa ve yine kaçtıysa, ÜÇÜNCÜ KEZ YAZMA — ALETE GÖM
+
+`pm`'in kararı, ve bu bölümün en önemli maddesi.
+
+23 Eylül'de damga, disk ve sunulan derleme üçe ayrıldı. TEAM.md'de
+*"zemini gösteren mekanizma kendi tazeliğini taşımalı"* diye bir madde
+**zaten vardı** ve işe yaramadı. `pm`'in teşhisi:
+
+> Damgayı **okumak** alışkanlık; damgayı **diskle ve sunucuyla
+> karşılaştırmak** değil. Ben bugün elle yaptım; bir dahaki sefere
+> yapmayabilirim.
+
+Ve kuralı üçüncü kez yazmayı **reddetti.** Bunun yerine kabul betiğinin
+ilk işi yaptı: `SERVED_COMMIT.txt`'in `BUILD_ID`'si · `.next-prod/BUILD_ID`
+· **sunulan HTML'in içindeki kimlik** — üçü eşit değilse betik **ölçmeden
+çıkıyor.**
+
+```
+# ZEMİN SINAVI  damga=xxbYDX…  disk=qTCrko…  sunulan=xxbYDX…  -> AYRIŞIK
+# DURDU: üç kaynak aynı derlemeyi göstermiyor. Ölçüm yapılmadı;
+# ürün hakkında hiçbir şey söylenmedi.
+```
+
+> **Kural: bir disiplin iki kez yazılıp iki kez kaçtıysa, üçüncü yazım
+> onu tutmaz. Kontrolü, onu atlayamayacak olan şeye — alete — koy.**
+> Ölçüm aleti zemini doğrulamadan çalışmıyorsa, ölçen kişi doğrulamayı
+> unutamaz.
+
+Aynı gün aynı biçim ikinci kez çıktı: `dev-ui` kendi tarafına *"commit
+etmeden önce `SERVED_COMMIT.txt`'e bak"* kapısını koydu — kural olarak
+değil, kendi adımı olarak.
+
+### "AĞAÇ TEMİZ" ve "DAMGA GÜNCEL" birer ÖLÇÜM İDDİASIDIR — yazmadan önce koşulur
+
+Aynı gün, aynı saat, iki kişi, aynı şeyin iki ucu:
+
+- **`ui`:** ölçüme giderken gerekçesini *"ağaç temiz"* diye yazdı,
+  **kontrol etmeden.** Ağaçta iki dosya kirliydi ve **tam da ölçtüğü iki
+  dosyaydı.** Sayıları **ön okuma** diye kaydedip hüküm vermedi, ve karelerin
+  klasör adının (`firstrun-9e2d2df`) yanıltıcı olduğunu da yazdı.
+- **`dev-ui`:** damga basıldıktan sonra commit attı, *"damga güncel"*
+  varsayımıyla. Damga bir commit geride kaldı ve sunulan kart, kararı
+  verilmiş karttan başkaydı.
+
+`dev-ui`'nin ortak kaydı: **ikisi de tek komutla doğrulanabilirdi**
+(`git status --porcelain`, `SERVED_COMMIT.txt`), **ikisi de bedavaydı,
+ikisi de atlandı.**
+
+> **`ui`'nin eklediği madde:** *"yok" demeden önce kapsamı söyle* kuralının
+> kardeşi — **"temiz" demeden önce koş.**
+
+### Damga basıldıktan sonra inen her commit ÖLÇÜMÜ BAYATLATIR
+
+`dev-ui`'nin önerisi, ve `MEASURING` tetiğinin kapsamadığı boşluk:
+
+> Ana oturumun tetiği *"sunulan derlemeyi değiştirebilecek bir şey
+> koşuyorum"*. Ama **commit atmak sunulan derlemeyi değiştirmez —
+> damgayı bayatlatır.** Bu, dosyaya dokunmadan ölçümü geçersiz kılmanın
+> yoludur.
+
+> **Kural: damga basıldıktan sonra inen her commit ölçümü bayatlatır ve
+> ölçüm sahibine haber verilir.** Haber vermek commit'in parçasıdır,
+> sonraki bir iyi niyet değil.
+
+### Bir ÖLÇÜT, açıklığın İKİ UCU DA adlandırılmadan ölçülebilir değildir
+
+Aynı kart iki kişi tarafından ölçüldü ve **ikisi de doğru ölçtü**:
+`pm` 0,448 / 0,480 · `dev` 0,516 / 0,551. Fark, kartın **sağ dolgusunun**
+çıkarılıp çıkarılmaması — yani açıklığın **hangi kenardan** ölçüldüğü.
+
+Bedeli somut: kartın genişliği **üç kez** değişti (576 → 512 → 576 → 512),
+ve ortadaki dönüş yanlış bir ölçüye dayanan doğru bir karardı.
+
+`dev-ui`'nin çözümü sayıya değil **sağlamlığa** dayanıyor ve emsal olsun:
+son değeri *"her iki okumada da eşiğin altında"* olduğu için seçti, ve
+gerekçeyi dosyaya yazdı — **bir sonraki okuma kararı çeviremesin diye.**
+
+Aynı eksik aynı gün K4'te de çıkmıştı (`pm`: *"hangi iki kenar, hangi
+kapsayıcı"*). İki ayrı ölçüt, tek eksik.
+
+### Doğrulama yalnız KARAR VERMEDEN önce değil, İLETMEDEN önce de gerekir
+
+`dev-ui` bir bulguyu ana oturuma taşımadan önce kaynağa baktı ve
+**zaten kapandığını** gördü. Taşısaydı, çözülmüş bir şey bulgu diye
+gündeme girecekti.
+
+Ve **ucuz olmasının sebebini** de yazdı, ki kural uygulanabilir olsun:
+
+> İletilen bulgu **`dosya:satır`** taşıyorsa doğrulamak tek `grep`'tir —
+> yani **zorunludur, çünkü bedava.** *"Betik yanlış dizine derliyor"*
+> diye gelen bir bulguyu doğrulamak beş dakika sürer ve iletmek
+> savunulabilir olur.
+
+### "Açıklayamadım"ın yanına "KİM BİLİYOR OLABİLİR" satırı konur
+
+`pm` zeminde üçüncü bir derleme kimliği buldu ve doğru etiketledi:
+*"açıklayamadım, 'yok' demiyorum."* Cevap ana oturumdaydı — iki derleme
+koşmuş ve damgayı güncellememişti.
+
+> `pm`'in kendi düzeltmesi: **etiket doğruydu ama bir adım eksikti.**
+> Açıklanamayan bir sabit, **ekipte birinin bildiği** bir şey olabilir.
+
+3118'in üç sütununa (ÖLÇÜLEMEDİ · ÖLÇÜLMEDİ · AÇIKLANAMADI) eklenen şey:
+üçüncüsü **kime sorulacağını** da taşır.
+
 ### Ölçüm noktaları koddan türetilir, cihazdan değil
 
 *"İki nokta bir bandı kapsamaz"* tespitinin yanlış çözümü nokta eklemektir:
