@@ -1,5 +1,5 @@
-import { pickOption } from "./helpers";
-import { test, expect, type Page } from "@playwright/test";
+import { pickOption, test, expect } from "./helpers";
+import type { Page } from "@playwright/test";
 
 // The clinical happy path against a real, migrated database: a client, a pet
 // registered through the species picker, then a vaccination, a treatment and

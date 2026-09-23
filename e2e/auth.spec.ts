@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers";
 
 test.describe("Auth", () => {
   test("an unauthenticated visitor is sent to /sign-in", async ({ page }) => {

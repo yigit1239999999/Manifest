@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./helpers";
+import type { Page } from "@playwright/test";
 
 // Page-load performance budget.
 //

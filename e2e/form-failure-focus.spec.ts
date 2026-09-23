@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./helpers";
+import type { Page } from "@playwright/test";
 
 // Where the cursor is after a submit the server refused.
 //

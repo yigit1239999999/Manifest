@@ -1,5 +1,4 @@
-import { pickOption } from "./helpers";
-import { test, expect } from "@playwright/test";
+import { pickOption, test, expect } from "./helpers";
 
 // /appointments answers "what is happening today", so the default view is
 // the clinic's own day rather than the oldest page of every appointment

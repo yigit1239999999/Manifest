@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./helpers";
+import type { Page } from "@playwright/test";
 
 // The focus ring, measured rather than spelled.
 //

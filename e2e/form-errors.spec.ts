@@ -1,5 +1,4 @@
-import { pickOption } from "./helpers";
-import { test, expect } from "@playwright/test";
+import { pickOption, test, expect } from "./helpers";
 
 // A failed validation must never cost the user their typing, and the
 // messages that come back must be in the language they are using.

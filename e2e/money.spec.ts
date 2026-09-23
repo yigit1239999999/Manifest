@@ -1,5 +1,5 @@
-import { pickOption } from "./helpers";
-import { test, expect, type Page } from "@playwright/test";
+import { pickOption, test, expect } from "./helpers";
+import type { Page } from "@playwright/test";
 
 // Money, end to end: what a person types must be what the clinic is owed.
 //
