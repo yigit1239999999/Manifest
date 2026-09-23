@@ -81,7 +81,64 @@ trap '[ "$(sed -n "s/.*pid=\([0-9]*\).*/\1/p" "$LOCK" 2>/dev/null)" = "$$" ] && 
 # hangi koşuya ait olduğu söylenemedi (dev). Sahibi belirsiz kanıt, kanıt değil.
 rm -rf test-results
 
-echo "== KOŞU BAŞI ==";  git rev-parse --short HEAD; git status --porcelain
+# ZEMİN İKİ UÇTA ÖLÇÜLÜR VE KARŞILAŞTIRILIR -- yazdırmak yetmiyordu.
+#
+# Kilit KOŞUCUYU korur, AĞACI korumaz (dev-ui, ve `#32`nin kendisi). Bugün
+# tam da bu oldu: lider, başkası koşarken commit'ledi ve bir paket kurdu.
+# Koşan taraf durdu, ama SEBEBİ tesadüftü -- birim sayısının 1178'den 1190'a
+# çıktığını gördü. Fark sayıya yansımasaydı (yalnız `package-lock` oynasaydı,
+# ya da değişen dosya süitin çizmediği bir yerde olsaydı) koşu tamamlanır ve
+# **yeşil doğru sanılırdı.** Yani insanın fark etmesine bırakılmış bir kontrol
+# vardı, ve o kontrol yalnız gürültü yeterince büyük olduğunda çalışıyordu.
+#
+# Betik iki ucu zaten yazdırıyordu. Yazdırmak, karşılaştırmak değildir: iki
+# çıktı ekranda yan yana durur ve kimse bakmaz. Buradan sonrası KARŞILAŞTIRMA,
+# ve sonucu koşunun çıkış koduna bağlı.
+START_HEAD=$(git rev-parse --short HEAD)
+START_TRACKED=$(git status --porcelain --untracked-files=no)
+START_UNTRACKED=$(git status --porcelain --untracked-files=all | grep '^??' || true)
+
+echo "== KOŞU BAŞI =="; echo "$START_HEAD"; git status --porcelain
 npx playwright test "$@"; STATUS=$?
-echo "== KOŞU SONU ==";  git rev-parse --short HEAD; git status --porcelain
+END_HEAD=$(git rev-parse --short HEAD)
+END_TRACKED=$(git status --porcelain --untracked-files=no)
+END_UNTRACKED=$(git status --porcelain --untracked-files=all | grep '^??' || true)
+echo "== KOŞU SONU =="; echo "$END_HEAD"; git status --porcelain
+
+# ÜÇ DEĞİŞİKLİK, ÜÇ AYRI SONUÇ -- hepsini "kirli" saymak yanlış olurdu.
+#
+# `dev-ui` bunu elle ayırdı ve doğru ayırdı: koşusunun sonunda ağaçta iki YENİ
+# ve İZLENMEYEN dosya belirdi (`modules/import/mask*.ts`), dokunduğu hiçbir
+# yüzeyi çizmiyorlardı, ve koşuyu geçersiz saymadı. O yargı buraya geçiyor:
+#
+#   HEAD oynadı        -> koşu GEÇERSİZ. Ölçtüğün kod, adını yazdığın kod değil.
+#   izlenen dosya oynadı -> koşu GEÇERSİZ. Süitin okuduğu bir dosya olabilir ve
+#                          hangisinin okunduğu koşudan sonra bilinemez.
+#   yalnız izlenmeyen  -> NOT düşülür, geçersiz DEĞİL. Yeni bir dosya, hiçbir
+#                          şey onu import etmiyorsa hiçbir şeyi çizmez.
+#
+# Ve geçersizlik ÇIKIŞ KODUNA yansır: hareketli ağaçta alınan yeşil, yeşil
+# okunmamalı. Bir uyarı satırı basıp 0 ile çıkmak, bu turda altı koşuyu çöpe
+# götüren şeyin ta kendisidir -- kimse uyarıyı okumaz, sayıyı okur.
+DRIFT=""
+[ "$START_HEAD" != "$END_HEAD" ] && DRIFT="HEAD: $START_HEAD -> $END_HEAD"
+if [ "$START_TRACKED" != "$END_TRACKED" ]; then
+  DRIFT="${DRIFT:+$DRIFT; }izlenen dosyalar koşu sırasında değişti"
+fi
+
+if [ -n "$DRIFT" ]; then
+  echo "" >&2
+  echo "ZEMİN OYNADI -- BU KOŞU GEÇERSİZ: $DRIFT" >&2
+  echo "  Playwright sonucu: $STATUS (yeşil de olsa sayma)." >&2
+  echo "  Ağaç durunca tekrar koş. Kimin oynattığını 'git log --oneline $START_HEAD..HEAD' söyler." >&2
+  exit 3
+fi
+
+if [ "$START_UNTRACKED" != "$END_UNTRACKED" ]; then
+  echo "" >&2
+  echo "NOT: koşu sırasında izlenmeyen dosya(lar) belirdi. Koşu GEÇERLİ --" >&2
+  echo "  izlenmeyen bir dosyayı hiçbir şey import etmiyorsa hiçbir şeyi çizmez." >&2
+  echo "  Yine de yazılı olsun: 'ölçüm sırasında ağaçta ne vardı' sonradan aranmamalı." >&2
+fi
+
 exit $STATUS
