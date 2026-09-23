@@ -81,6 +81,22 @@ export function DateTimeInput({
   const [ownWall, setOwnWall] = React.useState(initial);
   const wall = value ?? ownWall;
 
+  // THE VALUE THAT IS ALREADY IN THE FIELD IS STILL AN ANSWER. A parent
+  // watching this field only ever heard about dates the user TYPED, so a
+  // pre-filled one -- today's date on the vaccination form -- reached it
+  // as nothing. The screen showed today, the vet agreed with it by not
+  // touching it, and the form behaved as though the field were empty:
+  // choosing a vaccine proposed no next date at all until they edited a
+  // field that was already right. Announced once, on mount, and only
+  // when this field owns its own value; a controlled one was given its
+  // text by the parent, which therefore already knows it.
+  React.useEffect(() => {
+    if (value === undefined && initial) onValueChange?.(initial);
+    // Mount only: later changes go through `change`, and re-announcing an
+    // initial value after the user has replaced it would undo their edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function change(next: string) {
     if (value === undefined) setOwnWall(next);
     onValueChange?.(next);

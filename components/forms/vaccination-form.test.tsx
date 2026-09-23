@@ -70,6 +70,18 @@ describe("vaccination form", () => {
     expect(String(data.nextDueAt)).toContain("2027-09-2");
   });
 
+  it("proposes from the date already in the field", () => {
+    // The commonest path there is: today is already in the date field, so
+    // the vet touches the vaccine and nothing else. Before this the parent
+    // only heard about dates that were TYPED, so the pre-filled one reached
+    // it as nothing and the screen proposed nothing at all -- until the vet
+    // edited a field that was already right.
+    mount();
+    fireEvent.change(screen.getByLabelText(/^Aşı/), { target: { value: "Karma" } });
+
+    expect(screen.getByText("1 yıl, listeden geldi.")).toBeTruthy();
+  });
+
   it("keeps the clinic's own interval apart from ours", () => {
     const offers = clinicVaccineList(
       "DOG",
