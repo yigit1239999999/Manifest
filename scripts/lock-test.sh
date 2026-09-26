@@ -31,8 +31,17 @@
 # bırakılıyor) ama süit koşulmuyor ve `.next-prod` derlenmiyor. Uyku bir süs
 # değil: 3. senaryonun kilidi devralabileceği pencere o.
 #
+# AMA TAMAMEN BEDELSİZ DEĞİL, ve bu satır o yüzden burada: `e2e.sh` trap'in
+# ötesine geçerken `test-results`ı siliyor. Bugün boştu; yarın birinin hata
+# artefaktları olur. Sınavı koşturmadan önce o dizine bak.
+#
 # NE SINAMIYOR: PID yeniden kullanımı, iki betiğin birbirini beklemesi,
 # `--force`un kendisi, ve gerçek bir süit/derlemenin kilidi ne kadar tuttuğu.
+#
+# VE BİR KIRILGANLIK, ölçülmüş değil ama sebebi belli: 3. senaryonun penceresi
+# sahte `npx`in üç saniyesi. 3000'deki sunucunun çatı sürümü diskle
+# uyuşmazsa `e2e.sh` daha ÖNCE (exit 5) çıkar ve pencere ~100 ms'ye düşer.
+# Bugün geçti; yarın oynaklık ederse sebebi budur.
 #
 # KİM, NE ZAMAN: `scripts/e2e.sh` ya da `scripts/serve-prod.sh` içindeki
 # kilit satırlarına dokunan kişi, commit'ten önce. Otomatik bir kapıya
