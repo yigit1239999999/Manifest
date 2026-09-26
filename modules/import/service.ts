@@ -323,7 +323,7 @@ export async function commitImport(
     // vet emptied comes back absent, and merging the two would put it back.
     speciesTable.set(raw, {
       raw,
-      target: answer.target,
+      target: ownedTarget(answer.target, custom),
       breed: answer.breed,
       rows: 0,
       settled: true,
@@ -505,6 +505,29 @@ export async function commitImport(
     },
     { timeout: 60_000, maxWait: 10_000 },
   );
+}
+
+/**
+ * A `custom` answer, checked against the species THIS clinic has.
+ *
+ * `customSpeciesId` is the one field on a pet that points at a row a clinic
+ * owns, and the id arrives in the request body. A foreign key says the row
+ * exists somewhere; it does not say it is ours, so without this a forged
+ * plan attaches this clinic's animals to another clinic's species -- wrong
+ * data and a tenancy boundary crossed in the same write.
+ *
+ * An id from outside the list this request already read stops being an
+ * answer: the row falls back to "other", which is where it was before
+ * anybody answered. Not an error, because the honest reading of an
+ * unrecognised id is that we do not know what it means, and the screen
+ * already says what "other" is.
+ */
+function ownedTarget(
+  target: SpeciesTarget,
+  custom: ReadonlyArray<{ id: string }>,
+): SpeciesTarget {
+  if (target.kind !== "custom") return target;
+  return custom.some((entry) => entry.id === target.id) ? target : { kind: "unknown" };
 }
 
 function toSpecies(

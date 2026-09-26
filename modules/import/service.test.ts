@@ -297,6 +297,50 @@ describe("writing", () => {
   });
 });
 
+describe("a species id from the browser", () => {
+  const owned = (id: string, name: string) =>
+    vi.mocked(prisma.customSpecies.findMany).mockResolvedValue([{ id, name }] as never);
+
+  it("is written when the clinic owns it", async () => {
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+    owned("cs-ours", "Kirpi");
+
+    await commitImport(
+      [["Ada", "Kaya", "0532 111 22 33", "Boncuk", "Kirpi"]],
+      answers({ species: { Kirpi: { target: { kind: "custom", id: "cs-ours" } } } }),
+      admin,
+    );
+
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets[0].customSpeciesId).toBe("cs-ours");
+  });
+
+  it("is refused when it belongs to another clinic", async () => {
+    // The same door the bulk answer closed, one field wider: a foreign key
+    // says the row exists, not that it is ours. Without the check this
+    // writes a pet of THIS clinic pointing at ANOTHER clinic's species --
+    // wrong data and a tenancy boundary crossed in one write.
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+    owned("cs-ours", "Kirpi");
+
+    await commitImport(
+      [["Ada", "Kaya", "0532 111 22 33", "Boncuk", "Kirpi"]],
+      answers({ species: { Kirpi: { target: { kind: "custom", id: "cs-theirs" } } } }),
+      admin,
+    );
+
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets[0].species).toBe("OTHER");
+    expect(pets[0].customSpeciesId).toBeNull();
+  });
+});
+
 describe("a file with no species column (#42)", () => {
   // No `pet.species` in the mapping, which is the case a clinic that keeps
   // one kind of animal actually has.
