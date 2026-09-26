@@ -412,7 +412,7 @@ test.describe("First run", () => {
   // design actually promises is that a clinic with nothing in it is
   // asked for exactly one thing, and that is a count, not an href (ux).
   //
-  // Counted inside `main`, so the eleven sidebar entries and the topbar
+  // Counted inside `main`, so the twelve sidebar entries and the topbar
   // are out of scope: the question is what the CONTENT area asks for.
   test("an empty clinic is asked for exactly one thing", async ({ page }) => {
     await signUp(page, Date.now());

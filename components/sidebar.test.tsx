@@ -92,11 +92,41 @@ describe("Sidebar", () => {
     ).toBeInTheDocument();
   });
 
+  // An entry may need MORE THAN ONE permission, and the rule is `every`.
+  //
+  // `/import` writes a client and an animal per row of the file, so the
+  // endpoint refuses anyone holding one without the other
+  // (`modules/import/request.ts`). A rail that asked for either would put
+  // the door next to the locked one, which is the failure the import
+  // module named when it refused to invent an `import.write` of its own.
+  //
+  // Both halves are asserted on purpose. Only the negative would pass on a
+  // sidebar that had lost the entry altogether; only the positive would
+  // pass if the list quietly became an OR.
+  it("needs every permission an entry lists, not just one of them", () => {
+    renderAt("/", ["clients.write"]);
+    expect(screen.queryByRole("link", { name: "İçe aktarma" })).toBeNull();
+
+    renderAt("/", ["pets.write"]);
+    expect(screen.queryByRole("link", { name: "İçe aktarma" })).toBeNull();
+
+    renderAt("/", ["clients.write", "pets.write"]);
+    expect(
+      screen.getByRole("link", { name: "İçe aktarma" }),
+    ).toBeInTheDocument();
+  });
+
   it("asks for a permission per entry, not a prop per permission", () => {
     // The rule this file exists to hold: adding a guarded route is one line
     // in `NAV`, not a fourth boolean on the component. If a permission ever
     // arrives by a second route again, this count stops matching.
-    renderAt("/", ["audit.read", "users.manage", "settings.manage"]);
-    expect(screen.getAllByRole("link")).toHaveLength(12); // 11 nav + the logo
+    renderAt("/", [
+      "audit.read",
+      "users.manage",
+      "settings.manage",
+      "clients.write",
+      "pets.write",
+    ]);
+    expect(screen.getAllByRole("link")).toHaveLength(13); // 12 nav + the logo
   });
 });

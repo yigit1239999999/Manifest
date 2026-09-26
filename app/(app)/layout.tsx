@@ -20,6 +20,11 @@ const NAV_PERMISSIONS = [
   "audit.read",
   "users.manage",
   "settings.manage",
+  // Both, and they are one entry's requirement rather than two entries':
+  // `/import` writes a client and an animal per row, so the rail asks for
+  // the pair the endpoint asks for (`modules/import/request.ts`).
+  "clients.write",
+  "pets.write",
 ] as const satisfies readonly Permission[];
 
 export default async function AppLayout({
@@ -39,7 +44,7 @@ export default async function AppLayout({
 
   return (
     <ClinicZoneProvider timeZone={clinic?.timezone}>
-      {/* Up to eleven navigation links stand between the top of every page
+      {/* Up to twelve navigation links stand between the top of every page
           and its content. Without this a keyboard user tabs through all of
           them on every single page (TEAM.md #26). Hidden until focused. */}
       <a
