@@ -1,4 +1,4 @@
-import { pickOption, test, expect } from "./helpers";
+import { pickOption, test, expect, assertFormKept } from "./helpers";
 
 // A failed validation must never cost the user their typing, and the
 // messages that come back must be in the language they are using.
@@ -9,6 +9,7 @@ async function signUp(page: import("@playwright/test").Page, stamp: number) {
   await page.getByLabel(/your name|adın/i).fill("E2E Tester");
   await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(`e2e+${stamp}@pettrack.test`);
   await page.getByLabel(/^password|^şifre/i).fill("supersecret123");
+  await assertFormKept(page);
   await page
     .getByRole("button", { name: /create account|hesap oluştur/i })
     .click();

@@ -1,4 +1,4 @@
-import { test, expect } from "./helpers";
+import { test, expect, assertFormKept } from "./helpers";
 
 test.describe("Auth", () => {
   test("an unauthenticated visitor is sent to /sign-in", async ({ page }) => {
@@ -23,6 +23,7 @@ test.describe("Auth", () => {
     await page.getByLabel(/your name|adın/i).fill("E2E Tester");
     await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(email);
     await page.getByLabel(/^password|^şifre/i).fill(password);
+    await assertFormKept(page);
     await page
       .getByRole("button", { name: /create account|hesap oluştur/i })
       .click();

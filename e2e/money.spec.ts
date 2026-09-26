@@ -1,4 +1,4 @@
-import { pickOption, test, expect } from "./helpers";
+import { pickOption, test, expect, assertFormKept } from "./helpers";
 import type { Page } from "@playwright/test";
 
 // Money, end to end: what a person types must be what the clinic is owed.
@@ -23,6 +23,7 @@ async function signUp(page: Page, stamp: number) {
   await page.getByLabel(/your name|adınız/i).fill("E2E Tester");
   await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(`money+${stamp}@pettrack.test`);
   await page.getByLabel(/^password|^şifre/i).fill("supersecret123");
+  await assertFormKept(page);
   await page.getByRole("button", { name: /create account|hesap oluştur/i }).click();
   await expect(page).toHaveURL("/");
 }

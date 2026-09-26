@@ -1,5 +1,5 @@
 import path from "node:path";
-import { test, expect } from "./helpers";
+import { test, expect, assertFormKept } from "./helpers";
 import { writeFixtures } from "./import-fixtures";
 
 /**
@@ -57,6 +57,7 @@ for (const locale of ["tr", "en"] as const) {
     await page.getByLabel(/your name|adın/i).fill("E2E Tester");
     await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(`e2e+import${stamp}@pettrack.test`);
     await page.getByLabel(/^password|^şifre/i).fill("supersecret123");
+    await assertFormKept(page);
     await page.getByRole("button", { name: /create account|hesap oluştur/i }).click();
     await expect(page).toHaveURL("/");
 

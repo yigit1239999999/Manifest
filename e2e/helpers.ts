@@ -1,4 +1,4 @@
-import { test as base } from "@playwright/test";
+import { test as base, expect as baseExpect } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 
 /**
@@ -111,5 +111,53 @@ export const test = base.extend<{ noErrorBoundary: void }>({
     { auto: true },
   ],
 });
+
+/**
+ * Refuses to submit a form that has lost what was typed into it.
+ *
+ * WHY THIS IS A LINE IN A HELPER AND NOT A NOTE SOMEBODY REMEMBERS. On 26
+ * September 2026 four full runs reported, in five different tests, that "a
+ * server action does not complete in 20 seconds" -- and it was wrong. The
+ * artefact of the one red that survived a fresh server said something else
+ * entirely:
+ *
+ *     - textbox "Clinic name"                 <- EMPTY
+ *     - textbox "Your name": E2E Tester       <- filled
+ *     - textbox "Email": e2e+...              <- filled
+ *     - textbox "Password": supersecret123    <- filled
+ *     - alert                                 <- EMPTY
+ *
+ * The first field had lost its value, every input on that form carries
+ * `required`, so the browser's own validation refused the submit: the click
+ * produced NO request, the URL was never going to change, and the test
+ * spent twenty seconds watching it not change. The reported symptom named
+ * the wrong half of the system, and two people repeated it for four runs.
+ *
+ * So the check goes where the click is: before submitting, no required
+ * input may be empty. It costs milliseconds, it fails in about one second
+ * instead of twenty, and it fails saying WHICH field emptied.
+ *
+ * WHAT IT DOES NOT DO, because the difference matters: it does not explain
+ * WHY a value went missing. Whether hydration wipes what was typed before
+ * the page is interactive, or the fill lands before React attaches, is not
+ * measured -- twelve rounds against a warm, idle server never lost a value.
+ * This is the instrument that will collect that evidence, not the cure.
+ * If a real vet can lose a typed clinic name this way they see nothing at
+ * all, because what stops them is the browser's own bubble.
+ */
+export async function assertFormKept(page: Page) {
+  const empty = await page
+    .locator("form input[required]")
+    .evaluateAll((els) =>
+      els
+        .filter((el) => (el as HTMLInputElement).value === "")
+        .map((el) => (el as HTMLInputElement).name || "(adsız)"),
+    );
+  baseExpect(
+    empty,
+    "the form lost what was typed into it before it could be submitted -- " +
+      "the browser will refuse this submit and nothing will be requested",
+  ).toEqual([]);
+}
 
 export { expect } from "@playwright/test";

@@ -1,4 +1,4 @@
-import { test, expect } from "./helpers";
+import { test, expect, assertFormKept } from "./helpers";
 
 async function signUp(page: import("@playwright/test").Page, stamp: number) {
   await page.goto("/sign-up");
@@ -6,6 +6,7 @@ async function signUp(page: import("@playwright/test").Page, stamp: number) {
   await page.getByLabel(/your name|adın/i).fill("E2E Tester");
   await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(`e2e+${stamp}@pettrack.test`);
   await page.getByLabel(/^password|^şifre/i).fill("supersecret123");
+  await assertFormKept(page);
   await page
     .getByRole("button", { name: /create account|hesap oluştur/i })
     .click();
