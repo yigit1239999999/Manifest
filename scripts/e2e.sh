@@ -22,7 +22,15 @@
 # başka bir süreç almışsa) canlı sanır ve gereksiz bekletir. Bugüne kadar
 # görülmedi; görülürse kilide başlangıç zamanı karşılaştırması eklenir.
 set -uo pipefail
-LOCK="E2E_RUNNING"
+# Kilidin adı ortam değişkeninden alınabiliyor, ve tek sebebi şu: bu kilidin
+# DAVRANIŞI -- canlı sahibi tanımak, çıkışta yalnız KENDİ kilidini silmek --
+# ancak betik koşturularak sınanır, ve `E2E_RUNNING`in kendisi üzerinde
+# sınamak paylaşımlı ağaçta "biri koşuyor" işaretini yakıp söndürür; yani
+# bekçiyi tam da koruduğu şeyin üstünde sınamak olur. `scripts/lock-test.sh`
+# kendi dosyasını kullanır.
+# KİLİDİ ATLATMAK İÇİN DEĞİL, ve bu iki yönlü doğru: başka bir ada yazan
+# koşucu kimseyi korumaz ama korunmaz da -- gerçek koşu değişkeni vermez.
+LOCK="${E2E_LOCK_FILE:-E2E_RUNNING}"
 FORCE=""
 [ "${1:-}" = "--force" ] && { FORCE=1; shift; }
 
@@ -51,6 +59,27 @@ acquire() {
       "$PWD" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
       "$(git rev-parse --short HEAD)" "${RUN_SUITE:-tam-süit}" > "$LOCK"
   ) 2>/dev/null
+}
+
+# ALANI OKU, BİÇİMİ DEĞİL.
+#
+# Kilit satırı `ad=değer` alanlarından oluşuyor ve iki ayrı okuyucu ondan
+# aynı sayıyı çıkarmak zorunda: bayat kilit kontrolü ve çıkış trap'i. Aynı
+# ayrıştırma iki yerde elle yazıldığı sürece biri düzeltilip öteki
+# düzeltilmiyor -- bugüne kadar iki kez tam bu oldu -- o yüzden tek yer.
+#
+# Satır boşluklardan ayrılır ve TAM OLARAK `pid=` alanı aranır. `ppid=` ayrı
+# bir alandır ve eşleşmez; alanın satırın başında ya da ortasında olması fark
+# etmez, yani `serve-prod.sh` gibi `pid=`i satır başına yazan bir yazıcı da
+# doğru okunur. (BSD sed `\|` almıyor, o yüzden alternation değil alan
+# ayrıştırma.)
+#
+# NE YAPAMAZ: dosya yoksa ya da içinde `pid=` alanı yoksa BOŞ döner, ve iki
+# okuyucunun ikisi de boşu "sahibi bilinmiyor" diye ele alır -- bayat kilit
+# kontrolü devralır, trap hiçbir şey silmez. Sessiz kalmıyor: devralma kendi
+# satırını basıyor.
+lock_pid() {
+  tr ' ' '\n' < "$LOCK" 2>/dev/null | sed -n 's/^pid=\([0-9]*\)$/\1/p'
 }
 
 # VE ÜÇÜNCÜ BOŞLUK: HİÇBİR İŞARET "BU PORTTA BİRİ VAR" DEMİYOR (dev).
@@ -105,7 +134,7 @@ fi
 
 RUN_SUITE="${*:-tam-süit}"
 if ! acquire; then
-  OWNER_PID=$(sed -n 's/.* pid=\([0-9]*\).*/\1/p' "$LOCK" 2>/dev/null)
+  OWNER_PID=$(lock_pid)
   # `kill -0`: süreç yaşıyor mu. İki sınırı var ve ikisi de bilerek çözülmedi:
   #   - PID yeniden kullanılmışsa canlı sanır ve gereksiz bekletir. Bugüne
   #     kadar görülmedi; görülmeden çözüm eklemek, bu ekibin reddettiği şey.
@@ -135,15 +164,19 @@ fi
 # Yalnız KENDİ kilidimizi sileriz: biri --force ile üzerimize yazdıysa, bizim
 # çıkışımız ONUN kilidini silmemeli -- yoksa kilit, çözdüğü problemi geri
 # getirir (lider).
-# DİKKAT: bu desen ` pid=` arıyor, `pid=` değil -- ve boşluk bir süs değil.
-# Kilide `ppid=` alanı eklendiği gün `.*pid=` deseni ONU yakaladı (aç gözlü
-# `.*` en sağdaki eşleşmeyi seçiyor) ve üç ayrı ayrıştırıcı birden sessizce
-# yanlış sayıyı okudu: trap kendi kilidini silemedi, bayat kilit kontrolü
-# yanlış süreci sordu, pre-commit kancası yanlış pid bildirdi. Hiçbiri
-# hata vermedi. Alana bir isim eklemek, o ismi İÇEREN her alanı okuyan
-# ayrıştırıcıyı bozar; ` pid=` bunu kapatıyor çünkü " ppid=" içinde " pid="
-# geçmez.
-trap '[ "$(sed -n "s/.* pid=\([0-9]*\).*/\1/p" "$LOCK" 2>/dev/null)" = "$$" ] && rm -f "$LOCK"' EXIT
+#
+# Ayrıştırma `lock_pid()`te, ve trap'in tek satırlık olmasının sebebi orada
+# yazılı olandan fazlası: trap gövdesi tek tırnak içinde duruyor, yani içine
+# konan her tırnak gövdeyi çalışma anında bölüyor -- ve bölündüğünde `bash -n`
+# HATA VERMEZ, çünkü tek tırnaklı dize sözdizimsel olarak geçerli bir dizedir.
+# Bu depoda tam bu oldu: gövdeye `tr ' ' '\n'` yazıldı, sözdizimi kapısı temiz
+# geçti, ve trap çalışma anında `trap: invalid signal specification` verip
+# kilidi HİÇ silmedi. Kilit bayat sanıldı; bayat değildi, TEMİZLENMEMİŞTİ.
+# Gövde bir fonksiyon çağrısı olduğu sürece bu tuzak kapalı kalıyor.
+#
+# Bu üç davranışın sınavı `scripts/lock-test.sh` -- sözdizimi kapısı değil,
+# koşturarak.
+trap '[ "$(lock_pid)" = "$$" ] && rm -f "$LOCK"' EXIT
 
 # Artefaktın sahibi belli olsun: paylaşımlı `test-results/` yüzünden iki süit
 # aynı dizine yazıp son yazan kazanıyordu, ve bugün dört hata bağlamının

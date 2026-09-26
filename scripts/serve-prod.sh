@@ -71,15 +71,33 @@ fi
 #
 # Desen `e2e.sh`'den: `set -C` ile atomik alma, `kill -0` ile bayat devralma,
 # ve trap YALNIZ kendi kilidini siler.
-BUILD_LOCK="BUILDING"
+# Adı ortam değişkeninden alınabiliyor, sebebi `e2e.sh`teki ile aynı: bu
+# kilidin davranışı ancak betik koşturularak sınanır ve gerçek `BUILDING`
+# üzerinde sınamak, üretimi derleyecek olan işarete dokunmak demektir.
+# `scripts/lock-test.sh` kendi dosyasını kullanır.
+BUILD_LOCK="${BUILD_LOCK_FILE:-BUILDING}"
 build_lock_acquire() {
   ( set -C
     printf 'pid=%s at=%s port=%s head=%s\n' \
       "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PORT" "$(git rev-parse --short HEAD)" > "$BUILD_LOCK"
   ) 2>/dev/null
 }
+
+# ALANI OKU, BİÇİMİ DEĞİL -- ve aynı ayrıştırma iki okuyucuda (bayat kilit
+# kontrolü ve çıkış trap'i) tek yerde durur.
+#
+# Satır boşluklardan ayrılır ve TAM OLARAK `pid=` alanı aranır. Bu dosya
+# `pid=`i satır BAŞINA yazıyor, yani önünde boşluk yok: ` pid=` arayan eski
+# desen burada hiç eşleşmiyordu ve kilit hiç çalışmıyordu. Alan ayrıştırması
+# ikisini de okur, `ppid=` ile karışmaz.
+#
+# NE YAPAMAZ: dosya yoksa ya da `pid=` alanı yoksa BOŞ döner; bayat kilit
+# kontrolü devralır (satırını basarak), trap hiçbir şey silmez.
+build_lock_pid() {
+  tr ' ' '\n' < "$BUILD_LOCK" 2>/dev/null | sed -n 's/^pid=\([0-9]*\)$/\1/p'
+}
 if ! build_lock_acquire; then
-  OWNER_PID=$(sed -n 's/.* pid=\([0-9]*\).*/\1/p' "$BUILD_LOCK" 2>/dev/null)
+  OWNER_PID=$(build_lock_pid)
   if [ -n "$OWNER_PID" ] && kill -0 "$OWNER_PID" 2>/dev/null; then
     echo "DURDUM: başka bir derleme sürüyor -- $(cat "$BUILD_LOCK" 2>/dev/null)" >&2
     echo "  Bitmesini bekle. Şimdi derlersen ONUN sunduğu .next-prod'u sökersin" >&2
@@ -93,15 +111,16 @@ if ! build_lock_acquire; then
     exit 4
   fi
 fi
-# DİKKAT: bu desen ` pid=` arıyor, `pid=` değil -- ve boşluk bir süs değil.
-# Kilide `ppid=` alanı eklendiği gün `.*pid=` deseni ONU yakaladı (aç gözlü
-# `.*` en sağdaki eşleşmeyi seçiyor) ve üç ayrı ayrıştırıcı birden sessizce
-# yanlış sayıyı okudu: trap kendi kilidini silemedi, bayat kilit kontrolü
-# yanlış süreci sordu, pre-commit kancası yanlış pid bildirdi. Hiçbiri
-# hata vermedi. Alana bir isim eklemek, o ismi İÇEREN her alanı okuyan
-# ayrıştırıcıyı bozar; ` pid=` bunu kapatıyor çünkü " ppid=" içinde " pid="
-# geçmez.
-trap '[ "$(sed -n "s/.* pid=\([0-9]*\).*/\1/p" "$BUILD_LOCK" 2>/dev/null)" = "$$" ] && rm -f "$BUILD_LOCK"' EXIT
+# Yalnız KENDİ kilidimizi sileriz: biri kilidi devralıp üzerimize yazdıysa
+# bizim çıkışımız ONUN kilidini silmemeli.
+#
+# Gövde tek satır ve bir fonksiyon çağrısı, ve bunun sebebi yazılı olsun:
+# trap gövdesi tek tırnak içinde durduğu için içine konan her tırnak gövdeyi
+# çalışma anında böler, ve bölündüğünde `bash -n` HATA VERMEZ. Bu depoda tam
+# bu oldu -- `trap: invalid signal specification`, ve kilit hiç silinmedi;
+# ağaçta kalan `BUILDING` bayat değil TEMİZLENMEMİŞTİ. Sınavı
+# `scripts/lock-test.sh`, koşturarak.
+trap '[ "$(build_lock_pid)" = "$$" ] && rm -f "$BUILD_LOCK"' EXIT
 
 COMMIT="$(git rev-parse --short HEAD)"
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
