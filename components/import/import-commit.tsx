@@ -337,9 +337,32 @@ export function ImportCommit({
                 {summary.questions.map((question) => (
                   <fieldset
                     key={question.key}
-                    className="flex flex-col gap-2 rounded-control border border-border p-3"
+                    // `min-w-0`, and `break-words` alone was not enough:
+                    // a fieldset's automatic minimum width is its own
+                    // content (`components/ui/consent-choice.tsx:96` names
+                    // the same thing), so with the owner's name in the
+                    // legend the box stood 80px past the right edge of a
+                    // 390px screen even after every line inside it was
+                    // allowed to break. Measured both ways.
+                    className="flex min-w-0 flex-col gap-2 rounded-control border border-border p-3"
                   >
-                    <legend className="px-1 text-sm font-medium text-foreground">
+                    {/* `break-words` here and on the choices below for the
+                        same measured reason the column card has it: every one
+                        of these lines prints a name out of the vet's file, and
+                        a file that writes owners as `Ayse_Yilmaz_Kucukkaya`
+                        has no break opportunity in it. Measured at 390px on
+                        the column card, where the same class of string pushed
+                        the field select 85px off the right edge.
+
+                        `max-w-full` on the legend as well, and it is the
+                        third measurement of the same box: a legend is laid
+                        out by the engine rather than by its parent
+                        (`components/forms/new-pet-block.tsx` says the same
+                        thing about the same element), so it sized itself to
+                        the owner's name and still stood 56px out inside a
+                        fieldset that had stopped growing. 80px -> 56px ->
+                        0px of sideways scroll at 390px, each step measured. */}
+                    <legend className="max-w-full break-words px-1 text-sm font-medium text-foreground">
                       {question.name} ({t("questionRows", { rows: question.rows.join(", ") })})
                     </legend>
                     {question.candidates.map((candidate) => {
@@ -350,12 +373,19 @@ export function ImportCommit({
                       return (
                         <label
                           key={value}
-                          className="flex items-center gap-2 text-sm text-foreground"
+                          className="flex items-start gap-2 text-sm text-foreground"
                         >
                           <input
                             type="radio"
                             name={`dup-${question.key}`}
-                            className="size-4"
+                            // `shrink-0` and `mt-0.5`: once the sentence
+                            // beside it is allowed to wrap onto a second
+                            // line, `items-center` would float the radio
+                            // halfway down the block, so the row is aligned
+                            // to the top and the control sits on the first
+                            // line of text -- the same shape `Callout` uses
+                            // for its icon.
+                            className="mt-0.5 size-4 shrink-0"
                             checked={answerValue(duplicates[question.key]) === value}
                             onChange={() =>
                               answerDuplicate(
@@ -366,13 +396,20 @@ export function ImportCommit({
                               )
                             }
                           />
-                          {candidate.kind === "existing"
-                            ? t("questionSameAsRegistered", {
-                                name: `${candidate.name} (${candidate.phone ?? t("questionNoPhone")})`,
-                              })
-                            : t("questionSameAs", {
-                                name: `${candidate.name} (${candidate.phone ?? t("questionNoPhone")})`,
-                              })}
+                          {/* `min-w-0` around the sentence, not on the label:
+                              a flex item refuses to go narrower than its own
+                              longest word while its `min-width` is `auto`,
+                              and the word here is an owner's name out of the
+                              file. Same pairing as `Callout`. */}
+                          <span className="min-w-0 break-words">
+                            {candidate.kind === "existing"
+                              ? t("questionSameAsRegistered", {
+                                  name: `${candidate.name} (${candidate.phone ?? t("questionNoPhone")})`,
+                                })
+                              : t("questionSameAs", {
+                                  name: `${candidate.name} (${candidate.phone ?? t("questionNoPhone")})`,
+                                })}
+                          </span>
                         </label>
                       );
                     })}
@@ -403,9 +440,11 @@ export function ImportCommit({
                     };
                     return (
                       <li key={proposal.raw} className="flex flex-col gap-1">
+                        {/* `break-words`: `proposal.raw` is the word the file
+                            used for the species, unedited. */}
                         <label
                           htmlFor={`species-${proposal.raw}`}
-                          className="text-sm text-foreground"
+                          className="break-words text-sm text-foreground"
                         >
                           {proposal.raw}{" "}
                           <span className="text-muted-foreground">
@@ -477,7 +516,11 @@ export function ImportCommit({
                 <ul className="flex flex-col gap-3">
                   {summary.sex.map((proposal) => (
                     <li key={proposal.raw} className="flex flex-col gap-1">
-                      <label htmlFor={`sex-${proposal.raw}`} className="text-sm text-foreground">
+                      {/* As above: the file's own word for the sex. */}
+                      <label
+                        htmlFor={`sex-${proposal.raw}`}
+                        className="break-words text-sm text-foreground"
+                      >
                         {proposal.raw}{" "}
                         <span className="text-muted-foreground">
                           ({t("sexRows", { count: proposal.rows })})

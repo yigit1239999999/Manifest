@@ -77,8 +77,21 @@ export function ImportBatches({ batches }: { batches: ImportBatchRow[] }) {
                 key={batch.id}
                 className="flex flex-col gap-2 rounded-control border border-border p-3"
               >
-                <p className="text-sm font-medium text-foreground">{batch.fileName}</p>
-                <p className="text-sm text-muted-foreground">
+                {/* The vet's own file name, and it is the one string on this
+                    row with no spaces in it: `musteri_hayvan_kayitlari_yedek_
+                    2019_2024_son_hali.xlsx` is what a backup is actually
+                    called. Measured at 390px before this was here -- the
+                    paragraph's box was 218px and its text 388px, so the name
+                    painted out over the card and the page scrolled 116px
+                    sideways. The row's other two lines wrap on their own
+                    spaces; this one needs to be told it may break inside a
+                    word. */}
+                <p className="break-words text-sm font-medium text-foreground">
+                  {batch.fileName}
+                </p>
+                {/* The staff member's own name is in here (`batchBy`), so this
+                    line can carry an unbroken word too. */}
+                <p className="break-words text-sm text-muted-foreground">
                   {batch.summary}
                   {batch.merged ? ` · ${batch.merged}` : ""} · {batch.by}
                 </p>

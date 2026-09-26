@@ -67,6 +67,18 @@ export function ColumnCard({
     <Card
       className={cn(
         "self-start",
+        // `min-w-0` is not decoration, and the measurement is in the commit
+        // message: a heading the vet typed as
+        // `HAYVANIN_KAYITLI_ADI_VE_TAKMA_ADI` has no break opportunity --
+        // CSS breaks at a hyphen, never at an underscore -- so the card's
+        // min-content width became that word, the grid track grew with it,
+        // and at 390px the field select ran to x=475. The control the card
+        // exists for was 85px off the right edge of a phone, and the page
+        // carried 110px of sideways scroll. A grid item is sized by its
+        // content only while its `min-width` is `auto`; this is the same
+        // pairing `Callout` uses (`min-w-0` + `break-words`), and the rule
+        // was already written there.
+        "min-w-0",
         // The question cards carry a left rule so a screen of thirty reads
         // as "these ones need me" at a glance. It is never the only signal:
         // every one of them also says so in a sentence, because a colour is
@@ -80,8 +92,16 @@ export function ColumnCard({
             {t("columnNumber", { number: index + 1 })}
           </p>
           {/* The vet's own heading, unedited. A column with no heading says
-              so rather than borrowing the word "Column" as if it had one. */}
-          <p className="text-sm font-semibold text-foreground">
+              so rather than borrowing the word "Column" as if it had one.
+
+              Wrapped rather than truncated, and that is a choice: the samples
+              below are clipped with their full value on `title`, because three
+              of them are evidence and any one is enough to recognise the
+              column. The heading is the thing being recognised. Clipping
+              `HAYVANIN_KAYITLI_ADI_VE_TAKMA_ADI` to `HAYVANIN_KAYITLI…` on a
+              phone leaves the vet choosing a field for a column they cannot
+              name, and a `title` is not readable by touch. */}
+          <p className="break-words text-sm font-semibold text-foreground">
             {heading?.trim() ? heading : t("headingNone")}
           </p>
         </div>
@@ -137,8 +157,18 @@ export function ColumnCard({
           </Select>
           {/* Why this one is first. The product says what it did rather than
               presenting an order as if it had no author (#20). */}
+          {/* `break-words` for the same reason the heading above has it, and
+              it was measured separately: this line quotes the heading a
+              second time, so fixing only the heading left 81px of sideways
+              scroll behind (110 -> 81 at 390px) and the cause had moved one
+              paragraph down.
+              Not added to the two neighbours below on purpose: the blank
+              markers come from a closed list of tokens
+              (`modules/import/infer.ts:60` -- "-", "yok", "n/a"), and the
+              date question quotes a date-shaped sample. Neither can be
+              arbitrarily long, and a class with no case to answer is debt. */}
           {proposal.orderedBy && (
-            <p className="text-sm text-muted-foreground">
+            <p className="break-words text-sm text-muted-foreground">
               {t("orderedBy", { heading: proposal.orderedBy })}
             </p>
           )}

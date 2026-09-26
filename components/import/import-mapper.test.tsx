@@ -205,6 +205,40 @@ describe("the mapping screen", () => {
     expect(heading.className).toContain("text-lg");
   });
 
+  // A column heading is the vet's own word and can have no break
+  // opportunity in it: CSS breaks a line at a hyphen and never at an
+  // underscore, and `HAYVANIN_KAYITLI_ADI_VE_TAKMA_ADI` is what a clinic's
+  // export column is actually called.
+  //
+  // What this test can and cannot say, because jsdom has no layout engine:
+  // the geometry was measured in a browser at 390px on the production build
+  // (`a259d5c`, BUILD_ID `gjVP1tYtGLpOwEkqIpdPQ`) and the numbers are in the
+  // commit message -- without these two classes the card's min-content
+  // became that word, the grid track grew with it, and the field select
+  // stood at x=475 on a 390px screen with 110px of sideways scroll. Here
+  // only the two classes are checked, which is what the source holds. The
+  // rule breaks in layout, so the gate that would catch a regression is an
+  // acceptance run rather than this file; this one catches the classes being
+  // dropped by somebody who does not know why they are there.
+  it("lets an unbroken column heading wrap instead of widening the card", async () => {
+    mount([
+      sheet([
+        ["HAYVANIN_KAYITLI_ADI_VE_TAKMA_ADI_ILE_BIRLIKTE", "Tel"],
+        ["Boncuk", "0532 111 22 33"],
+      ]),
+    ]);
+    await settle();
+    fireEvent.click(screen.getByLabelText(tr.import.headerOption.names));
+
+    const heading = screen.getByText("HAYVANIN_KAYITLI_ADI_VE_TAKMA_ADI_ILE_BIRLIKTE");
+    expect(heading.className).toContain("break-words");
+    // The card, and not the paragraph: a grid item is sized by its own
+    // content while its `min-width` is `auto`, so `break-words` alone never
+    // gets the chance to act. Same pairing as `Callout`.
+    const card = heading.closest(".self-start");
+    expect(card?.className).toContain("min-w-0");
+  });
+
   it("leads to the saving step, and still writes nothing on its own", async () => {
     // This test used to assert the opposite: that the screen ended in the
     // sentence "nothing is created in this step" and offered no button at
