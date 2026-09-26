@@ -235,8 +235,50 @@ describe("the mapping screen", () => {
     // The card, and not the paragraph: a grid item is sized by its own
     // content while its `min-width` is `auto`, so `break-words` alone never
     // gets the chance to act. Same pairing as `Callout`.
-    const card = heading.closest(".self-start");
+    //
+    // Reached through the grid rather than by a class on the card. The
+    // obvious `closest(".min-w-0")` would find whatever it was told to look
+    // for and prove nothing; `closest(".self-start")` was what this line
+    // used until that class was removed for a measured reason, which is the
+    // shape of a locator that breaks when something unrelated moves. The
+    // grid is the one thing here that is structural: the columns step draws
+    // one, and its children are the cards.
+    const grid = screen.getByText("HAYVANIN_KAYITLI_ADI_VE_TAKMA_ADI_ILE_BIRLIKTE")
+      .closest("div.grid");
+    const card = grid?.firstElementChild;
+    expect(card).not.toBeNull();
+    expect(card?.contains(heading)).toBe(true);
     expect(card?.className).toContain("min-w-0");
+  });
+
+  // The browser's own file control said "Choose File" and "No file chosen"
+  // on a Turkish screen, and those words are not ours to write: they come
+  // from the browser's interface language, not the page's. So the control
+  // is off the screen and the product says both halves itself -- the label
+  // is the button, and this is the other half, the one the native control
+  // used to carry.
+  it("says which file was chosen, since the browser no longer does", async () => {
+    mount([sheet(WITH_HEADING)]);
+    await settle();
+    // `mount` picks "kayitlar.xlsx".
+    expect(screen.getByText("kayitlar.xlsx")).toBeInTheDocument();
+  });
+
+  it("keeps the file input as the control, off the screen rather than out of it", () => {
+    const { container } = mount([sheet(WITH_HEADING)]);
+    const input = container.querySelector<HTMLInputElement>("#import-file");
+    // Still in the DOM, still the thing the label points at, still
+    // reachable by keyboard -- `sr-only` moves it off the screen, it does
+    // not remove it. `hidden` or `display:none` would take the control out
+    // of the tab order and out of `setInputFiles`' reach, which is how this
+    // kind of change usually breaks.
+    expect(input).not.toBeNull();
+    expect(input?.className).toContain("sr-only");
+    expect(input?.disabled).toBe(false);
+    // Named by the label it sits inside rather than by a `for` attribute,
+    // which is what gives the control its accessible name here.
+    expect(input?.closest("label")).not.toBeNull();
+    expect(input?.closest("label")?.textContent).toContain(tr.import.chooseFile);
   });
 
   it("leads to the saving step, and still writes nothing on its own", async () => {

@@ -4,7 +4,9 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { cn } from "@/lib/utils";
 import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ColumnCard } from "@/components/import/column-card";
@@ -171,22 +173,83 @@ export function ImportMapper() {
           <CardTitle>{t("fileTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
+          {/* The label IS the button, and the input is inside it.
+
+              What was here before was the browser's own file control, and
+              the defect is not that it was untranslated -- it is that its
+              words are not ours to write. `Choose File` and `No file
+              chosen` come from the BROWSER's interface language, which is
+              the machine's, while the page is in the clinic's: a Turkish
+              screen said "Choose File" on 3005 (ux saw it), and on a
+              Turkish-language browser it would say "Dosya Seç" beside an
+              English page just as readily. There is no locale to pass and
+              no string to translate; the only fix is to stop showing it.
+              It also matched none of the product's buttons, and the
+              `file:` utilities that were here could style the button half
+              but never the "no file chosen" half beside it.
+
+              So: the input stays in the DOM and keeps its id -- it is
+              still the control, still reachable by Tab, still opened by
+              Enter or Space, and `setInputFiles` still finds it -- and
+              `sr-only` takes it off the screen. The label around it wears
+              the product's own button.
+
+              The focus mark has to move with it: an outline on a 1px
+              clipped element is invisible, so the label carries it,
+              drawn only for `:focus-visible` so a mouse click does not
+              leave a ring behind the way `focus-within` would. Same
+              utility shape `buttonVariants` uses, same `--color-ring`.
+              `has-[]` is not a new idea here; `species-settings-form.tsx`
+              already dresses a label from the state of the input inside
+              it.
+
+              `secondary` rather than `primary`: the screen's primary act
+              is "Save" at the far end of it, and two primaries on one
+              page is two answers to "what now".
+
+              No `htmlFor`, and that is deliberate rather than forgotten.
+              The input is inside the label, which is association enough --
+              the control's accessible name is still the label's text. A
+              `for` pointing at a control nested inside the same label is
+              redundant by the spec and is the arrangement browsers have
+              historically double-fired on, opening the file dialog twice
+              from one click. Not measured here, because this build is not
+              on a server yet; avoided instead, since one of the two ways
+              of writing it has no such history. */}
           <label
-            htmlFor="import-file"
-            className="text-sm font-medium text-foreground"
+            className={cn(
+              buttonVariants({ variant: "secondary" }),
+              "cursor-pointer self-start focus-visible:outline-none has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--color-ring)] has-[:focus-visible]:outline-offset-2",
+            )}
           >
             {t("chooseFile")}
+            <input
+              id="import-file"
+              type="file"
+              accept=".xlsx"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void onFile(file);
+              }}
+            />
           </label>
-          <input
-            id="import-file"
-            type="file"
-            accept=".xlsx"
-            className="text-sm text-foreground file:me-3 file:rounded-control file:border file:border-input file:bg-card file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void onFile(file);
-            }}
-          />
+          {/* What the browser's control used to say on this line, said by
+              us: the name of the file they picked. Always rendered, empty
+              until there is one -- a live region that is added to the page
+              at the same moment as its content does not announce, and the
+              announcement is the half a screen reader lost when the native
+              control went away.
+
+              `break-words` for the reason the rest of this screen has it:
+              this is a file name, and a backup is called
+              `musteri_hayvan_kayitlari_yedek_2019_2024_son_hali.xlsx`. */}
+          <p
+            className="break-words text-sm font-medium text-foreground empty:hidden"
+            aria-live="polite"
+          >
+            {fileName}
+          </p>
           <p className="text-sm text-muted-foreground">
             {t("fileHint", { mb: MAX_IMPORT_MB })}
           </p>

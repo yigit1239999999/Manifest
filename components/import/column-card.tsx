@@ -66,7 +66,22 @@ export function ColumnCard({
   return (
     <Card
       className={cn(
-        "self-start",
+        // No `self-start`, and its removal is a measurement rather than a
+        // preference. It arrived with the screen (`dea40d4`) carrying no
+        // reason, and what it does is stop a card stretching to its row:
+        // at 1280px three cards over the same file stood 366, 344 and
+        // 451px tall, so a row of columns read as three loose objects
+        // rather than one row (ux asked for the number). Without it they
+        // are 451/451/451. At 390px there is one card per row and nothing
+        // changes -- measured there too (406/364/471, before and after).
+        //
+        // Worth separating from the wrapping work beside it: the raggedness
+        // is NOT something `break-words` introduced. It was 366/344/451
+        // before the wrap and 386/364/451 after -- the 107px spread comes
+        // from cards having different things to say (a date question, a
+        // blank-marker line, more samples), which is honest, and from the
+        // grid having been told not to even it out, which was not.
+        //
         // `min-w-0` is not decoration, and the measurement is in the commit
         // message: a heading the vet typed as
         // `HAYVANIN_KAYITLI_ADI_VE_TAKMA_ADI` has no break opportunity --
