@@ -51,6 +51,24 @@ export type SpeciesProposal = {
   settled: boolean;
 };
 
+/**
+ * The one answer for every row the file says nothing about (#42).
+ *
+ * A NARROWER SET THAN `SpeciesTarget`, on purpose. `newCustom` is missing
+ * because the value a new species would be named after is exactly what is
+ * absent here -- there is no cell to take a name from, and "add this to your
+ * clinic" with nothing after it is not a question. `unknown` is missing
+ * because it is not an answer: leaving the question alone already means it,
+ * and it arrives as no fallback at all.
+ *
+ * `OTHER` stays a legitimate answer inside `builtIn`, and that is the point
+ * the task makes: the defect was never OTHER, it was OTHER given WITHOUT
+ * being asked for. A vet with a mixed file chooses it on purpose.
+ */
+export type SpeciesFallback =
+  | { kind: "builtIn"; key: Species }
+  | { kind: "custom"; id: string };
+
 /** A species this clinic has defined for itself. */
 export type CustomSpeciesOption = { id: string; name: string };
 
@@ -214,9 +232,24 @@ export function applySpecies(
   raw: string | null,
   breedFromColumn: string | null,
   table: ReadonlyMap<string, SpeciesProposal>,
+  /**
+   * The vet's one answer for rows with no species of their own (#42), or
+   * null when they did not give one.
+   *
+   * It applies ONLY where `raw` is null -- no species column, or a cell the
+   * file left blank -- which is the same set the plan screen counted as
+   * `speciesUnknownRows`. A value that IS in the file has its own line in
+   * the table and is never overruled by the bulk answer: the answer was to
+   * "what are the ones you did not say", not "what is everything".
+   */
+  fallback: SpeciesFallback | null = null,
 ): { target: SpeciesTarget; breed: string | null } {
-  if (!raw) return { target: { kind: "unknown" }, breed: breedFromColumn };
+  if (!raw) {
+    return { target: fallback ?? { kind: "unknown" }, breed: breedFromColumn };
+  }
   const answer = table.get(raw.trim());
+  // A value the file has but the table does not is not the same absence: the
+  // screen never showed this line, so the bulk answer was not about it.
   if (!answer) return { target: { kind: "unknown" }, breed: breedFromColumn };
   return { target: answer.target, breed: breedFromColumn ?? answer.breed ?? null };
 }

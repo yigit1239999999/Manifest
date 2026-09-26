@@ -12,6 +12,7 @@ import {
   proposeSex,
   proposeSpecies,
   type SexProposal,
+  type SpeciesFallback,
   type SpeciesProposal,
   type SpeciesTarget,
 } from "./enum-map";
@@ -64,6 +65,13 @@ export type ImportAnswers = {
   species: Record<string, { target: SpeciesTarget; breed?: string }>;
   /** The sex table as the vet left it, keyed by the value in the file. */
   sex: Record<string, Sex>;
+  /**
+   * One answer for every row with no species of its own (#42), or absent.
+   *
+   * Absent is the ordinary case and means the vet left the question alone:
+   * those rows stay "other", which is what they were before this existed.
+   */
+  speciesFallback?: SpeciesFallback;
 };
 
 /** What the screen shows before anything is written. */
@@ -95,7 +103,18 @@ export type PlanSummary = {
    * list of a handful of names would be a request for nothing.
    */
   customSpecies: Array<{ id: string; name: string }>;
-  /** Rows whose species column says nothing. Recorded as the "other" species. */
+  /**
+   * Rows whose species the file does not give -- no column mapped, or the
+   * cell left blank (or written as one of the clinic's ways of writing
+   * "nothing", the same reading `plan.ts` gives the cell).
+   *
+   * THIS IS THE SET THE BULK ANSWER IS ABOUT (#42), so the number the screen
+   * shows and the rows `speciesFallback` lands on have to be the same set.
+   * They are the same predicate: this counts rows whose `speciesRaw` is null,
+   * and that is exactly when `applySpecies` reaches for the fallback.
+   *
+   * Unanswered, these are recorded as the "other" species.
+   */
   speciesUnknownRows: number;
 };
 
@@ -402,7 +421,12 @@ export async function commitImport(
         const ownerId = clientIdOf.get(ownerGroupKey);
         if (!ownerId) continue;
 
-        const answer = applySpecies(row.pet.speciesRaw, row.pet.breed, speciesTable);
+        const answer = applySpecies(
+          row.pet.speciesRaw,
+          row.pet.breed,
+          speciesTable,
+          answers.speciesFallback ?? null,
+        );
         const species = toSpecies(answer.target, customByName);
         pets.push({
           clinicId: ctx.clinicId,

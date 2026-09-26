@@ -43,6 +43,21 @@ export const importAnswersSchema = z.object({
     }),
   ),
   sex: z.record(z.string(), z.enum(["MALE", "FEMALE", "UNKNOWN"])),
+  /**
+   * The vet's one answer for rows the file says no species for (#42).
+   *
+   * Optional, and that is the whole of "the product proposes, it does not
+   * decide": absent means the question was left alone, and rows with no
+   * species of their own are recorded as "other" exactly as they were before
+   * this field existed. `newCustom` and `unknown` are not options here -- see
+   * `SpeciesFallback`.
+   */
+  speciesFallback: z
+    .discriminatedUnion("kind", [
+      z.object({ kind: z.literal("builtIn"), key: z.enum(SPECIES) }),
+      z.object({ kind: z.literal("custom"), id: z.string().min(1) }),
+    ])
+    .optional(),
 });
 
 /**

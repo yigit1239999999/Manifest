@@ -297,6 +297,110 @@ describe("writing", () => {
   });
 });
 
+describe("a file with no species column (#42)", () => {
+  // No `pet.species` in the mapping, which is the case a clinic that keeps
+  // one kind of animal actually has.
+  const NO_SPECIES = { 0: "client.firstName", 1: "client.lastName", 2: "client.phone", 3: "pet.name" } as const;
+  const noSpecies = (over: Partial<ImportAnswers> = {}) =>
+    answers({ mapping: { ...NO_SPECIES }, ...over });
+  const BODY = [
+    ["Ada", "Kaya", "0532 111 22 33", "Boncuk"],
+    ["Ada", "Kaya", "0532 111 22 33", "Limon"],
+  ];
+
+  it("has no table to show and says how many rows are waiting on the answer", async () => {
+    // Both halves matter, and the second is the reason the bulk question
+    // cannot live inside the species table: with no column there are no
+    // distinct values, so there is no table -- and the count is the only
+    // thing on screen that knows these rows exist.
+    const summary = await planImport(BODY, noSpecies(), admin);
+    expect(summary.species).toEqual([]);
+    expect(summary.speciesUnknownRows).toBe(2);
+  });
+
+  it("counts a cell the file left blank the same way the write reads it", async () => {
+    // The two have to be the same set or the screen lies: "-" is one of this
+    // product's ways of writing "nothing", and `plan.ts` and the enum table
+    // both read it that way.
+    const summary = await planImport(
+      [["Ada", "Kaya", "0532 111 22 33", "Boncuk", "-"]],
+      answers(),
+      admin,
+    );
+    expect(summary.species).toEqual([]);
+    expect(summary.speciesUnknownRows).toBe(1);
+  });
+
+  it("still records them as other when the vet left the question alone", async () => {
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+
+    await commitImport(BODY, noSpecies(), admin);
+
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets.map((p: { species: string }) => p.species)).toEqual(["OTHER", "OTHER"]);
+  });
+
+  it("writes the vet's one answer to every one of those rows", async () => {
+    // The defect the task names: the screen knew, and the vet could not say
+    // "they are all cats". The assertion is on the WRITE rather than on the
+    // screen, because that is where it was lost before.
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+
+    await commitImport(
+      BODY,
+      noSpecies({ speciesFallback: { kind: "builtIn", key: "CAT" } }),
+      admin,
+    );
+
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets.map((p: { species: string }) => p.species)).toEqual(["CAT", "CAT"]);
+    expect(pets.every((p: { customSpeciesId: string | null }) => p.customSpeciesId === null)).toBe(
+      true,
+    );
+  });
+
+  it("can answer with one of the clinic's own species", async () => {
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+
+    await commitImport(BODY, noSpecies({ speciesFallback: { kind: "custom", id: "cs-9" } }), admin);
+
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets.every((p: { species: string }) => p.species === "OTHER")).toBe(true);
+    expect(pets.every((p: { customSpeciesId: string }) => p.customSpeciesId === "cs-9")).toBe(true);
+  });
+
+  it("leaves rows whose species the file DOES give alone", async () => {
+    // A mixed file: one row says "Kopek", one says nothing. The answer was
+    // about the second only, and a fallback that reached the first would be
+    // the product overruling the file.
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+
+    await commitImport(
+      [
+        ["Ada", "Kaya", "0532 111 22 33", "Boncuk", "Kopek"],
+        ["Ada", "Kaya", "0532 111 22 33", "Limon", ""],
+      ],
+      answers({ speciesFallback: { kind: "builtIn", key: "CAT" } }),
+      admin,
+    );
+
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets.map((p: { species: string }) => p.species)).toEqual(["DOG", "CAT"]);
+  });
+});
+
 describe("undo", () => {
   it("refuses a batch belonging to another clinic", async () => {
     vi.mocked(prisma.importBatch.findFirst).mockResolvedValue(null as never);

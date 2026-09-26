@@ -67,6 +67,53 @@ describe("what a species cell means", () => {
   });
 });
 
+describe("one answer for the rows the file says nothing about (#42)", () => {
+  it("still asks when no answer was given", () => {
+    // The whole of "proposes, does not decide": no fallback is the ordinary
+    // case and behaves exactly as it did before the fallback existed.
+    expect(applySpecies(null, null, new Map(), null).target).toEqual({ kind: "unknown" });
+  });
+
+  it("gives the vet's answer to every row with no species of its own", () => {
+    expect(applySpecies(null, null, new Map(), { kind: "builtIn", key: "CAT" })).toEqual({
+      target: { kind: "builtIn", key: "CAT" },
+      breed: null,
+    });
+  });
+
+  it("keeps OTHER as an answer somebody chose, not one nobody was asked for", () => {
+    // The defect this closes was never OTHER; it was OTHER arriving without
+    // the question. A mixed file's vet picks it on purpose, and the record
+    // cannot tell the two apart -- only this call can.
+    expect(applySpecies(null, null, new Map(), { kind: "builtIn", key: "OTHER" }).target).toEqual({
+      kind: "builtIn",
+      key: "OTHER",
+    });
+  });
+
+  it("answers a clinic's own species too", () => {
+    expect(applySpecies(null, null, new Map(), { kind: "custom", id: "s1" }).target).toEqual({
+      kind: "custom",
+      id: "s1",
+    });
+  });
+
+  it("never overrules a value the file DOES carry", () => {
+    // The question was "what are the ones you did not say", and a row that
+    // says "Kedi" said something. A bulk answer that reached these rows
+    // would be the product deciding, one screen later.
+    const proposals = proposeSpecies(["Kopek"], []);
+    const answer = applySpecies("Kopek", null, table(proposals), { kind: "builtIn", key: "CAT" });
+    expect(answer.target).toEqual({ kind: "builtIn", key: "DOG" });
+  });
+
+  it("leaves a breed the file gave alone", () => {
+    expect(applySpecies(null, "Tekir", new Map(), { kind: "builtIn", key: "CAT" }).breed).toBe(
+      "Tekir",
+    );
+  });
+});
+
 describe("what a sex cell means", () => {
   it("reads the product's own labels in either language", () => {
     expect(proposeSex(["Erkek"])[0].target).toBe("MALE");
