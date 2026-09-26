@@ -529,7 +529,7 @@ export function ImportCommit({
                 every animal landed as "other". The rows this is about exist
                 whether or not the column does. */}
             {summary.speciesUnknownRows > 0 && (
-              <section className="flex flex-col gap-2">
+              <section className="flex min-w-0 flex-col gap-2">
                 <h4 className="text-sm font-semibold text-foreground">
                   {t("speciesMissingTitle")}
                 </h4>
@@ -562,7 +562,13 @@ export function ImportCommit({
                     recorded as other" under a picker that now says "Kedi"
                     would be the screen contradicting itself at the one place
                     the decision is made. */}
-                <p className="text-sm text-muted-foreground">
+                {/* `break-words`, because the answered sentence names a
+                    species the CLINIC typed, and a vet writes
+                    "KEDI_TEKIR_UZUN_TUYLU_MELEZ": CSS breaks a line at a
+                    hyphen and not at an underscore, which is what pushed
+                    /import 110px sideways at 390px (dev-ui, E9). Everything
+                    else here is the product's own words. */}
+                <p className="break-words text-sm text-muted-foreground">
                   {speciesFallback
                     ? t("speciesMissingAnswered", {
                         count: summary.speciesUnknownRows,
