@@ -370,12 +370,43 @@ describe("a file with no species column (#42)", () => {
     tx.client.findMany.mockResolvedValue([
       { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
     ]);
+    // The clinic has to actually own it: an id from outside this list is
+    // refused, and the next test is that half.
+    vi.mocked(prisma.customSpecies.findMany).mockResolvedValue([
+      { id: "cs-9", name: "Kirpi" },
+    ] as never);
 
     await commitImport(BODY, noSpecies({ speciesFallback: { kind: "custom", id: "cs-9" } }), admin);
 
     const pets = tx.pet.createMany.mock.calls[0][0].data;
     expect(pets.every((p: { species: string }) => p.species === "OTHER")).toBe(true);
     expect(pets.every((p: { customSpeciesId: string }) => p.customSpeciesId === "cs-9")).toBe(true);
+  });
+
+  it("refuses a clinic species id that is not this clinic's", async () => {
+    // `customSpeciesId` is the one field on a pet that points at a row the
+    // clinic owns, and the id arrives from the browser. A foreign key says
+    // the row exists somewhere, not that it is ours -- so an id outside the
+    // list this request read is no answer, and the rows stay "other".
+    const tx = fakeTx();
+    tx.client.findMany.mockResolvedValue([
+      { id: "new-1", firstName: "Ada", lastName: "Kaya", phone: "0532 111 22 33" },
+    ]);
+    vi.mocked(prisma.customSpecies.findMany).mockResolvedValue([
+      { id: "cs-ours", name: "Kirpi" },
+    ] as never);
+
+    await commitImport(
+      BODY,
+      noSpecies({ speciesFallback: { kind: "custom", id: "cs-of-another-clinic" } }),
+      admin,
+    );
+
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets.every((p: { species: string }) => p.species === "OTHER")).toBe(true);
+    expect(pets.every((p: { customSpeciesId: string | null }) => p.customSpeciesId === null)).toBe(
+      true,
+    );
   });
 
   it("leaves rows whose species the file DOES give alone", async () => {

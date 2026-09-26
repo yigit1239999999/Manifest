@@ -337,6 +337,26 @@ export async function commitImport(
   );
   for (const [raw, target] of Object.entries(answers.sex)) sexTable.set(raw, target);
 
+  /**
+   * The bulk answer (#42), checked against THIS clinic's own species.
+   *
+   * An id arrives from the browser, and `customSpeciesId` is the one field on
+   * a pet that points at a row the clinic owns. A foreign key only says the
+   * row exists somewhere; it does not say it is ours. An id that is not in
+   * the list this request already read becomes no answer at all -- the rows
+   * stay "other", which is what they were without the question.
+   *
+   * WHAT THIS DOES NOT CLOSE, so it is not read as closed: the per-value
+   * species table takes ids the same way and does NOT check them
+   * (`toSpecies`, case "custom"). That is older than this field and reported
+   * rather than fixed here.
+   */
+  const fallback = answers.speciesFallback ?? null;
+  const speciesFallback =
+    fallback?.kind === "custom" && !custom.some((entry) => entry.id === fallback.id)
+      ? null
+      : fallback;
+
   return prisma.$transaction(
     async (tx) => {
       const batch = await tx.importBatch.create({
@@ -425,7 +445,7 @@ export async function commitImport(
           row.pet.speciesRaw,
           row.pet.breed,
           speciesTable,
-          answers.speciesFallback ?? null,
+          speciesFallback,
         );
         const species = toSpecies(answer.target, customByName);
         pets.push({
