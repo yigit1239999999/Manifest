@@ -96,6 +96,49 @@ bağlantı 13–15, `auth/service.ts` O(1) ve klinik sayısıyla büyümüyor) �
 bu haliyle yazılır, gizlenmez. Parti 2 kalemi: süit kendi kliniklerini
 toplasın, ya da testler tek klinik paylaşsın.
 
+### KIRMIZININ SINIFI DEĞİŞTİ, VE BİR ÜRÜN KALEMİ AÇILMADAN ÇÜRÜDÜ
+
+**Dört koşu boyunca üç kişi aynı cümleyi yazdı: *"bir sunucu eylemi 20
+saniyede tamamlanmıyor."* Yanlıştı.** `dev` artefakta baktı
+(`test-results/.../error-context.md`): **yalnız ilk alan (`clinicName`)
+boş**, diğer üçü dolu, hata alanı boş. O alan `required` taşıyor, yani
+**tarayıcının kendi doğrulaması gönderimi engelliyor** — istek hiç çıkmıyor
+ve test değişmeyecek bir URL'yi 20 saniye bekliyor. Sınıf "sunucu yavaş"
+değil, **"form gönderilmedi".** Süre tezi (3569 klinik) süreyi
+açıklayabilir, **bu düşüşleri açıklamıyor.**
+
+**Ve buradan doğan ürün şüphesi ÖLÇÜLDÜ, kalem olarak AÇILMADI.** Öneri
+şuydu: *"hidrasyon yazılanı siliyorsa bu, `dolu gelen dokunulmadığı için
+kaybolmaz` kuralının ihlalidir."* `dev-ui` öncülü iki yoldan sınadı ve
+ikisi de tutmadı:
+- **Hidrasyondan önce yazmak:** belge `waitUntil:"commit"` ile alınıp JS
+  bağlanmadan dolduruldu — 3000 ve 3005'te, bekleyerek ve beklemeden,
+  **40/40 dolu.** Yapısal sebebi de var: `clinicName` **kontrolsüz** bir
+  girdi (React değerini yönetmiyor) ve `SignUpForm` `ActionForm`'a
+  **`draftKey` vermiyor**, yani üstüne yazacak geri yükleme geçidi hiç
+  koşmuyor.
+- **Sunucu doğrulama hatasından sonra yeniden render:** çakışan e-postayla
+  gönderildi; `clinicName`, `name`, `email` **korunuyor**, yalnız şifre
+  temizleniyor. TR ve EN. **Kural tutuyor.**
+
+**`dev-ui` kendi şüphesini de kapattı:** bir ara *"hekim hiçbir şey
+görmüyor"* diye okumuştu (boş `role="alert"`); yanlıştı — hata ekranda, hem
+özet hem alan düzeyinde, iki dilde. Boş canlı bölge karara bağlanmış bir
+tasarım (`action-form.tsx` kutuyu odaklıyor; odaklanmış canlı bölge bazı
+ekran okuyucu çiftlerinde iki kez okunuyor), ve yorum bunun ux'ten tek
+sapma olduğunu **işaretleyerek** yazmış. Kimse yeniden açmasın.
+
+**Geriye kalan, ve açık borç olarak etikete giren:** *o alanın neden boş
+olduğu* açıklanamadı. Üç mekanizma da **boştaki ve ısınmış** sunucuda
+üretilemedi; sınanmamış tek şart **55 testin yükü**. Negatif sonuç çürütme
+değildir — *"üretemedim"* diye yazılır, *"yok"* diye yazılmaz.
+
+**Alınan tek iş ölçüm aletine:** `signUp` yardımcısı doldurduktan sonra
+değeri geri okur. Gerekçe, mekanizmanın bilinmemesinden **bağımsız**:
+kırmızının işaret ettiği yer en azından doğru olsun — *"ilk alan boşaldı"*,
+*"URL değişmedi"* değil. Kabul ölçütü ısırmasıyla: mutasyonda **1 saniyede**
+düşer ve sebebi adıyla söyler. Dokuz spec aynı yardımcıyı kullanıyor.
+
 ## İŞLEYİŞ — bu partinin kuralları
 
 1. **Liste dışında iş yapılmaz.** Yol üstünde bulunan kusur **düzeltilmez**,
