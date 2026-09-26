@@ -47,7 +47,54 @@ değildir (TEAM.md, "tek cümle" kuralının ölçüsü).
 - `BUILDING` dosyası ağaçta duruyor, `pid=86435` **ölü** — ama bu kilit
   **bayat değil, TEMİZLENMEMİŞ** (sebebi E7).
 - Zemini oynatan her iş (tazeleme, paket kurma, commit, paylaşımlı dosya)
-  **önce `E2E_RUNNING`'e ve PID'ine bakar**, sonra haber verir.
+  **önce `E2E_RUNNING`'e ve PID'ine bakar**, sonra haber verir. **Ve 26
+  Eylül'ün dersi: yazmaya başlamadan HEMEN ÖNCE bir daha bakar** — kilidi
+  koşudan önce okuyup yazarken tekrar okumamak bugün iki koşu bozdu.
+
+### PORT → AĞAÇ EŞLEMESİ (26 Eylül'de ölçüldü — üçü aynı gün yanlış okundu)
+
+`SERVED_COMMIT.txt` "PORT 3005" diyor ve **doğru** diyor; ama aynı ağaçtan
+birden fazla port sunuluyordu ve damga yalnız birini tanıyor. `ux`
+neredeyse 3001'de ölçüyordu, ve 3011 aynı tuzağın daha sinsisiydi çünkü
+**aynı ağaçta** duruyordu — `cd` ettiğin yer doğru olsa bile port yanlış
+olabilir.
+
+| port | ağaç | ne | damga |
+|---|---|---|---|
+| 3000 | `Manifest` | `next dev` | yok, damgalanmaz |
+| 3001 | `Manifest-prod` (ayrı worktree, detached) | `next start` | **kendi** `SERVED_COMMIT.txt`'i, kendi `refresh-prod.sh`'ı |
+| 3005 | `Manifest` | `next start`, `.next-prod`'dan | `Manifest/SERVED_COMMIT.txt` — **ölçümlerin zemini budur** |
+| ~~3011~~ | ~~`Manifest`~~ | **26 Eylül'de kapatıldı, kullanıcı kararı** | — |
+
+**Ölçüm raporu üç terim taşır: port + ağaç + BUILD_ID.** İkisi yetmiyor,
+çünkü `cat SERVED_COMMIT.txt` hangi dizinde çalıştığına göre iki farklı ve
+**ikisi de doğru** cevap veriyor.
+
+**3011 neden kapatıldı, ve neyi kaybettik:** 21 Eylül'den beri (4 gün 19
+saat) ana ağaçtan sunuyordu, **artık kurulu olmayan** `next-server v16.2.6`
+ile, ve sunduğu derleme **diskte yoktu** — `.next/BUILD_ID` 23 Eylül'de
+üzerine yazılmıştı. Cevap veriyordu (200, 0,41 sn), yani oraya bakan biri
+**çalışan bir ürün** görürdü; hangi commit olduğu ise hiçbir yerden
+okunamıyordu (silinmiş dosya tutmuyordu, Next 16 statik yollara BUILD_ID
+gömmüyor). Kapatmakla o derleme **bir daha üretilemez** hâle geldi; bedeli
+bilerek ödendi, çünkü ölçüm turunda yanlış cevap verebilecek en hazır yer
+odur. `dev-ui` buldu, `serve-prod.sh`'ın kendi yorumu tehlikeyi zaten
+yazıyordu: *"next dev ve next start ikisi de `.next`'e varsayılıyor."*
+
+### AÇIK BORÇ: SINAV VERİSİ TEMİZLENMİYOR (26 Eylül, `dev` ölçtü)
+
+Paylaşımlı üretim veritabanında **3569 klinik** var; **son üç saatte 304**
+eklendi. Süit her testte `signUp()` çağırıyor, yani **her koşu ~57 klinik
+bırakıyor ve hiçbiri silinmiyor.** Aynı gün süit süresi **5,2 → 7,1 → 8,5**
+dakikaya çıktı (`dev-ui`'nin koşusu 9,4), ve dört koşunun kırmızı kümeleri
+**birbiriyle kesişmiyor** — hepsi 20+ sn zaman aşımı, hiçbiri iddia hatası
+değil, çoğu `signUp` yardımcısında.
+
+**Bu kırmızıların kanıtlanmış sebebi DEĞİL** (boşta `select 1` 73 ms, aktif
+bağlantı 13–15, `auth/service.ts` O(1) ve klinik sayısıyla büyümüyor) — ama
+ölçümlerin üstünde durduğu zemin, ve **tek yönde büyüyor.** Etiket mesajına
+bu haliyle yazılır, gizlenmez. Parti 2 kalemi: süit kendi kliniklerini
+toplasın, ya da testler tek klinik paylaşsın.
 
 ## İŞLEYİŞ — bu partinin kuralları
 
