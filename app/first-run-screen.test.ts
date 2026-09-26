@@ -81,19 +81,32 @@ function markup(branch: string): string {
 }
 
 describe("the screen an empty clinic meets", () => {
-  it("draws the greeting and the ask, and nothing else", () => {
-    const components = [
-      ...new Set(markup(firstRunBranch()).match(/<([A-Z]\w+)/g) ?? []),
-    ].map((tag) => tag.slice(1));
+  it("draws the greeting, the ask, and one other way to do the same job", () => {
+    const branch = markup(firstRunBranch());
+    const components = [...new Set(branch.match(/<([A-Z]\w+)/g) ?? [])].map(
+      (tag) => tag.slice(1),
+    );
 
-    // Not "at most two": the exact set. A third block here is how this
+    // Not "at most three": the exact set. A third block here is how this
     // screen acquired a 226px example panel that could not be clicked
     // and answered a question the clinic had not asked, and the shape
     // of the next one is already named in `first-step-card.tsx` -- "now
     // switch on reminders", "now add your staff". The card refuses to
     // become a checklist internally; this refuses to let one be built
     // around it.
-    expect(components.sort()).toEqual(["FirstStepCard", "PageHeader"]);
+    //
+    // The `Link` earned its place by being narrower than a block, not by
+    // being a third thing. It is the SAME job through another door: a
+    // clinic that already has its records in a spreadsheet is still being
+    // asked for the first records, and answers by uploading them (ux). So
+    // the destination is asserted too, and that is what keeps this from
+    // being a loosening -- "one more block" would have let the reminders
+    // card in; "one more way to the same place" does not.
+    expect(components.sort()).toEqual(["FirstStepCard", "Link", "PageHeader"]);
+    expect(branch).toMatch(/<Link[^>]*href="\/import"/);
+    // One door, not a row of them. The set above collapses duplicates, so
+    // without this a second and third `Link` would pass it unnoticed.
+    expect(branch.match(/<Link\b/g)).toHaveLength(1);
   });
 
   it("asks the card for the shape that makes it the subject", () => {

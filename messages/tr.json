@@ -102,6 +102,7 @@
     "greeting": "Merhaba {name}",
     "subtitle": "Bugünün özeti.",
     "readyFor": "{clinic} için her şey hazır.",
+    "importInvite": "Kayıtlarınız Excel'de mi? Dosyanızı yükleyin.",
     "metrics": {
       "clients": "Müşteri",
       "pets": "Hayvan",

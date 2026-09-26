@@ -469,7 +469,26 @@ test.describe("First run", () => {
     const asks = main.locator(
       'a[href], button[type="submit"], button:not([type])',
     );
-    await expect(asks).toHaveCount(1);
+    // Two, and the rule is not "two". The rule ux wrote when the second one
+    // was added is: an empty clinic is made to do ONE job, and is offered
+    // at most ONE other way to do that same job. A count alone cannot say
+    // that -- it would pass just as happily on a "set up reminders" card
+    // sitting where the import link is -- so the destination is asserted
+    // with it.
+    //
+    // Which is an href assertion, in a file that removed one two tests up
+    // for good reason. The difference is what the two were standing in for.
+    // That one used markup to check a BEHAVIOUR ("the dashboard asks for
+    // the work"), and clicking says that better. This one is about a
+    // DESTINATION -- where the alternative may lead -- so the destination
+    // is the subject rather than a proxy for it.
+    //
+    // `nth(1)` rather than a filter, and the order is part of the rule:
+    // the card's ask comes first, the footnote second. The test above
+    // depends on that too -- it clicks `asks.first()` and expects the
+    // visit form -- so if the two ever swap, this line is where it shows.
+    await expect(asks).toHaveCount(2);
+    await expect(asks.nth(1)).toHaveAttribute("href", "/import");
   });
 
   // 390px, because the dashboard's chart card produced 140px of sideways

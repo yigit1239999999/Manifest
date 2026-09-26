@@ -102,6 +102,7 @@
     "greeting": "Hi, {name}",
     "subtitle": "Here's what's happening today.",
     "readyFor": "{clinic} is ready.",
+    "importInvite": "Already have your records in a spreadsheet? Upload your file.",
     "metrics": {
       "clients": "Clients",
       "pets": "Pets",

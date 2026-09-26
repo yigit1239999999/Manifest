@@ -14,6 +14,7 @@ import {
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { dashboardInsights } from "@/modules/dashboard/queries";
 import { blockedReminders } from "@/modules/notifications/queries";
 import { unreadDiagnostics } from "@/modules/diagnostics/queries";
@@ -236,6 +237,20 @@ export default async function DashboardPage() {
     insights.counts.pets === 0 &&
     insights.counts.visits === 0;
 
+  // The pair, because a row of a spreadsheet is a client AND an animal:
+  // `modules/import/request.ts` refuses anyone holding one without the
+  // other, and the rail asks for the same two. A role that cannot import
+  // is shown nothing rather than a sentence with no way out of it -- the
+  // card is already saying "your clinic administrator can add the first
+  // client and animal" in that case, and a second silent line would be
+  // the same fact twice.
+  //
+  // Reception holds this permission and that is not incidental: the
+  // spreadsheet is usually on their machine.
+  const canImport =
+    can(session.user.role, "clients.write") &&
+    can(session.user.role, "pets.write");
+
   if (firstRun) {
     return (
       // Placed rather than stacked, and only on this branch.
@@ -302,6 +317,46 @@ export default async function DashboardPage() {
               get made on the way there. The card falls back to the
               client ask by itself for anyone who cannot write a visit. */}
           <FirstStepCard need="visit" size="page" />
+
+          {/* The other way to do the SAME job, and that is the whole of
+              what it is allowed to be.
+
+              `first-step-card.tsx` says the card has exactly two states and
+              that a third line would turn it into a setup wizard, naming
+              the shape it would take: "now switch on reminders", "now add
+              your staff". A spreadsheet is not one of those. It is not new
+              work -- it is the work the card is already asking for,
+              arriving by the door of somebody who has the records already
+              (ux). So the rule this screen now holds is narrower than "at
+              most three blocks": there may be one alternative, and it may
+              only lead where the ask leads. `first-run-screen.test.ts`
+              checks the destination for that reason.
+
+              A footnote, not a second invitation. The card keeps the
+              weight: no emphasis here, and the sentence is the vet's
+              choice to ignore. The whole of it is the link rather than a
+              word inside it -- with the emphasis gone, a coloured phrase
+              in a muted line would leave COLOUR as the only thing saying
+              it can be clicked, and the underline only arrives on hover
+              (ux). `sign-up-form.tsx` already writes it this way.
+
+              Not centred, though the pattern it copies is: the column is
+              one `max-w-lg` box so the greeting and the card share a left
+              edge, and a centred third line puts a second alignment on a
+              screen that has one.
+
+              Only while the clinic is empty. The first-run screen stops
+              being the first-run screen the evening the first visit is
+              written, which is exactly why `/import` is in the sidebar as
+              well -- the second spreadsheet arrives months later, and a
+              door that exists only on day one is shut by the end of it. */}
+          {canImport && (
+            <p className="text-sm text-muted-foreground">
+              <Link href="/import" className="text-primary hover:underline">
+                {t("importInvite")}
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     );
