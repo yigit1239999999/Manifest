@@ -268,6 +268,58 @@ test.describe("Importing a spreadsheet", () => {
    * written in words would be a Turkish leg nobody ever runs (see
    * `e2e/locator-legs.test.ts`).
    */
+  /**
+   * A file with no species column at all, which is what a clinic that keeps
+   * one kind of animal has.
+   *
+   * Before this, the screen said NOTHING about those rows: the sentence
+   * "N rows have no species" lived inside the species table's section, and
+   * with no column there is no table -- so three animals landed as "other"
+   * under a screen that had not mentioned them. The test walks the whole
+   * round trip rather than asserting on the picker, because that is where
+   * this kind of defect lives: a screen can show a full table and send
+   * nothing (`f2f19a6`).
+   */
+  test("lets the vet say what the file did not, when there is no species column", async ({
+    page,
+  }) => {
+    const main = await openImport(page);
+    await main.locator('input[type="file"]').setInputFiles(file("header-row-is-names.xlsx"));
+    await main.getByRole("radio").first().check();
+
+    await page.locator("#import-column-0").selectOption("pet.name");
+    await page.locator("#import-column-1").selectOption("client.firstName");
+    await page.locator("#import-column-2").selectOption("client.phone");
+    // Skipped so each card's second line is the species and nothing else.
+    await page.locator("#import-column-3").selectOption("skip");
+
+    await main
+      .getByRole("button", { name: /show what will happen|ne olacağını gösterin/i })
+      .click();
+
+    // The question is there, and it is UNANSWERED: a picker that opened on
+    // a species would be the product deciding for them (#20).
+    const picker = page.locator("#species-fallback");
+    await expect(picker).toBeVisible();
+    await expect(picker).toHaveValue("");
+    await expect(main.getByText(/have no species|tür bilgisi yok/i)).toBeVisible();
+
+    // Answering changes what the screen says will happen. Leaving the
+    // "recorded as other" sentence under an answered picker would be the
+    // screen contradicting itself where the decision is made.
+    await picker.selectOption("builtIn:CAT");
+    await expect(main.getByText(/will be recorded as|olarak kaydedilecek/i)).toBeVisible();
+    await expect(main.getByText(/have no species|tür bilgisi yok/i)).toHaveCount(0);
+
+    await main.getByRole("button", { name: /^(save|kaydedin)$/i }).click();
+    await expect(main.getByText(/^(Imported|İçe aktarıldı)$/)).toBeVisible();
+
+    // And it actually landed: three animals, all cats, on the screen the
+    // vet opens next. "Other" here would be the whole defect, written.
+    await page.goto("/pets");
+    await expect(page.getByText(/^(Cat|Kedi)$/)).toHaveCount(3);
+  });
+
   test("writes the rows, and takes them back", async ({ page }) => {
     const main = await openImport(page);
     await main.locator('input[type="file"]').setInputFiles(file("header-row-is-names.xlsx"));

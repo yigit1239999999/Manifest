@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { SPECIES } from "@/modules/pets/schema";
 import type { ImportField } from "@/modules/import/fields";
 import type { DuplicateAnswer } from "@/modules/import/plan";
-import type { SpeciesTarget } from "@/modules/import/enum-map";
+import type { SpeciesFallback, SpeciesTarget } from "@/modules/import/enum-map";
 import type { CommitResult, PlanSummary, UndoResult } from "@/modules/import/service";
 import type { Sex, Species } from "@/generated/prisma/enums";
 
@@ -84,6 +84,14 @@ export function ImportCommit({
   const [duplicates, setDuplicates] = React.useState<Record<string, DuplicateAnswer>>({});
   const [species, setSpecies] = React.useState<Record<string, SpeciesAnswer>>({});
   const [sex, setSex] = React.useState<Record<string, Sex>>({});
+  /**
+   * The one answer for the rows the file says no species for (#42).
+   *
+   * Null is "not answered" and it is the state this arrives in: a picker
+   * that opened on "Kedi" would be the product deciding, and the rows it
+   * decides for are precisely the ones nobody has said anything about yet.
+   */
+  const [speciesFallback, setSpeciesFallback] = React.useState<SpeciesFallback | null>(null);
   const [undone, setUndone] = React.useState<UndoResult | null>(null);
   const [undoFailed, setUndoFailed] = React.useState(false);
   const [undoing, startUndo] = React.useTransition();
@@ -112,13 +120,22 @@ export function ImportCommit({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           rows,
-          answers: { ...answers, duplicates: duplicateAnswers, species, sex },
+          answers: {
+            ...answers,
+            duplicates: duplicateAnswers,
+            species,
+            sex,
+            // Left out entirely when unanswered, because the server reads
+            // its absence as "the question was not answered" rather than as
+            // an answer meaning nothing.
+            ...(speciesFallback ? { speciesFallback } : {}),
+          },
         }),
       });
       if (!res.ok) throw new Error(String(res.status));
       return res.json();
     },
-    [rows, answers, species, sex],
+    [rows, answers, species, sex, speciesFallback],
   );
 
   const plan = React.useCallback(
@@ -453,7 +470,7 @@ export function ImportCommit({
                         </label>
                         <Select
                           id={`species-${proposal.raw}`}
-                          value={targetValue(answer.target, proposal.raw)}
+                          value={targetValue(answer.target)}
                           onChange={(e) =>
                             setSpecies((prev) => ({
                               ...prev,
@@ -501,11 +518,58 @@ export function ImportCommit({
                     );
                   })}
                 </ul>
-                {summary.speciesUnknownRows > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    {t("speciesUnknownRows", { count: summary.speciesUnknownRows })}
-                  </p>
-                )}
+              </section>
+            )}
+
+            {/* OUTSIDE the table's gate, and that is the defect this closes.
+                The sentence about rows with no species used to live inside
+                the section above, which only renders when the table has
+                lines -- so a file with NO species column got no table, no
+                sentence, and no way to answer: the screen said nothing and
+                every animal landed as "other". The rows this is about exist
+                whether or not the column does. */}
+            {summary.speciesUnknownRows > 0 && (
+              <section className="flex flex-col gap-2">
+                <h4 className="text-sm font-semibold text-foreground">
+                  {t("speciesMissingTitle")}
+                </h4>
+                <label htmlFor="species-fallback" className="text-sm text-muted-foreground">
+                  {t("speciesMissingQuestion")}
+                </label>
+                {/* No default, and the empty option is the reason: an
+                    unanswered question must not sit there looking answered.
+                    "Other" is in the list as a choice somebody made -- the
+                    defect was never "other", it was "other" without being
+                    asked for. */}
+                <Select
+                  id="species-fallback"
+                  value={speciesFallback ? targetValue(speciesFallback) : ""}
+                  onChange={(e) => setSpeciesFallback(parseFallback(e.target.value))}
+                >
+                  <option value="">{t("speciesMissingUnanswered")}</option>
+                  {SPECIES.map((key) => (
+                    <option key={key} value={`builtIn:${key}`}>
+                      {tSpecies(key)}
+                    </option>
+                  ))}
+                  {summary.customSpecies.map((custom) => (
+                    <option key={custom.id} value={`custom:${custom.id}`}>
+                      {custom.name}
+                    </option>
+                  ))}
+                </Select>
+                {/* The consequence follows the answer. Leaving "they will be
+                    recorded as other" under a picker that now says "Kedi"
+                    would be the screen contradicting itself at the one place
+                    the decision is made. */}
+                <p className="text-sm text-muted-foreground">
+                  {speciesFallback
+                    ? t("speciesMissingAnswered", {
+                        count: summary.speciesUnknownRows,
+                        name: fallbackName(speciesFallback, summary.customSpecies, tSpecies),
+                      })
+                    : t("speciesUnknownRows", { count: summary.speciesUnknownRows })}
+                </p>
               </section>
             )}
 
@@ -574,7 +638,7 @@ function answerValue(answer: DuplicateAnswer | undefined): string {
 }
 
 /** The species answer as one select value, in the pet form's own dialect. */
-function targetValue(target: SpeciesTarget, raw: string): string {
+function targetValue(target: SpeciesTarget): string {
   switch (target.kind) {
     case "builtIn":
       return `builtIn:${target.key}`;
@@ -583,8 +647,33 @@ function targetValue(target: SpeciesTarget, raw: string): string {
     case "newCustom":
       return `newCustom:${target.name}`;
     default:
-      return `newCustom:${raw}`;
+      // `unknown`, which no proposal carries today -- `proposeSpecies` skips
+      // the blank values and reads everything else as a species or as a name
+      // of the clinic's own (measured: no value produces `unknown`). It is
+      // here so that if one ever does, the screen says what the WRITE does
+      // with it, which is "other". `newCustom:${raw}` said "add X to your
+      // clinic" about a line the server would have recorded as other.
+      return "builtIn:OTHER";
   }
+}
+
+/** The bulk answer as the picker's value, or null for "not answered". */
+function parseFallback(value: string): SpeciesFallback | null {
+  if (value.startsWith("builtIn:")) {
+    return { kind: "builtIn", key: value.slice("builtIn:".length) as Species };
+  }
+  if (value.startsWith("custom:")) return { kind: "custom", id: value.slice("custom:".length) };
+  return null;
+}
+
+/** What to call the answer in the sentence under the picker. */
+function fallbackName(
+  fallback: SpeciesFallback,
+  custom: ReadonlyArray<{ id: string; name: string }>,
+  tSpecies: (key: string) => string,
+): string {
+  if (fallback.kind === "builtIn") return tSpecies(fallback.key);
+  return custom.find((entry) => entry.id === fallback.id)?.name ?? "";
 }
 
 function parseTarget(value: string, raw: string): SpeciesTarget {
