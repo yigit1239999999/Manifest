@@ -34,6 +34,8 @@ export type TimelineEvent =
       summary: string | null;
       nextDueAt: Date | null;
       petId: string;
+      /** The record knows the day only (a spreadsheet import); no time is shown. */
+      dateOnly: boolean;
     }
   | {
       kind: "prescription";
@@ -218,6 +220,7 @@ async function collectTimeline({
       summary: v.notes ?? null,
       nextDueAt: v.nextDueAt,
       petId: v.petId,
+      dateOnly: v.administeredDateOnly,
     })),
     ...prescriptions.map<TimelineEvent>((p) => ({
       kind: "prescription",

@@ -358,31 +358,35 @@ model Pet {
 /// then taken back is a fact about the clinic's day, and the audit log
 /// points at this id.
 model ImportBatch {
-  id          String    @id @default(cuid())
-  clinicId    String
-  clinic      Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  id               String    @id @default(cuid())
+  clinicId         String
+  clinic           Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   /// Null once the user is gone; the batch and its undo outlive them.
-  createdById String?
-  createdBy   User?     @relation("ImportBatchCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  createdBy        User?     @relation("ImportBatchCreator", fields: [createdById], references: [id], onDelete: SetNull)
   /// The vet's own file name, shown back to them when they pick a batch
   /// to undo. "musteriler-2024.xlsx" is how they know which run this was;
   /// a timestamp alone is not.
-  fileName    String
-  sheetName   String
+  fileName         String
+  sheetName        String
   /// What this run actually created, counted at commit time. Kept here
   /// rather than counted on demand so the list of batches is one query
   /// no matter how many batches there are, and so the numbers still read
   /// correctly after the rows are undone and gone.
-  clientCount Int       @default(0)
-  petCount    Int       @default(0)
+  clientCount      Int       @default(0)
+  petCount         Int       @default(0)
   /// How many existing clients the run attached animals to. Not
   /// deletable by undo and not counted with the created ones.
-  mergedCount Int       @default(0)
-  undoneAt    DateTime?
-  createdAt   DateTime  @default(now())
+  mergedCount      Int       @default(0)
+  /// Vaccination records the run wrote, read off the file's vaccine
+  /// columns. Counted at commit time like the two above.
+  vaccinationCount Int       @default(0)
+  undoneAt         DateTime?
+  createdAt        DateTime  @default(now())
 
-  clients Client[]
-  pets    Pet[]
+  clients      Client[]
+  pets         Pet[]
+  vaccinations Vaccination[]
 
   @@index([clinicId, createdAt(sort: Desc)])
   @@map("import_batches")
@@ -544,20 +548,20 @@ enum DueSource {
 }
 
 model Vaccination {
-  id               String     @id @default(cuid())
-  clinicId         String
-  clinic           Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  petId            String
-  pet              Pet        @relation(fields: [petId], references: [id], onDelete: Cascade)
-  visitId          String?
-  visit            Visit?     @relation(fields: [visitId], references: [id], onDelete: SetNull)
-  administeredById String?
-  administeredBy   User?      @relation("VaccinationBy", fields: [administeredById], references: [id], onDelete: SetNull)
-  name             String
-  manufacturer     String?
-  lotNumber        String?
-  administeredAt   DateTime   @default(now())
-  nextDueAt        DateTime?
+  id                   String       @id @default(cuid())
+  clinicId             String
+  clinic               Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  petId                String
+  pet                  Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+  visitId              String?
+  visit                Visit?       @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  administeredById     String?
+  administeredBy       User?        @relation("VaccinationBy", fields: [administeredById], references: [id], onDelete: SetNull)
+  name                 String
+  manufacturer         String?
+  lotNumber            String?
+  administeredAt       DateTime     @default(now())
+  nextDueAt            DateTime?
   /// Where the interval behind `nextDueAt` came from, so the screen can
   /// say it out loud. Null when there is no next date, or when the row
   /// predates this column -- and those two are both "we do not know",
@@ -567,7 +571,7 @@ model Vaccination {
   /// has measured for itself and one the product shipped are not the
   /// same claim, and showing them identically is how a default becomes
   /// a medical fact nobody stated (#37, and TEAM.md #14).
-  nextDueSource    DueSource?
+  nextDueSource        DueSource?
   /// Which dose of the starting series this is, 1-based, and how many
   /// the series had when it was written.
   ///
@@ -582,8 +586,8 @@ model Vaccination {
   /// doses, a dose recorded as 2/3 stays 2/3, because that is what the
   /// vet was told on the day. Reading the current catalogue instead
   /// would silently restate history.
-  doseNumber       Int?
-  seriesOf         Int?
+  doseNumber           Int?
+  seriesOf             Int?
   /// Set when somebody closes this overdue row on the dashboard.
   ///
   /// It closes the ROW, not the animal: `Pet.archivedAt` is untouched,
@@ -599,14 +603,23 @@ model Vaccination {
   /// date arrives as a new row with no stamp, and the rule holds by
   /// construction rather than by code. That stops being true the day
   /// an edit form lands.
-  dueDismissedAt   DateTime?
-  site             String?
-  notes            String?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  dueDismissedAt       DateTime?
+  /// The spreadsheet run that wrote this row, or null for one typed in
+  /// the product. Undo deletes by it, as it does for clients and pets.
+  importBatchId        String?
+  importBatch          ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  /// The file gave a day, not a time. `administeredAt` holds that day at
+  /// UTC noon and every screen prints the day alone -- a time of day
+  /// here would be one nobody wrote.
+  administeredDateOnly Boolean      @default(false)
+  site                 String?
+  notes                String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   @@index([clinicId, petId, administeredAt])
   @@index([clinicId, nextDueAt])
+  @@index([clinicId, importBatchId])
   // A third index is not written here: (clinicId, administeredAt DESC)
   // WHERE "nextDueAt" IS NOT NULL, added in
   // `20260921150000_vaccination_suggestion_index` for the next-due
