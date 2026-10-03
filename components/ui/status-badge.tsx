@@ -138,7 +138,23 @@ const archive = {
   archived: "quiet",
 } satisfies Record<"archived", StatusTone>;
 
+// A row of a spreadsheet on the import's check screen. Not an enum
+// either: the plan names five states and they go through this door so the
+// import does not grow a badge system of its own. The split the vet asked
+// for is here: "waiting for you" is the only amber one, because it is the
+// only one with work in it. "Left out" is quiet -- nothing failed on our
+// side, and it must not look like the same warning as a row that comes in
+// with a note.
+const importRow = {
+  decision: "attention",
+  skip: "quiet",
+  warning: "neutral",
+  existing: "quiet",
+  excluded: "quiet",
+} satisfies Record<"decision" | "skip" | "warning" | "existing" | "excluded", StatusTone>;
+
 const tones = {
+  importRow,
   appointment,
   invoice,
   reminder,

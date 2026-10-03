@@ -109,6 +109,31 @@ export async function countOverdueVaccinations(clinicId: string, now = new Date(
   return prisma.vaccination.count({ where: overdueWhere(clinicId, now) });
 }
 
+/**
+ * The overdue rows the card's window leaves out: past due for longer than
+ * `OVERDUE_WINDOW_MONTHS`, not closed, animal and owner still served.
+ *
+ * Counted, not listed. The window stands -- the card is work, and a
+ * three-year-old booster is history rather than this morning's call --
+ * but a clinic that has just imported its file has a backlog that is
+ * nearly all older than six months, and a dashboard that showed none of
+ * it would have quietly swallowed the import's most useful fact. So the
+ * card says how many are beyond it, and the import's result screen
+ * counts by the same rule (`modules/import/service.ts` `dueCounts`).
+ */
+export async function countOlderOverdueVaccinations(clinicId: string, now = new Date()) {
+  const since = new Date(now);
+  since.setMonth(since.getMonth() - OVERDUE_WINDOW_MONTHS);
+  return prisma.vaccination.count({
+    where: {
+      clinicId,
+      nextDueAt: { lt: since },
+      dueDismissedAt: null,
+      pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
+    },
+  });
+}
+
 // What this clinic itself has done, offered back as a suggestion.
 //
 // The next-due date is the one field the whole return loop rests on and it

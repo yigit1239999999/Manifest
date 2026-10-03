@@ -347,7 +347,9 @@ export default async function PetPage({
                       <div>
                         <p className="font-medium">{v.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDateTime(fmt, v.administeredAt)}
+                          {v.administeredDateOnly
+                            ? formatDateOnly(fmt, v.administeredAt)
+                            : formatDateTime(fmt, v.administeredAt)}
                           {v.nextDueAt && ` · → ${formatDate(fmt, v.nextDueAt)}`}
                         </p>
                       </div>

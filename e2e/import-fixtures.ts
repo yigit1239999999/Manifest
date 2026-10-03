@@ -118,6 +118,31 @@ export const FIXTURES = [
     },
   },
   {
+    name: "same-name-new-animal.xlsx",
+    exercises:
+      "an owner by name only, with an animal the clinic has not seen: nothing confirms them, so the screen asks",
+    build: (wb: ExcelJS.Workbook) => {
+      const s = wb.addWorksheet("Sayfa1");
+      rows(s, [
+        ["Hayvan Adı", "Sahibi"],
+        ["Kömür", "Ayşe Yılmaz"],
+      ]);
+    },
+  },
+  {
+    name: "vaccine-columns.xlsx",
+    exercises:
+      "two vaccines written as two columns of dates named by their heading ('Kuduz Aşısı', 'Karma Aşı'): one row becomes several vaccination records",
+    build: (wb: ExcelJS.Workbook) => {
+      const s = wb.addWorksheet("Hastalar");
+      rows(s, [
+        ["Sahip Adı Soyadı", "Tel", "Hayvan Adı", "Tür", "Kuduz Aşısı", "Karma Aşı"],
+        ["Ayşe Yılmaz", "0532 411 22 33", "Pamuk", "Kedi", new Date(Date.UTC(2025, 3, 14)), new Date(Date.UTC(2025, 3, 20))],
+        ["Mehmet Kaya", "0533 456 78 90", "Karabaş", "Köpek", new Date(Date.UTC(2024, 8, 20)), null],
+      ]);
+    },
+  },
+  {
     name: "five-hundred-rows.xlsx",
     exercises:
       "the scale the screen is measured at: 500 rows x 8 columns, held in the browser as state",
@@ -150,19 +175,26 @@ export async function writeFixtures(dir: string) {
     written.push({ ...fixture, file, bytes: bytes.byteLength });
   }
 
-  // One file that exists only to be refused. The size limit is the one part
-  // of this screen that fails silently if it is wrong -- a request that dies
-  // on the way out looks like nothing at all -- so there is a file that
-  // crosses it on purpose. Incompressible bytes, or a zip of zeroes would
-  // sail under the limit.
-  const big = path.join(dir, "over-the-size-limit.xlsx");
-  const filler = Buffer.alloc(9 * 1024 * 1024);
+  // A CSV the way Turkish Excel on Windows saves one: Windows-1254 bytes
+  // and semicolons. "Şeker" and "Ayşe" are single bytes that are not UTF-8.
+  const csv = path.join(dir, "turkish-excel.csv");
+  const text = "Sahibi;Tel;Hayvan;Tür;Kuduz\r\nAyşe Şahin;0532 111 22 33;Şeker;kedi;26.07.2025\r\nİrem Öz;0533 444 55 66;Badem;köpek;\r\n";
+  const table: Record<string, number> = { ş: 0xfe, Ş: 0xde, İ: 0xdd, ö: 0xf6, Ö: 0xd6, ü: 0xfc, ç: 0xe7, ğ: 0xf0, ı: 0xfd };
+  await writeFile(csv, Buffer.from([...text].map((c) => table[c] ?? c.charCodeAt(0))));
+  written.push({ name: "turkish-excel.csv", exercises: "Windows-1254, semicolon separated", file: csv, bytes: text.length });
+
+  // A file with a spreadsheet's name and none of its insides: the bytes are
+  // noise. There is no size limit to cross any more (the file is read in
+  // the browser and never uploaded), so what is left to say out loud is
+  // "this could not be read" -- in a sentence, with focus on it.
+  const junk = path.join(dir, "not-a-spreadsheet.xlsx");
+  const filler = Buffer.alloc(64 * 1024);
   for (let i = 0; i < filler.length; i += 1) filler[i] = (i * 2654435761) % 256;
-  await writeFile(big, filler);
+  await writeFile(junk, filler);
   written.push({
-    name: "over-the-size-limit.xlsx",
-    exercises: "over MAX_IMPORT_BYTES, so the limit has to say so out loud",
-    file: big,
+    name: "not-a-spreadsheet.xlsx",
+    exercises: "unreadable bytes under a spreadsheet's name: the screen says so and moves focus to the sentence",
+    file: junk,
     bytes: filler.length,
   });
 

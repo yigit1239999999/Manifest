@@ -1,23 +1,32 @@
 /**
- * How big a file the import screen accepts, in bytes.
+ * The one real ceiling on an import, and where it comes from.
  *
- * One constant with two readers on purpose. The browser checks it before it
- * sends, so the vet is told in a sentence rather than by a request that dies;
- * the route checks it again, because the browser's check is a courtesy and
- * not a control -- anything can post to the endpoint.
+ * THERE IS NO ROW LIMIT. The owner's words: "2000 satır sınırı koymayalım".
+ * The file is read in the browser (`read-file.ts`), so no file is ever
+ * uploaded and the file's own size limits nothing.
  *
- * The number is not a measurement of any real clinic's file, and nobody
- * should read it as one: no file has been seen (#16). It is the point past
- * which we would rather ask than accept quietly. A spreadsheet of a few
- * thousand rows of text is well under it, and something far larger is more
- * likely a different kind of file than a big clinic.
+ * What does have a ceiling is the request that carries the rows to the
+ * plan and the write. The host (Vercel) refuses a request body over 4.5 MB,
+ * and that is a fact of the platform, not a number we chose. The rows go
+ * gzip-compressed and only the columns the clinic is importing go at all,
+ * so the ceiling sits far past any clinic's list -- measured on the
+ * 4,821-row test file (10 columns), the body was a few hundred kilobytes.
+ * A file past it is told so in a sentence that says what to do: split the
+ * sheet in two. Importing the second half finds the people from the first
+ * by name and phone, so a split file does not double anybody.
  *
- * Deliberately NOT `experimental.serverActions.bodySizeLimit`. That knob is
- * global: raising it for this one screen raises it for every action in the
- * product, on an experimental key, and the limit stops being visible at the
- * place it applies. A route handler carries its own.
+ * Both readers use this number: the browser before it sends, so the vet
+ * gets the sentence instead of a dead request, and the route, because the
+ * browser's check is a courtesy and not a control.
  */
-export const MAX_IMPORT_BYTES = 8 * 1024 * 1024;
+export const MAX_REQUEST_BYTES = 4_400_000;
 
 /** The same number the way a person reads it, for the sentence on screen. */
-export const MAX_IMPORT_MB = MAX_IMPORT_BYTES / (1024 * 1024);
+export const MAX_REQUEST_MB = 4.5;
+
+/**
+ * How large the rows may be once decompressed on the server. A guard
+ * against a tiny body that inflates without end, not a product limit:
+ * well beyond what fits in `MAX_REQUEST_BYTES` of real tabular text.
+ */
+export const MAX_INFLATED_BYTES = 200 * 1024 * 1024;

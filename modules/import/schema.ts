@@ -58,18 +58,24 @@ export const importAnswersSchema = z.object({
       z.object({ kind: z.literal("custom"), id: z.string().min(1) }),
     ])
     .optional(),
+  /** Per vaccine column, the vaccine its dates are doses of. */
+  vaccineNames: z.record(z.string(), z.string().max(80)).optional(),
+  /** "Work out the next dose from the clinic's list." Absent is no. */
+  nextDueFromList: z.boolean().optional(),
 });
 
 /**
- * A ceiling on how much of a spreadsheet one request may carry.
+ * A guard on the request, not a limit on the clinic.
  *
- * NOT A MEASUREMENT, in the same sense as `MAX_IMPORT_BYTES`: no real
- * clinic's file has been seen. It is the point past which a request is more
- * likely to be something other than a clinic's client list, and it sits
- * here rather than being left implicit so that hitting it produces a
- * sentence instead of a request that dies somewhere in the middle.
+ * The owner's instruction was "2000 satır sınırı koymayalım", and there is
+ * no row limit in the product: a clinic's file is as long as its history.
+ * These two numbers only stop a request that cannot be a clinic's list at
+ * all -- a quarter of a million rows is a decade of a large hospital's
+ * every visit, not its client list -- from being parsed into memory. The
+ * limit a real file meets first is the request size, and that one is
+ * stated on the screen (`limits.ts`).
  */
-export const MAX_IMPORT_ROWS = 50_000;
+export const MAX_IMPORT_ROWS = 250_000;
 export const MAX_IMPORT_COLUMNS = 200;
 
 export const importRequestSchema = z.object({

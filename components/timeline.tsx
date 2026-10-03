@@ -138,7 +138,11 @@ export async function Timeline({ events }: { events: TimelineEvent[] }) {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {formatTime(fmt, event.at)}
+                      {/* A day from a spreadsheet has no time, and printing
+                          the instant it is stored at would invent one. */}
+                      {event.kind === "vaccination" && event.dateOnly
+                        ? ""
+                        : formatTime(fmt, event.at)}
                       {event.kind === "visit" && event.vet
                         ? ` · ${event.vet.name}`
                         : ""}

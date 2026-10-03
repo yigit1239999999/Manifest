@@ -72,18 +72,16 @@ for (const locale of ["tr", "en"] as const) {
 
     const main = page.getByRole("main");
     await main.locator('input[type="file"]').setInputFiles(file("header-row-is-names.xlsx"));
-    await main.getByRole("radio").first().check();
 
-    await page.locator("#import-column-0").selectOption("pet.name");
-    await page.locator("#import-column-1").selectOption("client.firstName");
-    await page.locator("#import-column-2").selectOption("client.phone");
-    await page.locator("#import-column-3").selectOption("pet.birthDate");
+    // The file's headings say what they are, so nothing is chosen by hand:
+    // the screen says it matched every column, and that sentence is the
+    // first thing a vet reads after picking the file.
+    await expect(
+      main.getByText(/we matched all 4 columns|4 sütunun hepsini eşleştirdik/i),
+    ).toBeVisible();
 
-    // 390px, with the column cards on screen -- the widest this path ever
-    // gets, since every column of the file becomes a card. `/import` is not
-    // in `touch-targets.spec.ts`'s sweep and putting it there would make it
-    // red for reasons outside this task (dev-ui), so the geometry is
-    // asserted on the journey that is already standing here.
+    // 390px, with the matching list open -- the widest this path gets.
+    await main.getByText(/columns matched|sütun eşleşti/i).click();
     await page.setViewportSize({ width: 390, height: 844 });
     const overflow = await page.evaluate(
       () =>
@@ -93,15 +91,11 @@ for (const locale of ["tr", "en"] as const) {
     expect(overflow, `sideways scroll on /import at 390px in ${locale}`).toBeLessThanOrEqual(0);
     await page.setViewportSize({ width: 1280, height: 800 });
 
-    await main
-      .getByRole("button", { name: /show what will happen|ne olacağını gösterin/i })
-      .click();
-    await expect(
-      main.getByText(/2 clients will be created|2 müşteri oluşturulacak/i),
-    ).toBeVisible();
+    await main.getByRole("button", { name: /^(continue|devam et)$/i }).click();
+    await expect(main.getByText(/^(2 new owners|2 yeni sahip)$/).first()).toBeVisible();
 
-    await main.getByRole("button", { name: /^(save|kaydedin)$/i }).click();
-    await expect(main.getByText(/^(Imported|İçe aktarıldı)$/)).toBeVisible();
+    await main.getByRole("button", { name: /^(import \d+ animals?|\d+ hayvanı aktarın)$/i }).click();
+    await expect(main.getByText(/^(Imported|Aktarıldı)$/)).toBeVisible();
 
     // The animals, by name, on the screen the vet opens next.
     await page.goto("/pets");
@@ -113,7 +107,7 @@ for (const locale of ["tr", "en"] as const) {
     // result card: that list is the one still there after the page is left.
     await page.goto("/import");
     await page
-      .getByRole("button", { name: /undo this import|bu içe aktarmayı geri alın/i })
+      .getByRole("button", { name: /undo this import|bu aktarımı geri alın/i })
       .click();
     await expect(page.getByText(/were taken back|geri alındı/i).first()).toBeVisible();
 
