@@ -92,10 +92,10 @@ export default async function InvoicePage({
               an inset stripe, and the whole point of sharing the header
               style is that the two do not look like two different products.
               The cells carry the padding instead. */}
-          <CardContent className="px-0">
+          <CardContent className="@container px-0">
             {/* The one hand-written table left, and deliberately not a
-                `DataTable`: this is a document, not a list. It has a
-                `<tfoot>` of running totals, no pagination, no empty state
+                `DataTable`: this is a document, not a list. It has its
+                running totals under it, no pagination, no empty state
                 and no row to click. What it shares with `DataTable` is what
                 a reader would notice if it differed — cell density, header
                 style, and figures set in `tabular-nums` so the line totals
@@ -105,19 +105,27 @@ export default async function InvoicePage({
                 It stays hand-written because a `footer` slot and a "no
                 card" variant, one call site each, would be a shared
                 component told to stop sharing (TEAM.md #30). */}
-            {/* Its own scroll container, for the same reason `DataTable`
-                has one: four columns of figures do not fit a 390px card,
-                and without this the page scrolled sideways instead of the
-                table. `min-w-0` lets the box be narrower than its content;
-                `min-w-sm` keeps the columns from collapsing into an
-                unreadable stack before the scroll takes over. */}
+            {/* Four columns of figures do not fit a phone. This used to be
+                solved by scrolling: the table kept a 384px minimum inside
+                a 292px card, and pm found what that meant at 390px: the
+                "Total" label on screen and the total itself past the edge,
+                with nothing to say there was more. The one figure the page
+                exists for was the one you could not see.
+
+                Now the quantity and unit price columns step aside below
+                24rem of *card* (a container query: on desktop the card is
+                two thirds of a grid, so the screen's width says nothing
+                about it), and ride under the description as "2 × 500,00"
+                until their columns come back, at the same `@sm`. What is
+                left is the description and the line total, which fits.
+                The scroll container stays as a floor, not as the plan. */}
             <div className="min-w-0 overflow-x-auto">
-              <table className="w-full min-w-sm text-sm">
+              <table className="w-full text-sm">
               <thead className="bg-muted/50 text-start text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 text-start font-medium">{t("description")}</th>
-                  <th className="px-4 py-3 text-end font-medium">{t("quantity")}</th>
-                  <th className="px-4 py-3 text-end font-medium">{t("unitPrice")}</th>
+                  <th className="hidden px-4 py-3 text-end font-medium @sm:table-cell">{t("quantity")}</th>
+                  <th className="hidden px-4 py-3 text-end font-medium @sm:table-cell">{t("unitPrice")}</th>
                   <th className="px-4 py-3 text-end font-medium">{t("lineTotal")}</th>
                 </tr>
               </thead>
@@ -126,6 +134,16 @@ export default async function InvoicePage({
                   <tr key={l.id}>
                     <td className="px-4 py-3">
                       {l.description}
+                      {/* The two hidden columns, riding along. Hidden at
+                          `@sm`, the breakpoint their columns arrive at,
+                          so between them they are always on screen once
+                          and never twice. */}
+                      <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums @sm:hidden">
+                        {t("quantityTimesPrice", {
+                          quantity: l.quantity,
+                          unitPrice: formatMoney(fmt, l.unitPriceCents, currency),
+                        })}
+                      </span>
                       {/* The other half of the two-way link: a visit
                           says which invoice it went to, and here the
                           invoice says which visit it came from. On the
@@ -149,8 +167,8 @@ export default async function InvoicePage({
                         </Link>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-end tabular-nums">{l.quantity}</td>
-                    <td className="px-4 py-3 text-end tabular-nums">
+                    <td className="hidden px-4 py-3 text-end tabular-nums @sm:table-cell">{l.quantity}</td>
+                    <td className="hidden px-4 py-3 text-end tabular-nums @sm:table-cell">
                       {formatMoney(fmt, l.unitPriceCents, currency)}
                     </td>
                     <td className="px-4 py-3 text-end tabular-nums">
@@ -159,34 +177,30 @@ export default async function InvoicePage({
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="border-t border-border text-sm">
-                <tr>
-                  <td colSpan={3} className="px-4 py-3 text-end text-muted-foreground">
-                    {t("subtotal")}
-                  </td>
-                  <td className="px-4 py-3 text-end tabular-nums">
-                    {formatMoney(fmt, invoice.subtotalCents, currency)}
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={3} className="px-4 py-3 text-end text-muted-foreground">
-                    {t("tax")}
-                  </td>
-                  <td className="px-4 py-3 text-end tabular-nums">
-                    {formatMoney(fmt, invoice.taxCents, currency)}
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={3} className="px-4 py-3 text-end font-semibold">
-                    {t("total")}
-                  </td>
-                  <td className="px-4 py-3 text-end font-semibold tabular-nums">
-                    {formatMoney(fmt, invoice.totalCents, currency)}
-                  </td>
-                </tr>
-              </tfoot>
               </table>
             </div>
+            {/* The totals are out of the table and under it. As a
+                `<tfoot>` they had to span "every column but the last",
+                and that count changes with the card's width now; a
+                `colSpan` that spans hidden columns invents a new one and
+                pushes the figures out of line. Here they are a list of
+                label and amount, outside any scroll container, so the
+                total is on screen at every width. Amounts end on the same
+                `px-4` edge as the line totals above them. */}
+            <dl className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-3 border-t border-border px-4 py-3 text-sm">
+              <dt className="text-end text-muted-foreground">{t("subtotal")}</dt>
+              <dd className="text-end tabular-nums">
+                {formatMoney(fmt, invoice.subtotalCents, currency)}
+              </dd>
+              <dt className="text-end text-muted-foreground">{t("tax")}</dt>
+              <dd className="text-end tabular-nums">
+                {formatMoney(fmt, invoice.taxCents, currency)}
+              </dd>
+              <dt className="text-end font-semibold">{t("total")}</dt>
+              <dd className="text-end font-semibold tabular-nums">
+                {formatMoney(fmt, invoice.totalCents, currency)}
+              </dd>
+            </dl>
             {invoice.notes && (
               <p className="mx-4 mt-4 rounded-control bg-muted/40 p-3 text-sm">
                 {invoice.notes}

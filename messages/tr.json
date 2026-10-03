@@ -593,6 +593,7 @@
     "quantity": "Adet",
     "unitPrice": "Birim fiyat",
     "lineTotal": "Toplam",
+    "quantityTimesPrice": "{quantity} × {unitPrice}",
     "fromVisit": "Vizit: {date}",
     "notes": "Notlar",
     "outstanding": "Ödenmemiş",

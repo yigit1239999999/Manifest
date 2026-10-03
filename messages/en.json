@@ -593,6 +593,7 @@
     "quantity": "Qty",
     "unitPrice": "Unit price",
     "lineTotal": "Total",
+    "quantityTimesPrice": "{quantity} × {unitPrice}",
     "fromVisit": "From the visit on {date}",
     "notes": "Notes",
     "outstanding": "Outstanding",
