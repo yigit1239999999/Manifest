@@ -85,6 +85,6 @@ export const recordPaymentAction = action(
 export const voidInvoiceAction = action(
   "invoice.void",
   async (ctx, id: string): Promise<void> => {
-    const { clientId } = await voidInvoice(id, ctx);
+    await voidInvoice(id, ctx);
   },
 );

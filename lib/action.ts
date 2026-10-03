@@ -122,7 +122,7 @@ export function parse<T>(
 const SENSITIVE = /password|secret|token|otp/i;
 
 /** Plain string entries of a submission, minus secrets and framework noise. */
-export function submittedValues(formData: FormData): Record<string, string> {
+function submittedValues(formData: FormData): Record<string, string> {
   const values: Record<string, string> = {};
   for (const [key, value] of formData.entries()) {
     if (typeof value !== "string") continue;
@@ -133,7 +133,7 @@ export function submittedValues(formData: FormData): Record<string, string> {
   return values;
 }
 
-export function zodToFieldErrors(error: ZodError): Record<string, string[]> {
+function zodToFieldErrors(error: ZodError): Record<string, string[]> {
   const fieldErrors: Record<string, string[]> = {};
   for (const issue of error.issues) {
     const key = (issue.path[0] as string | undefined) ?? "_form";

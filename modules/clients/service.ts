@@ -5,6 +5,30 @@ import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { ClientInput } from "./schema";
 
+/**
+ * The time and path of a consent answer, stamped only when the answer
+ * actually changes (backlog 14b).
+ *
+ * The source is derived from the path, not asked of anyone: this service
+ * is reached only through the client form, so the form is the source.
+ * When a second path appears (an import, an owner-facing link) it passes
+ * its own value here rather than reusing this one.
+ *
+ * Unchanged means unstamped. Re-saving a client to fix an address must
+ * not move the date of a consent given a year ago -- that would turn the
+ * proof into "last edited", which proves nothing.
+ */
+function consentStamp(
+  answer: boolean | undefined,
+  stored: boolean | null | undefined,
+) {
+  if (answer === undefined || answer === stored) return {};
+  return {
+    notificationsOptInAt: new Date(),
+    notificationsOptInSource: "STAFF_FORM" as const,
+  };
+}
+
 export async function createClient(input: ClientInput, ctx: ActionContext) {
   requirePermission(ctx.userRole, "clients.write");
   return withAudited(
@@ -17,7 +41,11 @@ export async function createClient(input: ClientInput, ctx: ActionContext) {
     },
     (tx) =>
       tx.client.create({
-        data: { ...input, clinicId: ctx.clinicId },
+        data: {
+          ...input,
+          ...consentStamp(input.notificationsOptIn, null),
+          clinicId: ctx.clinicId,
+        },
       }),
   );
 }
@@ -30,7 +58,7 @@ export async function updateClient(
   requirePermission(ctx.userRole, "clients.write");
   const existing = await prisma.client.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: { id: true, notificationsOptIn: true },
   });
   if (!existing) throw notFound("client", id);
 
@@ -43,7 +71,14 @@ export async function updateClient(
       entityId: id,
       changes: redact(input),
     },
-    (tx) => tx.client.update({ where: { id }, data: input }),
+    (tx) =>
+      tx.client.update({
+        where: { id },
+        data: {
+          ...input,
+          ...consentStamp(input.notificationsOptIn, existing.notificationsOptIn),
+        },
+      }),
   );
 }
 

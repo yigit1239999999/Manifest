@@ -136,16 +136,6 @@ export async function getPetById(clinicId: string, id: string) {
   });
 }
 
-export async function countPets(clinicId: string) {
-  return prisma.pet.count({
-    where: {
-      clinicId,
-      archivedAt: null,
-      owner: { archivedAt: null },
-    },
-  });
-}
-
 export async function quickSearchPets(
   clinicId: string,
   term: string,
