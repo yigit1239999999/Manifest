@@ -5,7 +5,7 @@ import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { action, type FormState } from "@/lib/action";
 import { invoiceSchema, paymentSchema } from "./schema";
-import { createInvoice, recordPayment, voidInvoice } from "./service";
+import { createInvoice, recordPayment, voidInvoice, voidPayment } from "./service";
 
 // Invoices use a custom parse because lines come in as repeated form fields.
 function parseInvoiceFormData(formData: FormData, locale: string) {
@@ -87,5 +87,15 @@ export const voidInvoiceAction = action(
   "invoice.void",
   async (ctx, id: string): Promise<void> => {
     await voidInvoice(id, ctx);
+  },
+);
+
+// Returns its state instead of redirecting: the button that calls it
+// reports a refusal itself and loads the invoice again on success.
+export const voidPaymentAction = action(
+  "invoice.void_payment",
+  async (ctx, paymentId: string): Promise<FormState> => {
+    await voidPayment(paymentId, ctx);
+    return { success: true };
   },
 );

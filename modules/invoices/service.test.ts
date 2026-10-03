@@ -12,6 +12,8 @@ vi.mock("@/lib/prisma", () => {
     payment: {
       create: vi.fn(),
       aggregate: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
     },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(),
@@ -27,7 +29,7 @@ vi.mock("@/lib/prisma", () => {
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
 import { msg } from "@/lib/forms";
-import { createInvoice, recordPayment, voidInvoice } from "./service";
+import { createInvoice, recordPayment, voidInvoice, voidPayment } from "./service";
 
 const ctx = {
   clinicId: "clinic-1",
@@ -217,6 +219,11 @@ describe("recordPayment", () => {
       id: "pay-1",
     });
     expect(prisma.payment.create).toHaveBeenCalledOnce();
+    // A voided payment gives its amount back to the balance.
+    expect(prisma.payment.aggregate).toHaveBeenCalledWith({
+      where: { invoiceId: "inv-1", voidedAt: null },
+      _sum: { amountCents: true },
+    });
   });
 
   // The defect QA measured: "1,234.56" typed on a $222.22 invoice was stored
@@ -329,5 +336,126 @@ describe("voidInvoice", () => {
         entityId: "inv-1",
       }),
     });
+  });
+});
+
+describe("voidPayment", () => {
+  function paymentWith({
+    amountCents = 4000,
+    voidedAt = null as Date | null,
+    totalCents = 10000,
+    status = "PAID",
+    paidAt = new Date("2026-10-01T10:00:00Z") as Date | null,
+    paidAfterVoid = 6000,
+  } = {}) {
+    vi.mocked(prisma.payment.findFirst).mockResolvedValue({
+      id: "pay-1",
+      invoiceId: "inv-1",
+      amountCents,
+      voidedAt,
+      invoice: { totalCents, status, paidAt },
+    } as never);
+    vi.mocked(prisma.payment.update).mockResolvedValue({} as never);
+    vi.mocked(prisma.payment.aggregate).mockResolvedValue({
+      _sum: { amountCents: paidAfterVoid },
+    } as never);
+    vi.mocked(prisma.invoice.update).mockResolvedValue({} as never);
+  }
+
+  it("requires payments.write (VET_TECH cannot void)", async () => {
+    paymentWith();
+    await expect(
+      voidPayment("pay-1", { ...ctx, userRole: "VET_TECH" }),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.payment.update).not.toHaveBeenCalled();
+  });
+
+  it("only finds payments on the caller's clinic's invoices", async () => {
+    vi.mocked(prisma.payment.findFirst).mockResolvedValue(null);
+    await expect(voidPayment("pay-x", ctx)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+    expect(prisma.payment.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "pay-x", invoice: { clinicId: "clinic-1" } },
+      }),
+    );
+    expect(prisma.payment.update).not.toHaveBeenCalled();
+  });
+
+  it("keeps the row, stamps who and when, and takes PAID back to PARTIAL", async () => {
+    paymentWith({ paidAfterVoid: 6000 });
+
+    await voidPayment("pay-1", ctx, "  typed 1,234.56  ");
+
+    expect(prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ isolationLevel: "Serializable" }),
+    );
+    expect(prisma.payment.update).toHaveBeenCalledWith({
+      where: { id: "pay-1" },
+      data: {
+        voidedAt: expect.any(Date),
+        voidedById: "user-1",
+        voidReason: "typed 1,234.56",
+      },
+    });
+    // The sum that decides the status leaves voided payments out.
+    expect(prisma.payment.aggregate).toHaveBeenCalledWith({
+      where: { invoiceId: "inv-1", voidedAt: null },
+      _sum: { amountCents: true },
+    });
+    expect(prisma.invoice.update).toHaveBeenCalledWith({
+      where: { id: "inv-1" },
+      data: { status: "PARTIAL", paidAt: null },
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "UPDATE",
+        entityType: "Invoice",
+        entityId: "inv-1",
+        actorId: "user-1",
+        changes: expect.objectContaining({
+          voidedPaymentId: "pay-1",
+          paymentAmount: 4000,
+          previousStatus: "PAID",
+          newStatus: "PARTIAL",
+        }),
+      }),
+    });
+  });
+
+  it("goes back to SENT when no payment is left", async () => {
+    paymentWith({ amountCents: 10000, paidAfterVoid: 0 });
+    await voidPayment("pay-1", ctx);
+    expect(prisma.invoice.update).toHaveBeenCalledWith({
+      where: { id: "inv-1" },
+      data: { status: "SENT", paidAt: null },
+    });
+  });
+
+  it("stays PAID, keeping its paid date, when what is left still covers the total", async () => {
+    const paidAt = new Date("2026-09-30T08:00:00Z");
+    paymentWith({ amountCents: 500, paidAfterVoid: 10000, paidAt });
+    await voidPayment("pay-1", ctx);
+    expect(prisma.invoice.update).toHaveBeenCalledWith({
+      where: { id: "inv-1" },
+      data: { status: "PAID", paidAt },
+    });
+  });
+
+  it("leaves a voided invoice voided", async () => {
+    paymentWith({ status: "VOID", paidAfterVoid: 0 });
+    await voidPayment("pay-1", ctx);
+    expect(prisma.payment.update).toHaveBeenCalled();
+    expect(prisma.invoice.update).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op on a payment already voided", async () => {
+    paymentWith({ voidedAt: new Date() });
+    await expect(voidPayment("pay-1", ctx)).resolves.toEqual({ invoiceId: "inv-1" });
+    expect(prisma.payment.update).not.toHaveBeenCalled();
+    expect(prisma.invoice.update).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 });
