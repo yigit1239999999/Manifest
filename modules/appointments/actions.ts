@@ -59,6 +59,6 @@ export const updateAppointmentAction = action(
 export const cancelAppointmentAction = action(
   "appointment.cancel",
   async (ctx, id: string): Promise<void> => {
-    const { petId } = await cancelAppointment(id, ctx);
+    await cancelAppointment(id, ctx);
   },
 );
