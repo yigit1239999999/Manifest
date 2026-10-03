@@ -17,6 +17,10 @@ import { dashboardInsights } from "@/modules/dashboard/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
 import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
+import { ImportPrompt } from "@/components/import/import-prompt";
+import { showImportPrompt } from "@/modules/import/queries";
+import { dismissImportPromptAction } from "@/modules/import/actions";
+import { can } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -45,6 +49,12 @@ export default async function DashboardPage() {
     getClinicCurrency(session.user.clinicId),
     getFormatContext(),
   ]);
+
+  // The import offer reads the client count the panel already has, so it
+  // costs one small read, and only for the role that can act on it.
+  const offerImport =
+    can(session.user.role, "settings.manage") &&
+    (await showImportPrompt(session.user.clinicId, insights.counts.clients));
 
   const weekFmt = new Intl.DateTimeFormat(intlLocale(fmt.locale), {
     day: "numeric",
@@ -153,6 +163,8 @@ export default async function DashboardPage() {
         title={t("greeting", { name: firstName(session.user.name ?? "") })}
         description={t("subtitle")}
       />
+
+      {offerImport && <ImportPrompt dismiss={dismissImportPromptAction} />}
 
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
         {metrics.map(({ key, icon: Icon, value, href, hint }) => (

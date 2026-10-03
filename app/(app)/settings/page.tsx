@@ -1,4 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { FileSpreadsheet } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
@@ -38,9 +41,10 @@ export default async function SettingsPage() {
   const session = await requireSession();
   if (!can(session.user.role, "settings.manage")) return <ForbiddenState />;
 
-  const [t, tSpecies, enabled, customs, profile, clinic, invoiceCount] =
+  const [t, tImport, tSpecies, enabled, customs, profile, clinic, invoiceCount] =
     await Promise.all([
       getTranslations("settings"),
+      getTranslations("import"),
       getTranslations("enum.species"),
       getEnabledSpecies(session.user.clinicId),
       listCustomSpeciesWithUsage(session.user.clinicId),
@@ -86,6 +90,22 @@ export default async function SettingsPage() {
             currency={clinic.currency}
             invoiceCount={invoiceCount}
           />
+        </CardContent>
+      </Card>
+
+      {/* Second, because a clinic arrives here in its first week with its
+          records still somewhere else. It is also the way back in after
+          the dashboard's card has been dismissed, so it is always here. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{tImport("settingsCard.title")}</CardTitle>
+          <CardDescription>{tImport("settingsCard.hint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/settings/import" className={buttonVariants({ variant: "secondary" })}>
+            <FileSpreadsheet aria-hidden="true" />
+            {tImport("settingsCard.action")}
+          </Link>
         </CardContent>
       </Card>
 
