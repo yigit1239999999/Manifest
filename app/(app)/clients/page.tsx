@@ -81,6 +81,10 @@ export default async function ClientsPage({
             rows={result.items}
             rowKey={(c) => c.id}
             caption={t("title")}
+            // Stacked on a phone: the name and its badges on one line,
+            // e-mail and phone under it, so neither is squeezed into a
+            // column a third of the screen wide.
+            narrow="stack"
             columns={[
               {
                 key: "name",
@@ -108,13 +112,19 @@ export default async function ClientsPage({
               {
                 key: "email",
                 header: t("email"),
-                cellClassName: "text-muted-foreground",
+                // One unbreakable token; stacked on a phone it has the
+                // whole line, and a longer address breaks rather than
+                // pushing the card wider than the screen.
+                cellClassName: "text-muted-foreground wrap-anywhere",
                 cell: (c) => c.email ?? "-",
               },
               {
                 key: "phone",
                 header: t("phone"),
-                cellClassName: "text-muted-foreground",
+                // "0532 000 00 00" is one number. Squeezed into a narrow
+                // column it broke at every space, onto three lines, and a
+                // number read in pieces is a number misdialled.
+                cellClassName: "text-muted-foreground whitespace-nowrap",
                 cell: (c) => c.phone ?? "-",
               },
             ]}
