@@ -627,7 +627,7 @@ export default async function DashboardPage() {
             teaches the eye to skip the place where the bad news
             appears. Above the upcoming card on purpose: a backlog is
             read before a plan. */}
-        {insights.overdueVaccinationCount > 0 && (
+        {(insights.overdueVaccinationCount > 0 || insights.overdueOlderVaccinationCount > 0) && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>{t("sections.overdueVaccinations")}</CardTitle>
@@ -637,6 +637,11 @@ export default async function DashboardPage() {
               <p className="text-sm text-muted-foreground">
                 {t("overdueVaccinationsCount", { count: insights.overdueVaccinationCount })}
               </p>
+              {insights.overdueOlderVaccinationCount > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {t("overdueVaccinationsOlder", { count: insights.overdueOlderVaccinationCount })}
+                </p>
+              )}
             </CardHeader>
             <CardContent>
               <ul className="flex flex-col gap-1">

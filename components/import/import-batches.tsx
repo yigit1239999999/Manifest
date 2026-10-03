@@ -98,7 +98,7 @@ export function ImportBatches({ batches }: { batches: ImportBatchRow[] }) {
                 {batch.undone || result ? (
                   <p className="text-sm text-muted-foreground">
                     {result
-                      ? `${t("undoDone", { clients: result.clientCount, pets: result.petCount })}${
+                      ? `${t("undoDone", { clients: result.clientCount, pets: result.petCount, vaccinations: result.vaccinationCount })}${
                           result.keptClients + result.keptPets > 0
                             ? ` ${t("undoKept", {
                                 clients: result.keptClients,

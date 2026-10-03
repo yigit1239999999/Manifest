@@ -24,6 +24,7 @@ export async function listImportBatches(clinicId: string, take = PAGE_SIZES.DEFA
       clientCount: true,
       petCount: true,
       mergedCount: true,
+      vaccinationCount: true,
       undoneAt: true,
       createdAt: true,
       createdBy: { select: { name: true } },

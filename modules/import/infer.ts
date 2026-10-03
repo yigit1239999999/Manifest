@@ -135,13 +135,21 @@ function dateOrder(values: string[]): DateOrder {
   let sawIso = false;
   let sawDayFirst = false;
   let sawMonthFirst = false;
+  let sawUnresolved = false;
   for (const raw of values) {
     const m = DATE_PARTS.exec(raw.trim());
     if (!m) continue;
     const [, a, b] = m;
     if (a.length === 4) { sawIso = true; continue; }
-    if (Number(a) > 12) sawDayFirst = true;
-    if (Number(b) > 12) sawMonthFirst = true;
+    const first = Number(a);
+    const second = Number(b);
+    // "32.13.2020" is a typo in either order. It proves nothing about the
+    // column, and letting it vote made a day-first column read as two
+    // habits -- one bad cell turning a decided column into a question.
+    if (first > 12 && second > 12) continue;
+    if (first > 12) sawDayFirst = true;
+    else if (second > 12) sawMonthFirst = true;
+    else sawUnresolved = true;
   }
   // Both cannot be true of one consistent file. If they are, the column holds
   // two writing habits -- which is the vet's own file, and the honest report
@@ -149,8 +157,25 @@ function dateOrder(values: string[]): DateOrder {
   if (sawDayFirst && sawMonthFirst) return "ambiguous";
   if (sawDayFirst) return "dayFirst";
   if (sawMonthFirst) return "monthFirst";
+  // Real Excel dates (written out as ISO) next to typed "05/06/2022": the
+  // ISO ones read themselves, the typed one does not, and the column is
+  // only as decided as its least decided value.
+  if (sawUnresolved) return "ambiguous";
   if (sawIso) return "iso";
   return "ambiguous";
+}
+
+/**
+ * A year on its own -- "2021" in a birth date column, which is how a
+ * clinic writes an animal whose day nobody knows. Not a date: reading it
+ * as 1 January would put a birthday on record that nobody gave. It still
+ * says the column is a DATE column, which is the only thing it is used
+ * for here.
+ */
+export function looksLikeYear(raw: string): boolean {
+  const v = raw.trim();
+  if (!/^(19|20)\d{2}$/.test(v)) return false;
+  return Number(v) <= new Date().getUTCFullYear() + 1;
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -231,7 +256,10 @@ export function classifyColumn(rawValues: string[]): ColumnEvidence {
   if (email >= AGREEMENT) {
     return { kind: "email", agreement: email, decidable: true, ...base };
   }
-  const date = share(looksLikeDate);
+  // Years alone count toward a date column but cannot make one: a column of
+  // nothing but "2019" is a column of numbers.
+  const realDates = share(looksLikeDate);
+  const date = realDates > 0 ? share((v) => looksLikeDate(v) || looksLikeYear(v)) : 0;
   if (date >= AGREEMENT) {
     const order = dateOrder(values);
     // A date column whose ORDER is unknown is not decided. We know it holds

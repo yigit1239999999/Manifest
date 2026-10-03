@@ -4,6 +4,8 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     client: { findMany: vi.fn() },
     customSpecies: { findMany: vi.fn() },
+    clinic: { findUnique: vi.fn() },
+    vaccination: { findMany: vi.fn() },
     importBatch: { findFirst: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -26,7 +28,20 @@ const vetTech = { ...admin, userRole: "VET_TECH" };
  * whether this survives a file with five thousand rows in it, and neither
  * can be seen from the return value.
  */
+/**
+ * `createManyAndReturn` hands back one id per row in insertion order; the
+ * fake does the same, and is the SAME mock as `createMany`, so the shape
+ * assertions below read one statement per table whichever of the two the
+ * service calls.
+ */
+const returning = () =>
+  vi.fn().mockImplementation(async ({ data }: { data: unknown[] }) =>
+    data.map((_, i) => ({ id: `new-${i + 1}` })),
+  );
+
 function fakeTx(overrides: Record<string, unknown> = {}) {
+  const clientCreate = returning();
+  const petCreate = returning();
   const tx = {
     importBatch: {
       create: vi.fn().mockResolvedValue({ id: "batch-1" }),
@@ -37,14 +52,20 @@ function fakeTx(overrides: Record<string, unknown> = {}) {
       findMany: vi.fn().mockResolvedValue([]),
     },
     client: {
-      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      createMany: clientCreate,
+      createManyAndReturn: clientCreate,
       findMany: vi.fn().mockResolvedValue([]),
       count: vi.fn().mockResolvedValue(0),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     pet: {
-      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      createMany: petCreate,
+      createManyAndReturn: petCreate,
       count: vi.fn().mockResolvedValue(0),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    vaccination: {
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     auditLog: { create: vi.fn().mockResolvedValue({}) },
@@ -84,6 +105,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(prisma.client.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.customSpecies.findMany).mockResolvedValue([] as never);
+  vi.mocked(prisma.clinic.findUnique).mockResolvedValue({ settings: {} } as never);
+  vi.mocked(prisma.vaccination.findMany).mockResolvedValue([] as never);
 });
 
 describe("who may run an import", () => {
@@ -506,10 +529,26 @@ describe("undo", () => {
     tx.pet.deleteMany.mockResolvedValue({ count: 8 });
     tx.client.count.mockResolvedValue(5);
     tx.client.deleteMany.mockResolvedValue({ count: 4 });
+    tx.vaccination.deleteMany.mockResolvedValue({ count: 3 });
 
     const result = await undoImport("batch-1", admin);
 
-    expect(result).toEqual({ clientCount: 4, petCount: 8, keptClients: 1, keptPets: 2 });
+    expect(result).toEqual({
+      vaccinationCount: 3,
+      clientCount: 4,
+      petCount: 8,
+      keptClients: 1,
+      keptPets: 2,
+    });
+    // The run's own vaccinations go first, by batch: they are what it wrote,
+    // and the animals they hang on are only "unused" once they are gone.
+    expect(tx.vaccination.deleteMany.mock.calls[0][0].where).toEqual({
+      clinicId: "clinic-1",
+      importBatchId: "batch-1",
+    });
+    expect(tx.vaccination.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
+      tx.pet.deleteMany.mock.invocationCallOrder[0],
+    );
     const petWhere = tx.pet.deleteMany.mock.calls[0][0].where;
     expect(petWhere).toMatchObject({ clinicId: "clinic-1", importBatchId: "batch-1" });
     expect(petWhere.visits).toEqual({ none: {} });
@@ -524,3 +563,125 @@ describe("undo", () => {
 function speciesAnswer(raw: string) {
   return { [raw]: { target: { kind: "builtIn" as const, key: "CAT" as const } } };
 }
+
+describe("vaccinations", () => {
+  const VAX: ImportAnswers["mapping"] = {
+    0: "client.firstName",
+    1: "client.phone",
+    2: "pet.name",
+    3: "pet.species",
+    4: "vaccine.column",
+    5: "vaccine.column",
+  };
+  const VAX_ROWS = [["Ayşe Yılmaz", "0532 411 22 33", "Pamuk", "Kedi", "14.04.2025", "20.04.2025"]];
+  const vaxAnswers = (over: Partial<ImportAnswers> = {}) =>
+    answers({
+      mapping: { ...VAX },
+      dateOrders: { 4: "dayFirst", 5: "dayFirst" },
+      vaccineNames: { "4": "Kuduz", "5": "Karma" },
+      ...over,
+    });
+
+  it("writes one record per vaccine column, in one statement, tagged with the batch", async () => {
+    const tx = fakeTx();
+    const result = await commitImport(VAX_ROWS, vaxAnswers(), admin);
+    expect(tx.vaccination.createMany).toHaveBeenCalledTimes(1);
+    const rows = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(rows.map((r: { name: string }) => r.name)).toEqual(["Kuduz", "Karma"]);
+    for (const row of rows) {
+      expect(row).toMatchObject({ importBatchId: "batch-1", petId: "new-1", administeredDateOnly: true });
+      // A day, stored at noon UTC: the same day in every clinic zone.
+      expect(row.administeredAt.toISOString().slice(11, 16)).toBe("12:00");
+      // No next date unless the vet asked for one.
+      expect(row.nextDueAt).toBeNull();
+    }
+    expect(result.vaccinationCount).toBe(2);
+  });
+
+  it("works out the next dose from the clinic's list only when asked, and says where it came from", async () => {
+    const tx = fakeTx();
+    await commitImport(VAX_ROWS, vaxAnswers({ nextDueFromList: true }), admin);
+    const rows = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(rows[0].nextDueAt.toISOString().slice(0, 10)).toBe("2026-04-14");
+    expect(rows[0].nextDueSource).toBe("LIST");
+  });
+
+  it("offers the next-dose question in the plan with what each answer does", async () => {
+    const summary = await planImport(VAX_ROWS, vaxAnswers(), admin);
+    expect(summary.vaccinationCount).toBe(2);
+    expect(summary.nextDue?.proposable).toBe(2);
+    expect(summary.nextDue?.intervals.map((i) => i.name).sort()).toEqual(["Karma", "Kuduz"]);
+    expect(summary.vaccines).toEqual(
+      expect.arrayContaining([{ name: "Kuduz", count: 1 }, { name: "Karma", count: 1 }]),
+    );
+  });
+
+  it("reads the same file twice as nothing new: the animal and its dates are already there", async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue([
+      {
+        id: "c1",
+        firstName: "Ayşe Yılmaz",
+        lastName: null,
+        phone: "0532 411 22 33",
+        secondaryPhone: null,
+        pets: [{ id: "p1", name: "Pamuk", species: "CAT" }],
+      },
+    ] as never);
+    vi.mocked(prisma.vaccination.findMany).mockResolvedValue([
+      { petId: "p1", name: "Kuduz", administeredAt: new Date("2025-04-14T12:00:00Z") },
+      { petId: "p1", name: "Karma", administeredAt: new Date("2025-04-20T12:00:00Z") },
+    ] as never);
+
+    const summary = await planImport(VAX_ROWS, vaxAnswers(), admin);
+    expect(summary.existingPetCount).toBe(1);
+    expect(summary.petCount).toBe(0);
+    expect(summary.vaccinationCount).toBe(0);
+    expect(summary.existingVaccinationCount).toBe(2);
+    expect(summary.rows[0]).toMatchObject({ status: "existing" });
+
+    const tx = fakeTx();
+    const result = await commitImport(VAX_ROWS, vaxAnswers(), admin);
+    expect(tx.pet.createMany).not.toHaveBeenCalled();
+    expect(tx.vaccination.createMany).not.toHaveBeenCalled();
+    expect(result.existingPetCount).toBe(1);
+  });
+
+  it("adds a new date to an animal the clinic already has", async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue([
+      {
+        id: "c1",
+        firstName: "Ayşe Yılmaz",
+        lastName: null,
+        phone: "0532 411 22 33",
+        secondaryPhone: null,
+        pets: [{ id: "p1", name: "Pamuk", species: "CAT" }],
+      },
+    ] as never);
+    vi.mocked(prisma.vaccination.findMany).mockResolvedValue([
+      { petId: "p1", name: "Kuduz", administeredAt: new Date("2025-04-14T12:00:00Z") },
+    ] as never);
+    const tx = fakeTx();
+    await commitImport(VAX_ROWS, vaxAnswers(), admin);
+    const rows = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ petId: "p1", name: "Karma" });
+  });
+});
+
+describe("dueCounts uses the dashboard's window", () => {
+  it("splits overdue at six months and counts the next thirty days", async () => {
+    const { dueCounts } = await import("./service");
+    const now = new Date("2026-10-03T09:00:00Z");
+    expect(
+      dueCounts(
+        [
+          new Date("2026-09-01T12:00:00Z"),
+          new Date("2025-10-02T12:00:00Z"),
+          new Date("2026-10-20T12:00:00Z"),
+          new Date("2027-01-01T12:00:00Z"),
+        ],
+        now,
+      ),
+    ).toEqual({ overdue: 1, overdueOlder: 1, dueSoon: 1 });
+  });
+});

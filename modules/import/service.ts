@@ -3,7 +3,6 @@ import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import { fold } from "@/lib/search";
-import { normalizePhone } from "@/lib/phone";
 import type { ActionContext } from "@/lib/action";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Sex, Species } from "@/generated/prisma/enums";
@@ -24,7 +23,13 @@ import {
   type ImportPlan,
   type Mapping,
   type OwnerGroup,
+  type PlanRow,
+  type RowIssue,
+  type RowWarning,
 } from "./plan";
+import { addInterval } from "@/lib/vaccination-interval";
+import { clinicVaccineList, normalizeVaccineSettings, offerByName, type VaccineOffer } from "@/modules/vaccinations/catalogue";
+import { OVERDUE_WINDOW_MONTHS, vaccinationIntervalSuggestions } from "@/modules/vaccinations/queries";
 
 /**
  * Writing the file, and being able to take it back.
@@ -72,6 +77,42 @@ export type ImportAnswers = {
    * those rows stay "other", which is what they were before this existed.
    */
   speciesFallback?: SpeciesFallback;
+  /** Per `vaccine.column`, the vaccine its dates are doses of. */
+  vaccineNames?: Record<string, string>;
+  /**
+   * The vet's answer to "the file has no next date -- work it out from
+   * your clinic's list?". Absent or false is "leave it empty", which is
+   * what the vaccination form does too until somebody taps the proposal:
+   * a next date is a medical claim, and nobody makes it by default.
+   */
+  nextDueFromList?: boolean;
+};
+
+/** A row of the plan the vet should look at, for the preview table. */
+export type PlanRowView = {
+  /** 1-based over body rows, like everywhere else in the plan. */
+  index: number;
+  status: "skip" | "decision" | "warning" | "existing";
+  issue?: RowIssue;
+  warnings: RowWarning[];
+  owner: string | null;
+  pet: string | null;
+  /**
+   * Cells this row could be mended in, on the screen: the column and what
+   * is in it now. Only where a column is mapped -- a field the file has no
+   * column for has nothing to type into.
+   */
+  fixes: Array<{ field: string; col: number; raw: string }>;
+};
+
+/** How many of the imported vaccinations land where, against today. */
+export type DueCounts = {
+  /** Past due within the dashboard's window: what the overdue card shows. */
+  overdue: number;
+  /** Past due before that window, so not on the card. Said, not hidden. */
+  overdueOlder: number;
+  /** Due in the next thirty days. */
+  dueSoon: number;
 };
 
 /** What the screen shows before anything is written. */
@@ -82,6 +123,8 @@ export type PlanSummary = {
   /** People it would attach animals to, because name and phone both agree. */
   mergeCount: number;
   petCount: number;
+  /** Animals in the file the clinic already has, under the same owner. */
+  existingPetCount: number;
   /** Rows that make nobody, by reason. */
   blankRows: number;
   noOwnerRows: number;
@@ -116,7 +159,32 @@ export type PlanSummary = {
    * Unanswered, these are recorded as the "other" species.
    */
   speciesUnknownRows: number;
+  /** Vaccination records this run would write, and of which vaccines. */
+  vaccinationCount: number;
+  vaccines: Array<{ name: string; count: number }>;
+  /** Vaccinations already on record, found again in the file and not rewritten. */
+  existingVaccinationCount: number;
+  /**
+   * The next-date question, present only when it has something to answer:
+   * vaccinations with no next date in the file whose vaccine the clinic's
+   * list has an interval for. The counts on both sides of the answer are
+   * here so the screen can say what each answer does.
+   */
+  nextDue: {
+    proposable: number;
+    intervals: Array<{ name: string; unit: "week" | "month" | "year"; value: number }>;
+    ifApplied: DueCounts;
+  } | null;
+  /** Under the answers as they stand. */
+  due: DueCounts;
+  /** Rows to look at, at most `ROW_VIEW_LIMIT`. */
+  rows: PlanRowView[];
+  /** How many more rows to look at there are than `rows` carries. */
+  rowsNotShown: number;
 };
+
+/** How many rows the preview carries. The counts above cover every row. */
+const ROW_VIEW_LIMIT = 300;
 
 function bodyRows(rows: string[][], headerRow: boolean): string[][] {
   return headerRow ? rows.slice(1) : rows;
@@ -129,6 +197,274 @@ function columnValues(rows: string[][], mapping: Mapping, field: string): string
     .map(([col]) => Number(col));
   if (columns.length === 0) return [];
   return rows.flatMap((row) => columns.map((col) => row[col] ?? ""));
+}
+
+const DAY_MS = 86_400_000;
+/** A day from the file, stored at noon UTC: the same day in every clinic zone. */
+const NOON = 12 * 60 * 60 * 1000;
+
+/** One vaccination as it will be written. */
+type VaccinationItem = {
+  rowIndex: number;
+  /** A pet this clinic has, or the index of the row whose new pet it is. */
+  existingPetId: string | null;
+  name: string;
+  administeredAt: Date;
+  nextDueAt: Date | null;
+  nextDueSource: "MANUAL" | "HISTORY" | "CLINIC" | "LIST" | null;
+};
+
+/**
+ * Everything the plan and the write share, worked out once.
+ *
+ * Both endpoints call this with the same rows and answers, and that is the
+ * rule that keeps the import honest: the write must be the plan the vet
+ * read, and two separate readings of one file are how they drift apart.
+ */
+async function analyse(rows: string[][], answers: ImportAnswers, ctx: ActionContext, labels: Record<string, string>) {
+  const body = bodyRows(rows, answers.headerRow);
+  const [existing, custom, clinic] = await Promise.all([
+    prisma.client.findMany({
+      where: { clinicId: ctx.clinicId, archivedAt: null },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        secondaryPhone: true,
+        pets: {
+          where: { archivedAt: null },
+          select: { id: true, name: true, species: true },
+        },
+      },
+    }),
+    prisma.customSpecies.findMany({
+      where: { clinicId: ctx.clinicId },
+      select: { id: true, name: true },
+    }),
+    prisma.clinic.findUnique({ where: { id: ctx.clinicId }, select: { settings: true } }),
+  ]);
+
+  // Where a kept value says it came from: the clinic's own heading, or the
+  // field's name when the sheet has no heading row.
+  const headings = answers.headerRow ? (rows[0] ?? []) : [];
+  const columnLabels: Record<number, string> = {};
+  for (const [col, field] of Object.entries(answers.mapping)) {
+    const heading = (headings[Number(col)] ?? "").trim();
+    columnLabels[Number(col)] = heading || labels[field] || field;
+  }
+  const vaccineNames: Record<number, string> = {};
+  for (const [col, name] of Object.entries(answers.vaccineNames ?? {})) {
+    if (name.trim()) vaccineNames[Number(col)] = name.trim().slice(0, 80);
+  }
+
+  const today = new Date();
+  const plan = buildPlan(body, answers.mapping, answers.dateOrders, existing, {
+    vaccineNames,
+    columnLabels,
+    today,
+  });
+  const resolved = resolveGroups(plan, answers.duplicates);
+
+  /**
+   * The enum tables the vet actually looked at, with their answers on top.
+   *
+   * The proposals are rebuilt here rather than taken from the request, and
+   * that is the whole point: the screen shows every distinct value with a
+   * reading already filled in, and a vet who agrees with a line does not
+   * touch it. Reading only what came back would mean every line they agreed
+   * with arrives EMPTY -- so every cat would be written as "other" and every
+   * "Erkek" as "not known", under a screen that said otherwise. The
+   * agreement has to be the same function on both sides.
+   */
+  const speciesProposals = proposeSpecies(columnValues(body, answers.mapping, "pet.species"), custom);
+  const speciesTable = new Map(speciesProposals.map((proposal) => [proposal.raw, proposal] as const));
+  for (const [raw, answer] of Object.entries(answers.species)) {
+    // The answer replaces the proposal whole, breed included: a breed the
+    // vet emptied comes back absent, and merging the two would put it back.
+    speciesTable.set(raw, {
+      raw,
+      target: ownedTarget(answer.target, custom),
+      breed: answer.breed,
+      rows: 0,
+      settled: true,
+    } as SpeciesProposal);
+  }
+
+  const sexProposals = proposeSex(columnValues(body, answers.mapping, "pet.sex"));
+  const sexTable = new Map<string, Sex>(
+    sexProposals.flatMap((proposal) =>
+      proposal.target ? [[proposal.raw, proposal.target] as const] : [],
+    ),
+  );
+  for (const [raw, target] of Object.entries(answers.sex)) sexTable.set(raw, target);
+
+  /**
+   * The bulk answer (#42), checked against THIS clinic's own species.
+   *
+   * An id arrives from the browser, and `customSpeciesId` is the one field on
+   * a pet that points at a row the clinic owns. An id that is not in the
+   * list this request already read becomes no answer at all -- the rows
+   * stay "other", which is what they were without the question.
+   */
+  const fallback = answers.speciesFallback ?? null;
+  const speciesFallback =
+    fallback?.kind === "custom" && !custom.some((entry) => entry.id === fallback.id)
+      ? null
+      : fallback;
+
+  // Which client each row's animal goes under, and whether that client
+  // already has an animal of that name. Merged groups only: a client the
+  // run creates has no animals yet by definition.
+  const mergedClient = new Map<string, string>();
+  for (const { group, clientId } of resolved.merging) mergedClient.set(group.key, clientId);
+  const clientById = new Map(existing.map((c) => [c.id, c]));
+  const existingPetOf = new Map<number, { id: string; species: string }>();
+  for (const row of plan.rows) {
+    if (!row.pet || !row.ownerKey) continue;
+    const ownerKey = resolved.ownerOf.get(row.ownerKey) ?? row.ownerKey;
+    const clientId = mergedClient.get(ownerKey);
+    if (!clientId) continue;
+    const found = clientById
+      .get(clientId)
+      ?.pets?.find((p) => fold(p.name) === fold(row.pet!.name));
+    if (found) existingPetOf.set(row.index, { id: found.id, species: found.species });
+  }
+
+  // What those animals already have, so the same rabies date read a second
+  // time is recognised rather than written twice.
+  const known = existingPetOf.size
+    ? await prisma.vaccination.findMany({
+        where: { clinicId: ctx.clinicId, petId: { in: [...new Set([...existingPetOf.values()].map((p) => p.id))] } },
+        select: { petId: true, name: true, administeredAt: true },
+      })
+    : [];
+  const knownKey = new Set(
+    known.map((v) => `${v.petId}|${fold(v.name.trim())}|${v.administeredAt.toISOString().slice(0, 10)}`),
+  );
+
+  // The clinic's list, per species, for the next-date proposal.
+  const settings = normalizeVaccineSettings(
+    ((clinic?.settings ?? {}) as { vaccines?: unknown }).vaccines,
+  );
+  const listCache = new Map<string, VaccineOffer[]>();
+  const historyCache = new Map<string, Awaited<ReturnType<typeof vaccinationIntervalSuggestions>>>();
+  async function offersFor(species: string) {
+    let offers = listCache.get(species);
+    if (!offers) {
+      let history = historyCache.get(species);
+      if (!history) {
+        history = await vaccinationIntervalSuggestions(ctx.clinicId, species);
+        historyCache.set(species, history);
+      }
+      offers = clinicVaccineList(species, settings, history);
+      listCache.set(species, offers);
+    }
+    return offers;
+  }
+
+  const speciesOfRow = (row: PlanRow): Species => {
+    const existingPet = existingPetOf.get(row.index);
+    if (existingPet) return existingPet.species as Species;
+    const answer = applySpecies(row.pet!.speciesRaw, row.pet!.breed, speciesTable, speciesFallback);
+    return answer.target.kind === "builtIn" ? answer.target.key : "OTHER";
+  };
+
+  const items: VaccinationItem[] = [];
+  let existingVaccinationCount = 0;
+  let proposable = 0;
+  const intervals = new Map<string, { name: string; unit: "week" | "month" | "year"; value: number }>();
+  const appliedItems: Array<Date> = [];
+  for (const row of plan.rows) {
+    if (!row.pet || !row.ownerKey || row.vaccinations.length === 0) continue;
+    const existingPet = existingPetOf.get(row.index) ?? null;
+    const species = speciesOfRow(row);
+    for (const draft of row.vaccinations) {
+      const day = draft.administeredAt.toISOString().slice(0, 10);
+      if (existingPet && knownKey.has(`${existingPet.id}|${fold(draft.name)}|${day}`)) {
+        existingVaccinationCount += 1;
+        continue;
+      }
+      let nextDueAt = draft.nextDueAt ? new Date(draft.nextDueAt.getTime() + NOON) : null;
+      let nextDueSource: VaccinationItem["nextDueSource"] = nextDueAt ? "MANUAL" : null;
+      if (!nextDueAt) {
+        const offer = offerByName(await offersFor(species), draft.name);
+        const due = offer?.due;
+        if (due && (due.kind === "list" || due.kind === "clinic" || due.kind === "history")) {
+          proposable += 1;
+          intervals.set(`${offer.name}|${due.interval.unit}|${due.interval.value}`, { name: offer.name, ...due.interval });
+          const proposed = new Date(`${addInterval(day, due.interval)}T12:00:00Z`);
+          appliedItems.push(proposed);
+          if (answers.nextDueFromList) {
+            nextDueAt = proposed;
+            nextDueSource = due.kind === "list" ? "LIST" : due.kind === "clinic" ? "CLINIC" : "HISTORY";
+          }
+        }
+      }
+      items.push({
+        rowIndex: row.index,
+        existingPetId: existingPet?.id ?? null,
+        name: draft.name,
+        administeredAt: new Date(draft.administeredAt.getTime() + NOON),
+        nextDueAt,
+        nextDueSource,
+      });
+    }
+  }
+
+  return {
+    body,
+    plan,
+    resolved,
+    custom,
+    speciesProposals,
+    sexProposals,
+    speciesTable,
+    sexTable,
+    speciesFallback,
+    existingPetOf,
+    items,
+    existingVaccinationCount,
+    nextDue:
+      proposable > 0
+        ? {
+            proposable,
+            intervals: [...intervals.values()],
+            ifApplied: dueCounts(
+              [
+                ...items.filter((i) => i.nextDueSource === "MANUAL").map((i) => i.nextDueAt as Date),
+                ...appliedItems,
+              ],
+              today,
+            ),
+          }
+        : null,
+    due: dueCounts(
+      items.flatMap((i) => (i.nextDueAt ? [i.nextDueAt] : [])),
+      today,
+    ),
+  };
+}
+
+/**
+ * Where a set of next dates falls against today, by the dashboard's own
+ * rule: the overdue card looks back `OVERDUE_WINDOW_MONTHS`, and a count
+ * that disagreed with the card would be the result screen promising rows
+ * the dashboard then does not show.
+ */
+export function dueCounts(dates: readonly Date[], now: Date): DueCounts {
+  const since = new Date(now);
+  since.setMonth(since.getMonth() - OVERDUE_WINDOW_MONTHS);
+  const soon = new Date(now.getTime() + 30 * DAY_MS);
+  let overdue = 0;
+  let overdueOlder = 0;
+  let dueSoon = 0;
+  for (const date of dates) {
+    if (date < since) overdueOlder += 1;
+    else if (date < now) overdue += 1;
+    else if (date <= soon) dueSoon += 1;
+  }
+  return { overdue, overdueOlder, dueSoon };
 }
 
 /**
@@ -144,33 +480,73 @@ export async function planImport(
   rows: string[][],
   answers: ImportAnswers,
   ctx: ActionContext,
+  labels: Record<string, string> = {},
 ): Promise<PlanSummary> {
   requirePermission(ctx.userRole, "clients.write");
   requirePermission(ctx.userRole, "pets.write");
 
-  const body = bodyRows(rows, answers.headerRow);
-  const [existing, custom] = await Promise.all([
-    prisma.client.findMany({
-      where: { clinicId: ctx.clinicId, archivedAt: null },
-      select: { id: true, firstName: true, lastName: true, phone: true, secondaryPhone: true },
-    }),
-    prisma.customSpecies.findMany({
-      where: { clinicId: ctx.clinicId },
-      select: { id: true, name: true },
-    }),
-  ]);
+  const a = await analyse(rows, answers, ctx, labels);
+  const { plan, resolved } = a;
 
-  const plan = buildPlan(body, answers.mapping, answers.dateOrders, existing);
-  const speciesValues = columnValues(body, answers.mapping, "pet.species");
-  const species = proposeSpecies(speciesValues, custom);
-  const sex = proposeSex(columnValues(body, answers.mapping, "pet.sex"));
+  const open = new Set(openQuestions(plan, answers.duplicates));
+  const questionRows = new Set(
+    plan.groups.filter((g) => open.has(g.key)).flatMap((g) => g.rowIndexes),
+  );
+  const columnOf = (field: string) => {
+    const found = Object.entries(answers.mapping).find(([, f]) => f === field)?.[0];
+    return found === undefined ? undefined : Number(found);
+  };
+  const views: PlanRowView[] = [];
+  for (const row of plan.rows) {
+    if (row.issue === "blank") continue;
+    const cells = a.body[row.index - 1] ?? [];
+    const fixes: PlanRowView["fixes"] = [];
+    const fix = (field: string) => {
+      const col = columnOf(field);
+      if (col !== undefined) fixes.push({ field, col, raw: cells[col] ?? "" });
+    };
+    let status: PlanRowView["status"] | null = null;
+    if (row.issue === "noOwnerName") {
+      status = "skip";
+      fix("client.firstName");
+    } else if (questionRows.has(row.index)) {
+      status = "decision";
+    } else if (a.existingPetOf.has(row.index)) {
+      status = "existing";
+    } else if (row.issue === "noPetName" || row.warnings.length > 0) {
+      status = "warning";
+      if (row.issue === "noPetName") fix("pet.name");
+    }
+    for (const warning of row.warnings) {
+      if (warning.kind === "dateUnreadable" || warning.kind === "yearOnly" || warning.kind === "dateInFuture") {
+        fixes.push({ field: warning.field, col: warning.col, raw: warning.raw });
+      }
+    }
+    if (!status) continue;
+    views.push({
+      index: row.index,
+      status,
+      ...(row.issue ? { issue: row.issue } : {}),
+      warnings: row.warnings,
+      owner: row.owner ? [row.owner.firstName, row.owner.lastName ?? ""].join(" ").trim() : (cells[columnOf("client.firstName") ?? -1] ?? null),
+      pet: row.pet?.name ?? (cells[columnOf("pet.name") ?? -1] || null),
+      fixes,
+    });
+  }
+  // Decisions first, then what will be left out, then the rest: the order
+  // a vet works through them in.
+  const weight = { decision: 0, skip: 1, warning: 2, existing: 3 } as const;
+  views.sort((x, y) => weight[x.status] - weight[y.status] || x.index - y.index);
 
-  const resolved = resolveGroups(plan, answers.duplicates);
+  const vaccines = new Map<string, number>();
+  for (const item of a.items) vaccines.set(item.name, (vaccines.get(item.name) ?? 0) + 1);
+
   return {
-    rowCount: body.length,
+    rowCount: a.body.length,
     createCount: resolved.creating.length,
     mergeCount: resolved.merging.length,
-    petCount: plan.rows.filter((r) => r.pet !== null).length,
+    petCount: plan.rows.filter((r) => r.pet !== null && !a.existingPetOf.has(r.index)).length,
+    existingPetCount: a.existingPetOf.size,
     blankRows: plan.skipped.filter((s) => s.issue === "blank").length,
     noOwnerRows: plan.skipped.filter((s) => s.issue === "noOwnerName").length,
     clientOnlyRows: plan.clientOnly.length,
@@ -183,10 +559,17 @@ export async function planImport(
         rows: g.rowIndexes,
         candidates: g.possible ?? [],
       })),
-    species,
-    sex,
-    customSpecies: custom,
-    speciesUnknownRows: plan.rows.filter((r) => r.pet && !r.pet.speciesRaw).length,
+    species: a.speciesProposals,
+    sex: a.sexProposals,
+    customSpecies: a.custom,
+    speciesUnknownRows: plan.rows.filter((r) => r.pet && !r.pet.speciesRaw && !a.existingPetOf.has(r.index)).length,
+    vaccinationCount: a.items.length,
+    vaccines: [...vaccines].map(([name, count]) => ({ name, count })).sort((x, y) => y.count - x.count),
+    existingVaccinationCount: a.existingVaccinationCount,
+    nextDue: a.nextDue,
+    due: a.due,
+    rows: views.slice(0, ROW_VIEW_LIMIT),
+    rowsNotShown: Math.max(0, views.length - ROW_VIEW_LIMIT),
   };
 }
 
@@ -262,6 +645,10 @@ export type CommitResult = {
   clientCount: number;
   petCount: number;
   mergedCount: number;
+  vaccinationCount: number;
+  /** Animals the file named that the clinic already had; not created again. */
+  existingPetCount: number;
+  due: DueCounts;
 };
 
 /**
@@ -276,86 +663,19 @@ export async function commitImport(
   rows: string[][],
   answers: ImportAnswers,
   ctx: ActionContext,
+  labels: Record<string, string> = {},
 ): Promise<CommitResult> {
   requirePermission(ctx.userRole, "clients.write");
   requirePermission(ctx.userRole, "pets.write");
 
-  const body = bodyRows(rows, answers.headerRow);
-  const [existing, custom] = await Promise.all([
-    prisma.client.findMany({
-      where: { clinicId: ctx.clinicId, archivedAt: null },
-      select: { id: true, firstName: true, lastName: true, phone: true, secondaryPhone: true },
-    }),
-    prisma.customSpecies.findMany({
-      where: { clinicId: ctx.clinicId },
-      select: { id: true, name: true },
-    }),
-  ]);
-
-  const plan = buildPlan(body, answers.mapping, answers.dateOrders, existing);
+  const a = await analyse(rows, answers, ctx, labels);
+  const { plan, resolved, speciesTable, sexTable, speciesFallback, custom } = a;
   const unanswered = openQuestions(plan, answers.duplicates);
   if (unanswered.length > 0) {
     // The screen blocks on these too. This is the control: an answer nobody
     // gave must not become a merge just because the request reached here.
     throw validationFailed({ duplicates: ["error.validation.importDuplicatesUnanswered"] });
   }
-
-  const resolved = resolveGroups(plan, answers.duplicates);
-
-  /**
-   * The enum tables the vet actually looked at, with their answers on top.
-   *
-   * The proposals are rebuilt here rather than taken from the request, and
-   * that is the whole point: the screen shows every distinct value with a
-   * reading already filled in, and a vet who agrees with a line does not
-   * touch it. Reading only what came back would mean every line they agreed
-   * with arrives EMPTY -- so every cat would be written as "other" and every
-   * "Erkek" as "not known", under a screen that said otherwise. The
-   * agreement has to be the same function on both sides.
-   */
-  const speciesTable = new Map(
-    proposeSpecies(columnValues(body, answers.mapping, "pet.species"), custom).map(
-      (proposal) => [proposal.raw, proposal] as const,
-    ),
-  );
-  for (const [raw, answer] of Object.entries(answers.species)) {
-    // The answer replaces the proposal whole, breed included: a breed the
-    // vet emptied comes back absent, and merging the two would put it back.
-    speciesTable.set(raw, {
-      raw,
-      target: ownedTarget(answer.target, custom),
-      breed: answer.breed,
-      rows: 0,
-      settled: true,
-    } as SpeciesProposal);
-  }
-
-  const sexTable = new Map<string, Sex>(
-    proposeSex(columnValues(body, answers.mapping, "pet.sex")).flatMap((proposal) =>
-      proposal.target ? [[proposal.raw, proposal.target] as const] : [],
-    ),
-  );
-  for (const [raw, target] of Object.entries(answers.sex)) sexTable.set(raw, target);
-
-  /**
-   * The bulk answer (#42), checked against THIS clinic's own species.
-   *
-   * An id arrives from the browser, and `customSpeciesId` is the one field on
-   * a pet that points at a row the clinic owns. A foreign key only says the
-   * row exists somewhere; it does not say it is ours. An id that is not in
-   * the list this request already read becomes no answer at all -- the rows
-   * stay "other", which is what they were without the question.
-   *
-   * WHAT THIS DOES NOT CLOSE, so it is not read as closed: the per-value
-   * species table takes ids the same way and does NOT check them
-   * (`toSpecies`, case "custom"). That is older than this field and reported
-   * rather than fixed here.
-   */
-  const fallback = answers.speciesFallback ?? null;
-  const speciesFallback =
-    fallback?.kind === "custom" && !custom.some((entry) => entry.id === fallback.id)
-      ? null
-      : fallback;
 
   return prisma.$transaction(
     async (tx) => {
@@ -393,50 +713,41 @@ export async function commitImport(
         : [];
       const customByName = new Map(customAfter.map((c) => [fold(c.name), c.id]));
 
-      if (resolved.creating.length > 0) {
-        await tx.client.createMany({
-          data: resolved.creating.map((group) => ({
-            clinicId: ctx.clinicId,
-            importBatchId: batch.id,
-            firstName: group.owner.firstName,
-            lastName: group.owner.lastName,
-            phone: group.owner.phone,
-            secondaryPhone: group.owner.secondaryPhone,
-            email: group.owner.email,
-            city: group.owner.city,
-            address: group.owner.address,
-            notes: group.owner.notes,
-          })),
-        });
-      }
-
-      // Read the new ids back by the batch rather than inserting one at a
-      // time for the id. `createMany` cannot return ids, and a create per
-      // client would be one round trip per person in the file.
+      // Ids back in the order they went in, so each group is paired with
+      // its own row rather than found again by name -- two clients may
+      // share a name, and two animals of one owner may share one (a cat
+      // and a dog both called Fındık is in a real file).
       const created =
         resolved.creating.length > 0
-          ? await tx.client.findMany({
-              where: { clinicId: ctx.clinicId, importBatchId: batch.id },
-              select: { id: true, firstName: true, lastName: true, phone: true },
+          ? await tx.client.createManyAndReturn({
+              data: resolved.creating.map((group) => ({
+                clinicId: ctx.clinicId,
+                importBatchId: batch.id,
+                firstName: group.owner.firstName,
+                lastName: group.owner.lastName,
+                phone: group.owner.phone,
+                secondaryPhone: group.owner.secondaryPhone,
+                email: group.owner.email,
+                city: group.owner.city,
+                address: group.owner.address,
+                notes: group.owner.notes,
+              })),
+              select: { id: true },
             })
           : [];
-      const createdByKey = new Map(
-        created.map((c) => [
-          `${fold([c.firstName, c.lastName ?? ""].join(" ").trim())} ${normalizePhone(c.phone) ?? ""}`,
-          c.id,
-        ]),
-      );
 
       const clientIdOf = new Map<string, string>();
       for (const { group, clientId } of resolved.merging) clientIdOf.set(group.key, clientId);
-      for (const group of resolved.creating) {
-        const id = createdByKey.get(group.key);
+      resolved.creating.forEach((group, i) => {
+        const id = created[i]?.id;
         if (id) clientIdOf.set(group.key, id);
-      }
+      });
 
       const pets: Prisma.PetCreateManyInput[] = [];
+      const petRows: number[] = [];
       for (const row of plan.rows) {
         if (!row.pet || !row.ownerKey) continue;
+        if (a.existingPetOf.has(row.index)) continue;
         const ownerGroupKey = resolved.ownerOf.get(row.ownerKey) ?? row.ownerKey;
         const ownerId = clientIdOf.get(ownerGroupKey);
         if (!ownerId) continue;
@@ -463,16 +774,49 @@ export async function commitImport(
           microchipId: row.pet.microchipId,
           color: row.pet.color,
           weightKg: row.pet.weightKg,
+          ...(row.pet.neutered !== null ? { neutered: row.pet.neutered } : {}),
           notes: row.pet.notes,
         });
+        petRows.push(row.index);
       }
-      if (pets.length > 0) await tx.pet.createMany({ data: pets });
+      const createdPets =
+        pets.length > 0
+          ? await tx.pet.createManyAndReturn({ data: pets, select: { id: true } })
+          : [];
+      const petIdOfRow = new Map<number, string>();
+      petRows.forEach((rowIndex, i) => {
+        const id = createdPets[i]?.id;
+        if (id) petIdOfRow.set(rowIndex, id);
+      });
+
+      const vaccinations: Prisma.VaccinationCreateManyInput[] = [];
+      for (const item of a.items) {
+        const petId = item.existingPetId ?? petIdOfRow.get(item.rowIndex);
+        if (!petId) continue;
+        vaccinations.push({
+          clinicId: ctx.clinicId,
+          importBatchId: batch.id,
+          petId,
+          name: item.name,
+          administeredAt: item.administeredAt,
+          administeredDateOnly: true,
+          nextDueAt: item.nextDueAt,
+          nextDueSource: item.nextDueAt ? item.nextDueSource : null,
+        });
+      }
+      if (vaccinations.length > 0) await tx.vaccination.createMany({ data: vaccinations });
 
       const result: CommitResult = {
         batchId: batch.id,
         clientCount: created.length,
-        petCount: pets.length,
+        petCount: createdPets.length,
         mergedCount: resolved.merging.length,
+        vaccinationCount: vaccinations.length,
+        existingPetCount: a.existingPetOf.size,
+        due: dueCounts(
+          vaccinations.flatMap((v) => (v.nextDueAt ? [new Date(v.nextDueAt)] : [])),
+          new Date(),
+        ),
       };
 
       await tx.importBatch.update({
@@ -481,6 +825,7 @@ export async function commitImport(
           clientCount: result.clientCount,
           petCount: result.petCount,
           mergedCount: result.mergedCount,
+          vaccinationCount: result.vaccinationCount,
         },
       });
 
@@ -496,6 +841,7 @@ export async function commitImport(
             clients: result.clientCount,
             pets: result.petCount,
             merged: result.mergedCount,
+            vaccinations: result.vaccinationCount,
           },
         },
         tx,
@@ -503,7 +849,7 @@ export async function commitImport(
 
       return result;
     },
-    { timeout: 60_000, maxWait: 10_000 },
+    { timeout: 120_000, maxWait: 10_000 },
   );
 }
 
@@ -553,6 +899,7 @@ function toSpecies(
 
 export type UndoResult = {
   /** Rows the undo removed. */
+  vaccinationCount: number;
   clientCount: number;
   petCount: number;
   /** Rows it left behind because the clinic has since worked on them. */
@@ -583,6 +930,13 @@ export async function undoImport(batchId: string, ctx: ActionContext): Promise<U
 
   return prisma.$transaction(
     async (tx) => {
+      // The run's vaccinations first: they are what it wrote onto animals,
+      // including animals the clinic already had, and the animals below
+      // are only "unused" once these are gone.
+      const vaccinationsDeleted = await tx.vaccination.deleteMany({
+        where: { clinicId: ctx.clinicId, importBatchId: batchId },
+      });
+
       const petsBefore = await tx.pet.count({
         where: { clinicId: ctx.clinicId, importBatchId: batchId },
       });
@@ -629,6 +983,7 @@ export async function undoImport(batchId: string, ctx: ActionContext): Promise<U
       });
 
       const result: UndoResult = {
+        vaccinationCount: vaccinationsDeleted.count,
         clientCount: clientsDeleted.count,
         petCount: petsDeleted.count,
         keptClients: clientsBefore - clientsDeleted.count,

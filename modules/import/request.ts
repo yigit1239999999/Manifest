@@ -1,4 +1,7 @@
+import { gunzipSync } from "node:zlib";
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
+import { MAX_INFLATED_BYTES, MAX_REQUEST_BYTES } from "./limits";
 import { auth } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { AppError } from "@/lib/errors";
@@ -62,4 +65,58 @@ export function errorResponse(error: unknown): NextResponse {
   // Deliberately nothing about what went wrong: the screen has a sentence
   // for "this did not work", and a database message is not it.
   return NextResponse.json({ error: "unexpected" }, { status: 500 });
+}
+
+/**
+ * The plan or commit body, gzip or not.
+ *
+ * The screen compresses the rows (`CompressionStream`) because the host's
+ * request ceiling is the one real limit on an import (`limits.ts`), and a
+ * clinic's spreadsheet is text that shrinks tenfold. A browser without
+ * `CompressionStream` sends plain JSON and is read the same way.
+ *
+ * Returns null for anything that is not a readable JSON body, and the
+ * string "tooLarge" when the body is over the ceiling -- the route turns
+ * that into the 413 the screen has a sentence for.
+ */
+export async function readImportBody(req: Request): Promise<unknown | "tooLarge" | null> {
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (declared > MAX_REQUEST_BYTES) return "tooLarge";
+  let bytes: Buffer;
+  try {
+    bytes = Buffer.from(await req.arrayBuffer());
+  } catch {
+    return null;
+  }
+  if (bytes.length > MAX_REQUEST_BYTES) return "tooLarge";
+  try {
+    const text =
+      req.headers.get("x-import-encoding") === "gzip"
+        ? gunzipSync(bytes, { maxOutputLength: MAX_INFLATED_BYTES }).toString("utf8")
+        : bytes.toString("utf8");
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The field names, in the reader's language, for a kept value whose column
+ * has no heading of its own: "Doğum tarihi: 2021" in an animal's notes.
+ */
+export async function fieldLabels(): Promise<Record<string, string>> {
+  const t = await getTranslations("import.field");
+  const out: Record<string, string> = {};
+  for (const key of [
+    "client.notes",
+    "pet.birthDate",
+    "pet.notes",
+    "vaccine.name",
+    "vaccine.date",
+    "vaccine.nextDue",
+    "vaccine.column",
+  ]) {
+    out[key] = t(key as never);
+  }
+  return out;
 }

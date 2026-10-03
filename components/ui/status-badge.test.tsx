@@ -61,6 +61,7 @@ const enums: Record<StatusKind, Record<string, string>> = {
   // Not one either: `archivedAt` is a nullable timestamp with one named
   // state.
   archive: { archived: "archived" },
+  importRow: { decision: "decision", skip: "skip", warning: "warning", existing: "existing", excluded: "excluded" },
 };
 
 const everyTone = () =>

@@ -33,6 +33,10 @@ const envSchema = z.object({
   NETGSM_USERCODE: z.string().min(1).optional(),
   NETGSM_PASSWORD: z.string().min(1).optional(),
   NETGSM_MSGHEADER: z.string().min(1).max(11).optional(),
+  // Optional. With it, the spreadsheet import asks a model about the columns
+  // it cannot name itself (masked samples only, `modules/import/ai-match.ts`);
+  // without it, the import uses its own reading and nothing else.
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
 }).superRefine((v, ctx) => {
   if (v.SMS_PROVIDER === "netgsm") {

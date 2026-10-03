@@ -1,6 +1,6 @@
 import { fold } from "@/lib/search";
 import { normalizePhone } from "@/lib/phone";
-import { isBlank } from "./infer";
+import { isBlank, looksLikeYear } from "./infer";
 import type { ImportField } from "./fields";
 
 /**
@@ -38,6 +38,9 @@ type ValueField = Exclude<ImportField, "skip">;
 /** One row's cells, by the field the vet sent each column to. */
 export type FieldValues = Partial<Record<ValueField, string>>;
 
+/** Fields whose columns are joined rather than first-wins. */
+const JOINED: ReadonlySet<ValueField> = new Set(["client.notes", "pet.notes"]);
+
 /**
  * The first non-empty value wins when two columns were sent to the same
  * field. Nothing stops a vet from mapping two columns to `client.notes`,
@@ -48,10 +51,15 @@ export type FieldValues = Partial<Record<ValueField, string>>;
 export function rowValues(cells: readonly string[], mapping: Mapping): FieldValues {
   const out: FieldValues = {};
   for (const [col, field] of Object.entries(mapping)) {
-    if (field === "skip") continue;
+    // A vaccine column is read on its own in `vaccinationsOf`: there can be
+    // several, and each is a record rather than a value.
+    if (field === "skip" || field === "vaccine.column") continue;
     const value = (cells[Number(col)] ?? "").trim();
     if (value === "") continue;
     if (out[field] === undefined) out[field] = value;
+    // Two note columns are two things the clinic wrote down. First-wins
+    // would keep one and drop the other without a word.
+    else if (JOINED.has(field) && !isBlank(value)) out[field] = `${out[field]} · ${value}`;
   }
   return out;
 }
@@ -83,7 +91,55 @@ export type PetDraft = {
   microchipId: string | null;
   color: string | null;
   weightKg: number | null;
+  /** Null when the file says nothing, or says something we cannot read. */
+  neutered: boolean | null;
   notes: string | null;
+};
+
+/** One vaccination a row will become. Dates are days, at UTC midnight. */
+export type VaccinationDraft = {
+  name: string;
+  administeredAt: Date;
+  /** From the file's own next-date column, or null. */
+  nextDueAt: Date | null;
+  /** The column the date came from, so the screen can point at it. */
+  col: number;
+};
+
+/**
+ * Something in a row that will not land where its column said, and where
+ * it goes instead. Never a silent loss: each of these also writes the
+ * cell, as the clinic typed it, into the animal's notes.
+ */
+export type RowWarning = {
+  kind:
+    /** Not a date in any order: "geçen eylül", "32.13.2020". */
+    | "dateUnreadable"
+    /** A year alone, "2021": kept in the notes, no birthday invented. */
+    | "yearOnly"
+    /** A vaccination dated after today. */
+    | "dateInFuture"
+    /** A vaccine name with no date beside it. */
+    | "vaccineNoDate"
+    /** A vaccine date with no name beside it. */
+    | "vaccineNoName";
+  field: ValueField;
+  col: number;
+  raw: string;
+  vaccine?: string;
+};
+
+/** What the plan needs besides the mapping, all of it the vet's answers. */
+export type PlanOptions = {
+  /** Per `vaccine.column`: the vaccine its dates are doses of. */
+  vaccineNames?: Record<number, string>;
+  /**
+   * Per column, the words a note uses to say where a kept value came from:
+   * the vet's own heading, or the field's name when there is none.
+   */
+  columnLabels?: Record<number, string>;
+  /** "Today" for the future-date check. A parameter so tests can pin it. */
+  today?: Date;
 };
 
 /**
@@ -105,6 +161,16 @@ export type RowIssue =
   /** A person but no animal name. The client is created, the animal is not. */
   | "noPetName";
 
+const YES = new Set(["evet", "e", "var", "yes", "y", "true", "1", "x", "kisir", "kisirlastirildi", "kastre"]);
+const NO = new Set(["hayir", "h", "no", "n", "false", "0"]);
+
+function parseYesNo(raw: string): boolean | null {
+  const v = fold(raw.trim());
+  if (YES.has(v)) return true;
+  if (NO.has(v)) return false;
+  return null;
+}
+
 export type PlanRow = {
   /** 1-based, counted over body rows, so it matches what the vet scrolls past. */
   index: number;
@@ -113,6 +179,9 @@ export type PlanRow = {
   /** Name and phone together, or null when the row makes nobody. */
   ownerKey: string | null;
   issue?: RowIssue;
+  /** What this row's animal has had, read off the vaccine columns. */
+  vaccinations: VaccinationDraft[];
+  warnings: RowWarning[];
 };
 
 /** A client this clinic already has, as much of one as dedup needs. */
@@ -122,6 +191,12 @@ export type ExistingClient = {
   lastName: string | null;
   phone: string | null;
   secondaryPhone: string | null;
+  /**
+   * Their animals, by name, when the caller read them. Lets a re-import
+   * recognise "Hasan Öztürk, no phone, with Paşa" as the Hasan Öztürk who
+   * already has a Paşa, instead of asking about him every time.
+   */
+  pets?: ReadonlyArray<{ id: string; name: string }>;
 };
 
 /**
@@ -254,10 +329,15 @@ export function planRow(
   mapping: Mapping,
   dateOrders: DateOrders,
   index: number,
+  options: PlanOptions = {},
 ): PlanRow {
   const values = rowValues(cells, mapping);
-  if (Object.keys(values).length === 0) {
-    return { index, owner: null, pet: null, ownerKey: null, issue: "blank" };
+  const vaccineColumns = Object.entries(mapping)
+    .filter(([, f]) => f === "vaccine.column")
+    .map(([col]) => Number(col));
+  const anyVaccineCell = vaccineColumns.some((col) => (cells[col] ?? "").trim() !== "");
+  if (Object.keys(values).length === 0 && !anyVaccineCell) {
+    return { index, owner: null, pet: null, ownerKey: null, issue: "blank", vaccinations: [], warnings: [] };
   }
 
   const firstName = text(values, "client.firstName");
@@ -266,7 +346,7 @@ export function planRow(
     // with no person attached is a record nobody can act on: it cannot be
     // called, reminded or billed, and the vet would meet it as a mystery
     // months later. Reported instead, with its row number.
-    return { index, owner: null, pet: null, ownerKey: null, issue: "noOwnerName" };
+    return { index, owner: null, pet: null, ownerKey: null, issue: "noOwnerName", vaccinations: [], warnings: [] };
   }
 
   const lastName = text(values, "client.lastName");
@@ -282,24 +362,50 @@ export function planRow(
     notes: text(values, "client.notes"),
   };
 
+  const columnOf = (field: ValueField) => {
+    const found = Object.entries(mapping).find(([, f]) => f === field)?.[0];
+    return found === undefined ? undefined : Number(found);
+  };
+  const label = (col: number) => options.columnLabels?.[col] ?? `#${col + 1}`;
+  const today = options.today ?? new Date();
+  const warnings: RowWarning[] = [];
+  // What could not be put where its column said, kept in the clinic's own
+  // words. A value that has nowhere to go goes HERE rather than nowhere.
+  const kept: string[] = [];
+
+  const readDate = (field: ValueField, col: number | undefined, raw: string | null) => {
+    if (raw === null || col === undefined) return null;
+    const date = parseDate(raw, dateOrders[col]);
+    if (date) return date;
+    warnings.push({ kind: looksLikeYear(raw) ? "yearOnly" : "dateUnreadable", field, col, raw });
+    kept.push(`${label(col)}: ${raw}`);
+    return null;
+  };
+
   const petName = text(values, "pet.name");
-  const birthColumn = Object.entries(mapping).find(([, f]) => f === "pet.birthDate")?.[0];
+  const birthColumn = columnOf("pet.birthDate");
   const birthRaw = text(values, "pet.birthDate");
   const weightRaw = text(values, "pet.weightKg");
+  const neuteredRaw = text(values, "pet.neutered");
 
+  const birthDate = petName ? readDate("pet.birthDate", birthColumn, birthRaw) : null;
+  const vaccinations = petName
+    ? vaccinationsOf(cells, values, mapping, dateOrders, vaccineColumns, options, today, label, warnings, kept)
+    : [];
+
+  const notes = [text(values, "pet.notes"), ...kept].filter((n): n is string => !!n);
   const pet: PetDraft | null = petName
     ? {
         name: petName,
         speciesRaw: text(values, "pet.species"),
         breed: text(values, "pet.breed"),
         sexRaw: text(values, "pet.sex"),
-        birthDate: birthRaw
-          ? parseDate(birthRaw, birthColumn ? dateOrders[Number(birthColumn)] : undefined)
-          : null,
+        birthDate,
         microchipId: text(values, "pet.microchipId"),
         color: text(values, "pet.color"),
         weightKg: weightRaw ? parseWeight(weightRaw) : null,
-        notes: text(values, "pet.notes"),
+        neutered: neuteredRaw ? parseYesNo(neuteredRaw) : null,
+        notes: notes.length > 0 ? notes.join("\n") : null,
       }
     : null;
 
@@ -309,7 +415,88 @@ export function planRow(
     pet,
     ownerKey: ownerIdentity(firstName, lastName, phone).key,
     issue: pet ? undefined : "noPetName",
+    vaccinations,
+    warnings,
   };
+}
+
+/**
+ * The row's vaccinations: one per filled vaccine column, plus one from the
+ * name-and-date pair when the file is written that way.
+ *
+ * NOTHING HERE IS DROPPED QUIETLY, and that is the vet's condition for
+ * switching: "kuduz tarihi sessizce kaybolmamalı". A date that does not
+ * read, a date in the future, a name with no date -- each becomes a
+ * warning the screen shows and a line in the animal's notes, in the
+ * clinic's own words, so the fact survives even when the record cannot.
+ */
+function vaccinationsOf(
+  cells: readonly string[],
+  values: FieldValues,
+  mapping: Mapping,
+  dateOrders: DateOrders,
+  vaccineColumns: number[],
+  options: PlanOptions,
+  today: Date,
+  label: (col: number) => string,
+  warnings: RowWarning[],
+  kept: string[],
+): VaccinationDraft[] {
+  const out: VaccinationDraft[] = [];
+  const columnOf = (field: ValueField) => {
+    const found = Object.entries(mapping).find(([, f]) => f === field)?.[0];
+    return found === undefined ? undefined : Number(found);
+  };
+
+  const dated = (
+    name: string,
+    col: number,
+    raw: string,
+    nextDueAt: Date | null,
+    field: ValueField,
+  ) => {
+    const date = parseDate(raw, dateOrders[col]);
+    if (!date) {
+      warnings.push({ kind: looksLikeYear(raw) ? "yearOnly" : "dateUnreadable", field, col, raw, vaccine: name });
+      kept.push(`${label(col)}: ${raw}`);
+      return;
+    }
+    if (date.getTime() > today.getTime()) {
+      warnings.push({ kind: "dateInFuture", field, col, raw, vaccine: name });
+      kept.push(`${label(col)}: ${raw}`);
+      return;
+    }
+    out.push({ name, administeredAt: date, nextDueAt, col });
+  };
+
+  for (const col of vaccineColumns) {
+    const raw = (cells[col] ?? "").trim();
+    if (raw === "" || isBlank(raw)) continue;
+    const name = options.vaccineNames?.[col]?.trim() || label(col);
+    dated(name, col, raw, null, "vaccine.column");
+  }
+
+  const name = text(values, "vaccine.name");
+  const dateCol = columnOf("vaccine.date");
+  const nextCol = columnOf("vaccine.nextDue");
+  const dateRaw = text(values, "vaccine.date");
+  const nextRaw = text(values, "vaccine.nextDue");
+  const next = nextRaw && nextCol !== undefined ? parseDate(nextRaw, dateOrders[nextCol]) : null;
+  if (nextRaw && !next && nextCol !== undefined) {
+    warnings.push({ kind: "dateUnreadable", field: "vaccine.nextDue", col: nextCol, raw: nextRaw, vaccine: name ?? undefined });
+    kept.push(`${label(nextCol)}: ${nextRaw}`);
+  }
+  if (name && dateRaw && dateCol !== undefined) {
+    dated(name, dateCol, dateRaw, next, "vaccine.date");
+  } else if (name) {
+    const nameCol = columnOf("vaccine.name") as number;
+    warnings.push({ kind: "vaccineNoDate", field: "vaccine.name", col: nameCol, raw: name, vaccine: name });
+    kept.push(`${label(nameCol)}: ${name}${next && nextRaw ? ` (${label(nextCol as number)}: ${nextRaw})` : ""}`);
+  } else if (dateRaw && dateCol !== undefined) {
+    warnings.push({ kind: "vaccineNoName", field: "vaccine.date", col: dateCol, raw: dateRaw });
+    kept.push(`${label(dateCol)}: ${dateRaw}`);
+  }
+  return out;
 }
 
 /**
@@ -326,8 +513,16 @@ export function buildPlan(
   mapping: Mapping,
   dateOrders: DateOrders,
   existing: readonly ExistingClient[],
+  options: PlanOptions = {},
 ): ImportPlan {
-  const rows = bodyRows.map((cells, i) => planRow(cells, mapping, dateOrders, i + 1));
+  const rows = bodyRows.map((cells, i) => planRow(cells, mapping, dateOrders, i + 1, options));
+  const petNamesOf = new Map<string, Set<string>>();
+  for (const row of rows) {
+    if (!row.ownerKey || !row.pet) continue;
+    const set = petNamesOf.get(row.ownerKey) ?? new Set<string>();
+    set.add(fold(row.pet.name));
+    petNamesOf.set(row.ownerKey, set);
+  }
 
   const byKey = new Map<string, OwnerGroup>();
   for (const row of rows) {
@@ -397,20 +592,50 @@ export function buildPlan(
       }
     }
 
+    // The same person by a second, independent fact: a client of this name
+    // who already has an animal of this name. "Hasan Öztürk with Paşa" is
+    // not a coincidence two people share, and it is exactly what a clinic
+    // re-importing its own file looks like for the owners with no number.
+    // ONE such client, or it is still a question.
+    const ownPets = petNamesOf.get(group.key);
+    if (ownPets && ownPets.size > 0) {
+      const byAnimal = sameName.filter((c) =>
+        (c.pets ?? []).some((p) => ownPets.has(fold(p.name))),
+      );
+      if (byAnimal.length === 1) {
+        group.matchedClientId = byAnimal[0].id;
+        continue;
+      }
+    }
+
     // No confirmed match. Anybody sharing the name is a question, never an
     // answer -- including a name-mate inside the file itself, which is how
     // the same person typed once with and once without their number looks
     // from here.
+    //
+    // EXCEPT where both sides have a number and the numbers differ. That is
+    // not missing evidence, it is evidence against: two "Ayşe Yılmaz" on
+    // two different phones are, in a Turkish clinic's list, two people far
+    // more often than one, and asking about every such pair turned a
+    // 4,821-row file into 3,199 questions nobody could answer. The
+    // question stays where it belongs -- one side has no number to check.
+    const disagrees = (phones: Array<string | null>) =>
+      Boolean(dialled) &&
+      phones.some((p) => normalizePhone(p) !== null) &&
+      !phones.some((p) => normalizePhone(p) === dialled);
     const possible: PossibleMatch[] = [
       ...phoneMates(group, dialled, groups, existing),
-      ...sameName.map<PossibleMatch>((c) => ({
-        kind: "existing",
-        id: c.id,
-        name: [c.firstName, c.lastName ?? ""].join(" ").trim(),
-        phone: c.phone,
-      })),
+      ...sameName
+        .filter((c) => !disagrees([c.phone, c.secondaryPhone]))
+        .map<PossibleMatch>((c) => ({
+          kind: "existing",
+          id: c.id,
+          name: [c.firstName, c.lastName ?? ""].join(" ").trim(),
+          phone: c.phone,
+        })),
       ...(groupsByName.get(name ?? "") ?? [])
         .filter((other) => other.key !== group.key)
+        .filter((other) => !disagrees([other.owner.phone]))
         .map<PossibleMatch>((other) => ({
           kind: "group",
           key: other.key,

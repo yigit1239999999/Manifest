@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { planImport } from "@/modules/import/service";
 import { importRequestSchema } from "@/modules/import/schema";
-import { errorResponse, importContext } from "@/modules/import/request";
+import { errorResponse, fieldLabels, importContext, readImportBody } from "@/modules/import/request";
 import type { ImportAnswers } from "@/modules/import/service";
 
 /**
@@ -23,7 +23,10 @@ export async function POST(req: Request) {
   const context = await importContext();
   if (!context.ok) return context.response;
 
-  const body = await req.json().catch(() => null);
+  const body = await readImportBody(req);
+  if (body === "tooLarge") {
+    return NextResponse.json({ error: "tooLarge" }, { status: 413 });
+  }
   const parsed = importRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "badRequest" }, { status: 400 });
@@ -34,6 +37,7 @@ export async function POST(req: Request) {
       parsed.data.rows,
       parsed.data.answers as ImportAnswers,
       context.ctx,
+      await fieldLabels(),
     );
     return NextResponse.json({ summary });
   } catch (error) {

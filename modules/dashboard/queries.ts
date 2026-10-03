@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { recentVisits } from "@/modules/visits/queries";
 import { upcomingAppointments } from "@/modules/appointments/queries";
 import {
+  countOlderOverdueVaccinations,
   countOverdueVaccinations,
   overdueVaccinations,
   upcomingVaccinations,
@@ -87,6 +88,8 @@ export interface DashboardInsights {
    */
   overdueVaccinations: Awaited<ReturnType<typeof overdueVaccinations>>;
   overdueVaccinationCount: number;
+  /** Overdue before the card's window: counted beside it, not listed. */
+  overdueOlderVaccinationCount: number;
   recentVisits: Awaited<ReturnType<typeof recentVisits>>;
   visitsByType: { type: string; count: number }[];
   petsBySpecies: { species: string; count: number }[];
@@ -215,6 +218,7 @@ export async function dashboardInsights(
     upcomingVaccsList,
     overdueVaccsList,
     overdueVaccsCount,
+    overdueOlderCount,
     recentVisitsList,
     visitTypeGroups,
     petSpeciesGroups,
@@ -226,6 +230,7 @@ export async function dashboardInsights(
     upcomingVaccinations(clinicId, 5),
     overdueVaccinations(clinicId, 5),
     countOverdueVaccinations(clinicId),
+    countOlderOverdueVaccinations(clinicId),
     recentVisits(clinicId, 5),
     prisma.visit.groupBy({
       by: ["type"],
@@ -309,6 +314,7 @@ export async function dashboardInsights(
     upcomingVaccinations: upcomingVaccsList,
     overdueVaccinations: overdueVaccsList,
     overdueVaccinationCount: overdueVaccsCount,
+    overdueOlderVaccinationCount: overdueOlderCount,
     recentVisits: recentVisitsList,
     visitsByType: visitTypeGroups.map((g) => ({
       type: g.type,

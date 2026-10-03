@@ -4,6 +4,7 @@ import { can } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { ImportMapper } from "@/components/import/import-mapper";
+import { aiMatchAvailable } from "@/modules/import/ai-match";
 import { ImportBatches } from "@/components/import/import-batches";
 import { listImportBatches } from "@/modules/import/queries";
 import { formatDateTime } from "@/lib/format";
@@ -44,7 +45,7 @@ export default async function ImportPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")} />
-      <ImportMapper />
+      <ImportMapper aiAvailable={aiMatchAvailable()} />
       <ImportBatches
         batches={batches.map((batch) => ({
           id: batch.id,
@@ -52,6 +53,7 @@ export default async function ImportPage() {
           summary: t("batchSummary", {
             clients: batch.clientCount,
             pets: batch.petCount,
+            vaccinations: batch.vaccinationCount,
           }),
           merged:
             batch.mergedCount > 0 ? t("batchMerged", { count: batch.mergedCount }) : null,

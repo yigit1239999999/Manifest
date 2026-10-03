@@ -66,16 +66,18 @@ describe("one candidate is not the same as one answer", () => {
     expect(column(["0532 111 22 33", "0533 222 33 44"], "Cep").settled).toBe(false);
   });
 
-  it("does not settle a date column whose order no row proves", () => {
-    // pet.birthDate is the only date target, so content leaves one candidate
-    // -- but WHICH date is still unknown, and settling here would import the
-    // 3rd of April as the 4th of March without ever asking.
-    const provable = column(["14.03.2025", "02.04.2025"]);
-    const not = column(["03.04.2025", "05.06.2024"]);
-    expect(provable.candidates[0]).toBe("pet.birthDate");
-    expect(provable.settled).toBe(true);
-    expect(not.candidates[0]).toBe("pet.birthDate");
-    expect(not.settled).toBe(false);
+  it("does not settle a date column: which date it is is the question", () => {
+    // A birth date and a rabies date have the same shape. Content alone
+    // admits all four date fields and settles none of them -- the heading,
+    // read with the neighbours in `suggestMapping`, is what tells them
+    // apart, and the vet sees the answer.
+    const dates = column(["14.03.2025", "02.04.2025"]);
+    expect(dates.candidates).toEqual(
+      expect.arrayContaining(["pet.birthDate", "vaccine.column", "vaccine.date", "vaccine.nextDue"]),
+    );
+    expect(dates.settled).toBe(false);
+    expect(column(["14.03.2025", "02.04.2025"], "Doğum Tarihi").candidates[0]).toBe("pet.birthDate");
+    expect(column(["14.03.2025", "02.04.2025"], "Kuduz Aşısı").candidates[0]).toBe("vaccine.column");
   });
 
   it("asks about every name-shaped column, all of them, every time", () => {
