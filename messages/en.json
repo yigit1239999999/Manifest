@@ -895,7 +895,6 @@
       "description": "Each row should be one animal, with its owner's details on the same row. If an owner has several animals, repeat the owner on each row.",
       "drop": "Drop your file here",
       "choose": "Choose from your computer",
-      "dropzoneLabel": "Choose a file or drag and drop it",
       "formats": "Excel (.xlsx) or CSV · up to 4 MB · up to 2,000 rows",
       "dragging": "Let go to start reading",
       "reading": "Reading {name}…",
@@ -987,6 +986,7 @@
       "successTitle": "Import complete",
       "partialTitle": "Import complete, some rows were skipped",
       "successBody": "{pets, plural, one {# animal was} other {# animals were}} added to your clinic.",
+      "statExisting": "Added to existing clients",
       "skippedBody": "{count, plural, one {# row was not imported} other {# rows were not imported}}. Download the report, fix those rows and upload the same file again; anything already imported is not added twice.",
       "downloadReport": "Report of skipped rows (.csv)",
       "reportFileName": "skipped-rows.csv",
@@ -1091,9 +1091,7 @@
       "title": "Bring your records over",
       "body": "Are your clients and animals in your old software or a spreadsheet? Import them in a few minutes; you see every row before anything is saved.",
       "start": "Start importing",
-      "template": "Download template",
       "dismiss": "Not now",
-      "dismissName": "Hide the import card",
       "dismissed": "Card hidden. You can import data at any time from Settings."
     },
     "settingsCard": {

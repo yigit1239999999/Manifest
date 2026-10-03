@@ -895,7 +895,6 @@
       "description": "Her satır bir hayvan olmalı ve sahibinin bilgileri aynı satırda yer almalı. Bir sahibin birden fazla hayvanı varsa sahibi her satırda tekrar yazın.",
       "drop": "Dosyayı buraya bırakın",
       "choose": "Bilgisayardan seçin",
-      "dropzoneLabel": "Dosya seçin veya sürükleyip bırakın",
       "formats": "Excel (.xlsx) veya CSV · en fazla 4 MB · en fazla 2.000 satır",
       "dragging": "Bırakın, okumaya başlayalım",
       "reading": "{name} okunuyor…",
@@ -987,6 +986,7 @@
       "successTitle": "Aktarma tamamlandı",
       "partialTitle": "Aktarma tamamlandı, bazı satırlar atlandı",
       "successBody": "{pets, plural, one {# hayvan} other {# hayvan}} kliniğinize eklendi.",
+      "statExisting": "Mevcut müşteriye eklenen",
       "skippedBody": "{count, plural, one {# satır aktarılmadı} other {# satır aktarılmadı}}. Raporu indirip bu satırları düzelttikten sonra aynı dosyayı yeniden yükleyebilirsiniz; zaten aktarılmış olanlar ikinci kez eklenmez.",
       "downloadReport": "Atlanan satırların raporu (.csv)",
       "reportFileName": "atlanan-satirlar.csv",
@@ -1091,9 +1091,7 @@
       "title": "Verilerinizi taşıyın",
       "body": "Müşteri ve hayvan listeniz eski programınızda ya da bir Excel dosyasında mı? Birkaç dakikada buraya aktarın; kaydetmeden önce her satırı görürsünüz.",
       "start": "Aktarmaya başla",
-      "template": "Şablonu indir",
       "dismiss": "Şimdi değil",
-      "dismissName": "Veri taşıma kartını gizle",
       "dismissed": "Kart gizlendi. Veri aktarmaya istediğiniz zaman Ayarlar'dan ulaşabilirsiniz."
     },
     "settingsCard": {
