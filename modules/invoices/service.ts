@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { conflict, notFound, validationFailed } from "@/lib/errors";
 import { withAudited, writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
+import { msg } from "@/lib/forms";
+import { formatMoney } from "@/lib/format";
 import type { ActionContext } from "@/lib/action";
+import type { Prisma } from "@/generated/prisma/client";
 import type { InvoiceInput, PaymentInput } from "./schema";
 
 function lineTotals(lines: InvoiceInput["lines"]) {
@@ -75,72 +78,213 @@ export async function createInvoice(input: InvoiceInput, ctx: ActionContext) {
   );
 }
 
-export async function recordPayment(input: PaymentInput, ctx: ActionContext) {
+/**
+ * A serializable transaction, run again when Postgres could not order it
+ * against a concurrent one (P2034).
+ *
+ * The retry is what turns a race into the right answer instead of an error
+ * page: of two payments that each fit the balance on their own, the second
+ * is re-run after the first has committed, sees the smaller balance, and is
+ * refused with the amount that is actually left.
+ */
+async function serializable<T>(
+  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await prisma.$transaction(fn, { isolationLevel: "Serializable" });
+    } catch (error) {
+      const code = (error as { code?: unknown } | null)?.code;
+      if (code !== "P2034" || attempt >= 2) throw error;
+    }
+  }
+}
+
+/** The payments that count towards an invoice: every one not voided. */
+async function paidCents(tx: Prisma.TransactionClient, invoiceId: string) {
+  const sum = await tx.payment.aggregate({
+    where: { invoiceId, voidedAt: null },
+    _sum: { amountCents: true },
+  });
+  return sum._sum.amountCents ?? 0;
+}
+
+/**
+ * `locale` is the one the amount was typed in. It is used only to word the
+ * refusal: the remaining balance is told back in the invoice's own currency,
+ * so the person sees at once which digit was one too many.
+ */
+export async function recordPayment(
+  input: PaymentInput,
+  ctx: ActionContext,
+  locale: string,
+) {
   requirePermission(ctx.userRole, "payments.write");
 
   // Tenant check before opening the (more expensive) serializable
   // transaction — keeps unauthorised lookups cheap.
   const guard = await prisma.invoice.findFirst({
     where: { id: input.invoiceId, clinicId: ctx.clinicId },
-    select: { id: true, totalCents: true, status: true },
+    select: { id: true },
   });
   if (!guard) throw notFound("invoice", input.invoiceId);
 
-  // Serializable ensures concurrent payments compute paidSoFar against
-  // the post-insert truth, not a stale snapshot. Postgres will retry /
-  // serialize, so the invoice status reflects the actual sum of payments.
-  const payment = await prisma.$transaction(
-    async (tx) => {
-      const created = await tx.payment.create({
-        data: {
-          invoiceId: input.invoiceId,
-          amountCents: input.amount,
-          method: input.method,
-          reference: input.reference,
-          notes: input.notes,
+  // The balance is read inside the same serializable transaction as the
+  // insert. Read before it, two payments taken at the same moment would
+  // each see the whole balance and both be accepted.
+  return serializable(async (tx) => {
+    const invoice = await tx.invoice.findFirst({
+      where: { id: input.invoiceId, clinicId: ctx.clinicId },
+      select: { totalCents: true, currency: true, status: true },
+    });
+    if (!invoice) throw notFound("invoice", input.invoiceId);
+    if (invoice.status === "VOID") throw conflict("error.conflict.invoiceVoided");
+
+    const paidBefore = await paidCents(tx, input.invoiceId);
+    const remaining = invoice.totalCents - paidBefore;
+    // Refused, never trimmed to fit: "1,234.56" on a 222.22 invoice is a
+    // typo, and quietly recording 222.22 instead would hide it a second time.
+    if (input.amount > remaining) {
+      throw validationFailed({
+        amount: [
+          remaining > 0
+            ? msg("error.form.paymentOverBalance", {
+                remaining: formatMoney(locale, remaining, invoice.currency),
+              })
+            : msg("error.form.paymentNothingOwed"),
+        ],
+      });
+    }
+
+    const created = await tx.payment.create({
+      data: {
+        invoiceId: input.invoiceId,
+        amountCents: input.amount,
+        method: input.method,
+        reference: input.reference,
+        notes: input.notes,
+      },
+    });
+
+    const paidSoFar = paidBefore + input.amount;
+    const newStatus = paidSoFar >= invoice.totalCents ? "PAID" : "PARTIAL";
+
+    await tx.invoice.update({
+      where: { id: input.invoiceId },
+      data: {
+        status: newStatus,
+        paidAt: newStatus === "PAID" ? new Date() : null,
+      },
+    });
+
+    await writeAudit(
+      {
+        clinicId: ctx.clinicId,
+        actorId: ctx.userId,
+        action: "UPDATE",
+        entityType: "Invoice",
+        entityId: input.invoiceId,
+        changes: {
+          paymentId: created.id,
+          paymentAmount: input.amount,
+          paidSoFar,
+          newStatus,
         },
-      });
+      },
+      tx,
+    );
 
-      const sum = await tx.payment.aggregate({
-        where: { invoiceId: input.invoiceId },
-        _sum: { amountCents: true },
-      });
-      const paidSoFar = sum._sum.amountCents ?? 0;
+    return created;
+  });
+}
 
-      let newStatus = guard.status;
-      if (paidSoFar >= guard.totalCents) newStatus = "PAID";
-      else if (paidSoFar > 0) newStatus = "PARTIAL";
+/**
+ * Takes back a payment that was recorded by mistake.
+ *
+ * Voided, not deleted: the row stays, struck through on the invoice, with
+ * who took it back and when, because "an amount was entered and then
+ * withdrawn" is itself part of the invoice's history. The correction for a
+ * wrong amount is to void it and record the right one.
+ *
+ * Gated by `payments.write`, the permission that recorded it: whoever can
+ * make the mistake at the till is the person who notices it there, and
+ * sending them to an administrator to fix a typo is how typos stay.
+ *
+ * The invoice's status is worked out again from the payments that still
+ * count, in the same serializable transaction, for the reason
+ * `recordPayment` reads its balance there. With nothing left paid it goes
+ * back to SENT rather than to whatever it was before the first payment: an
+ * invoice someone has paid against has been issued. A voided invoice keeps
+ * its status; voiding a payment does not bring it back.
+ *
+ * Voiding twice is a no-op, not an error: two people correcting the same
+ * mistake at once have both got what they asked for.
+ */
+export async function voidPayment(
+  paymentId: string,
+  ctx: ActionContext,
+  reason?: string | null,
+) {
+  requirePermission(ctx.userRole, "payments.write");
 
+  return serializable(async (tx) => {
+    const payment = await tx.payment.findFirst({
+      where: { id: paymentId, invoice: { clinicId: ctx.clinicId } },
+      select: {
+        id: true,
+        invoiceId: true,
+        amountCents: true,
+        voidedAt: true,
+        invoice: { select: { totalCents: true, status: true, paidAt: true } },
+      },
+    });
+    if (!payment) throw notFound("payment", paymentId);
+    if (payment.voidedAt) return { invoiceId: payment.invoiceId };
+
+    const voidReason = reason?.trim().slice(0, 500) || null;
+    await tx.payment.update({
+      where: { id: paymentId },
+      data: { voidedAt: new Date(), voidedById: ctx.userId, voidReason },
+    });
+
+    const { invoice } = payment;
+    const paidSoFar = await paidCents(tx, payment.invoiceId);
+    let newStatus = invoice.status;
+    let paidAt = invoice.paidAt;
+    if (invoice.status !== "VOID") {
+      if (paidSoFar >= invoice.totalCents) {
+        newStatus = "PAID";
+      } else {
+        newStatus = paidSoFar > 0 ? "PARTIAL" : "SENT";
+        paidAt = null;
+      }
       await tx.invoice.update({
-        where: { id: input.invoiceId },
-        data: {
-          status: newStatus,
-          paidAt: newStatus === "PAID" ? new Date() : null,
-        },
+        where: { id: payment.invoiceId },
+        data: { status: newStatus, paidAt },
       });
+    }
 
-      await writeAudit(
-        {
-          clinicId: ctx.clinicId,
-          actorId: ctx.userId,
-          action: "UPDATE",
-          entityType: "Invoice",
-          entityId: input.invoiceId,
-          changes: {
-            paymentAmount: input.amount,
-            paidSoFar,
-            newStatus,
-          },
+    await writeAudit(
+      {
+        clinicId: ctx.clinicId,
+        actorId: ctx.userId,
+        action: "UPDATE",
+        entityType: "Invoice",
+        entityId: payment.invoiceId,
+        changes: {
+          voidedPaymentId: paymentId,
+          paymentAmount: payment.amountCents,
+          voidReason,
+          paidSoFar,
+          previousStatus: invoice.status,
+          newStatus,
         },
-        tx,
-      );
+      },
+      tx,
+    );
 
-      return created;
-    },
-    { isolationLevel: "Serializable" },
-  );
-
-  return payment;
+    return { invoiceId: payment.invoiceId };
+  });
 }
 
 /**

@@ -120,6 +120,9 @@ export default async function VisitsPage({
             rows={result.items}
             rowKey={(v) => v.id}
             caption={t("title")}
+            // 445px of columns in a 292px phone container; the amount was
+            // the one past the edge. Stacked, it rides with the date.
+            narrow="stack"
             columns={[
               {
                 key: "visitedAt",

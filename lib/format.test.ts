@@ -10,8 +10,6 @@ import {
   relativeTime,
   initials,
   petAge,
-  sexLabel,
-  speciesLabel,
   toDateInput,
   toDateTimeInput,
   wallTimeToInstant,
@@ -46,30 +44,6 @@ describe("currencySymbol", () => {
     expect(formatMoney("en", 1150, "USD")).toContain(
       currencySymbol("en", "USD"),
     );
-  });
-});
-
-describe("speciesLabel", () => {
-  it("maps known species to friendly labels", () => {
-    expect(speciesLabel("DOG")).toBe("Dog");
-    expect(speciesLabel("CAT")).toBe("Cat");
-    expect(speciesLabel("REPTILE")).toBe("Reptile");
-  });
-
-  it("falls back to the raw value for unknown species", () => {
-    expect(speciesLabel("DRAGON")).toBe("DRAGON");
-  });
-});
-
-describe("sexLabel", () => {
-  it("maps known values", () => {
-    expect(sexLabel("MALE")).toBe("Male");
-    expect(sexLabel("FEMALE")).toBe("Female");
-    expect(sexLabel("UNKNOWN")).toBe("Unknown");
-  });
-
-  it("falls back to the raw value", () => {
-    expect(sexLabel("OTHER")).toBe("OTHER");
   });
 });
 

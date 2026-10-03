@@ -341,6 +341,8 @@ export default async function AppointmentsPage({
                 key: "phone",
                 header: t("phone"),
                 hideBelow: "md",
+                // A phone number is one token; see `/clients`.
+                cellClassName: "whitespace-nowrap",
                 cell: (a) => {
                   const dial = telHref(a.client.phone);
                   if (!a.client.phone)

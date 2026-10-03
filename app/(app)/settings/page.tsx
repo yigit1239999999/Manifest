@@ -1,4 +1,6 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
+import { FileSpreadsheet } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
@@ -38,9 +40,10 @@ export default async function SettingsPage() {
   const session = await requireSession();
   if (!can(session.user.role, "settings.manage")) return <ForbiddenState />;
 
-  const [t, tSpecies, enabled, customs, profile, clinic, invoiceCount] =
+  const [t, tImport, tSpecies, enabled, customs, profile, clinic, invoiceCount] =
     await Promise.all([
       getTranslations("settings"),
+      getTranslations("import"),
       getTranslations("enum.species"),
       getEnabledSpecies(session.user.clinicId),
       listCustomSpeciesWithUsage(session.user.clinicId),
@@ -48,7 +51,18 @@ export default async function SettingsPage() {
       getClinicSettings(session.user.clinicId),
       countClinicInvoices(session.user.clinicId),
     ]);
-  if (!profile || !clinic) redirect("/");
+  // Both are the clinic row itself, read twice; neither is a profile the
+  // clinic has yet to fill in. A user is deleted with their clinic
+  // (`onDelete: Cascade`) and the `jwt` callback in `lib/auth.ts` drops a
+  // token whose user is gone, so `requireSession` has already sent anyone
+  // without a clinic to sign-in. Getting here means the row vanished
+  // between those two reads. That is broken data, not a setup step, and
+  // there is nothing to set up: say so through the section's error
+  // boundary, which keeps the shell and reports it, rather than moving the
+  // user to the dashboard as if they had clicked the wrong link.
+  if (!profile || !clinic) {
+    throw new Error(`Clinic ${session.user.clinicId} not found`);
+  }
 
   const channel = profile.notifications.channel;
   const configured = isChannelConfigured(channel);
@@ -86,6 +100,22 @@ export default async function SettingsPage() {
             currency={clinic.currency}
             invoiceCount={invoiceCount}
           />
+        </CardContent>
+      </Card>
+
+      {/* Second, because a clinic arrives here in its first week with its
+          records still somewhere else. It is also the way back in after
+          the dashboard's card has been dismissed, so it is always here. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{tImport("settingsCard.title")}</CardTitle>
+          <CardDescription>{tImport("settingsCard.hint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/settings/import" className={buttonVariants({ variant: "secondary" })}>
+            <FileSpreadsheet aria-hidden="true" />
+            {tImport("settingsCard.action")}
+          </Link>
         </CardContent>
       </Card>
 

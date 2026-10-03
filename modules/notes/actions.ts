@@ -11,7 +11,7 @@ export const createNoteAction = action(
     const parsed = parse(noteSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
-    const note = await createNote(parsed.data, ctx);
+    await createNote(parsed.data, ctx);
     return { success: true };
   },
 );

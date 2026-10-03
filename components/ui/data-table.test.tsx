@@ -109,6 +109,103 @@ describe("DataTable", () => {
     });
   });
 
+  describe("stacking on a narrow container", () => {
+    // The invoice list at 390px: 485px of table in 292px of container, and
+    // the two columns cut off were the total and the status. Stacking puts
+    // the row's name, its amount and its status on the first line.
+    type Invoice = { id: string; no: string; client: string; total: string; status: string };
+    const invoices: Invoice[] = [
+      { id: "a", no: "#1042", client: "Ayşe Yılmaz", total: "1.200,00 ₺", status: "Kısmen ödendi" },
+    ];
+    const invoiceColumns: Column<Invoice>[] = [
+      { key: "no", header: "No", cell: (r) => r.no },
+      { key: "client", header: "Müşteri", cell: (r) => r.client },
+      { key: "total", header: "Toplam", numeric: true, cell: (r) => r.total },
+      { key: "status", header: "Durum", stack: "meta-end", cell: (r) => r.status },
+    ];
+    const stacked = (narrow?: "scroll" | "stack") =>
+      render(
+        <DataTable
+          rows={invoices}
+          rowKey={(r) => r.id}
+          columns={invoiceColumns}
+          narrow={narrow}
+        />,
+      );
+    const cell = (container: HTMLElement, text: string) =>
+      [...container.querySelectorAll("tbody td")].find(
+        (td) => td.textContent === text,
+      )!;
+    const classes = (el: Element) => el.className.split(/\s+/);
+
+    it("puts the amount on the first line, at the end", () => {
+      // A numeric column needs no `stack` of its own to get there.
+      const td = cell(stacked("stack").container, "1.200,00 ₺");
+      expect(classes(td)).toEqual(
+        expect.arrayContaining(["@max-lg:ms-auto", "@max-lg:shrink-0"]),
+      );
+      expect(td.className).not.toMatch(/@max-lg:order-/);
+    });
+
+    it("closes the second line with the status", () => {
+      const { container } = stacked("stack");
+      const status = cell(container, "Kısmen ödendi");
+      expect(classes(status)).toEqual(
+        expect.arrayContaining([
+          "@max-lg:order-3",
+          "@max-lg:ms-auto",
+          "@max-lg:shrink-0",
+        ]),
+      );
+      // The client is on the same line, before it.
+      expect(classes(cell(container, "Ayşe Yılmaz"))).toContain(
+        "@max-lg:order-2",
+      );
+    });
+
+    it("does not let the title be squeezed to make room", () => {
+      // `flex-1` let "#INV-2026-57336" shrink to nothing and break at its
+      // hyphens. The `end` cell moves down a line instead.
+      const title = cell(stacked("stack").container, "#1042");
+      expect(classes(title)).toContain("@max-lg:min-w-0");
+      expect(classes(title)).not.toContain("@max-lg:flex-1");
+      expect(title.className).not.toMatch(/@max-lg:order-/);
+    });
+
+    it("keeps the figures figures once stacked", () => {
+      // The desktop table must not lose its alignment to gain the cards.
+      const td = cell(stacked("stack").container, "1.200,00 ₺");
+      expect(classes(td)).toEqual(
+        expect.arrayContaining(["tabular-nums", "text-end"]),
+      );
+    });
+
+    it("measures its own container, not the screen", () => {
+      // The sidebar widens at `md`, so the screen grows while the table
+      // shrinks; a screen breakpoint would undo the cards at 768px.
+      const { container } = stacked("stack");
+      expect(classes(container.firstElementChild!)).toContain("@container");
+      const row = container.querySelector("tbody tr")!;
+      expect(classes(row)).toContain("@max-lg:flex");
+      expect(row.className).not.toMatch(/(^|\s)(sm|md|lg):flex\b/);
+    });
+
+    it("keeps the column names for screen readers", () => {
+      // The header row is off the screen once stacked, not gone: it is
+      // what names each cell.
+      const { container } = stacked("stack");
+      expect(classes(container.querySelector("thead")!)).toContain(
+        "@max-lg:sr-only",
+      );
+      expect(screen.getAllByRole("columnheader")).toHaveLength(4);
+    });
+
+    it("leaves a table that does not ask for it alone", () => {
+      const { container } = stacked();
+      expect(container.innerHTML).not.toContain("@max-lg:");
+    });
+  });
+
   it("aligns with logical direction utilities only", () => {
     // TEAM.md #31: `text-right` on a money column is the exact case.
     const { container } = table();

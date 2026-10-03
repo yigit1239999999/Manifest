@@ -11,7 +11,7 @@ export const createDiagnosticAction = action(
     const parsed = parse(diagnosticSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
-    const diagnostic = await createDiagnostic(parsed.data, ctx);
+    await createDiagnostic(parsed.data, ctx);
     return { success: true };
   },
 );

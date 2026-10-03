@@ -132,6 +132,24 @@ const archive = {
   archived: "quiet",
 } satisfies Record<"archived", StatusTone>;
 
+// A spreadsheet row in the import preview (`modules/import/analyze.ts`).
+// Not a Prisma enum, and mapped here anyway for the reason `staff` is: a
+// coloured pill always means status, and the preview must not grow its
+// own palette beside this one.
+const importRow = {
+  // Most rows, so neutral: a preview of three hundred green pills would
+  // say nothing about the four that matter.
+  ready: "neutral",
+  // Goes in, and something about it is worth reading first.
+  warning: "attention",
+  // Stays out unless the clinic acts. Not `danger`: nothing on our side
+  // failed, the file says something we will not guess at. The label
+  // ("Atlanacak") is what tells it apart from a warning.
+  error: "attention",
+  // Stays out because it is already there: nothing lost, nothing to do.
+  duplicate: "quiet",
+} satisfies Record<"ready" | "warning" | "error" | "duplicate", StatusTone>;
+
 const tones = {
   appointment,
   invoice,
@@ -140,6 +158,7 @@ const tones = {
   prescription,
   staff,
   archive,
+  importRow,
 } as const;
 
 export type StatusKind = keyof typeof tones;

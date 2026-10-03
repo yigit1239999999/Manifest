@@ -120,15 +120,3 @@ export async function upcomingAppointments(clinicId: string, take = PAGE_SIZES.P
     },
   });
 }
-
-export async function countUpcomingAppointments(clinicId: string) {
-  return prisma.appointment.count({
-    where: {
-      clinicId,
-      pet: { archivedAt: null },
-      client: { archivedAt: null },
-      startsAt: { gte: new Date() },
-      status: { in: ["SCHEDULED", "CONFIRMED"] },
-    },
-  });
-}
