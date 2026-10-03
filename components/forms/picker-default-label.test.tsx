@@ -6,7 +6,6 @@ import tr from "@/messages/tr.json";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/modules/visits/actions", () => ({
-  createVisitAction: async () => ({}),
   updateVisitAction: async () => ({}),
 }));
 vi.mock("@/modules/appointments/actions", () => ({
@@ -66,7 +65,9 @@ describe("a record the picker's list does not contain", () => {
     const { container } = wrap(
       <VisitForm
         visit={{ id: "v-1", petId: "p-87", vetId: "u-1" } as never}
-        pets={[{ id: "p-1", name: "Karabaş" }]}
+        pets={[
+          { id: "p-1", name: "Karabaş", ownerId: "c-1", ownerName: "Ayşe Yılmaz" },
+        ]}
         petsCapped
         vets={VETS}
         defaultPetLabel="Boncuk"
@@ -81,7 +82,7 @@ describe("a record the picker's list does not contain", () => {
     wrap(
       <AppointmentForm
         appointment={{ id: "a-1", petId: "p-87", vetId: "u-1" } as never}
-        pets={[{ id: "p-1", name: "Karabaş" }]}
+        pets={[{ id: "p-1", name: "Karabaş", ownerName: "Ayşe Yılmaz" }]}
         petsCapped
         vets={VETS}
         defaultPetLabel="Boncuk"

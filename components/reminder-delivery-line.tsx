@@ -1,4 +1,11 @@
-import { AlertCircle, BellOff, Check, CheckCheck, Clock } from "lucide-react";
+import {
+  AlertCircle,
+  BellOff,
+  Check,
+  CheckCheck,
+  Clock,
+  CopyCheck,
+} from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { formatDateTime } from "@/lib/format";
@@ -113,6 +120,15 @@ export const REMINDER_DELIVERY_STATES = [
   "notConfigured",
   /** The reminder names an animal that has died or been archived. */
   "petSilenced",
+  /**
+   * No message of its own, because an identical one had already gone.
+   *
+   * Two reminders for one animal on one day compose the same SMS -- the
+   * text is built from owner, animal, type and day, and never reads the
+   * title. So the owner was told; this reminder simply did not produce a
+   * second copy of the telling. Not a failure, and not silence either.
+   */
+  "duplicateSuppressed",
 ] as const;
 
 export type ReminderDeliveryStateName =
@@ -131,10 +147,10 @@ export type ReminderDeliveryStateName =
 export type ReminderDeliveryLineProps =
   | { state: "scheduled"; sendAt: Date; channel: string }
   | { state: "dueNow"; channel: string }
-  | { state: "delivered"; at: Date; channel: string }
-  | { state: "awaitingReport"; at: Date; channel: string }
-  | { state: "undelivered"; at: Date; channel: string }
-  | { state: "reportExpired"; at: Date; channel: string }
+  | { state: "delivered"; at: Date; channel: string; testMode?: boolean }
+  | { state: "awaitingReport"; at: Date; channel: string; testMode?: boolean }
+  | { state: "undelivered"; at: Date; channel: string; testMode?: boolean }
+  | { state: "reportExpired"; at: Date; channel: string; testMode?: boolean }
   | {
       state: "sent";
       at: Date;
@@ -143,11 +159,19 @@ export type ReminderDeliveryLineProps =
        * The channel is wired to the `log` transport, so the message was
        * written to a file and handed to nobody.
        *
-       * "Sent" already means only "the provider accepted it", which is one
-       * step short of "it arrived". In log mode we are a step below that
-       * again: no provider ever saw it. The word would be claiming a
-       * guarantee we hold no part of, and the distinction disappears on
-       * its own the day a real provider is connected.
+       * It does NOT replace the sentence, and that was my first answer
+       * and the wrong one. `logTransport` answers with a synthetic
+       * delivery report, so a row can reach `delivered` with nothing
+       * having gone out -- but collapsing all five states into one
+       * test-mode sentence removes the only place those five can be
+       * seen at all, since there is no provider account in production
+       * (dev). Silence is not cheaper than a lie; we decided that
+       * today, repeatedly, and then I reached for it anyway.
+       *
+       * So both facts are said. The claim is true of what happened --
+       * a provider was asked and answered -- and the note says what
+       * kind of provider that was. It disappears on its own the day a
+       * real one is connected.
        */
       testMode?: boolean;
     }
@@ -158,7 +182,8 @@ export type ReminderDeliveryLineProps =
   | { state: "neverAsked" }
   | { state: "noPhone" }
   | { state: "notConfigured"; channel: string }
-  | { state: "petSilenced" };
+  | { state: "petSilenced" }
+  | { state: "duplicateSuppressed"; at: Date; channel: string };
 
 /**
  * Three weights, and the middle one is the point of the screen.
@@ -207,9 +232,12 @@ export const WEIGHT: Record<ReminderDeliveryStateName, keyof typeof TONE> = {
   // is stale work that will never finish on its own, and the only way it
   // leaves the list is somebody closing it.
   petSilenced: "attention",
+  // Nothing to do: the owner has the message, just not twice. Saying so
+  // is worth a line; asking for attention is not.
+  duplicateSuppressed: "quiet",
 };
 
-const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
+export const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
   scheduled: Clock,
   dueNow: Clock,
   sent: Check,
@@ -227,6 +255,20 @@ const MARK: Record<ReminderDeliveryStateName, typeof Clock> = {
   noPhone: BellOff,
   notConfigured: BellOff,
   petSilenced: BellOff,
+  // A fifth mark, and the only state that earns one.
+  //
+  // It shared `BellOff` with the four blocked states, and pm was right
+  // that the two pull apart: `BellOff` says "nothing will reach this
+  // owner", and here something did -- from the twin. A mark names the
+  // CLASS of outcome, and this is a result rather than an obstacle, so
+  // sharing the obstacle mark put it in the wrong family at a glance
+  // while its own sentence said the opposite.
+  //
+  // `CopyCheck` and not `Copy`: `Copy` already means "copy this
+  // message to the clipboard" two screens away, and one picture may
+  // not mean two things. The tick is the half that matters -- a
+  // duplicate, and it was handled.
+  duplicateSuppressed: CopyCheck,
 } as const;
 
 export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
@@ -271,18 +313,20 @@ export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
           channel: props.channel,
         });
       case "sent":
-        return t(props.testMode ? "sentTestMode" : "sent", {
-          at: formatDateTime(fmt, props.at),
-          channel: props.channel,
-        });
       case "delivered":
       case "awaitingReport":
       case "undelivered":
-      case "reportExpired":
-        return t(props.state, {
+      case "reportExpired": {
+        const said = t(props.state, {
           at: formatDateTime(fmt, props.at),
           channel: props.channel,
         });
+        // The note goes FIRST, and that is the load-bearing part. It
+        // cannot wrap away from the claim it qualifies, and nobody
+        // reading left to right meets "arrived" before meeting the
+        // thing that makes it true.
+        return props.testMode ? `${t("testModeNote")} ${said}` : said;
+      }
       // The provider's own words never reach the row. `MessageLog.error`
       // holds raw transport text -- Netgsm answers things like "30 -
       // Hatalı kullanıcı adı" -- and a vet reading a row should not have
@@ -315,6 +359,11 @@ export async function ReminderDeliveryLine(props: ReminderDeliveryLineProps) {
         return t(props.state);
       case "notConfigured":
         return t("notConfigured", { channel: props.channel });
+      case "duplicateSuppressed":
+        return t("duplicateSuppressed", {
+          at: formatDateTime(fmt, props.at),
+          channel: props.channel,
+        });
     }
   }
 }

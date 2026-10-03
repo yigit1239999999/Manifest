@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 // `outline-color`'s initial value, `currentColor`, can.
 //
 // Worth knowing before measuring this, because it cost the team a cycle:
-// `transition-colors` includes `outline-color` in Tailwind v4, so on
+// `transition-colors-no-focus-delay` includes `outline-color` in Tailwind v4, so on
 // focus the mark animates from `currentColor` to `--ring` over 150ms.
 // Read straight after `.focus()` and every variant in every theme
 // reports `currentColor` — on a primary button that is 1.09 against the
@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils";
 // focus ring and is really a clock. Settled values are 7.62 and 5.21.
 // Any measurement of this property has to wait for the transition.
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-medium transition-colors-no-focus-delay focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -66,6 +66,27 @@ export interface ButtonProps
 
 export function Button({ className, variant, size, ...props }: ButtonProps) {
   return (
-    <button className={cn(buttonVariants({ variant, size }), className)} {...props} />
+    <button
+      // `type="button"` unless the caller asks otherwise, because the
+      // browser's default is `submit` and that only shows itself inside
+      // a form: a button added to do something small -- clear a field,
+      // add a line, expand a section -- submits the form instead, and
+      // the report is "the form saved when I clicked X" rather than
+      // anything about a button.
+      //
+      // Counted before changing it, because the size of the problem
+      // decides the fix: nine call sites outside this file, and eight
+      // already pass a type by hand. The ninth is `error-state.tsx`,
+      // which sits in an error boundary with no form around it, so
+      // nothing in the product misbehaves today. What this removes is
+      // the tenth call site -- the one that will be written inside a
+      // form by somebody who does not know the default.
+      //
+      // Before the spread, so a caller that needs `submit` still wins:
+      // `submit-button.tsx` and the topbar's search both pass it.
+      type="button"
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...props}
+    />
   );
 }

@@ -20,10 +20,25 @@ import {
 } from "@/modules/appointments/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import { searchPetsAction } from "@/modules/pets/actions";
+import { petRowCaption, petRowLabel } from "@/lib/pet-label";
 
 interface Props {
   appointment?: Appointment;
-  pets: Pick<Pet, "id" | "name">[];
+  /** The owner travels with the animal: see `lib/pet-label.ts`. */
+  pets: (Pick<Pet, "id" | "name"> & {
+    ownerName: string;
+    /**
+     * What this animal is, in the reader's language, and when it was
+     * last seen -- both already put into words by the page, because
+     * only the server has the catalogues and the clinic's time zone.
+     *
+     * The picker row shows them beside the name and under it: the vet
+     * is looking at the animal while they choose, so the species is
+     * what eliminates at a glance (`petRowLabel`).
+     */
+    speciesLabel?: string | null;
+    lastSeen?: string | null;
+  })[];
   /** See `InvoiceForm`: true when the list was cut off at its cap. */
   petsCapped?: boolean;
   vets: Pick<User, "id" | "name">[];
@@ -39,6 +54,18 @@ interface Props {
    * empty over a hidden input that is not.
    */
   defaultPetLabel?: string;
+  /**
+   * The signed-in user, when they are somebody an appointment may be
+   * booked against. Absent for everyone else, and absent is not a
+   * fallback: "not recorded" is a better answer than a name nobody
+   * chose.
+   *
+   * The same prop, the same word and the same rule as `VisitForm`.
+   * They were two forms behaving two ways in one clinic -- the visit
+   * opened with the vet's own name and the appointment opened empty --
+   * and a reader cannot tell a deliberate difference from an oversight.
+   */
+  defaultVetId?: string;
 }
 
 export function AppointmentForm({
@@ -48,13 +75,20 @@ export function AppointmentForm({
   vets,
   defaultPetId,
   defaultPetLabel,
+  defaultVetId,
 }: Props) {
   const petOptions = useMemo(
-    () => pets.map((p) => ({ value: p.id, label: p.name })),
+    () =>
+      pets.map((p) => ({
+        value: p.id,
+        label: petRowLabel(p.name, p.speciesLabel),
+        caption: petRowCaption(p.ownerName, p.lastSeen),
+      })),
     [pets],
   );
   const t = useTranslations("appointment");
   const tCommon = useTranslations("common");
+  const tStaff = useTranslations("staff");
   const tType = useTranslations("enum.visitType");
   const tStatus = useTranslations("enum.appointmentStatus");
   const tPet = useTranslations("pet");
@@ -72,7 +106,13 @@ export function AppointmentForm({
   );
 
   return (
-    <ActionForm form={form} className="flex flex-col gap-4">
+    <ActionForm
+      form={form}
+      focusFirstEmpty={Boolean(defaultPetId)}
+      className="flex flex-col gap-4"
+    >
+      {/* Part-filled arrivals only: the chain a new clinic walks, or a
+          deep link from a record's own page. See `focusFirstEmpty`. */}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={tPet("one")} error={state.fieldErrors?.petId} required>
@@ -145,11 +185,20 @@ export function AppointmentForm({
       </div>
 
       <Field label={t("vet")} error={state.fieldErrors?.vetId}>
-        <Select name="vetId" defaultValue={appointment?.vetId ?? ""}>
+        {/* Only a new appointment takes the default: on an edit the
+            field already says who it was booked with, and a blank
+            there is a decision somebody made rather than a question
+            nobody reached. */}
+        <Select
+          name="vetId"
+          defaultValue={appointment?.vetId ?? defaultVetId ?? ""}
+        >
           <option value="">{tCommon("none")}</option>
           {vets.map((v) => (
             <option key={v.id} value={v.id}>
-              {v.name}
+              {v.id === defaultVetId
+                  ? `${v.name} ${tStaff("you")}`
+                  : v.name}
             </option>
           ))}
         </Select>

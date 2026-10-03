@@ -74,7 +74,15 @@ export async function Timeline({ events }: { events: TimelineEvent[] }) {
         <section key={gi} className="flex flex-col gap-1">
           <h3 className="sticky top-16 z-[1] -mx-2 bg-background px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {group.label}
-            <span className="ml-2 text-muted-foreground/60">
+            {/* Not `/60` on top of the heading's own `--muted-fg`, which
+                measured 2.42:1 in light and 3.42:1 in dark on the page
+                behind it -- under the 4.5 asked of text and under the
+                3:1 asked of a graphic that means something. This line
+                is read every day, on the screen a vet opens to ask what
+                happened last time. The step down it was drawing is
+                drawn by weight instead: the heading is `font-semibold`
+                and this is not. */}
+            <span className="ms-2 font-normal text-muted-foreground">
               · {relativeTime(fmt, group.events[0].at)}
             </span>
           </h3>
@@ -153,8 +161,11 @@ export async function Timeline({ events }: { events: TimelineEvent[] }) {
                         ? ` · ${formatMoney(fmt, event.totalCents, event.currency)}`
                         : ""}
                     </p>
+                    {/* Capped to a reading measure: a visit note is
+                        prose, and prose does not get wider than it can
+                        be read. */}
                     {event.summary && (
-                      <p className="whitespace-pre-wrap text-sm text-foreground/80">
+                      <p className="max-w-prose whitespace-pre-wrap text-sm text-foreground">
                         {event.summary}
                       </p>
                     )}

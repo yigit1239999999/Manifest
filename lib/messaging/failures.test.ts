@@ -11,9 +11,18 @@ describe("failureScope", () => {
     expect(failureScope("sending_limit_exceeded")).toBe("CLINIC");
   });
 
-  it("keeps the two failures that really are about one message", () => {
+  it("keeps the failure that really is about one message", () => {
     expect(failureScope("message_too_long_or_invalid")).toBe("MESSAGE");
-    expect(failureScope("duplicate_send_blocked")).toBe("MESSAGE");
+  });
+
+  // Ours, and the only scope with no sentence on any screen. The
+  // provider refuses a repeat of the same text to the same number
+  // within an hour, so it fires when WE sent twice -- nothing is wrong
+  // with the number, the clinic or the operator, and the refusal is
+  // evidence the first message was accepted. Telling a vet anything
+  // about it would send them to an owner who already has the message.
+  it("calls a repeat of our own what it is, and not the owner's fault", () => {
+    expect(failureScope("duplicate_send_blocked")).toBe("PRODUCT");
   });
 
   it("answers null rather than guessing", () => {

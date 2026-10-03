@@ -529,6 +529,165 @@ sürümünün büyüklük sırası ona bağlı, o gelene kadar tahmin üretilmey
 
 ---
 
+## P0 — hayvan seçicisi aynı adlı hayvanları ayırt ettirmiyor (21 Eylül 2026)
+
+**Sıralama gerekçesi (TEAM.md "geri alınabilirlik şiddetten önce gelir"):
+kalıcı yanlış veri.** Yanlış hayvanın dosyasına yazılan bir vizit ya da
+randevu, sürümün birinci vaadini ("yanlış bilgi görmüyor") doğrudan bozar.
+İlk akış işinin **önüne** geçti.
+
+**Hekimin cümlesi:** *"Bende üç tane Zeytin var, dört tane Pamuk. Bu istisna
+değil, **normal**. Liste bana çıktığında yanında sahibin adı ve son geliş
+tarihi olsun, ben ayırt ederim. Sadece 'Zeytin / Zeytin / Zeytin' yazan bir
+liste bana zarar verir — **yanlış dosyaya yanlış hayvanın ilacını yazarım,
+bu benim bir numaralı korkum.**"*
+
+**Kod:** `components/forms/visit-form.tsx:54` ve
+`components/forms/appointment-form.tsx:52` seçenek etiketini **yalnız
+`p.name`** yapıyor.
+
+**Doğrusu aynı kod tabanında İKİ yerde zaten yazılı** — bu yüzden üçüncü bir
+tanım değil, var olanın ortaklaşması: `components/forms/reminder-form.tsx:182`
+(`${p.name} · ${p.ownerName}`, ve müşteri zaten seçiliyse sahibi **düşüren**
+koşuluyla — *"her satır aynı adı taşır, bu gürültüdür, teyit değil"*), ve
+`modules/pets/actions.ts:127` (arama yolu).
+
+**Ve asıl bulgu bu ikisinin BİRLİKTE ürettiği şey:** **aynı seçici, kliniğin
+büyüklüğüne göre iki farklı etiket gösteriyor.** Liste `PAGE_SIZES.DROPDOWN`
+sınırının altındaysa seçenekler `pets`'ten geliyor ve sahip **yok**; sınır
+aşılıp `onSearch` devreye girince `searchPetsAction`'dan geliyor ve sahip
+**var**. Ayırt etme imkânı klinik büyüdükçe kendiliğinden açılıyor; küçük
+klinikte hiç yok.
+
+**Veri zaten çekiliyor ve atılıyor:** `modules/pets/queries.ts:68` `listPets`
+`owner`'ı `include` ediyor; `app/(app)/visits/new/page.tsx:40` onu
+`({ id: p.id, name: p.name })` diye kırpıyor. Yeni sorgu gerekmiyor.
+
+**Kapsam kesimi (ana oturum yaptı, ux onayına açık):** hekimin istediği **son
+geliş tarihi** bu işe alınmadı — ayrı sorgu, ayrı ölçü. Sahip adı riski
+kapatıyor. ux itiraz ederse geri alınır.
+
+**Süreç notu, kendi hatam:** bu iş `dev`'e verilirken `ux`'e söylenmedi.
+TEAM.md "UX önce gelir" (b) maddesi: *kullanıcıya görünen bir şey değişiyorsa
+ux **sonradan değil** haberdar edilir.* Etiket bir tasarım kararıdır; aynı tur
+içinde düzeltildi ve karar ux'e devredildi.
+
+## Açık, bu turda peşine düşülmeyen — resepsiyon yorumu yazınca KAYIT TAMAMEN DÜŞÜYOR
+
+pm ölçtü (yalıtılmış bağlam, `b145174`). Resepsiyonist tanı formundaki
+**"Değerlendirme"** alanını **görüyor ve doldurabiliyor**; ret ancak
+**Kaydet'ten sonra** geliyor — ve **kaydın tamamı düşüyor**, yalnız yorum
+değil **yazdığı sonuç metni de.** pm deneyle ayırdı: aynı form yorumsuz
+**kaydediyor**, yorumlu **hiçbir şey** kaydetmiyor.
+
+Yani *"tehlikeli yarısı ayrı kapıda"* iddiası yarı doğru: **kapı var ama işin
+arkasında.** Dış laboratuvardan gelen raporu yapıştırıp bir cümle yazan
+resepsiyonist ikisini birden kaybediyor.
+
+Yanında iki küçük bulgu: hata mesajı **iç anahtarı sızdırıyor**
+(*"(diagnostics.interpret)"*, Türkçe arayüzde), ve **samimi dilde** —
+*"yetkin yok"*, ürünün geri kalanı "siz" diyor.
+
+**Bu turda AÇILMADI**, çünkü kullanıcı ilk akışın derinlemesine bitirilmesini
+istedi. Kaybolmasın diye burada; ilk akıştan sonraki ilk kalem.
+
+## İlk gelen klinik — akış açıldı (kullanıcı onayı, 21 Eylül 2026)
+
+Kullanıcı açıkça istedi: *"ilk gelen bir klinik nasıl bir akışı olacak. çok
+güzel olmalı."*
+
+> **29b (klinik telefonu/adresi) bu akışa GİRMİYOR, ve gerekçesi ölçüldü.**
+> Ana oturum önce *"yeni kliniğin gönderdiği ilk mesajın imzası telefonsuz
+> gidiyor"* diye yazmıştı; **yanlıştı.** Yeni klinikte
+> `notifications.whatsapp.enabled` **`null`** (`modules/notifications/settings.ts:64-70`),
+> yani **ilk gün dışarı tek mesaj çıkmıyor** — zarar ilk günde değil,
+> **anahtarın açıldığı anda** doğuyor. `countryCallingCode` fallback'i `"90"`
+> da Türkiye ürünü için kusur değil, doğru varsayılan (`settings.ts:146`).
+> value kodla gösterdi; hekim bağımsız olarak aynı yeri işaret etti:
+> *"o bilgiye ihtiyacım olduğu ilk an dışarı bir şey çıktığı an — ilk mesajı
+> göndermeye kalktığımda bana sorun, orada doldurayım. Baştan sorarsanız
+> formu doldurur geçerim ama aklımda kalmaz, sonra yanlış numara mesajlarda
+> gezer."* **Alanın doğru kapısı kayıt formu değil, mesajlaşma anahtarının
+> açıldığı an.** Onay kapısı geçildi, iş açıldı. Ana oturum 3001'de gerçek bir
+kayıt yapıp ölçtü; ux kodla ölçtü; vet saha tarafını verdi; value ürün
+kararını yazdı. Aşağısı o üçünün kesiştiği yer — **tartışma kapandı, sonraki
+okuyan baştan açmasın.**
+
+**Asıl bulgu, ve ilk sanılan şey değil.** Sorun "yeni klinik nereden
+başlayacağını bilmiyor" değil: **düğmeler ters yere konmuş.**
+`/appointments`, `/visits`, `/invoices` "ilk kaydı oluştur" düğmesi veriyor
+ve **üçü de ilk gün basılamaz** (hayvan/müşteri yok, form boş seçicilerle
+açılıyor ve sebebini söylemiyor). Zincirin kökü olan `/clients` ise **hiç
+düğme vermiyor.** Ön koşul koruması dört `/new` rotasının **birinde** var
+(`app/(app)/pets/new/page.tsx:69-78`). 34 `EmptyState` çağrısının ~11'i eylem
+taşıyor ve **çoğu "filtreyi temizle"** — yani zaten verisi olana hizmet
+ediyor, yeni klinikte hiç doğmuyor.
+
+**Zincir iki halka derinliğinde: müşteri → hayvan.** Geri kalan her şey
+(personel, tür/ırk, bildirim ayarı, saat dilimi, para birimi) isteğe bağlı ya
+da şemada varsayılanlı. Tasarımın küçük kalabilmesinin sebebi bu.
+
+**İnen iş — iki hat.**
+- **A (`dev`):** `components/missing-link.tsx` ortak bileşeni (`pets/new`'in
+  bloğu oraya taşınır), ve ön koşul koruması **4/4** —
+  `appointments/new` + `visits/new` **hayvan** ister, `invoices/new`
+  **yalnız müşteri** ister.
+- **B (`dev-ui`):** altı liste ekranının boş hâli (çıkmaz sokaklarda "Yeni X"
+  yerine **eksik halkanın** düğmesi), ve panoda **tek cümlelik kart** —
+  yalnız o an eksik olan halkayı söyler, ikinci halka dolunca **kaybolur.**
+  `/prescriptions` düğme **almaz**: kendi `/new` rotası yok.
+
+**ux'in kaygan zemine karşı şimdiden yazdığı kural, iş metnine girdi:** pano
+kartı **yalnız zorunlu zincirin eksik halkasını** söyler; isteğe bağlı hiçbir
+şey (personel, bildirim ayarı, tür) buraya **giremez.** Kural olmazsa üçüncü
+adım eklenir ve sihirbaza döner.
+
+**Kanıtla ELENENLER — yeniden önerilmeyecek (vet'in saha ölçümü).**
+1. **ELLE toplu giriş yok** — ve bu, dosyayla içe aktarmayı elemez.
+   *"142 kişiyi oturup girmek kimsenin aklından bile geçmedi, o iş üç gün
+   sürer ve üç günüm yok."* Yerine olan şey: eski müşteri kapıdan girdiğinde
+   kontuarda **o anda** giriliyor, bir dakika; sekiz-dokuz ayda gelen herkes
+   programda — *"çünkü gelmeyen zaten müşterim değildi."* **Defteri hasta
+   akışı boşalttı, göç değil.**
+   **DÜZELTME (ana oturum, kendi hatası — aynı gün).** Bu satır önce
+   *"toplu içe aktarma kanıtla elendi"* diye yazılmıştı. **Yanlıştı:** kanıt
+   **elle giriş** hakkındaydı, **dosya** hakkında değil, ve aynı hekim dosya
+   sorulduğunda tersini söyledi — 900 satırlık bir aşı Excel'i var (sahip ·
+   hayvan · telefon · kuduz tarihi · karma tarihi) ve *"içeri atabilseydim
+   programın en değerli özelliği olurdu, abartmıyorum."* Sebebi bir istek
+   değil, tarif edilen bir iş: *"Pamuk'un sahibi arıyor, 'kuduz ne zamandı'
+   diyor, ben Excel'i açıp Ctrl+F yapıyorum, telefonda bekletiyorum."* Ve
+   bunun bırakma mekanizması da söylendi: **"yeni programda o kayıt yoksa
+   iki yerden birden bakarım — insanlar programı o yüzden bırakıyor."**
+   Ayrıca eski bir programda veriyi alamamış olması (*"o yüzden bu konuda
+   alerjiğim"*) dışa aktarmayı da aynı ailenin üyesi yapıyor.
+   **Karar: içe aktarma ELENMEDİ, ERTELENDİ.** İlk günün işi değil (L
+   boyutunda: eşleme ekranı + doğrulama + geri alma), ama "kanıtla elendi"
+   rafına konmayacak. Sonraki sürümün adayı.
+2. **Kurulum kontrol listesi yok.** İlk günün dört saatinin yalnız **yirmi
+   dakikası** kayıt; gerisi hangi alanın ne işe yaradığını anlamak.
+   *"Şu 5 adımı tamamla"* o dört saatin yanlış tarifi.
+3. **Sihirbaz yok.** Benimseme anı kurulumun tamamlanması değil, **ilk
+   başarılı geri alma**: kuduz belgesi, defterde beş dakika, programda on
+   saniye — *"beni ikna eden veri girmek değildi, bir şeyi geri
+   alabilmekti."* Kontrol listesi bunu **ölçemez**, yalnız tamamlanmışlığı
+   ölçer.
+
+**value kendi tahminini çürüttü (kayda geçiyor, TEAM.md 30b).** *"Sahadaki
+sıra hasta → sahip, ürününki müşteri → hayvan, çakışır"* demişti. Çakışma
+**keşif anında** gerçek — hekim ilk gün kendi köpeğini girebilmek için
+uydurma bir müşteri açmış (*"Deneme Deneme / 0000"*, **iki yıl** yaşamış ve
+bir kez **faturaya düşmüş**) — ama **gerçek akışta yok:** kontuarda sahip
+zaten karşında duruyor. **Müşteri → hayvan doğru sıra**, ilk yol onu tersine
+çevirmeyecek.
+
+**Açılmadı, ama duruyor:** ilk günün ürettiği **çöp veri**. "Deneme Deneme /
+0000" iki yıl yaşayıp faturaya düştü; ürün buna hazırlıklı değil. Bu turda
+iş açılmadı — kapsam ilk akış, veri temizliği değil. Sonraki okuyan
+"düşünülmedi" sanmasın diye burada.
+
+---
+
 ## Sürüm: "Güvenilir döngü"
 
 **Vaat (tek cümle):** Klinik uygulamayı açtığında yanlış bilgi görmüyor,
@@ -2074,6 +2233,344 @@ yeniden alınacak.
 
 # Sonraki sürüm: "Kliniğin parası uygulamanın içinde kapansın"
 
+## Yazdırma katmanı yok — ve aşı kâğıdı onun ilk müşterisi (ux, 21 Eylül 2026)
+
+**Açılmadı.** `ux` ilk akışta açık kararı kalmayınca kimsenin bakmadığı
+yere baktı; iki olgu çıktı ve ikisi de kalem açılmadan önce bilinmeli.
+
+### Bugün duran kusur: yazdırma desteği hiç yok
+
+`@media print` ve `window.print` için arama: **sıfır sonuç.** Yani bugün
+bir hekim herhangi bir ekranda Cmd+P'ye bassa **kenar çubuğu, üst çubuk,
+filtre sekmeleri ve düğmelerle birlikte** basıyor. Bu, aşağıdaki kalemden
+**bağımsız** — bugün de birinin bir şey yazdırmaya kalkması mümkün.
+
+**Ve `ux`'in çerçevesi sıralamayı belirliyor:** *"aşı kâğıdı bu katmanın
+**ilk müşterisi**, tek müşterisi değil. Fatura, vizit özeti, reçete —
+hepsi aynı katmanı kullanacak. Yani **katman kâğıdın parçası değil, kâğıt
+katmanın parçası.**"*
+
+### Kalemi küçülten olgu: mevzuat listesi neredeyse tamamen şemada
+
+`Vaccination` zaten taşıyor: `name` · `manufacturer` · **`lotNumber`** ·
+`administeredAt` · `administeredById` (uygulayan hekim) · `site` ·
+`notes`; klinik bilgileri `Clinic`'te, hayvan ve sahip ilişkileriyle.
+
+Yani hekimin saydığı liste için **yeni alan gerekmiyor**. Eksik olan tek
+şey **kâğıdın kendisi** ve imza-kaşe için boş alan. **Bu bir şema işi
+değil, bir sayfa işi.**
+
+**Tek dikkat, ve bir tasarım şartı doğuruyor:** alanların çoğu isteğe
+bağlı (`lotNumber String?`). Kâğıt **eksik alanla basılabilir**, oysa
+hekimin cümlesi *"eksik bir alan kâğıdı geçersiz kılar"*. Şart: **kâğıt
+eksik alanı sessizce boş bırakmasın** — ya alanı adıyla *"kayıtlı değil"*
+diye göstersin ya da basmadan önce uyarsın. *"Boş bir satır, kâğıdı alan
+memur için 'yok' değil **'gözden kaçmış'** demektir."*
+
+### Kâğıdın tasarım iskeleti (hazır, kalem açılırsa)
+
+- **Tek sayfa, tek hayvan, tek amaç.** Rapor değil, **elden verilecek
+  belge**: klinik başlığı · hayvan ve sahip kimliği · aşı satırları
+  (tarih · aşı · üretici · lot · uygulayan) · altta **imza ve kaşe için
+  boş alan.**
+- **Ekranda güzel olan kâğıtta doğru olmayabilir:** renk, rozet ve arka
+  plan dolgusu kâğıtta anlam taşımaz — ayrım **kenarlık ve tipografiyle**
+  kurulsun.
+- **Tarih her zaman gün-ay-yıl**, ve kâğıtta göreceli tarih (*"3 gün
+  önce"*) **hiç** olmasın. Hekimin kendi şartı.
+
+### Neden bu kalem doğdu
+
+Hekim, sahibin aşı bilgisini **bir yere vermek için** istediğini söyledi
+— pansiyona, belediyeye, yurt dışına; aslında **aşı karnesini
+kaybetmiş.** Ve mesajın yerine geçmediğini de söyledi: *"resmî hiçbir
+yerde görmez — **seri/lot numarası yok, tarih kayıtlı bir kaynaktan
+gelmiyor, kaşem ve imzam yok.** Benim yaptığım şey: programdan aşı
+dökümünü **yazdırıp** imzalayıp kaşelemek."*
+
+Mesaj yolu **rakip değil yoldaş**: *"hem kâğıdı veririm hem telefonuna
+kopya düşer, bir dahakine bana sormaz."*
+
+## Kopya sahip tarafında doğar, hayvan tarafında yalnızca görünür
+
+**Hekim yazdı, ve kendi vakası için açılan maddenin kendi vakasını
+yakalamayacağını gösterdi.** `value` aynı gediği bağımsız olarak buldu
+(*"ben kendi şartımı sahip kimliğine bağlamışım, oysa kopyalanan şey
+sahibin kendisi"*), yani iki kaynak.
+
+**Açılan madde:** *"aynı sahipte katlanmış adı aynı olan iki hayvan varsa,
+ikisinin kayıt sayfası da bunu söyler."*
+
+**Yakalamadığı vaka, hekimin kendi sözleriyle:**
+
+> *"Elif'in hatası hayvan tarafında başlamıyor — **Ayşe'yi bulamıyor,
+> ikinci bir Ayşe açıyor**, Pamuk da onun altına giriyor. Sonuçta iki
+> Pamuk var ama **aynı sahipte değiller**, kontrol ikisini de temiz
+> sayıyor ve ben hiçbir uyarı görmüyorum."*
+>
+> **"Kopya SAHİP tarafında doğuyor, hayvan tarafında yalnızca görünüyor."**
+
+**Ve bu hafta bir şey eklenmesini kendisi istemedi:** *"2b'deki sahip
+araması hatayı **doğmadan** engelleyen asıl şey, o yeter."* İstediği tek
+şey bu not:
+
+> **Bu kontrol, sahip kopyasından doğan ikizleri görmez.**
+
+Sebebini de yazdı, ve notun var olma gerekçesi bu: *"yoksa altı ay sonra
+biri o maddeye bakıp **'kopya meselesi kapandı'** der."*
+
+`value`'nun düzeltmesi aynı yere çıkıyor ve ölçütü hekimden alıyor: **tek
+benzersiz şey telefon** — aynı telefonu taşıyan iki müşteri kaydı varsa
+ikisi de bunu söylesin.
+
+### Taşıma mı birleştirme mi — hekim cevapladı: **taşıma**
+
+> *"Bende ihtiyaç neredeyse hep **taşıma** — tipik hâl, on yıllık düzgün
+> bir dosya ve yanlış yere düşmüş **bir** vizit. İki dolu geçmişi
+> birleştirmek yılda belki bir kez lazım olur."*
+
+Yani ucuz olan ile doğru olan aynı çıkıyor; tam birleştirme bu haftanın
+işi değil ve muhtemelen hiçbir haftanın.
+
+**Tek şartı var ve bugünün kuralına uyuyor** (*kayıp yerel kalsın, ve
+olan şey söylensin*):
+
+> *"Taşınan vizit, **taşındığını kendi üstünde yazsın** — sessizce yer
+> değiştirirse altı ay sonra 'bu vizit niye burada' diye soran ben
+> olurum."*
+
+## Mesajlaşma hâli tek yerden türetilmeli — beş kusur, biri "gönderdim" diyip göndermiyor
+
+**Açıldı, kodlanıyor.** `pm` buldu, `dev-ui` koddan takip edip mekanizmayı
+çıkardı ve **kusurun sahibi olduğunu** söyledi.
+
+### Bulunan şey: iki ekran iki farklı soru soruyor, ikisine de "kurulu" diyor
+
+| ekran | tanıdığı hâl |
+|---|---|
+| `/reminders` | hiç kurulmadı → kurulmuş ama kapalı → taşıyıcı yok → klinik hatası |
+| `/appointments/[id]` | `isChannelConfigured`: taşıyıcı **var mı, yok mu** |
+
+`pm`'in ölçtüğü klinik *"hiç kurulmadı"* hâlindeydi — randevu kartının **hiç
+tanımadığı** bir hâl. Sonuç: uyarısız **"SMS gönder"** düğmesi. *"Burada ekran
+yalnız susmuyor, **tersini ima ediyor.**"* Randevudan başlayan bir hekim,
+kliniğinin otomatik mesaj göndermediğini **hiç öğrenmiyor.**
+
+### Ve ortak türetme tasarlanırken BEŞİNCİ kusur çıktı
+
+`/reminders` bir **test kipi** biliyor: taşıyıcı `log` ise mesaj dosyaya
+yazılıyor ve **kimseye gitmiyor.** Randevu kartında bu **hiç yok.**
+
+> Log taşıyıcısıyla çalışan bir klinikte kart *"SMS gönder"* diyor,
+> basıldığında mesaj **hiçbir yere gitmiyor**, ve ekran bunu söylemiyor.
+
+Bu, sürümün kendi vaadinin (*"yanlış mesaj göndermiyor"*) en sert ihlali:
+ürün **göndermediği bir şeyi gönderdim** diye sunuyor.
+
+**Ve bu kusur, cümleleri kopyalasaydık bulunmayacaktı.** Ana oturum
+kopyalamayı reddedip *"hâl türetmesini ortaklaştır"* dediği için ortaya
+çıktı — dördüncüsü kapanırken beşincisi görünür oldu.
+
+### Şekil (dev-ui önerdi, `lib/messaging/transports.ts`)
+
+Yanlış kullanılan `isChannelConfigured`'ın **hemen yanına**, kasıtlı olarak:
+
+```ts
+export type ClinicMessagingState =
+  | { kind: "notSetUp" }
+  | { kind: "messagingOff" }
+  | { kind: "channelUnconfigured"; channel: Channel }
+  | { kind: "ready"; channel: Channel; testMode: boolean };
+```
+
+**Ayrık birleşim olması işin kendisi:** yeni bir hâl eklendiğinde
+**derleyici** bütün çağrı yerlerini gösterir — TEAM.md:2132'nin (*"bir kural
+yazıldığında çağrı yerleri aynı işte taranır"*) kendi kendini uygulayan hâli.
+
+**`dev-ui` kendi ifadesini de düzeltti:** *"aynı dört hâl"* demişti, **üçü
+doğru** — dördüncüsü (`clinicFailure`) hatırlatma **teslimat kayıtlarından**
+geliyor ve randevu kartında öyle bir liste yok.
+
+### Neden bu turda açıldı
+
+`dev-ui`: *"Bugün **dördüncü kez** aynı biçim — kural bir yerde uygulanıp
+komşusunda uygulanmamış, ve bu sefer komşuyu bırakan da benim."* TEAM.md'de
+kural **zaten yazılıydı** (satır 2132, dört vakayla), ve bugün dört kez daha
+kaçtı. Kural 7'nin tarifi: **uyarı okundu ve yine kaçtı, o hâlde uyarıyı
+güçlendirmek çare değil.** Çare türetmeyi tekleştirmek.
+
+**Bölüşme:** türetme + tip `dev`'de (`lib/messaging/`), iki çağrı yerinin
+bağlanması `dev-ui`'de, cümleler `ux`'te. `dev-ui`'nin cümlesi: *"cümleler
+artık bir **yüzeye** değil bir **hâle** bağlanacak."*
+
+**Elle gönderim düğmesi kalıyor** (`pm` doğruladı: duran şey elle gönderim
+değil, **otomatik** gönderim). Eksik olan yanındaki cümle, ve o cümle
+*"otomatik gönderilmeyecek, elle gönderebilirsiniz"* ayrımını taşımalı —
+yoksa düğmeyle cümle **aynı ekranda** çelişir.
+
+## KULLANICI KARARLARI — 21 Eylül 2026, dördü birden
+
+Ana oturum dört soruyu kullanıcıya önizlemeli olarak sordu, dördü de
+cevaplandı. **Bunlar ekibin tek başına veremeyeceği kararlardı; tartışma
+kapandı, sonraki okuyan baştan açmasın.**
+
+### 1. KDV: ORANDAN TÜRETİLECEK ✔
+
+Klinik ayarında varsayılan **%20**, faturada değiştirilebilir. Bugünkü hâl
+— `modules/invoices/schema.ts:49` `tax: optionalMoney(locale)`, oran kod
+tabanında hiç yok — kalkıyor. **Bekleyen dört karar içinde canlı maliyeti
+olan tek kalemdi:** veteriner her faturada KDV'yi elden çarpıyor.
+Aynı zamanda POS mutabakatının ön şartı: cihazdan gelen tutarla faturanın
+KDV'si tutmazsa eşleştirme baştan çöker, ve tutarın **türetilmiş** olması
+bunun tek garantisi.
+
+### 2. Klinik telefonu: MESAJLAŞMA AÇILIRKEN SORULACAK ✔
+
+29b'nin bu parçası sürüm dışından çıkıyor, **ama kayıt formuna girmiyor** —
+alan mesajlaşma anahtarının açıldığı ekrana bağlanıyor. İki bağımsız kaynak
+aynı anı işaret etmişti: `value` kodla (yeni klinikte
+`notifications.whatsapp.enabled` `null`, ilk gün dışarı mesaj çıkmıyor), ve
+hekim kendi sözleriyle — *"o bilgiye ihtiyacım olduğu ilk an dışarı bir şey
+çıktığı an. Baştan sorarsanız formu doldurur geçerim ama aklımda kalmaz,
+sonra yanlış numara mesajlarda gezer."*
+
+### 3. Aşı Excel'i içe aktarma: ERTELENDİ ✔
+
+Kanıtı güçlü, kapsamı L: eşleme ekranı + ilk on satır önizlemesi + tek
+düğmeyle paketi geri alma. Bu sürüme sığdırmak başka bir şeyi dışarı iterdi.
+**Bir sonraki sürümün ilk adayı**, ve ilk dilim tam CRM göçü değil
+**telefonda Ctrl+F'i öldüren en küçük sürüm**: sahip · hayvan · telefon ·
+kuduz · karma. Hekimin şartları hazır: yüklemeden önce ilk on satırın
+önizlemesi, sonrası için paketi tek düğmeyle geri alma, ve tarihlerin
+**her zaman gün-ay-yıl** olduğu (`12.03.2024`, Excel tarih hücresi ve
+`12/3/24` karışık) — *"12 Mart'ı 3 Aralık yaparsanız aşı hatırlatması
+yanlış zamanda gider, o benim en can alıcı noktam."*
+
+### 4. POS: FİZİKİ CİHAZA BAĞLANACAK ✔ — value'nun tezinin TERSİ
+
+**Kullanıcı fiziki cihaz entegrasyonunu seçti.** `value`'nun tezi bunun
+tersiydi (ön şartlar → mutabakat → ödeme linki, fiziki cihaz *"muhtemelen
+hiç"*) ve gerekçesi kayıtta duruyor: cihazda tutar tuşlamak beş saniye,
+kliniğin kaybettiği para tahsil edilmemiş faturada ve uygulamaya hiç
+yazılmamış kart tahsilatında.
+
+**Karar kullanıcınındır ve uygulanacaktır.** Buraya yalnız bilinen maliyet
+yazılıyor, tartışmayı yeniden açmak için değil, kapsam yazılırken
+şaşırmamak için: yerel bir köprü servisi gerekir (web uygulaması doğrudan
+USB/yerel ağdaki cihaza konuşamaz), **banka/cihaz başına sertifikasyon**
+gerekir, ve bakım yükü kalıcıdır — her banka ayrı.
+
+**Ve iki ön şart bu kararla DEĞİŞMEDİ, ikisi de hâlâ gerekli:**
+(a) KDV oranı (yukarıda, karar 1 ile zaten alındı); (b) `Payment`'ta
+**kaynak ayrımı** — `CARD` bugün yalnız "kartla ödedi" demek, elle mi
+yazıldı cihazdan mı geldi ayrımı yok, `reference` serbest metin. Kaynak
+ayrımı olmayan bir tabloda *"uygulamada kart görünen 14 tahsilatın kaçı
+bankada var"* sorusu sorulamaz — ve cihaz entegrasyonunda bu soru **daha
+da** kritiktir, çünkü artık iki taraf birbirine yazıyor.
+
+Kapsamın ilk cümlesi (aşağıda) değişmiyor: bugünkü `Invoice` GİB'e giden
+bir belge değildir.
+
+## POS cihazı entegrasyonu — kullanıcı açtı (21 Eylül 2026), kapsam: value
+
+Kullanıcının kendi sözleri: *"bu akış bitince backloga pos cihazıyla
+entegrasyon için iş açalım. **Faturalar pos cihazıyla ilişkili olup top
+level bir crm uygulaması olacak.** Sonraya bunu al."*
+
+**Durum: açık ama kodlanmıyor.** Sıralaması ilk klinik akışından sonra.
+
+**Kapsamın ilk cümlesi, ve bu kalemdeki en büyük risk buna karşı:**
+bugünkü `Invoice` **GİB'e giden bir belge değildir** — uygulamanın kendi
+içindeki tahsilat belgesidir. e-Fatura/e-Arşiv ayrı bir mevzuat ürünüdür ve
+bu kaleme iliştirilirse ikisi birden batar. Perakendedeki POS+yazarkasa
+birleşimi (YN ÖKC, GİB bildirimli) da **hizmet faturası kesen kliniğin
+tarafı değildir.**
+
+### Tez (tek cümle)
+
+**Cihaza değil, paranın gerçekten geldiğine bağlan.** Kliniğin kaybettiği
+para cihazda tutar tuşlama süresinde değil; **tahsil edilmemiş faturada** ve
+**kartla ödenip uygulamaya yazılmayan tahsilatta.**
+
+### Türkiye'de klinikte POS gerçekte nasıl kullanılıyor
+
+- Cihaz banka POS'u ya da ödeme kuruluşunun akıllı POS'u; hasta karşıdayken
+  fiziki kart.
+- **Taksit yaygın** — veteriner faturasında 3-6 taksit sıradan. Klinik
+  taksitli çeker, bankadan **komisyon düşülmüş ve valörlü** para gelir:
+  **faturadaki tutar ≠ hesaba giren tutar.** Bir "fatura kapandı" kararı bu
+  farkı tanımazsa ya fatura sonsuza kadar açık kalır ya klinik eksik parayı
+  kapanmış sanır. Bu satır kapsamın merkezidir, ayrıntısı değildir.
+- Mutabakat bugün elle yapılıyor (gün sonu POS raporu ↔ defter/Excel), ya da
+  hiç yapılmıyor.
+
+### Bugün para nerede duruyor
+
+`Payment` beklenenden hazır: `invoiceId`, `amountCents`, `method`
+(`CASH·CARD·TRANSFER·CHECK·OTHER`), `paidAt`, `reference` (serbest metin),
+`notes`. `Invoice` tarafında `currency`, `status`
+(`DRAFT·SENT·PARTIAL·PAID·VOID`), `subtotalCents`, `taxCents`, `totalCents`.
+
+İki boşluk, ikisi de POS'un **ön şartı**:
+
+1. **Ödemenin kaynağı yok.** `CARD` bugün yalnız "kartla ödedi" demek;
+   **elle mi yazıldı, sağlayıcıdan mı geldi** ayrımı yok, `reference`
+   serbest metin. Kaynak ayrımı olmayan bir tabloda mutabakat **yapılamaz**:
+   *"uygulamada kart görünen 14 tahsilatın kaçı bankada var"* sorusu bugün
+   sorulamıyor.
+2. **KDV oran değil, elle yazılan tutar.** `modules/invoices/schema.ts:49`
+   → `tax: optionalMoney(locale)`; oran kod tabanında hiç yok, `taxCents`in
+   tek yazıldığı yer `modules/invoices/service.ts:60`. Türkiye'de veteriner
+   hizmeti genel oranda (%20). İki ayrı maliyet: **bugün** her faturada elle
+   çarpma ve yanlış yazma riski; **POS'ta** cihazdan gelen tutarla faturanın
+   KDV'si tutmazsa mutabakat baştan çöker.
+
+### Sıra tezi — KULLANICI (A)'yı seçti, aşağısı gerekçe olarak duruyor
+
+> **21 Eylül 2026: kullanıcı fiziki cihaz entegrasyonunu (A) seçti.**
+> Aşağıdaki sıralama `value`'nun tezidir ve **uygulanmayacaktır**; silinmiyor,
+> çünkü (A)'nın maliyetini ve (C)/(B)'nin neyi çözdüğünü anlatan tek metin
+> bu, ve kapsam yazılırken ikisi de lazım olacak. Ön şartlar (KDV oranı,
+> ödemenin kaynak ayrımı) **her üç yolda da gerekli** ve kararla değişmedi.
+
+- **(A) Fiziki cihaz entegrasyonu** — uygulama cihaza tutar gönderir. Web
+  uygulamasından yerel POS'a konuşmak bir köprü servisi + banka/cihaz başına
+  sertifikasyon demek, ve **kazancı küçük**: veteriner cihazda tutarı
+  tuşluyor, bu beş saniye. L+, her banka ayrı, bakım yükü kalıcı.
+  **İlk sürümde yok, muhtemelen hiç yok.**
+- **(B) Ödeme sağlayıcı / ödeme linki** (sanal POS, taksit destekli) —
+  faturaya link üretilir, SMS ile gider, webhook `Payment` düşer. Web'e
+  doğal, tek entegrasyon. Asıl değeri POS'un **çözmediği** kaybı çözmesi:
+  hasta klinikten çıktıktan sonra da ödeyebilir; bugün ödemeden çıkan
+  müşteri elle kovalanıyor.
+- **(C) Mutabakat** — POS/banka gün sonu dökümü yüklenir, kart
+  tahsilatlarıyla eşleşir. Cihaza hiç dokunmadan *"para gerçekten geldi mi"*
+  sorusunu kapatır, ve taksit/komisyon farkını görünür kılan **tek** yol.
+
+Gerekçe: C uygulamaya yazılmayanı **yakalar**, B tahsil edilmeyeni
+**önler**, A ikisini de yapmaz.
+
+### İlk dilim (POS'tan önce, POS'u mümkün kılan — ikisi de S/M)
+
+1. **`Invoice` KDV oranı** — klinik varsayılanı Ayarlar'dan, faturada
+   değiştirilebilir. Elle çarpma ölür; ve mutabakatın tutması için tutarın
+   **türetilmiş** olması şarttır.
+2. **`Payment` kaynak ayrımı** — elle girildi / sağlayıcıdan geldi, +
+   sağlayıcı işlem kimliği. Tek başına bile değerli: *"bu tahsilatı kim
+   yazdı"* bugün cevapsız.
+
+### Kapsam dışı (ve nedeni)
+
+- **Fiziki cihaz sürücüsü/köprüsü.** Yukarıdaki gerekçe.
+- **e-Fatura / e-Arşiv / GİB entegrasyonu.** Ayrı mevzuat ürünü. Komşu
+  kalem: fatura numarasının sıralı olması.
+- **ÖKC / yazarkasa.** Hizmet faturası kesen klinik bu tarafta değil.
+- **Muhasebe programı entegrasyonu (Logo / Mikro / Paraşüt).** Mutabakat
+  indikten sonra konuşulur; önce kendi tarafımızdaki para doğru olmalı.
+- **Kart verisi saklama — hiçbir koşulda.** PCI kapsamına girmek bu üründe
+  karşılığı olmayan bir yük; sağlayıcı barındırmalı ödeme sayfası tek doğru
+  yol.
+
 **Vaat:** Fiyat kliniğin kendi listesinden gelir; vizitte yapılan iş elle
 hatırlanmadan faturaya dönüşür; kimin borcu kaldığı görünür.
 
@@ -2445,3 +2942,244 @@ Satır olarak silindiler; burada yalnızca kaydı duruyor.
 - **Tema tokenları** — üç tema bloğunda parite testle sabitlendi;
   `--warning` ve `--destructive` WCAG AA'ya çekildi, yüzey × tema başına
   ölçüldü ve bilinen-bozuk değerin **kaldığını** iddia eden negatif test kondu.
+
+## Zanaat turu — ux'in beş maddesi (ertelendi, sahibinin kararı)
+
+Sahibi 21 Eylül akşamı onboarding'i tek konu ilan edip bütün ekibi
+durdurdu: *"nerdeyse herkes dursun, sadece onboarding'i nasıl iyi
+yaparız'a bakalım."* Aynı mesajda bu turu adıyla kurtardı: *"ux'in zanaat
+turu da güzeldi onu da backlog'a al sonradan."* Yani bu liste kapsam
+kesilirken düşen bir "iyileştirme" değil, **ertelenmiş bir karar**.
+
+Sıralama `ux`'e ait ve gerekçesi sıranın kendisinde: 1, 2, 4 ve 5 **eksik
+ifade**; 3 ise **kusur** — ekranda bir şey zıplıyor ve bunun hiçbir
+gerekçesi yok. O yüzden üçüncü madde, tur yeniden açıldığında baştan
+başlar.
+
+1. **Tipografiye rol vermek** — `--text-page/section/body/meta/eyebrow`,
+   taşıyıcıları `PageHeader` · `Card` · `FormSection` · `DescriptionList`,
+   26 sayfa. Bugün aynı iş olan bölüm başlığı **beş ayrı biçimde**
+   yazılmış (`Card` 18px, `FormSection` 14px, ikisi de `<h3>`).
+   `globals.css`'teki yarıçap yorumu bu hastalığın ilacını zaten yazmış,
+   ama tipografiye uygulanmamış. İki kısıt bağlayıcı: **gövde metni
+   büyümeyecek**, **kayıt satırı yoğunluğu düşmeyecek**.
+
+2. **Kart ağırlığının işe bağlanması** — pano + altı liste ekranı. Bir
+   kartın görsel ağırlığı, ne sıklıkla bir karar taşıdığına bağlansın.
+   Sınavı `ux`'in ikiye ayırdığı ölçütün ikinci yarısı: **olgu sayısı
+   düşmeyecek — biçim değişebilir, sayı değişemez.** Ölçülebilir hâli:
+   "Hepsini göster" açıldığında dört olgunun dördü de görünüyor mu.
+   (Zanaat maketi dört boş kartı tek sessiz satıra indiriyor; kart sayısı
+   düşüyor ama kaybolan olgu yok — tek ölçüt olsaydı bu iş kalmaması
+   gereken bir sınavdan kalırdı.)
+
+3. **Düzen kararlılığı: iskelet yer ayırsın** — pano + dört form rotası +
+   kendi `loading.tsx`'i olmayan altı form rotası. Üç ayrı vaka, üç ayrı
+   çare, ve ayrım olmadan iş yanlış yapılır:
+   - **Pano:** iskeletin *üstüne* blok geliyor → üst kenar dahil her şey
+     **166 px** iniyor. Çare: yer eklemek.
+   - **Dört form rotası** (`visits/new` 396→1060, `appointments/new`
+     326→646, `pets/new` 396→797, `invoices/new` 326→784): iskeletin
+     **içi** eksik → üst kenar duruyor, alt kenar **320–664 px** uzuyor.
+     En güçlü gerekçe `pm`'in: gönderim düğmesi kartın en altında, yani
+     iskelet *"Kaydet buraya gelecek"* diyor ve düğme yarım ekran aşağıda
+     beliriyor. Bir iskeletin verebileceği en kötü söz bu — yalnız yanlış
+     değil, **yanlış yere davet ediyor.**
+   - **Altı form rotası** (`clients/new`, `staff/new`, dört `[id]/edit`):
+     üst segmentin **liste** iskeletini miras alıyorlar — `/clients/new`'e
+     giderken avatarlı bir müşteri listesi çıkıyor, sonra yerine form
+     geliyor. Hem şekil hem yükseklik tutmuyor.
+
+   Ölçüt **iki yönlü**: her rotada `|dy| ≤ 8 px`. Tek yönlü olsaydı
+   `fields` sayısını körlemesine büyütmek aynı kusurun aynası olurdu,
+   içerik bu sefer yukarı zıplardı.
+
+   **Yasak madde:** hiçbir yere geçiş eklenmeyecek. Geçiş bu sıçramayı
+   *gizler* — kusur durur, görünmez olur.
+
+   Kalıcı yarısı bir test: **iskelet alan sayısı ↔ formdaki görünür alan
+   sayısı**. `fields={6}` elle yazılmış bir sayı; bugün ayarlansa altı ay
+   sonra yeniden kayar. Ölçüm davranışı sınar, test kaymayı.
+
+4. **Satır ritmi** — tabloda 44px, panel kartında 36px; bugün karışık.
+
+5. **Hareketin uygulanması** — `--animate-in` tokenları var, **yalnız üç
+   yerde** kullanılıyor.
+
+**Bu listenin kendi teşhisi:** beşi de bugün beşinci kez görülen biçimin
+örneği — *yazılmış ama yayılmamış kural*. Kural `components/loaders.tsx`'in
+kendi yorumunda duruyor: *"bir rotanın taşımadığı denetimleri gösteren
+iskelet bir ipucu değil, **yanlış cevaptır**."* Komşu dosyada uygulanmamış.
+Tur yeniden açıldığında asıl iş maddeleri tek tek düzeltmek değil, kuralı
+yayacak taşıyıcıyı (token + bileşen + test) koymak.
+
+**Açık kalan tek ölçüm:** kendi iskeleti olan dört rotada *şekil* doğru,
+ama pano dışındaki yüksekliklerin hepsi ölçüldü; ölçülmemiş olan, altı
+mirasçı rotanın sayıları. Tur açılınca ilk iş o.
+
+## Onboarding — dışarıya bakılarak alınan karar (21 Eylül 2026)
+
+Kullanıcı bütün ekibi durdurdu (*"nerdeyse herkes dursun, sadece
+onboarding'i nasıl iyi yaparız'a bakalım"*), Fable 5.1'i danışman olarak
+çağırttı, sonra onboarding'in **liderliğini ona verdi**. İki çerçeve
+düzeltmesi yaptı ve ikisi de bu kaydın biçimini belirliyor: *"kaynaktan
+kanıt yerine dünya çapında onboardinglere bakıp uygulasın"* ve *"farklı
+uygulamalardan kopya çekebiliriz, sadece dertli olmasın."*
+
+### Kök bulgu: ürün kendi yeteneğini kullanmıyordu
+
+`createVisitIntakeAction` (`modules/visits/actions.ts:32`) vizit + hayvan +
+sahibi **tek işlemde** yazıyor, testleri var, commit'lenmiş — ve tanımı
+dışında **tek çağrı yeri yok**. `VisitForm` hâlâ `createVisitAction`'a
+bağlı; "yeni hayvan aç" satırı `router.push('/pets/new')` ile **ekranı
+terk ediyor**. `name="newPet[...]"` çizen hiçbir bileşen yok.
+
+Bunun sonucu, kartın *"Önce sahibini ve hayvanı açacaksınız"* cümlesinin
+**doğru** olması. Önce "kod düzeldi, metin bayat kaldı" sanılmıştı; ters
+yönde çürüdü ve bu hâli daha kötü: ürün bahsi koymuş (*"bugün bir vizit
+yaz"*), kabloyu çekmemiş. Gün sıfırda "önce X gerekir" kapısı `MissingLink`
+ile **sekiz sayfada** duruyor.
+
+### Alınan kalıplar — ürün / ne yapıyor / neden alındı
+
+- **Shopify** — müşteri kaydı *"ad, e-posta veya telefondan en az biri"*
+  ister. Buraya **ad VEYA telefon** diye indi.
+- **Epic** (acil, "unknown patient") — kimliği bilinmeyen hasta geçici
+  kayıtla tedaviye alınır, eksiklik **işaretli** durur, sonra tamamlanır.
+  Buraya *"Telefon: şimdi yok — sonra sorulur"* diye indi.
+- **Digitail** — takvim modalında müşteri + hasta + randevu tek düğmeyle
+  doğar ("Nothing is saved until you click Add Appointment"), ve kopya
+  uyarısı **telefonla** verilir; hangi alanın eşleştiğini bilir.
+- **Jane App** — yeni hastada *"ad ve soyad tek zorunlu alan"*; telefon
+  önerilir, dayatılmaz.
+- **Calendly** — ilk girişte ilk etkinlik türü **hazır yaratılmış** gelir.
+  Buraya: veteriner = kaydı açan, tarih = şimdi, tür = genel kontrol.
+- **Linear** — ilk dakikada tur yok, tooltip yok, kontrol listesi yok;
+  *"cursor blinking, ready to work"*, ⌘K ilk günden.
+- **web.dev (CLS)** — iskelet içeriğin yerini **aynı boyutta** ayırır;
+  uyuşmuyorsa hiç olmasın.
+
+### Alınmayanlar, ve her birinin taşıdığı dert
+
+Kullanıcının *"sadece dertli olmasın"* kısıtı, büyük uygulamaların **kendi
+ölçeklerinin** derdini de kopyalamamak diye okundu. Bu üründeki kullanıcı
+tek kişi: akşam 20:00'de klinikte, yarın sabah hasta bakacak.
+
+- **Örnek veri / şablon klinik** — örnek kayıt aramaya düşer; *"ekranda
+  11, çekmecede 4"* hikâyesinin doğduğu yer.
+- **Kontrol listesi / ilerleme çubuğu** — hekimin kendi cümlesi:
+  *"3 günde bırakırım."* Ayrıca tamamlanma yüzdesi bir sayaçtır.
+- **Kurulum sihirbazı** — benimseme kurulumla değil **ilk geri almayla**
+  oluyor.
+- **"Ekibini davet et" / bildirim / tema adımı** — tek kişilik klinik.
+- **Onboarding uzmanı araması** (Digitail'de var) — 20:00'de kimse aramaz.
+- **Zorunlu cins / cinsiyet / kısırlık** — hekim: *"masada sormam gereken
+  alan yok."*
+- **İçe aktarma sihirbazı** — zaten ertelenmişti; ilk ekrana hiç girmez.
+- **Square'in banka-önce sırası** — şikâyetin ta kendisi ("önce şu
+  gerekir"), ve bizde o mevzuat derdi yok.
+
+### Telefon duvarı: çözüldü, ve migration istemiyor
+
+Kullanıcının asıl şikâyeti *"elimde olmayanı soruyor"* idi. Tek ekran bunu
+**çözmüyordu** — duvarı tek ekranın içine taşıyordu. Kural artık ad VEYA
+telefon; "şimdi yok" işaretlenirse kayıt açılır, sessiz bir rozet kalır,
+telefon **gerektiği anda** sorulur (hatırlatma, fatura, bir sonraki geliş).
+
+Hekimin *"numarasız bulamam"* gerekçesi korunuyor: ürün unutmuyor, **ne
+zaman soracağını** değiştiriyor. Ve uydurma numara yazma sebebi ortadan
+kalkıyor — `Deneme Deneme / 0000` kaydının bu üründe **iki yıl** yaşamış
+olması bu kararın en ağır kanıtı.
+
+**Doğrulandı:** `Client.phone` veritabanında zaten `String?`. Zorunluluk
+yalnız Zod katmanında (`modules/clients/schema.ts:27`,
+`modules/visits/schema.ts:68`, ikisi de `requiredPhone(40)`). Yani
+migration yok, iki doğrulama satırı. Boş telefon zaten "sonra sorulacak"
+işaretinin kendisi — bu deponun `lastName String?` ve
+`notificationsOptIn Boolean?` ile iki kez uyguladığı **"absent is not
+empty"** ilkesinin üçüncü uygulaması.
+
+### Açık kalan tek karar
+
+Sekiz `MissingLink` kapısının gün sıfırda her birinin nereye gideceği
+(`visits`, `appointments`, `appointments/new`, `invoices`, `invoices/new`,
+`pets`, `pets/new`, `reminders`). İlk teklif hepsini `/visits/new`'a
+yönlendiriyordu; **reddedildi**, çünkü randevu yarındır ve vizit şimdidir —
+"Randevular"a basan hekimi vizit yazmaya göndermek, bu turun kendi tezinin
+ihlali olurdu: *ürün kullanıcının ne yapmaya çalıştığını biliyor ama
+davranışını ona göre değiştirmiyor.* Muhtemel şekli: `appointments/new`
+aynı satır-içi kalıbı alır, yönlendirme almaz.
+
+## Onboarding 2. tur — kullanıcının 22 Eylül kararları
+
+Birinci tur kapandıktan sonra kullanıcı taze hesapla girdi ve dört şey
+söyledi. Üçü yön, biri kusur — ve kusuru **biz** koyduk.
+
+### 0. ÖNİZLEME PANELİ YALAN SÖYLÜYOR (kullanıcının bulgusu)
+
+Kullanıcının cümlesi: *"paneliniz böyle gözükecek diyoruz ama paneli
+böyle gözükmeyecek gerçekte."*
+
+Doğrulandı, ve fark küçük değil:
+
+| `PreviewPanel` ne çiziyor | gerçek pano ne çiziyor |
+|---|---|
+| dört satır: `ad · gün saat` | dört sayaç karosu (ikon + değer + bağlantı) |
+| soluk metin, `text-muted-foreground` | 12 haftalık sütun grafiği |
+| kart yok, çerçeve yok | 6 aylık gelir grafiği |
+| sayı yok, grafik yok | tür ve vizit türü yatay çubukları |
+| | yaklaşan randevular / son vizitler / aşılar kartları |
+
+Cümle (`dashboard.previewNote`): *"Örnek bir klinik. Kayıtlarınız girmeye
+başladığında paneliniz böyle görünecek."*
+
+**Bu, turun manşetinin beşinci örneği ve en utandırıcısı** — *ürünün kendi
+sözünü tutmadığı yer*, ve bu sefer sözü bu turda biz yazdık. `searchMore`
+olmayan bir kapıyı tarif ediyordu; bu, olmayan bir **paneli** tarif ediyor.
+Aradaki fark şu: ötekini miras aldık, bunu kurduk.
+
+**Çare üç yönden biri, ve karar `ux` + yeni UI uzmanının:**
+- (a) cümleyi doğru yap — *"böyle görünecek"* yerine ne olduğunu söyle;
+- (b) önizlemeyi gerçek panonun **kabasına** benzet (karo + grafik iskeleti);
+- (c) önizlemeyi tamamen kaldır.
+
+Sırayı belirleyen soru: hekim bu bloğa bakıp **ne öğreniyor?** Bugün
+öğrendiği şey yanlış.
+
+### 1. Tek ekran beğenildi, ama biçimi değil
+
+*"Tek ekran girişini beğendim ama alt alta açılan formlar daha şık
+gösterebilir."*
+
+Yani akış doğru, **sunum** eksik. Satır-içi blok bugün `fieldset` +
+`legend` + yüzey olarak çiziliyor ve iki seviye iç içe girebiliyor. Yön:
+alt alta açılan (accordion/adım) bir biçim daha derli toplu görünebilir —
+ama bu turun kazandığı şey **tek ekranda kalmak**; yeni biçim onu geri
+almamalı. Kabul ölçütü değişmiyor: adres değişmez, tek gönder düğmesi,
+hekim hiçbir noktada elinde olmayan bilgiyi sormak zorunda kalmaz.
+
+### 2. UI uzmanı ayrı bir rol olarak açıldı
+
+*"ux uzmanımızın yanında ui uzmanımıza da ihtiyaç var gibi."*
+
+`ux` akışı, durumları, erişilebilirliği ve kırmızı çizgiyi taşıyor — ve bu
+turda bunu iyi yaptı. Eksik olan **görsel zanaat**: tipografik hiyerarşi,
+boşluk ritmi, yüzey ağırlığı, bir bloğun "şık" görünmesi. Bu turda o
+boşluk iki kez göründü — `ux`'in beş maddelik zanaat listesi sıraya
+alınıp beklemesi, ve kullanıcının *"daha şık gösterebilir"* cümlesi.
+
+Yeni rol `.claude/agents/ui.md`. Sınır: `ux` **ne** ve **neden**, `ui`
+**nasıl görünür**. Çatışırsa `ux` kazanır (kırmızı çizgi onda).
+
+### 3. pm sürekli testte beklemeyecek
+
+*"PM testlere sadece geliştirmeler maine toplu halde çıkıldığında girsin.
+Sürekli testte beklemesin."*
+
+Bu turda `pm` beş tazeleme bekledi, üç kez bayat zeminde ölçtü, bir kez
+koşusunun ortasında zemin kaydı. Maliyeti ölçüldü: `MEASURING` bayrağı,
+bitiş tahmini, ve benim beş ayrı tazelemem — hepsi **beklemeyi yönetmek
+için** kurulan araçlar. Kullanıcının kararı aracı gereksiz kılıyor:
+`pm` sürekli hazırda beklemez, **toplu iniş** olduğunda çağrılır.
+
+Yeni düzen `.claude/TEAM.md`'de "pm ne zaman ölçer" başlığı altında.

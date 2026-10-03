@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -146,6 +147,70 @@ describe("addresses that survive a rebuild", () => {
     // What "deterministic" has to mean in practice: the seed can be run
     // again and the links people are holding still open the same rows.
     expect(await seededIds()).toEqual(await seededIds());
+  });
+});
+
+// The number lives in `.env` and never in this repository: committed
+// once, it is in the history for good, and deleting it from a file
+// does not delete it from git. Not a reversible mistake to make with
+// somebody's phone number.
+describe("a number that can actually ring", () => {
+  it("points the reachable owner at it when the environment has one", async () => {
+    vi.stubEnv("SEED_REAL_PHONE", "05559998877");
+    const { db } = recorder();
+
+    await buildStateClinic(db);
+
+    const insert = db.query.mock.calls.find(
+      ([sql, params]) =>
+        /INSERT INTO clients/.test(sql) &&
+        (params ?? []).includes("hal-client-consented"),
+    );
+    expect(insert?.[1]).toContain("05559998877");
+    vi.unstubAllEnvs();
+  });
+
+  it("stays synthetic when it has none, rather than failing", async () => {
+    // CI, a fresh clone, anyone's machine but the one: the seed must
+    // build every state exactly as before. The variable is a switch,
+    // not a requirement.
+    vi.stubEnv("SEED_REAL_PHONE", "");
+    const { db } = recorder();
+
+    const produced = await buildStateClinic(db);
+
+    expect([...produced].sort()).toEqual([...STATES.map((s) => s.id)].sort());
+    const insert = db.query.mock.calls.find(
+      ([sql, params]) =>
+        /INSERT INTO clients/.test(sql) &&
+        (params ?? []).includes("hal-client-consented"),
+    );
+    expect(insert?.[1]).toContain("0532 000 00 00");
+    vi.unstubAllEnvs();
+  });
+
+  it("is never written into this file", async () => {
+    // The guard for the rule itself: the seed reads the number at run
+    // time and keeps no copy of it.
+    const source = await readFile(new URL("./seed-states.mjs", import.meta.url), "utf8");
+    expect(source).toContain("process.env.SEED_REAL_PHONE");
+
+    // Every long digit run in the file has to be one of the invented
+    // ones. A new number appearing here fails until somebody either
+    // removes it or adds it to this list on purpose -- which is the
+    // moment to notice it is real.
+    // Migration stamps are 14 digits and are referenced by name in the
+    // comments; a Turkish mobile is 10 to 12. Narrowing the match to
+    // that range is what keeps this test about phone numbers.
+    const SYNTHETIC = ["905320000000"];
+    const runs = [...source.matchAll(/(?<!\d)\d{10,12}(?!\d)/g)].map((m) => m[0]);
+    expect([...new Set(runs)].filter((d) => !SYNTHETIC.includes(d))).toEqual([]);
+
+    // And on the one machine that has the real number, check that
+    // exact string. Asserted as a boolean so a failure cannot print
+    // the number into a terminal or a CI log.
+    const real = process.env.SEED_REAL_PHONE?.trim();
+    if (real) expect(source.includes(real)).toBe(false);
   });
 });
 

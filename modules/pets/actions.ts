@@ -6,6 +6,11 @@ import { action, parse, type FormState } from "@/lib/action";
 import { petSchema } from "./schema";
 import { quickSearchPets } from "./queries";
 import { PAGE_SIZES } from "@/lib/pagination";
+import { ownerLabel, petRowCaption, petRowLabel } from "@/lib/pet-label";
+import { getFormatContext } from "@/lib/format-context";
+import { relativeTime } from "@/lib/format";
+import { getTranslations } from "next-intl/server";
+import { safeNext, withCreated } from "@/lib/next-param";
 import { requireSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
 import {
@@ -26,6 +31,10 @@ export const createPetAction = action(
     revalidatePath("/pets");
     revalidatePath(`/clients/${pet.ownerId}`);
     revalidatePath("/");
+    // Same errand as `createClientAction`, one link further up: the
+    // animal the visit form was waiting for.
+    const next = safeNext(formData.get("next")?.toString());
+    if (next) redirect(withCreated(next, "pet", pet.id));
     redirect(`/pets/${pet.id}`);
   },
 );
@@ -115,18 +124,31 @@ export async function searchPetsAction(
 }> {
   const session = await requireSession();
   requirePermission(session.user.role ?? "", "pets.read");
-  const { items, hasMore } = await quickSearchPets(
-    session.user.clinicId,
-    term,
-    PAGE_SIZES.SEARCH_RESULTS,
-    ownerId,
-  );
+  const [{ items, hasMore }, fmt, tSpecies] = await Promise.all([
+    quickSearchPets(
+      session.user.clinicId,
+      term,
+      PAGE_SIZES.SEARCH_RESULTS,
+      ownerId,
+    ),
+    getFormatContext(),
+    getTranslations("enum.species"),
+  ]);
   return {
     options: items.map((p) => ({
       value: p.id,
-      label: `${p.name} · ${p.owner.firstName} ${p.owner.lastName}`,
+      // Two lines, because this is the row somebody CHOOSES from: see
+      // `petRowLabel`. `petLabel` is still what one-line places use.
+      label: petRowLabel(
+        p.name,
+        p.customSpecies?.name ?? tSpecies(p.species),
+      ),
+      caption: petRowCaption(
+        ownerLabel(p.owner),
+        p.lastVisitAt ? relativeTime(fmt, p.lastVisitAt) : null,
+      ),
       ownerId: p.ownerId,
-      ownerLabel: `${p.owner.firstName} ${p.owner.lastName}`,
+      ownerLabel: ownerLabel(p.owner),
     })),
     hasMore,
   };

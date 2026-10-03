@@ -86,11 +86,14 @@ export function DescriptionList({
    * Anywhere a value can wrap, `stacked` is the right one.
    *
    * There is a lower bound on the container (see the row class below) and
-   * deliberately no upper one, which is only safe as far as today's call
-   * sites go: every container `row` renders in is between 176px and about
-   * 432px. Put it in a wide one and the label sits hundreds of pixels from
-   * its value, which no eye pairs up — the reason `/visits/[id]` keeps its
-   * three-column grid rather than letting the card go full width.
+   * an upper bound on the pair itself, which the pair now carries rather
+   * than borrowing from its caller. It used to have neither, and that was
+   * safe only as far as the call sites of the day went: `/visits/[id]`
+   * keeps its three-column grid, which holds the cell near 287px at
+   * 1280 — but the app shell has no reading-width cap (`app/(app)/
+   * layout.tsx`), so the same cell is 501px at 1920 and 714px at 2560
+   * (measured, ui). See the row class below for what breaks there and
+   * why the cap sits on the pair.
    */
   layout?: "stacked" | "row";
   className?: string;
@@ -132,7 +135,36 @@ export function DescriptionList({
                 // short ones on one line — breaking the figure column at
                 // points that move with the language, which is the one
                 // thing `numeric` exists to prevent.
-                "flex flex-col gap-0.5 @2xs:flex-row @2xs:items-baseline @2xs:justify-between @2xs:gap-4"
+                // `max-w-80`: an upper bound on the pair, not on the cell.
+                // Without it a value drifts to the far end of whatever it
+                // is given, and past about 320px the eye stops reading it
+                // as a pair and starts reading it as a neighbour: at
+                // 1920 the gap inside `HAYVAN … Zeytin` measured 414px
+                // while "Zeytin" sat ~25px from the next pair's label
+                // (ui). That is not fatigue, it is the wrong pairing —
+                // and this card exists so a vet notices the wrong record.
+                //
+                // On the pair because the alternatives do not work: a
+                // container query on the cell still passes `@2xs` at
+                // 501px, and a cap on the cell makes the grid's columns
+                // unequal. Nothing below 320px changes -- 287px at 1280
+                // and the vitals card's 176-310px are all under it.
+                //
+                // What the cap does NOT do, measured after it shipped:
+                // it does not move the space out from inside the pair.
+                // `justify-between` always fills its box, so the space
+                // inside a pair is the cap minus the content (~87px
+                // here) no matter how wide the cell is: at 1920 it is
+                // 233px inside against 213px between (ui). For the
+                // space between to win, the pair would have to be under
+                // ~187px, which would change 1280 -- the dominant case,
+                // where nothing is wrong today. The acute defect is
+                // closed and the grouping is no longer false; it is
+                // also not emphatic, and that is a limit of this
+                // structure rather than of the number. Moving it needs
+                // a fixed label-value gap, which costs the figure
+                // column its alignment -- not today's trade.
+                "flex flex-col gap-0.5 @2xs:flex-row @2xs:items-baseline @2xs:justify-between @2xs:gap-4 @2xs:max-w-80"
               : "flex flex-col gap-0.5"
           }
         >
@@ -155,7 +187,11 @@ export function DescriptionList({
             {isEmpty(item.value) ? (
               EMPTY
             ) : item.multiline ? (
-              <p className="whitespace-pre-wrap">{item.value}</p>
+              // `max-w-prose`: a free-text value read across a wide
+              // window is a line the eye loses its place in. The cap is
+              // a reading measure, not a layout one -- it is the same
+              // 65ch wherever the column happens to be.
+              <p className="max-w-prose whitespace-pre-wrap">{item.value}</p>
             ) : (
               item.value
             )}

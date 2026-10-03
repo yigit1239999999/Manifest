@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function InvoicePage({
   params,
@@ -63,7 +64,7 @@ export default async function InvoicePage({
 
       <PageHeader
         title={`#${invoice.number}`}
-        description={`${invoice.client.firstName} ${invoice.client.lastName}`}
+        description={ownerLabel(invoice.client)}
         badge={
           <StatusBadge
             kind="invoice"

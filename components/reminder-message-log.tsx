@@ -4,7 +4,7 @@ import { formatDateTime } from "@/lib/format";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 export interface ReminderMessageEntry {
-  status: "SENT" | "FAILED" | "MANUAL";
+  status: "SENT" | "FAILED" | "MANUAL" | "SUPPRESSED";
   createdAt: Date;
   channel: "SMS" | "WHATSAPP";
   /** What was actually sent. The point of the whole fold. */
@@ -13,6 +13,15 @@ export interface ReminderMessageEntry {
   recipient: string;
   /** The transport's stable code on a failure, not a sentence. */
   error: string | null;
+  /**
+   * The reminder whose message went out in place of this one.
+   *
+   * `null` means "cannot say", NOT "there wasn't one" -- the two are
+   * different and only one of them may be printed. When several
+   * reminders in the window composed the same text, the read side
+   * refuses to guess which one was sent, and so does this.
+   */
+  sentInstead?: { id: string; title: string } | null;
 }
 
 /**
@@ -45,8 +54,17 @@ export interface ReminderMessageEntry {
  */
 export async function ReminderMessageLog({
   messages,
+  presentIds,
 }: {
   messages: ReminderMessageEntry[];
+  /**
+   * Ids of the reminders currently rendered on the page.
+   *
+   * The link above is an anchor to a row, so it only works while that
+   * row is in the list -- and which rows are in the list is a filter
+   * away. The caller knows; this does not.
+   */
+  presentIds?: ReadonlySet<string>;
 }) {
   if (messages.length === 0) return null;
   const [t, tChannel, tStatus, fmt] = await Promise.all([
@@ -76,7 +94,7 @@ export async function ReminderMessageLog({
             </div>
             {/* `whitespace-pre-wrap`: the template has line breaks in it
                 and the owner read them, so the record shows them too. */}
-            <p className="whitespace-pre-wrap rounded-control bg-muted/40 p-2 text-foreground">
+            <p className="max-w-prose whitespace-pre-wrap rounded-control bg-muted/40 p-2 text-foreground">
               {m.body}
             </p>
             {/* `+` and nothing else. `MessageLog.recipient` is stored
@@ -96,6 +114,28 @@ export async function ReminderMessageLog({
             <p className="text-muted-foreground">
               {t("recipient")}: +{m.recipient}
             </p>
+            {/* A link when the row it names is on this page, plain text
+                when it is not. The reminder list has no detail route --
+                the row IS the record -- so this points at the row's own
+                anchor, the one the save highlight already puts there. A
+                link that scrolls nowhere promises what it cannot keep,
+                which is the rule the phone numbers on this screen
+                follow too. */}
+            {m.sentInstead && (
+              <p className="text-muted-foreground">
+                {t("sentInstead")}:{" "}
+                {presentIds?.has(m.sentInstead.id) ? (
+                  <a
+                    href={`#reminder-${m.sentInstead.id}`}
+                    className="underline hover:no-underline"
+                  >
+                    {m.sentInstead.title}
+                  </a>
+                ) : (
+                  m.sentInstead.title
+                )}
+              </p>
+            )}
             {m.error && (
               <p className="text-muted-foreground">
                 {t("providerCode")}: <code>{m.error}</code>

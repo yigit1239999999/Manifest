@@ -71,7 +71,11 @@ export default async function AuditPage() {
               cell: (e) => (
                 <>
                   {e.entityType}
-                  <span className="ms-2 text-xs text-muted-foreground/70">
+                  {/* The alpha was doing nothing the size was not
+                      already doing -- the cell is `text-sm` and this is
+                      `text-xs` -- while taking the id to 3.05:1 on a
+                      card and 2.73:1 on a muted row. */}
+                  <span className="ms-2 text-xs text-muted-foreground">
                     {e.entityId.slice(0, 6)}…
                   </span>
                 </>

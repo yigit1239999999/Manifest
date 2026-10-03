@@ -1,11 +1,12 @@
 "use client";
 
-import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { FormSection } from "@/components/ui/form-section";
+import { OptionalDetails } from "@/components/ui/optional-details";
 import { Input } from "@/components/ui/input";
+import { PhoneOrNone } from "@/components/ui/phone-or-none";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
@@ -15,12 +16,62 @@ import {
   updateClientAction,
 } from "@/modules/clients/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import {
+  ConsentChoice,
+  type ConsentAnswer,
+} from "@/components/ui/consent-choice";
 
 interface Props {
   client?: Client;
+  /**
+   * Where the vet was going when they found they needed a client
+   * first. Carried through the save so they land back on it instead
+   * of on the new client's page with their errand forgotten.
+   *
+   * Validated on the server before it is used -- `lib/next-param.ts`
+   * -- because this ends up deciding a redirect.
+   */
+  next?: string;
+  /**
+   * The name the vet had typed into the picker that sent them here,
+   * already split.
+   *
+   * The counter is writing down a person who is standing in front of
+   * them, so what was typed is a whole name: the page splits it at the
+   * first space and both halves are editable, because a guess in an
+   * editable box costs a keystroke and retyping the name costs the
+   * thing the vet complained about.
+   */
+  defaultFirstName?: string;
+  defaultLastName?: string;
 }
 
-export function ClientForm({ client }: Props) {
+// What is behind the fold, named rather than counted by hand.
+//
+// The hint tells the reader how many fields they are not seeing, and ux
+// asked for the number to be derived: "today it is nine, tomorrow it is
+// eight, and a hand-written 9 will lie one day". This list is the
+// derivation, and `optional-details.test` compares it against the
+// controls actually rendered inside the fold -- so it cannot drift from
+// the form without a red suite.
+const FOLDED_FIELDS = [
+  "email",
+  "secondaryPhone",
+  "preferredContact",
+  "preferredLanguage",
+  "address",
+  "city",
+  "postalCode",
+  "country",
+  "notes",
+] as const;
+
+export function ClientForm({
+  client,
+  next,
+  defaultFirstName,
+  defaultLastName,
+}: Props) {
   const t = useTranslations("client");
   const tEnum = useTranslations("enum.contactMethod");
   const tCommon = useTranslations("common");
@@ -32,27 +83,42 @@ export function ClientForm({ client }: Props) {
   const form = useActionForm(action, {});
   const { state } = form;
 
+  // Editing an existing client opens the fold when any of it is filled,
+  // so nothing that exists is ever hidden from the person looking at it.
+  const hasOptionalData = Boolean(
+    client &&
+      (client.email ||
+        client.secondaryPhone ||
+        client.preferredContact ||
+        client.preferredLanguage ||
+        client.address ||
+        client.city ||
+        client.postalCode ||
+        client.country ||
+        client.notes),
+  );
+
   // Three states, not two, and the third is the one that matters: a
   // client nobody has asked yet is not a client who said no. They get
   // the same silence and they are owed different work, so the record
   // has to be able to say "unanswered" and the form has to be able to
   // leave it that way. Nothing is selected until someone selects it.
   //
-  // Held in state only because the sentence underneath changes with it;
-  // the radios are what the form submits. `=== true` / `=== false`
-  // rather than a truthiness test, so that a null arrives here as null
-  // instead of collapsing into "declined" on its way through.
-  const consentNoteId = useId();
-  const [consent, setConsent] = useState<"true" | "false" | null>(
+  // `=== true` / `=== false` rather than a truthiness test, so that a
+  // null arrives at the control as null instead of collapsing into
+  // "declined" on its way through.
+  const consent: ConsentAnswer | null =
     client?.notificationsOptIn === true
       ? "true"
       : client?.notificationsOptIn === false
         ? "false"
-        : null,
-  );
+        : null;
 
   return (
     <ActionForm form={form} className="flex flex-col gap-8">
+      {/* The errand, travelling with the form because a server action
+          cannot see the URL it was submitted from. */}
+      {next && <input type="hidden" name="next" value={next} />}
       <FormSection
         title={t("sections.identity")}
         description={t("sections.identityHint")}
@@ -65,224 +131,215 @@ export function ClientForm({ client }: Props) {
           >
             <Input
               name="firstName"
-              defaultValue={client?.firstName}
+              defaultValue={client?.firstName ?? defaultFirstName ?? ""}
               autoComplete="given-name"
               required
             />
           </Field>
+          {/* The surname is the field the counter breaks on: an owner
+              can be a regular without anyone knowing it. "I would put a
+              full stop there and the record would be rubbish" is why
+              the hint says what to do instead. */}
           <Field
             label={t("lastName")}
             error={state.fieldErrors?.lastName}
-            required
+            hint={t("lastNameHint")}
           >
             <Input
               name="lastName"
-              defaultValue={client?.lastName}
+              defaultValue={client?.lastName ?? defaultLastName ?? ""}
               autoComplete="family-name"
-              required
             />
           </Field>
         </div>
+        {/* The phone comes up here out of the contact block, because at
+            the counter it is not contact detail -- it is the key. The
+            vet's own account: "if I do not take her number I will never
+            find that animal again." */}
+        {/* The number and the way past it, as one control: the rule
+            between them is three lines and a copy of it is where one
+            of the three goes missing (`PhoneOrNone`). */}
+        <PhoneOrNone
+          name="phone"
+          laterName="phoneLater"
+          label={t("phone")}
+          hint={t("phoneHint")}
+          laterLabel={t("phoneLater")}
+          error={state.fieldErrors?.phone}
+          defaultValue={client?.phone}
+          // A client already on file with no number: the tick says so,
+          // and without it the form would demand what the record has
+          // never had every time somebody opens it to fix an address.
+          defaultLater={Boolean(client) && !client?.phone}
+        />
       </FormSection>
 
-      <FormSection
-        title={t("sections.contact")}
-        description={t("sections.contactHint")}
+    {/* Under the phone and above the fold, which is the order of the
+        two questions: consent is whether a message goes at all, the
+        channel is which one it goes by. Asking which door to knock on
+        before asking whether to knock reads as though the answer to
+        the second is assumed -- and the channel now sits behind the
+        fold, so the order holds by construction.
+
+        This is the one field here that may not be folded away, and
+        the reason is what its empty value does. Unasked is stored as
+        `null` and silently means "send this owner nothing", so a
+        folded consent would make every client opened at the counter
+        unreachable, on the same dashboard that is gaining a count of
+        exactly those owners. The counter is also the cheapest moment
+        it will ever be asked: the owner is standing there and the
+        question rides along with the phone number.
+
+        The words are this form's and not the control's, and the split
+        from the ones the client's own page uses to DISPLAY the same
+        three states is on purpose. Here they are the question a
+        receptionist reads out to the owner standing in front of them
+        -- "may we send reminder messages?" / "yes, consented" -- and
+        ux asked for exactly that: the sentence the vet says, not the
+        name of our column. On a record's page there is nobody to ask
+        and the same state is a fact being reported. One vocabulary
+        answering both would be wrong in one of the two places. */}
+        <ConsentChoice
+          name="notificationsOptIn"
+          defaultValue={consent}
+          className="sm:col-span-2"
+          legend={t("consent.legend")}
+          labels={{
+            true: t("consent.answer.granted"),
+            false: t("consent.answer.declined"),
+            "": t("consent.answer.unanswered"),
+          }}
+          hints={{
+            true: t("consent.grantedHint"),
+            false: t("consent.declinedHint"),
+            "": t("consent.unansweredHint"),
+          }}
+        />
+
+      {/* Nine fields behind one fold, and the split is the whole point
+          of this form rather than a tidy-up. Measured on the counter
+          path a receptionist actually walks -- client, then animal,
+          then appointment -- this form came first and showed all
+          thirteen of its fields with two required. `pet-form` had
+          already been cut to the minute the work takes; this is that
+          same cut, arriving at the form that is reached first.
+
+          What stays outside is not "the important ones". It is the four
+          things the vet described themselves asking while the owner
+          stands there: who they are, how to reach them, and whether
+          they may be written to. Everything else is true of the client
+          and can be true of them tomorrow. */}
+      <OptionalDetails
+        title={t("optionalDetails")}
+        hint={t("optionalDetailsHint", { count: FOLDED_FIELDS.length })}
+        defaultOpen={hasOptionalData}
       >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("email")} error={state.fieldErrors?.email}>
+        <FormSection
+          title={t("sections.contact")}
+          description={t("sections.contactHint")}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t("email")} error={state.fieldErrors?.email}>
+              <Input
+                name="email"
+                type="email"
+                defaultValue={client?.email ?? ""}
+                autoComplete="email"
+                placeholder={tCommon("emailPlaceholder")}
+              />
+            </Field>
+            <Field
+              label={t("secondaryPhone")}
+              error={state.fieldErrors?.secondaryPhone}
+            >
+              <Input
+                name="secondaryPhone"
+                type="tel"
+                defaultValue={client?.secondaryPhone ?? ""}
+              />
+            </Field>
+            <Field
+              label={t("preferredContact")}
+              error={state.fieldErrors?.preferredContact}
+            >
+              <Select
+                name="preferredContact"
+                defaultValue={client?.preferredContact ?? ""}
+              >
+                <option value="">{tCommon("none")}</option>
+                {CONTACT_METHODS.map((v) => (
+                  <option key={v} value={v}>
+                    {tEnum(v)}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field
+              label={t("preferredLanguage")}
+              error={state.fieldErrors?.preferredLanguage}
+              hint={t("preferredLanguageHint")}
+            >
+              <Select
+                name="preferredLanguage"
+                defaultValue={client?.preferredLanguage ?? ""}
+              >
+                <option value="">{tCommon("none")}</option>
+                {LANGUAGES.map((v) => (
+                  <option key={v} value={v}>
+                    {tLang(v)}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+        </FormSection>
+
+        <FormSection
+          title={t("sections.address")}
+          description={t("sections.addressHint")}
+        >
+          <Field label={t("address")} error={state.fieldErrors?.address}>
             <Input
-              name="email"
-              type="email"
-              defaultValue={client?.email ?? ""}
-              autoComplete="email"
-              placeholder={tCommon("emailPlaceholder")}
+              name="address"
+              defaultValue={client?.address ?? ""}
+              autoComplete="street-address"
             />
           </Field>
-          <Field label={t("phone")} error={state.fieldErrors?.phone}>
-            <Input
-              name="phone"
-              type="tel"
-              defaultValue={client?.phone ?? ""}
-              autoComplete="tel"
-            />
-          </Field>
-          <Field
-            label={t("secondaryPhone")}
-            error={state.fieldErrors?.secondaryPhone}
-          >
-            <Input
-              name="secondaryPhone"
-              type="tel"
-              defaultValue={client?.secondaryPhone ?? ""}
-            />
-          </Field>
-          {/* Between the phones and the preferred channel, and that is
-              the order of the two questions: consent is whether a
-              message goes at all, the channel is which one it goes by.
-              Asking which door to knock on before asking whether to
-              knock reads as though the answer to the second is assumed.
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label={t("city")} error={state.fieldErrors?.city}>
+              <Input name="city" defaultValue={client?.city ?? ""} />
+            </Field>
+            <Field label={t("postalCode")} error={state.fieldErrors?.postalCode}>
+              <Input name="postalCode" defaultValue={client?.postalCode ?? ""} />
+            </Field>
+            <Field label={t("country")} error={state.fieldErrors?.country}>
+              <Input name="country" defaultValue={client?.country ?? ""} />
+            </Field>
+          </div>
+        </FormSection>
 
-              A plain `fieldset` rather than `Field`: `Field` associates
-              one label with one control and injects the id, and a group
-              of radios needs a `legend` instead — the name of the
-              question, not of any one answer. `min-w-0` because a
-              fieldset's default minimum width is its min-content, which
-              in a grid column is how a long legend pushes the page
-              wider than the phone it is on. */}
-          <fieldset className="min-w-0 sm:col-span-2">
-            {/* The fieldset stays a plain block and the contents get
-                their own flex wrapper. A `legend` is laid out by the
-                engine rather than by its parent's display mode, so a
-                flex or grid fieldset puts it somewhere none of the
-                three agree on; keeping the layout one level in is the
-                boring arrangement that renders the same everywhere. */}
-            <legend className="mb-2 text-sm font-medium text-foreground">
-              {t("consent.legend")}
-            </legend>
-            <div className="flex flex-wrap gap-x-6 gap-y-2">
-              {(["true", "false"] as const).map((answer) => (
-                <label
-                  key={answer}
-                  // `py-1` is not padding for looks. The label is the
-                  // clickable target — bigger than the 16px box, which
-                  // is the point — but at `text-sm` its height was the
-                  // line box, 20px, and WCAG 2.5.8 asks for 24. pm
-                  // measured it: 81×20 and 101×20 in Turkish, 111×20
-                  // and 80×20 in English. Width was never the problem;
-                  // height was, on the two controls a phone user taps
-                  // to answer a consent question. This makes it 28.
-                  className="flex min-h-6 items-center gap-2 py-1 text-sm text-foreground"
-                >
-                  <input
-                    type="radio"
-                    name="notificationsOptIn"
-                    value={answer}
-                    // On the inputs, not on the `fieldset`.
-                    //
-                    // The line underneath was visible and silent: it
-                    // told anyone who could see it that no automatic
-                    // message goes out until an answer is recorded,
-                    // and told nobody else. A description on a
-                    // `fieldset` is announced unevenly across screen
-                    // readers; on the control it is read when focus
-                    // arrives, which is the moment the sentence is
-                    // about. One channel rather than both, for the
-                    // same reason the error summary is not also a live
-                    // region — two copies of one sentence is not twice
-                    // the information.
-                    aria-describedby={consentNoteId}
-                    checked={consent === answer}
-                    onChange={() => setConsent(answer)}
-                    // No focus class and no `accent-color`: both come
-                    // from the rules in `app/globals.css` that cover
-                    // every tick and radio in the product. A tenth copy
-                    // here would be the one that drifts.
-                    className="size-4"
-                  />
-                  {t(
-                    answer === "true" ? "consent.granted" : "consent.declined",
-                  )}
-                </label>
-              ))}
-            </div>
-            {/* All three states say something, including the empty one
-                (TEAM.md #21). Unanswered and declined end in the same
-                silence and are not the same fact: one is work still to
-                do, the other is a closed question. And consent needs a
-                sentence of its own — copy that only describes the
-                refusal leaves the vet to infer what a yes buys. */}
-            <p
-              id={consentNoteId}
-              className="mt-2 text-xs text-muted-foreground"
-            >
-              {t(
-                consent === "true"
-                  ? "consent.grantedHint"
-                  : consent === "false"
-                    ? "consent.declinedHint"
-                    : "consent.unansweredHint",
-              )}
-            </p>
-          </fieldset>
-          <Field
-            label={t("preferredContact")}
-            error={state.fieldErrors?.preferredContact}
-          >
-            <Select
-              name="preferredContact"
-              defaultValue={client?.preferredContact ?? ""}
-            >
-              <option value="">{tCommon("none")}</option>
-              {CONTACT_METHODS.map((v) => (
-                <option key={v} value={v}>
-                  {tEnum(v)}
-                </option>
-              ))}
-            </Select>
+        {/* "Preferences & notes" with the consent box gone is a section
+            named after something that left it: what remains is notes.
+            The heading follows the content rather than the other way
+            round. */}
+        <FormSection
+          title={t("sections.notes")}
+          description={t("sections.notesHint")}
+        >
+          <Field label={t("notes")} error={state.fieldErrors?.notes}>
+            <Textarea name="notes" rows={4} defaultValue={client?.notes ?? ""} />
           </Field>
-          <Field
-            label={t("preferredLanguage")}
-            error={state.fieldErrors?.preferredLanguage}
-            hint={t("preferredLanguageHint")}
-          >
-            <Select
-              name="preferredLanguage"
-              defaultValue={client?.preferredLanguage ?? ""}
-            >
-              <option value="">{tCommon("none")}</option>
-              {LANGUAGES.map((v) => (
-                <option key={v} value={v}>
-                  {tLang(v)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-      </FormSection>
-
-      <FormSection
-        title={t("sections.address")}
-        description={t("sections.addressHint")}
-      >
-        <Field label={t("address")} error={state.fieldErrors?.address}>
-          <Input
-            name="address"
-            defaultValue={client?.address ?? ""}
-            autoComplete="street-address"
-          />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label={t("city")} error={state.fieldErrors?.city}>
-            <Input name="city" defaultValue={client?.city ?? ""} />
-          </Field>
-          <Field label={t("postalCode")} error={state.fieldErrors?.postalCode}>
-            <Input name="postalCode" defaultValue={client?.postalCode ?? ""} />
-          </Field>
-          <Field label={t("country")} error={state.fieldErrors?.country}>
-            <Input name="country" defaultValue={client?.country ?? ""} />
-          </Field>
-        </div>
-      </FormSection>
-
-      {/* "Preferences & notes" with the consent box gone is a section
-          named after something that left it: what remains is notes.
-          The heading follows the content rather than the other way
-          round. */}
-      <FormSection
-        title={t("sections.notes")}
-        description={t("sections.notesHint")}
-      >
-        <Field label={t("notes")} error={state.fieldErrors?.notes}>
-          <Textarea name="notes" rows={4} defaultValue={client?.notes ?? ""} />
-        </Field>
-      </FormSection>
+        </FormSection>
+      </OptionalDetails>
 
       <div className="flex items-center justify-end gap-3">
         <span className="text-xs text-muted-foreground">
-          {tCommon("requiredFields", {
-            fields: [t("firstName"), t("lastName")].join(", "),
-          })}
+          {/* The phone left this list when it stopped being a wall.
+              It is still the field this form argues hardest for, and
+              the box under it is the only way past -- but a subtitle
+              that calls it required while a tick lets the form through
+              is describing a different form. */}
+          {tCommon("requiredFields", { fields: t("firstName") })}
         </span>
         <SubmitButton>{client ? t("update") : t("create")}</SubmitButton>
       </div>

@@ -132,11 +132,47 @@ const STATE_CLINIC_NAME = "HÂL KLİNİĞİ";
 // helper's name, an epoch in milliseconds. Ten digits or more so that a
 // real clinic called "Clinic 3" is never swept up.
 const E2E_CLINIC_PATTERN = "^(Perf )?Clinic [0-9]{10,}$";
-// Clinics typed in by hand while building the product, named on 21
-// September 2026. A list and not a pattern because there is no pattern:
-// they were named by people, one at a time. It does not need
-// maintaining — anything new falls into REAL, which is the point.
-const HAND_MADE = ["PM Test Klinigi", "Yiğit Klinik", "Sunrise"];
+// Clinics typed in by hand while building the product. A list and not a
+// pattern because there is no pattern: they were named by people, one at
+// a time.
+//
+// This comment used to say the list "does not need maintaining — anything
+// new falls into REAL, which is the point". That was written when a
+// hand-made clinic was a rare event. It was wrong twice in one hour on 21
+// September 2026: signing up as a customer is how anyone looks at what a
+// new clinic sees, and each look leaves a row shaped exactly like a real
+// one. Both were caught because somebody read this census afterwards; a
+// baseline of one, made by us, would otherwise have started reporting as
+// the product's first real user.
+//
+// So it does need maintaining, and the maintenance is this: whoever signs
+// up by hand adds the name here in the same breath. The alternative —
+// naming such clinics by a pattern, the way the e2e helper does — was
+// considered and refused, because a person looking at a first screen
+// should see the product as a customer sees it, and a clinic called
+// "Clinic 1790000597001" is not that.
+const HAND_MADE = [
+  "PM Test Klinigi",
+  "Yiğit Klinik",
+  "Sunrise",
+  // Opened by hand on 21 September 2026, to look at what a brand new
+  // clinic sees on its first screen. It is the product's owner signing
+  // up as a customer would, which is exactly the shape of a real
+  // clinic and exactly why it has to be named here: for a few hours it
+  // was the only row this census called REAL, and every derived number
+  // below would have started reporting on it. A baseline of one, made
+  // by us, reading as the first real user.
+  "Sonbahar Veteriner Kliniği",
+  // Opened by the vet, to walk the first screen with their own hands
+  // rather than read it described.
+  "Deniz Veteriner Kliniği",
+  // Opened on 22 September 2026 through the product's own sign-up page, so
+  // the owner could walk the first run as a customer would rather than be
+  // told about it. Same reason as the row above it: for as long as it is
+  // the newest clinic here, it would be the one row this census called
+  // REAL, and every number below would start describing us.
+  "Pati Veteriner Kliniği",
+];
 
 const census = await client.query(
   `SELECT id, name,

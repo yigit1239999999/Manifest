@@ -2,6 +2,7 @@
 //
 //   npm run sweep          -- once
 //   npm run sweep:watch    -- every 15 minutes, until Ctrl-C
+//   npm run sweep:dry      -- says what would go out, sends nothing
 //
 // The sweep is the thing that actually reaches an owner, and until now
 // the only way to run it was to curl the cron endpoint with the shared
@@ -51,13 +52,15 @@ const REASONS = {
   closed: "durumu kapalı (iptal, gelmedi, tamamlandı; hatırlatma beklemede değil)",
   clientArchived: "müşteri arşivlenmiş",
   noPhone: "telefon numarası yok",
-  optedOut: "onay yok (reddetti ya da hiç sorulmadı)",
+  optedOut: "onay vermemiş (soruldu, hayır dedi)",
+  neverAsked: "onay hiç sorulmamış",
   petSilenced: "hayvan vefat etmiş ya da arşivlenmiş",
   alreadySent: "zaten gönderilmiş (uygulama ya da elle)",
   attemptsExhausted: "üç kez başarısız, artık denenmiyor",
   coolingOff: "yakın zamanda başarısız, altı saat bekliyor",
   notDue: "saati gelmemiş",
   noRecipient: "numara aranabilir hâle gelmiyor",
+  duplicateSuppressed: "aynı metin aynı numaraya zaten gitti (ikiz hatırlatma)",
 };
 
 const missing = SWEEP_SKIP_REASONS.filter((r) => !(r in REASONS));
@@ -85,7 +88,12 @@ function printKind(title, window, kind) {
   console.log(`  kapalı olan klinik  ${kind.clinicsDisabled}  — bu yarı ayarlardan kapatılmış`);
   console.log(`  elenenler   ${skipped}`);
   for (const reason of SWEEP_SKIP_REASONS) {
-    console.log(`    ${String(kind.skipped[reason]).padStart(5)}  ${REASONS[reason]}`);
+    // The fallback is loud on purpose. A reason without a description
+    // printed as "undefined" beside a real count, and the guard that
+    // catches it writes to stderr -- which scrolls past. The line
+    // itself has to say what is wrong, where the number is.
+    const why = REASONS[reason] ?? `AÇIKLAMASIZ SEBEP: ${reason} — run-sweep.mjs'e ekleyin`;
+    console.log(`    ${String(kind.skipped[reason]).padStart(5)}  ${why}`);
   }
   // The invariant that makes the list readable: every row in the window
   // is in exactly one line above. If it ever fails, the census and the
@@ -98,12 +106,14 @@ function printKind(title, window, kind) {
   }
 }
 
-async function sweepOnce() {
+async function sweepOnce({ dryRun = false } = {}) {
   const startedAt = Date.now();
-  const summary = await runReminderSweep();
+  const summary = await runReminderSweep(new Date(), { dryRun });
   const ms = Date.now() - startedAt;
 
-  console.log(`SÜPÜRGE  ${localStamp(new Date())}  ·  ${ms} ms`);
+  console.log(
+    `SÜPÜRGE  ${localStamp(new Date())}  ·  ${ms} ms${dryRun ? "  ·  PROVA, hiçbir şey gönderilmedi" : ""}`,
+  );
   console.log(
     `KANAL    SMS ${isChannelConfigured("SMS") ? `kurulu (${process.env.SMS_PROVIDER})` : "kurulu değil"}` +
       ` · WhatsApp ${isChannelConfigured("WHATSAPP") ? "kurulu" : "kurulu değil"}`,
@@ -126,9 +136,26 @@ async function sweepOnce() {
   printKind("RANDEVU HATIRLATMASI", "şimdi → +8 gün", summary.appointments);
   printKind("HATIRLATMA BİLDİRİMİ", "dün → +gün sayısı", summary.reminders);
 
+  // The point of the rehearsal: the text itself, before anybody's
+  // phone rings. Numbers are masked -- four digits tell two
+  // recipients apart and dial neither.
+  if (dryRun) {
+    console.log(`\nGİDECEK MESAJLAR  (${summary.planned.length})`);
+    if (summary.planned.length === 0) {
+      console.log(`  yok — bu koşuda gönderilecek bir mesaj çıkmadı`);
+    }
+    for (const m of summary.planned) {
+      console.log(`  → ${m.recipient}  [${m.kind}]`);
+      console.log(`    ${m.body}`);
+    }
+  }
+
   // Sending and delivery are two different questions and the summary
   // keeps them apart on the page as well: "gönderildi" above is what
   // the operator accepted, everything below is what became of it.
+  // Skipped in a rehearsal: the poller writes delivery statuses, and
+  // "sends nothing" has to mean "changes nothing".
+  if (dryRun) return;
   const d = await runDeliveryReportSweep();
   console.log(`\nTESLİM RAPORU`);
   console.log(`  açık        ${d.open}  — kabul edilmiş, âkıbeti henüz bilinmeyen mesaj`);
@@ -166,6 +193,7 @@ async function sweepOnce() {
  * place: something that is either running or not and no way to tell by
  * looking. This one is visible while it runs and gone when it stops.
  */
+const dryRun = process.argv.includes("--dry-run");
 const everyIndex = process.argv.indexOf("--every");
 const everyMinutes = everyIndex === -1 ? null : Number(process.argv[everyIndex + 1]);
 if (everyIndex !== -1 && !(everyMinutes > 0)) {
@@ -176,7 +204,7 @@ if (everyIndex !== -1 && !(everyMinutes > 0)) {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 if (everyMinutes === null) {
-  await sweepOnce();
+  await sweepOnce({ dryRun });
 } else {
   console.log(
     `SÜPÜRGE DÖNGÜSÜ  her ${everyMinutes} dakikada bir · durdurmak için Ctrl-C\n`,
@@ -186,7 +214,7 @@ if (everyMinutes === null) {
   // reading. The scheduler in production has the same property -- a 500
   // is visible where a caught error is not.
   for (;;) {
-    await sweepOnce();
+    await sweepOnce({ dryRun });
     console.log("");
     await sleep(everyMinutes * 60_000);
   }

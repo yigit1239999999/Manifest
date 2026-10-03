@@ -5,7 +5,13 @@ vi.mock("@/lib/prisma", () => ({
     clinic: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn(), count: vi.fn() },
     appointment: { findFirst: vi.fn(), findMany: vi.fn() },
     reminder: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
-    messageLog: { create: vi.fn(), count: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+    messageLog: {
+      create: vi.fn(),
+      count: vi.fn(),
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
     auditLog: { create: vi.fn() },
     $queryRaw: vi.fn(),
   },
@@ -333,6 +339,44 @@ describe("automaticSendBlocked", () => {
 
   // Three different situations, and the sweep summary has to tell them
   // apart: one is finished, one is waiting, and one wants a person.
+  // A failure we caused must not spend one of the reminder's three
+  // attempts. The duplicate block is the case: the provider refuses a
+  // repeat of the same text within an hour, so it fires when WE sent
+  // twice -- and it is evidence the earlier one was accepted. Counting
+  // it let three of our own repeats make the sweep abandon a reminder
+  // for good, which is this morning's silent abandonment with a new
+  // cause.
+  it("does not spend an attempt on a failure of our own making", () => {
+    const ours = (hoursAgo: number) => ({
+      status: "FAILED",
+      createdAt: new Date(now.getTime() - hoursAgo * 3_600_000),
+      error: "duplicate_send_blocked",
+    });
+
+    expect(automaticSendBlock([ours(20), ours(30), ours(40)], now)).toBeNull();
+    // Clinic-caused ones still count, deliberately: three attempts
+    // against an unapproved sender title are equally futile, but a
+    // banner is already saying so -- that abandonment is visible.
+    const theirs = (hoursAgo: number) => ({
+      ...ours(hoursAgo),
+      error: "sender_title_not_registered",
+    });
+    expect(automaticSendBlock([theirs(20), theirs(30), theirs(40)], now)).toBe(
+      "attemptsExhausted",
+    );
+    // And the wait still applies to ours: a repeat refused a minute
+    // ago will be refused again a minute from now.
+    expect(automaticSendBlock([ours(1)], now)).toBe("coolingOff");
+  });
+
+  // Decided once and recorded. The run-local check only sees its own
+  // run, so without this the twin would go out on the next sweep.
+  it("does not reconsider a twin it has already held back", () => {
+    expect(
+      automaticSendBlock([{ status: "SUPPRESSED", createdAt: now, error: null }], now),
+    ).toBe("duplicateSuppressed");
+  });
+
   it("names which of the three rules held the candidate back", () => {
     expect(automaticSendBlock([{ status: "SENT", createdAt: now }], now)).toBe("alreadySent");
     expect(automaticSendBlock([failedAt(1)], now)).toBe("coolingOff");
@@ -415,6 +459,160 @@ describe("runReminderSweep", () => {
     expect(where.pet).toEqual({ deceased: false, archivedAt: null });
   });
 
+  // Two reminders for one animal on one day compose the same SMS: the
+  // text is built from the owner, the animal, the type and the day,
+  // and never reads the title or the body. Sending both puts the same
+  // sentence in front of the owner twice.
+  it("says the same thing once, and leaves the twin a row of its own", async () => {
+    const twin = (id: string, title: string) => ({
+      id,
+      type: "VACCINATION_DUE",
+      title,
+      body: null,
+      dueAt: new Date("2026-09-22T09:00:00.000Z"),
+      pet: { name: "Sarı" },
+      client: {
+        id: "c-1",
+        firstName: "Ayşe",
+        lastName: "Yılmaz",
+        phone: "0532 123 45 67",
+        preferredLanguage: "tr",
+        notificationsOptIn: true,
+      },
+      messages: [],
+    });
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+      twin("r-1", "Kuduz aşısı"),
+      twin("r-2", "Karma aşı"),
+    ] as never);
+    vi.mocked(prisma.messageLog.findFirst).mockResolvedValue(null as never);
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([{ reason: "eligible", n: 2 }] as never);
+    transport.send.mockResolvedValue({ providerId: "job-1" });
+
+    const summary = await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"));
+
+    expect(transport.send).toHaveBeenCalledTimes(1);
+    expect(summary.reminders.sent).toBe(1);
+    expect(summary.reminders.skipped.duplicateSuppressed).toBe(1);
+
+    // The trace is the point: with no row the twin is indistinguishable
+    // from a reminder waiting its turn, the screen promises a send that
+    // is never coming, and the next run weighs it again.
+    const suppressed = vi
+      .mocked(prisma.messageLog.create)
+      .mock.calls.map((c) => c[0].data)
+      .find((d) => (d as { status?: string }).status === "SUPPRESSED");
+    expect(suppressed).toMatchObject({ reminderId: "r-2", recipient: "905321234567" });
+  });
+
+  // Until now the only way to answer "what would go out" was to send
+  // it. With `SMS_PROVIDER=log` rehearsal and reality were the same
+  // thing; the day a real gateway is connected, the first run is the
+  // live one.
+  describe("rehearsing it", () => {
+    beforeEach(() => {
+      vi.mocked(prisma.$queryRaw).mockImplementation((async () => [
+        { reason: "eligible", n: 1 },
+      ]) as never);
+      vi.mocked(prisma.messageLog.findFirst).mockResolvedValue(null as never);
+      vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+        {
+          id: "r-1",
+          type: "VACCINATION_DUE",
+          title: "Kuduz aşısı",
+          body: null,
+          dueAt: new Date("2026-09-22T09:00:00.000Z"),
+          pet: { name: "Sarı" },
+          client: {
+            id: "c-1",
+            firstName: "Ayşe",
+            lastName: "Yılmaz",
+            phone: "0532 123 45 67",
+            preferredLanguage: "tr",
+            notificationsOptIn: true,
+          },
+          messages: [],
+        },
+      ] as never);
+    });
+
+    it("says what would go out, and sends none of it", async () => {
+      const summary = await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"), {
+        dryRun: true,
+      });
+
+      expect(summary.reminders.sent).toBe(1);
+      expect(summary.planned).toHaveLength(1);
+      expect(summary.planned[0]).toMatchObject({
+        kind: "REMINDER_DUE",
+        reminderId: "r-1",
+      });
+      expect(summary.planned[0].body).toContain("Sarı");
+      expect(transport.send).not.toHaveBeenCalled();
+    });
+
+    // The rehearsal must leave the database exactly as it found it,
+    // or running it costs the thing it was meant to protect.
+    it("writes nothing at all", async () => {
+      await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"), { dryRun: true });
+
+      expect(prisma.messageLog.create).not.toHaveBeenCalled();
+      expect(prisma.reminder.update).not.toHaveBeenCalled();
+      expect(prisma.messageLog.update).not.toHaveBeenCalled();
+    });
+
+    // Four digits tell two recipients apart and dial neither. This
+    // output is printed.
+    it("prints a number nobody can call from", async () => {
+      const summary = await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"), {
+        dryRun: true,
+      });
+
+      expect(summary.planned[0].recipient).toBe("•••• 4567");
+    });
+
+    // The twin rule has to hold in rehearsal too, or the rehearsal
+    // reports one more message than the real run would send -- and a
+    // rehearsal that overcounts is worse than none, because somebody
+    // trusted it.
+    it("holds a twin back without recording that it did", async () => {
+      const twin = (id: string, title: string) => ({
+        id,
+        type: "VACCINATION_DUE",
+        title,
+        body: null,
+        dueAt: new Date("2026-09-22T09:00:00.000Z"),
+        pet: { name: "Sarı" },
+        client: {
+          id: "c-1",
+          firstName: "Ayşe",
+          lastName: "Yılmaz",
+          phone: "0532 123 45 67",
+          preferredLanguage: "tr",
+          notificationsOptIn: true,
+        },
+        messages: [],
+      });
+      vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+        twin("r-1", "Kuduz aşısı"),
+        twin("r-2", "Karma aşı"),
+      ] as never);
+      vi.mocked(prisma.$queryRaw).mockImplementation((async () => [
+        { reason: "eligible", n: 2 },
+      ]) as never);
+
+      const summary = await runReminderSweep(new Date("2026-09-20T06:30:00.000Z"), {
+        dryRun: true,
+      });
+
+      expect(summary.planned).toHaveLength(1);
+      expect(summary.reminders.skipped.duplicateSuppressed).toBe(1);
+      // And no SUPPRESSED row: a rehearsal that wrote one would block
+      // the twin for ever on the strength of a run that sent nothing.
+      expect(prisma.messageLog.create).not.toHaveBeenCalled();
+    });
+  });
+
   it("keeps a reminder that names no animal, drops one whose animal is gone", async () => {
     await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
 
@@ -432,6 +630,26 @@ describe("runReminderSweep", () => {
   // write to, the other is a clinic whose owners were never asked for
   // consent. Reading the second as the first is how "reminders do not
   // work" gets answered with "there was nothing to send".
+  // Two different facts about a clinic: nobody asked, versus somebody
+  // asked and was told no. An owner who said no is not missing data,
+  // and counting them as work to do objects to the vet's own
+  // relationship with their client on our behalf.
+  it("counts a refusal apart from a question nobody asked", async () => {
+    vi.mocked(prisma.$queryRaw).mockImplementation((async () => [
+      { reason: "optedOut", n: 2 },
+      { reason: "neverAsked", n: 7 },
+      { reason: "eligible", n: 0 },
+    ]) as never);
+
+    const summary = await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
+
+    expect(summary.reminders.skipped.optedOut).toBe(2);
+    expect(summary.reminders.skipped.neverAsked).toBe(7);
+    // Both censuses classify consent from one SQL fragment, so the two
+    // halves cannot drift into two different answers.
+    expect(summary.appointments.skipped.neverAsked).toBe(7);
+  });
+
   it("tells an empty window apart from one every rule emptied", async () => {
     const empty = await runReminderSweep(new Date("2026-09-20T06:00:00.000Z"));
     expect(empty.appointments.pool).toBe(0);
@@ -756,16 +974,23 @@ describe("reminderDeliveryState", () => {
     expect(state).toMatchObject({ state: "sentNoReportChannel", channel: "WHATSAPP" });
   });
 
-  it("names the reason nothing will go, clinic-wide reasons first", () => {
+  it("names the owner's own obstacle before the clinic's switch", () => {
     const off = toMessagingProfile({
       ...clinicRow,
       settings: { notifications: { channel: "SMS", whatsapp: { enabled: false } } },
     } as never);
-    // Both switched off and not consented: the vet is sent to the
-    // setting, which is the one they can act on.
+    // This order was the other way round until sending by hand started
+    // working with the switch off. Now the rows are not equally stuck:
+    // on most of them the vet can press the button, and on this one
+    // they cannot -- so the consent is the sentence that matters, and
+    // "notifications are off" would hide it.
     expect(
       reminderDeliveryState(row({ client: { phone: null, notificationsOptIn: false } }), off),
-    ).toEqual({ state: "disabled" });
+    ).toEqual({ state: "optedOut" });
+
+    // With nothing standing in this owner's way, the switch is exactly
+    // what the row should name -- next to a button that works.
+    expect(reminderDeliveryState(row(), off)).toEqual({ state: "disabled" });
 
     // Refused and never asked are one falsy value in code and two
     // different mornings for a vet: nothing to do about the first, a
@@ -866,6 +1091,72 @@ describe("sendReminderNow", () => {
     await sendReminderNow("r-1", ctx);
 
     expect(transport.send).toHaveBeenCalled();
+  });
+
+  // The provider blocks a repeat of the same text to the same number
+  // inside an hour. Pressing send after a failure -- the moment this
+  // button exists for -- can land inside that window, and the answer
+  // comes back as another failed row for a message that already went.
+  // A vet reasonably concludes the product is broken.
+  // The deadlock this exists to break, in the vet's own words: to
+  // trust the loop you have to try it, to try it you have to switch it
+  // on, to switch it on you have to trust it. Sending one message by
+  // hand, to a person you chose, is how anyone gets in -- so the
+  // clinic's automation switches must not gate it.
+  it("sends by hand even while the clinic's automatic sending is off", async () => {
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({
+      ...clinicRow,
+      settings: {
+        notifications: {
+          channel: "SMS",
+          whatsapp: { enabled: false, reminders: { enabled: false } },
+        },
+      },
+    } as never);
+    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(reminderRow() as never);
+    vi.mocked(prisma.messageLog.findFirst).mockResolvedValue(null as never);
+    transport.send.mockResolvedValue({ providerId: "job-80" });
+
+    await sendReminderNow("r-1", ctx);
+
+    expect(transport.send).toHaveBeenCalled();
+  });
+
+  // What is not a preference still applies. The switch decides whether
+  // the app writes to owners unattended; consent decides whether this
+  // owner may be written to at all, and no button overrides that.
+  it("still refuses what was never about the switch", async () => {
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({
+      ...clinicRow,
+      settings: { notifications: { channel: "SMS", whatsapp: { enabled: false } } },
+    } as never);
+    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(
+      reminderRow({ client: { ...reminderRow().client, notificationsOptIn: false } }) as never,
+    );
+
+    await expect(sendReminderNow("r-1", ctx)).rejects.toMatchObject({
+      messageKey: "error.notifications.optedOut",
+    });
+    expect(transport.send).not.toHaveBeenCalled();
+  });
+
+  it("refuses a repeat the operator would refuse anyway", async () => {
+    vi.mocked(prisma.reminder.findFirst).mockResolvedValue(reminderRow() as never);
+    vi.mocked(prisma.messageLog.findFirst).mockResolvedValue({ id: "m-earlier" } as never);
+
+    await expect(sendReminderNow("r-1", ctx)).rejects.toMatchObject({
+      messageKey: "error.notifications.duplicateWindow",
+    });
+    expect(transport.send).not.toHaveBeenCalled();
+
+    // Across the clinic, not just this reminder: the filter is on the
+    // text and the number, and two reminders for one animal on one day
+    // compose the same words.
+    const where = vi.mocked(prisma.messageLog.findFirst).mock.calls[0][0]
+      ?.where as Record<string, unknown>;
+    expect(where.recipient).toBe("905321234567");
+    expect(where.status).toEqual({ in: ["SENT", "MANUAL"] });
+    expect(where.reminderId).toBeUndefined();
   });
 
   it("refuses when the owner never consented, whatever the screen offered", async () => {

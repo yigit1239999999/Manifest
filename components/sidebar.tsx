@@ -13,6 +13,7 @@ import {
   Receipt,
   Settings,
   Stethoscope,
+  Upload,
   UserCog,
   Users,
 } from "lucide-react";
@@ -27,12 +28,19 @@ import type { Permission } from "@/lib/permissions";
 // entire change history, and adding the check as a third boolean would have
 // worked while guaranteeing a fourth one for the next permission.
 //
-// An entry with no `permission` is for everyone.
+// An entry with no `permission` is for everyone. An entry with a LIST of
+// them needs all of them, and `/import` is why the field takes one: a row
+// of that file is a client and an animal, so half the permission is no
+// permission -- `modules/import/request.ts` refuses on exactly that pair,
+// and a rail that asked for only one of the two would offer the door
+// beside the locked one. A list rather than a new `import.write`
+// permission, because the endpoint invented none either and two names for
+// one rule is how they drift apart.
 const NAV: {
   href: string;
   key: string;
   icon: typeof Home;
-  permission?: Permission;
+  permission?: Permission | readonly Permission[];
 }[] = [
   { href: "/", key: "dashboard", icon: Home },
   { href: "/clients", key: "clients", icon: Users },
@@ -42,6 +50,13 @@ const NAV: {
   { href: "/prescriptions", key: "prescriptions", icon: Pill },
   { href: "/reminders", key: "reminders", icon: ClipboardList },
   { href: "/invoices", key: "invoices", icon: Receipt },
+  // Under the day's work and above the history, because that is what it
+  // is: not something a vet opens between patients, and not a record of
+  // what happened either. Onboarding shows this door once -- the first-run
+  // screen stops being the first-run screen the evening the first visit is
+  // written -- and the second spreadsheet arrives months later, which is
+  // when this is the only way back (ux).
+  { href: "/import", key: "import", icon: Upload, permission: ["clients.write", "pets.write"] },
   { href: "/audit", key: "audit", icon: History, permission: "audit.read" },
   { href: "/staff", key: "staff", icon: UserCog, permission: "users.manage" },
   {
@@ -73,9 +88,16 @@ export function Sidebar({
   const tApp = useTranslations("app");
   const pathname = usePathname();
 
-  const items = NAV.filter(
-    (item) => !item.permission || permissions.includes(item.permission),
-  );
+  const items = NAV.filter((item) => {
+    if (!item.permission) return true;
+    // `every`, so a list is an AND. The other reading -- any one of them
+    // opens the door -- is the one that would be wrong here and wrong
+    // quietly: the page behind it would still refuse, and the rail would
+    // have promised.
+    const needed =
+      typeof item.permission === "string" ? [item.permission] : item.permission;
+    return needed.every((p) => permissions.includes(p));
+  });
 
   const isActive = (href: string) =>
     href === "/"

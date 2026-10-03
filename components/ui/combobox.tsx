@@ -17,6 +17,20 @@ import { fold, matches } from "@/lib/search";
 export interface ComboOption {
   value: string;
   label: string;
+  /**
+   * A second, quieter line under the label.
+   *
+   * For the row somebody has to CHOOSE from rather than read: the
+   * animal picker puts the owner and the last visit here, because
+   * "Pamuk" three times is the shape of writing a visit into the wrong
+   * record (`lib/pet-label.ts`).
+   *
+   * It is matched by the local filter as well as the label, and that
+   * is not a nicety: the owner's name moved down here, and a filter
+   * that only read labels would have silently removed the ability to
+   * find an animal by its owner -- which is how a vet looks for one.
+   */
+  caption?: string;
 }
 
 interface Props {
@@ -61,7 +75,40 @@ interface Props {
   allowCustom?: boolean;
   /** Renders the label for the "add new" row from the typed query. */
   addLabel?: (value: string) => string;
+  /**
+   * Offers to go and make the record the typed text names, instead of
+   * a door in front of the form saying one has to exist first.
+   *
+   * The vet's own account of the door: "the dog is on the table, the
+   * owner is crying, and what I got was not a blank page but a door".
+   * The card had already promised the animal and the owner could be
+   * made on the way, so the screen was making the product a liar.
+   *
+   * The row sits BELOW every match and is never selected for anybody:
+   * a clinic with three Zeytins and four Pamuks is the ordinary case,
+   * and a picker that jumps to "create" ahead of what it found is how
+   * the fifth duplicate Limon gets its own separate vaccination
+   * history. It is also offered when there IS an exact match, for the
+   * same reason -- two animals with one name is normal, so the
+   * existing one cannot be assumed to be the one meant.
+   */
+  onCreate?: (query: string) => void;
+  /** Renders the label for that row from the typed query. */
+  createLabel?: (value: string) => string;
   noResultsLabel?: string;
+  /** The list's body while this clinic's catalogue is empty and nothing
+   * has been typed yet.
+   *
+   * The state the three below it did not count. A clinic on its first
+   * morning opens `/visits/new`, the animal picker takes focus, the
+   * list opens on an empty catalogue, and the first sentence the
+   * product ever says to them is "no results" -- a refusal, for a
+   * search nobody ran. Passed by the caller like every other string
+   * here, because the sentence is about what is missing and only the
+   * caller knows whether that is an animal or a client.
+   *
+   * Left off, the picker behaves exactly as it does today. */
+  emptyCatalogueLabel?: string;
   /**
    * Asks the server instead of filtering `options` locally.
    *
@@ -131,7 +178,10 @@ export function Combobox({
   freeText = false,
   allowCustom = false,
   addLabel,
+  onCreate,
+  createLabel,
   noResultsLabel,
+  emptyCatalogueLabel,
   onSearch,
   hasMore = false,
   minSearchChars = 2,
@@ -188,6 +238,22 @@ export function Combobox({
   // `.catch(() => undefined)` and also read as "No results." — an
   // error wearing the clothes of an absence, which is the one
   // substitution this product has decided it will not make.
+  /**
+   * The query the list on screen belongs to, or null before any answer.
+   *
+   * There is a gap between a keystroke and the server's answer -- 200ms
+   * of debounce plus the round trip -- and during it `status` is still
+   * `idle` and `remote` still holds the PREVIOUS query's animals. Offer
+   * "create" in that gap and a vet who types a name in one go is shown
+   * "no such animal, make one" about an animal that exists: the
+   * duplicate they are most afraid of, produced at the exact moment
+   * they cannot see it.
+   *
+   * `status === "asking"` does not close the gap, because the timer may
+   * not have started yet. What closes it is naming the query the answer
+   * belongs to.
+   */
+  const [answeredFor, setAnsweredFor] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<"idle" | "asking" | "failed">(
     "idle",
   );
@@ -251,6 +317,7 @@ export function Combobox({
           if (!live) return;
           setRemote(found.options);
           setRemoteHasMore(found.hasMore);
+          setAnsweredFor(query);
           setActive(0);
           setMoved(false);
           setStatus("idle");
@@ -271,7 +338,9 @@ export function Combobox({
   }, [onSearch, query, readyToSearch]);
 
   const local = typed
-    ? options.filter((o) => matches(o.label, query))
+    ? options.filter(
+        (o) => matches(o.label, query) || matches(o.caption ?? "", query),
+      )
     : options;
   // Second, and only what is new. The same client can come back from the
   // server that is already on the handed list, and reading a name twice
@@ -297,6 +366,24 @@ export function Combobox({
     remote.find((o) => fold(o.label) === fold(query));
   const showAdd =
     allowCustom && !freeText && typed && query.length > 0 && !exact;
+  // Not conditioned on `exact`: see `onCreate`. The second Limon is a
+  // different animal, and only the vet can say which one they meant.
+  //
+  // But never while the list on screen belongs to an older query. The
+  // two halves of this rule are each other's limits: showing it early
+  // invents a duplicate, and never showing it at all means the feature
+  // does not exist for somebody who really is typing a new name. So it
+  // waits for THIS query's answer rather than for a quiet period.
+  //
+  // Below the search threshold there is no answer and so no offer,
+  // which is the same rule rather than an exception: with a capped list
+  // and one letter typed, the picker genuinely does not know whether
+  // the animal is already on file.
+  const showCreate =
+    Boolean(onCreate) &&
+    typed &&
+    query.trim().length > 0 &&
+    (!onSearch || answeredFor === query);
 
   function openList() {
     setOpen(true);
@@ -398,9 +485,30 @@ export function Combobox({
   const showCapNote = effectiveHasMore && Boolean(hasMoreLabel);
   const showSearchHint = belowThreshold && Boolean(searchHintLabel);
 
+  // One test, not two, and the missing half is implied rather than
+  // dropped: the body below only draws when there are no rows at all,
+  // and with nothing typed `filtered` hands back every option there is.
+  // So no rows AND an untouched query already means the catalogue is
+  // empty, and asking again is a condition that cannot fail.
+  //
+  // It was written as `untouched && options.length === 0 && ...` and
+  // taken back out by ux, who had paid for the same mistake one file
+  // over: the dashboard's `v.pet?.name ?? "?"` guarded a case the
+  // schema forbids, and the next reader took the `?.` as proof the
+  // field was nullable. A condition that cannot fail is not a guard,
+  // it is a comment wearing code -- and it is read as evidence that
+  // the state it names is reachable. So this is the comment.
+  //
+  // What the one test is for: a query that WAS typed and matched
+  // nothing is a real answer, and keeps the real answer's sentence
+  // even on an empty clinic. `typed` never goes back to false, so the
+  // query is asked about too -- a field wiped back out is untouched
+  // again.
+  const untouched = !typed || query.trim().length === 0;
+
   const rows: Array<{
     key: string;
-    kind: "option" | "add";
+    kind: "option" | "add" | "create";
     option?: ComboOption;
   }> = [
     ...filtered.map((o) => ({
@@ -409,6 +517,9 @@ export function Combobox({
       option: o,
     })),
     ...(showAdd ? [{ key: "__add__", kind: "add" as const }] : []),
+    // Last, always. Above the matches it would be the row a hurried
+    // hand lands on.
+    ...(showCreate ? [{ key: "__create__", kind: "create" as const }] : []),
   ];
   const showNote = rows.length > 0 && (showCapNote || showSearchHint);
 
@@ -427,7 +538,10 @@ export function Combobox({
       e.preventDefault();
       const row = rows[Math.min(active, rows.length - 1)];
       if (row.kind === "add") selectCustom();
-      else if (row.option) selectOption(row.option);
+      else if (row.kind === "create") {
+        setOpen(false);
+        onCreate?.(query.trim());
+      } else if (row.option) selectOption(row.option);
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -471,7 +585,7 @@ export function Combobox({
         onChange={(e) => handleInput(e.target.value)}
         onFocus={openList}
         onKeyDown={handleKeyDown}
-        className="h-10 w-full rounded-control border border-input bg-card px-3 pr-9 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+        className="h-10 w-full rounded-control border border-input bg-card px-3 pr-9 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
       />
       <button
         type="button"
@@ -498,17 +612,53 @@ export function Combobox({
         // client is not on file, and opens a second record for them.
         // Not a phone problem: this is the desktop.
         <div className="absolute left-0 right-0 top-full z-30 mt-1 flex flex-col rounded-control border border-border bg-card shadow-lg">
+          {/* Rows are `py-1.5`, not `py-2`: 32px instead of 36.
+              A user called the comboboxes too big and, asked which part,
+              said the dropdown -- so the field keeps `h-10` and stays
+              identical to `Input` and `Select`, and only the list gets
+              shorter. 32px is still a third above the 24px this repo
+              holds itself to (`e2e/touch-targets.spec.ts`), and the two
+              rows that are not clickable -- the hint above and the note
+              below -- follow for evenness rather than for reach.
+
+              The cap is 264px and not `max-h-64`, because `p-1` spends
+              8 of whatever it is given: 264 - 8 leaves 256, which is
+              exactly eight 32px rows. `max-h-64` left 248 and the list
+              scrolled by eight pixels -- the worst amount to be over
+              by, since the scrollbar appears for it and nobody can
+              perceive the near-miss that caused it.
+
+              Growing the panel by 8px to remove a scrollbar sounds
+              like the wrong direction for a complaint about size, and
+              it is not: nobody tells 264 from 256, and everybody sees
+              a scrollbar. The scrollbar IS the visible claim that the
+              list did not fit (team-lead, correcting me).
+
+              Bounded, and worth knowing: this fits EIGHT rows. A
+              picker holding more still scrolls, so the win is however
+              often a list is short -- measured by ux, not derived
+              here. The padding cannot move to the wrapper instead: the
+              note below the list is its sibling and its top border
+              would come away from the edges. */}
           <ul
             id={listId}
             role="listbox"
-            className="max-h-64 overflow-y-auto p-1"
+            className="max-h-[16.5rem] overflow-y-auto p-1"
           >
-            {/* Three states, not two, and the first is not an empty one.
+            {/* Four states, not two, and only the last is an empty one.
               "Type two more letters" is an instruction; dressing it as
               "no results" tells the user their clinic has no such
               record when nobody has looked yet (TEAM.md #19). The
               server returns an empty array in both cases, so the two
               are told apart here, by what the user has typed.
+
+              The fourth was counted late, by ux, and it is the one a
+              clinic meets first: the catalogue itself is empty. Focus
+              opens this list before a key is pressed, so a brand new
+              clinic's first sentence from the product was a refusal to
+              a search nobody ran. Told apart the same way -- by what
+              has been typed -- with the catalogue asked as well, so an
+              answered search keeps its answer.
 
               Only when there is nothing above it. The instruction used
               to stand in the list's place, which hid the fifty records
@@ -516,7 +666,7 @@ export function Combobox({
             {rows.length === 0 && (
               <li
                 className={cn(
-                  "px-2.5 py-2 text-xs",
+                  "px-2.5 py-1.5 text-xs",
                   status === "failed"
                     ? "text-destructive"
                     : "text-muted-foreground",
@@ -525,12 +675,43 @@ export function Combobox({
                 {(belowThreshold ? searchHintLabel : undefined) ??
                   (status === "failed" ? searchFailedLabel : undefined) ??
                   (status === "asking" ? searchingLabel : undefined) ??
+                  (untouched ? emptyCatalogueLabel : undefined) ??
                   noResultsLabel ??
                   "-"}
               </li>
             )}
             {rows.map((row, i) =>
-              row.kind === "add" ? (
+              row.kind === "create" ? (
+                <li
+                  key={row.key}
+                  id={`${listId}-${i}`}
+                  role="option"
+                  aria-selected={active === i}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setOpen(false);
+                    onCreate?.(query.trim());
+                  }}
+                  onMouseEnter={() => setActive(i)}
+                  className={cn(
+                    // A line above it, because this row does something
+                    // the rows over it do not: it leaves the screen.
+                    //
+                    // The icon is `shrink-0` for the same reason every
+                    // button in the product sets it: this row's label
+                    // carries a name the vet just typed, so at 390px it
+                    // is the longest string in the list and flex pays
+                    // for that out of the only child that cannot give
+                    // -- a 16px square squashed to a sliver, next to
+                    // the text that explains it.
+                    "mt-1 flex cursor-pointer items-center gap-2 rounded-control border-t border-border px-2.5 pb-1.5 pt-2 text-sm font-medium text-primary",
+                    active === i && "bg-accent text-accent-foreground",
+                  )}
+                >
+                  <Plus className="size-4 shrink-0" />
+                  {createLabel ? createLabel(query.trim()) : `+ "${query.trim()}"`}
+                </li>
+              ) : row.kind === "add" ? (
                 <li
                   key={row.key}
                   id={`${listId}-${i}`}
@@ -542,11 +723,11 @@ export function Combobox({
                   }}
                   onMouseEnter={() => setActive(i)}
                   className={cn(
-                    "flex cursor-pointer items-center gap-2 rounded-control px-2.5 py-2 text-sm font-medium text-primary",
+                    "flex cursor-pointer items-center gap-2 rounded-control px-2.5 py-1.5 text-sm font-medium text-primary",
                     active === i && "bg-accent text-accent-foreground",
                   )}
                 >
-                  <Plus className="size-4" />
+                  <Plus className="size-4 shrink-0" />
                   {addLabel ? addLabel(query) : `+ "${query}"`}
                 </li>
               ) : (
@@ -561,13 +742,47 @@ export function Combobox({
                   }}
                   onMouseEnter={() => setActive(i)}
                   className={cn(
-                    "cursor-pointer rounded-control px-2.5 py-2 text-sm",
+                    "cursor-pointer rounded-control px-2.5 py-1.5 text-sm",
                     active === i
                       ? "bg-accent text-accent-foreground"
                       : "text-foreground",
                   )}
                 >
                   {row.option!.label}
+                  {row.option!.caption && (
+                    // Quieter and below, because the name is what the
+                    // eye is scanning for and this is the tiebreaker.
+                    // Inside the same option, so a screen reader reads
+                    // the row as one thing rather than announcing a
+                    // name and leaving the part that tells it apart
+                    // unread.
+                    //
+                    // "Quieter" is the 12px, not a tint. This line was
+                    // `accent-foreground/80` on the highlighted row and
+                    // that measured 4.35:1 in the light theme, under
+                    // the 4.5 this size asks for -- the one row a
+                    // keyboard user is actually reading was the one row
+                    // that failed. Full strength is 6.81 and 9.20.
+                    //
+                    // Not raised to /85 (4.83), which also passes: a
+                    // five percent tint is not a hierarchy anyone can
+                    // see, and it would leave this sitting a third of a
+                    // point above the floor where the next token nudge
+                    // drops it silently. Each state now uses its own
+                    // foreground token at full strength and the size
+                    // carries the rank, which is what the unhighlighted
+                    // row beside it already does.
+                    <span
+                      className={cn(
+                        "block text-xs",
+                        active === i
+                          ? "text-accent-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {row.option!.caption}
+                    </span>
+                  )}
                 </li>
               ),
             )}
@@ -593,7 +808,7 @@ export function Combobox({
           {showNote && (
             <div
               id={noteId}
-              className="flex flex-col gap-0.5 border-t border-border px-2.5 py-2 text-xs text-muted-foreground"
+              className="flex flex-col gap-0.5 border-t border-border px-2.5 py-1.5 text-xs text-muted-foreground"
             >
               {/* The fact first, the instruction second. What is
                   missing is the news; what to do about it only

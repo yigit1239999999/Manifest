@@ -26,7 +26,17 @@ const SPECIES_SET: ReadonlySet<string> = new Set(SPECIES);
  * - Anything else → OTHER + a clinic-scoped custom species, created on the
  *   fly ("her kliniğin kendi dünyası": vets grow their own species list).
  */
-async function resolveSpecies(
+/**
+ * Exported for the intake form, which records an animal inside the
+ * visit that brought it in (`modules/visits/service.ts`).
+ *
+ * Shared rather than copied, because this is where "Kedi" typed by
+ * hand becomes CAT rather than a clinic-defined species called Kedi --
+ * the defect that took a cat out of every report that groups by
+ * species. A second implementation would recreate it on the new
+ * screen, where nobody would look for it.
+ */
+export async function resolveSpecies(
   raw: string,
   ctx: ActionContext,
 ): Promise<{ species: Species; customSpeciesId: string | null }> {

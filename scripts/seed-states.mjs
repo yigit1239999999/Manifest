@@ -43,6 +43,26 @@ import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
+/**
+ * A number that can actually ring, read from the environment and never
+ * written down here.
+ *
+ * `SEED_REAL_PHONE` is one person's mobile. It stays in `.env`, which
+ * is gitignored, because this file is in version control: a number
+ * committed once is in the history for good, and deleting it from the
+ * file does not delete it from the repository. That is not a reversible
+ * mistake to make with somebody's phone number.
+ *
+ * A switch, not a requirement. Unset -- on CI, on a clone, on any
+ * machine but the one -- the seed builds its synthetic numbers exactly
+ * as before and says so. Nothing about the state clinic depends on it.
+ *
+ * What it is for: when the SMS credentials are entered, the first real
+ * message this product sends should arrive in the pocket of the person
+ * who decided to send it.
+ */
+export const realPhone = () => (process.env.SEED_REAL_PHONE ?? "").trim() || null;
+
 /** The name `loop-metrics.mjs` filters on. Changing it changes both. */
 export const STATE_CLINIC_NAME = "HÂL KLİNİĞİ";
 
@@ -224,10 +244,47 @@ export const STATES = [
       "one naming an animal that died: nothing will be sent and nothing was refused, which used to be no sentence at all",
   },
 
+  // Delivery is a second question from sending, and the four answers
+  // to it existed only in code: every message_log row in the database
+  // was UNKNOWN, so four sentences were written against data that
+  // could not produce them. The poller can produce them, but only for
+  // messages it has already sent, which makes them appear and vanish
+  // with a sweep -- these four stand still.
+  {
+    id: "notification.delivery.delivered",
+    covers:
+      "a message the operator says reached the handset: the only state that may claim arrival, and the one a row must not show for anything else",
+  },
+  {
+    id: "notification.delivery.awaiting",
+    covers:
+      "one accepted and asked about, with the operator not answering yet: a wait, and whether the row can say so without reading as a failure",
+  },
+  {
+    id: "notification.delivery.undelivered",
+    covers:
+      "one the operator could not deliver to the number: the same position for a vet as no phone number at all, and the only delivery state with an action attached",
+  },
+  {
+    id: "notification.delivery.expired",
+    covers:
+      "one whose retry window closed: we know the operator stopped, not that the handset refused, and the row must not turn that into a failure it cannot establish",
+  },
+
   {
     id: "notification.reminder.failedExhausted",
     covers:
-      "three failures against one reminder: nothing automatic will try again, which is a different sentence from 'it will be retried' and the only state where the button is the whole answer",
+      "three failures against one reminder, six hours apart as the sweep would actually space them: nothing automatic will try again, which is a different sentence from 'it will be retried' and the only state where the button is the whole answer",
+  },
+  {
+    id: "notification.reminder.duplicateSuppressed",
+    covers:
+      "the second of two reminders for one animal on one day, whose message would have been word for word the first one's: the owner was told once, and whether the row says so plainly instead of promising a send that will never come",
+  },
+  {
+    id: "notification.reminder.failedProduct",
+    covers:
+      "a failure we caused: the operator refused a repeat of a message it had just accepted, which is evidence the first one went. It must not spend one of the three attempts, and the row must not accuse the owner's phone",
   },
 
   // The loop's four resting places.
@@ -327,6 +384,24 @@ export const STATES = [
   { id: "clinical.prescription", covers: "a prescription on an animal" },
   { id: "clinical.treatment", covers: "a treatment" },
   { id: "clinical.diagnostic", covers: "a diagnostic test" },
+  // "The result arrived" and "the vet read it" were one fact until
+  // today. The pair is the fixture: a count nobody can see a zero and
+  // a one of cannot be checked.
+  {
+    id: "diagnostic.unread",
+    covers:
+      "a result entered on an earlier day that nobody has marked as seen: the dashboard's count, and the three days a histopathology report can sit in a file while everyone does their job",
+  },
+  {
+    id: "diagnostic.read",
+    covers:
+      "one the vet has seen, carrying who and when: it leaves the count, and the record says whose desk it reached rather than merely that it arrived",
+  },
+  {
+    id: "diagnostic.inHouse",
+    covers:
+      "an unread result run in the clinic's own room: identical to the counted one in every way except where it came from, so whether the narrowing actually holds can be seen rather than argued",
+  },
 ];
 
 /**
@@ -586,7 +661,18 @@ export async function buildStateClinic(db) {
       [clinic.id, firstName, lastName, phone, consent, halId("client", key)],
     );
 
-  const client = await owner("consented", "Hâl", "Sahibi", "0532 000 00 00", true);
+  // The only owner in this clinic the sweep can reach: consented, with
+  // a number. Every sendable fixture hangs off them, so pointing this
+  // one row at a real handset is what makes a real send arrive
+  // somewhere -- and the others stay synthetic precisely because they
+  // exist to be unreachable.
+  const client = await owner(
+    "consented",
+    "Hâl",
+    "Sahibi",
+    realPhone() ?? "0532 000 00 00",
+    true,
+  );
   made("client.consent.granted");
   const declined = await owner("declined", "Reddeden", "Sahip", "0532 000 00 01", false);
   made("client.consent.declined");
@@ -801,6 +887,79 @@ export async function buildStateClinic(db) {
     [clinic.id, active.id, visit.id, ago(7), halId("diagnostic")],
   );
   made("clinical.diagnostic");
+
+  // Read and unread, as a pair.
+  //
+  // `createdAt` is set explicitly and that is the whole point: the
+  // count asks what was ENTERED before today, so a row created at
+  // seed time is invisible to it however old its `performedAt` says
+  // the sample is. An external lab's report is typed in days after
+  // the sample was taken, which is exactly the case this state is
+  // about.
+  //
+  // With a result in it, because a test with nothing recorded is not
+  // an unread result -- there is nothing to read.
+  // The third row is the control. It is unread, it has a result, it
+  // was entered before today -- everything the counted one is, except
+  // that it was run in the clinic's own room. Without it, "in-house
+  // results stay out of the list" is a claim nobody can check; with
+  // it, the count being 1 rather than 2 is the proof.
+  for (const [key, type, name, result, createdAt, readAt, external, stateId] of [
+    [
+      "unread",
+      "CYTOLOGY",
+      "Histopatoloji",
+      "Mast hücreli tümör, Grade II. Cerrahi sınırlar yetersiz.",
+      ago(2),
+      null,
+      true,
+      "diagnostic.unread",
+    ],
+    [
+      "read",
+      "BLOOD",
+      "Tam kan sayımı",
+      "Tüm değerler referans aralığında.",
+      ago(3),
+      ago(2),
+      true,
+      "diagnostic.read",
+    ],
+    [
+      "inhouse",
+      "URINE",
+      "İdrar tahlili",
+      "Dansite 1.030, sediment temiz.",
+      ago(2),
+      null,
+      false,
+      "diagnostic.inHouse",
+    ],
+  ]) {
+    await db.query(
+      `INSERT INTO diagnostics (id, "clinicId", "petId", "visitId", type, name,
+                                "performedAt", result, "createdAt", "readAt", "readById",
+                                "externalLab", "updatedAt")
+       VALUES ($5, $1, $2, $3, $11::"DiagnosticType", $6, $4, $7, $8, $9, $10, $12, now())`,
+      [
+        clinic.id,
+        active.id,
+        visit.id,
+        ago(4),
+        halId("diagnostic", key),
+        name,
+        result,
+        createdAt,
+        readAt,
+        // Who saw it, not just that somebody did. The vet row, because
+        // the marker exists to say it reached a person who can act.
+        readAt ? vet.id : null,
+        type,
+        external,
+      ],
+    );
+    made(stateId);
+  }
 
   // The three states of the one field the return loop rests on.
   //
@@ -1074,18 +1233,163 @@ export async function buildStateClinic(db) {
   made("notification.reminder.failedClinic");
 
   await failedReminder("failed-message", "Karma aşı zamanı", [
-    ["duplicate_send_blocked", hoursAgo(1)],
+    ["message_too_long_or_invalid", hoursAgo(1)],
   ]);
   made("notification.reminder.failedMessage");
 
-  // Three failures, days apart: the sweep has given up, and the only
-  // thing that can move this row now is a person pressing send.
+  // A failure that is ours. The provider refuses the same text to the
+  // same number inside an hour, so this row is evidence that an
+  // earlier message was ACCEPTED -- and it must not spend one of the
+  // three attempts, or our own repeats could make the sweep abandon a
+  // reminder for good.
+  await failedReminder("failed-product", "Kontrol hatırlatması", [
+    ["duplicate_send_blocked", hoursAgo(1)],
+  ]);
+  made("notification.reminder.failedProduct");
+
+  // Three failures the sweep could actually have produced, and that is
+  // the repair: this fixture used to hold three duplicate blocks less
+  // than an hour apart, which the sweep cannot make (it waits six
+  // hours, and the provider's duplicate window is one) -- and which,
+  // now that our own failures no longer spend attempts, would not even
+  // be "exhausted". A fixture for an unreachable state teaches
+  // something that is not true.
+  //
+  // So: a genuine message-level rejection, three times, spaced the way
+  // the sweep spaces its retries.
   await failedReminder("failed-exhausted", "Bronşin aşısı zamanı", [
-    ["duplicate_send_blocked", hoursAgo(2)],
-    ["duplicate_send_blocked", ago(1)],
-    ["duplicate_send_blocked", ago(2)],
+    ["message_too_long_or_invalid", hoursAgo(2)],
+    ["message_too_long_or_invalid", hoursAgo(9)],
+    ["message_too_long_or_invalid", hoursAgo(16)],
   ]);
   made("notification.reminder.failedExhausted");
+
+  // What became of a message, once it has been accepted.
+  //
+  // Each of these is a reminder the app already sent, with its own
+  // message log carrying one delivery answer. They are `SENT`
+  // reminders on purpose: the sweep only looks at PENDING ones, so
+  // these hold still instead of being re-sent, and they stay on the
+  // list because a sent reminder is still open work until the animal
+  // comes back.
+  //
+  // The provider ids deliberately do NOT start with `log-`: the log
+  // transport only answers about its own, so the poller cannot resolve
+  // these and turn `awaiting` into `delivered` on the next run. A
+  // fixture that a background job rewrites is a fixture nobody can
+  // measure twice.
+  const deliveryCase = async (key, title, status, code, deliveredAt) => {
+    // Each carries its own wording, and that is not decoration. Four
+    // accepted messages with identical text to one number is precisely
+    // what the dedupe now prevents, so sharing a body would depict a
+    // state the product can no longer produce -- the third fixture
+    // today caught doing that. It also keeps them out of the
+    // suppressed-partner lookup's ambiguity case, which is what
+    // silences a row.
+    const body = `Sayın Hâl Sahibi, Zeytin için ${title.toLocaleLowerCase("tr")} zamanı geldi. HÂL KLİNİĞİ`;
+    const row = await one(
+      `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
+                              "dueAt", status, "sentAt", "updatedAt")
+       VALUES ($5, $1, $2, $3, 'CHECKUP', $6, $4, 'SENT', $7, now())
+       RETURNING id`,
+      [clinic.id, client.id, active.id, ago(1), halId("reminder", key), title, ago(1)],
+    );
+    await db.query(
+      `INSERT INTO message_logs (id, "clinicId", "clientId", "reminderId", channel, kind,
+                                 recipient, language, body, status, "providerId",
+                                 "deliveryStatus", "deliveryCode", "deliveredAt",
+                                 "deliveryCheckedAt", "createdAt")
+       VALUES ($6, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr', $11,
+               'SENT', $7, $4::"MessageDeliveryStatus", $5, $8, $9, $10)`,
+      [
+        clinic.id,
+        client.id,
+        row.id,
+        status,
+        code,
+        halId("messagelog", key),
+        `netgsm-seed-${key}`,
+        deliveredAt,
+        // Asked, in every case: an unasked message is the UNKNOWN the
+        // rest of this clinic is already full of.
+        hoursAgo(1),
+        ago(1),
+        body,
+      ],
+    );
+  };
+
+  await deliveryCase("delivered", "Kontrol", "DELIVERED", "1", hoursAgo(23));
+  made("notification.delivery.delivered");
+  // Asked, and the operator has not decided. `0` is its "still in the
+  // retry window" code -- not a failure, and the row must not read as
+  // one.
+  await deliveryCase("awaiting", "Aşı tekrarı", "PENDING", "0", null);
+  made("notification.delivery.awaiting");
+  // `3`, a wrong or restricted number: the one delivery answer with
+  // something for the vet to do.
+  await deliveryCase("undelivered", "Tırnak kesimi", "UNDELIVERED", "3", null);
+  made("notification.delivery.undelivered");
+  await deliveryCase("expired", "Parazit ilacı", "EXPIRED", "2", null);
+  made("notification.delivery.expired");
+
+  // The twin. Its message was composed and deliberately not sent,
+  // because the first of the pair had just said the same words to the
+  // same number -- `VACCINATION_DUE` builds its text from the owner,
+  // the animal and the day, so two different titles produce one
+  // identical SMS.
+  //
+  // The pair is the fixture, not the row: the point on screen is that
+  // a vet sees BOTH pieces of work and decides what the second one
+  // still needs. `hal-reminder-due` above is the one that went.
+  // A self-contained pair, in the order the sweep would actually
+  // produce it: the one that went, then the one held back because it
+  // had.
+  //
+  // It used to lean on `hal-reminder-due`, whose message the sweep
+  // writes at run time -- so the suppressed row was an hour OLDER
+  // than its own partner, a sequence the sweep cannot make. pm caught
+  // it in the data before measuring anything, and it was the same
+  // defect as the three-duplicates-in-an-hour fixture earlier today:
+  // a fixture for an unreachable state teaches something untrue.
+  //
+  // Its own wording, too. Sharing the sweep's text would put two
+  // accepted messages behind the same words, the match would go
+  // ambiguous by design, and the row would show nothing -- leaving
+  // the screen half unmeasurable for the opposite reason.
+  const twinBody =
+    "Sayın Hâl Sahibi, Zeytin için diş kontrolü zamanı geldi (24 Eyl Per). Randevu için bize ulaşabilirsiniz. HÂL KLİNİĞİ";
+
+  const twinSent = await one(
+    `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
+                            "dueAt", status, "sentAt", "updatedAt")
+     VALUES ($5, $1, $2, $3, 'CHECKUP', 'Diş kontrolü', $4, 'SENT', $6, now())
+     RETURNING id`,
+    [clinic.id, client.id, active.id, ahead(2), halId("reminder", "twin-sent"), hoursAgo(2)],
+  );
+  await db.query(
+    `INSERT INTO message_logs (id, "clinicId", "clientId", "reminderId", channel, kind,
+                               recipient, language, body, status, "providerId", "createdAt")
+     VALUES ($4, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr', $6,
+             'SENT', 'netgsm-seed-twin', $5)`,
+    [clinic.id, client.id, twinSent.id, halId("messagelog", "twin-sent"), hoursAgo(2), twinBody],
+  );
+
+  const twin = await one(
+    `INSERT INTO reminders (id, "clinicId", "clientId", "petId", type, title,
+                            "dueAt", status, "updatedAt")
+     VALUES ($5, $1, $2, $3, 'CHECKUP', 'Diş taşı temizliği', $4, 'PENDING', now())
+     RETURNING id`,
+    [clinic.id, client.id, active.id, ahead(2), halId("reminder", "twin")],
+  );
+  await db.query(
+    `INSERT INTO message_logs (id, "clinicId", "clientId", "reminderId", channel, kind,
+                               recipient, language, body, status, "createdAt")
+     VALUES ($4, $1, $2, $3, 'SMS', 'REMINDER_DUE', '905320000000', 'tr', $6,
+             'SUPPRESSED', $5)`,
+    [clinic.id, client.id, twin.id, halId("messagelog", "twin"), hoursAgo(1), twinBody],
+  );
+  made("notification.reminder.duplicateSuppressed");
 
   // The four reasons a reminder will never go out, one row each.
   //
@@ -1231,6 +1535,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     // whoever comes to measure it.
     console.log(
       `LOGIN [${STATE_CLINIC_LOGIN.email} / ${STATE_CLINIC_LOGIN.password}] — seed fixture, synthetic clinic only`,
+    );
+    // Said out loud, and the number itself never printed. Nobody opens
+    // `.env` to find out what a seed did; they read this line. A switch
+    // whose position cannot be seen from where the work happens is not
+    // a switch anybody can rely on.
+    console.log(
+      realPhone()
+        ? `REAL TARGET [1 müşteri gerçek numaraya ayarlandı — SEED_REAL_PHONE]`
+        : `REAL TARGET [ayarlanmadı, sentetik numaralar — SEED_REAL_PHONE boş]`,
     );
 
     // The data ground, written where the measurer is already looking.

@@ -1,3 +1,26 @@
+// The enum labels that used to live here are gone, and the note is
+// worth more than they were.
+//
+// Eight functions -- `speciesLabel`, `sexLabel`, `roleLabel`,
+// `visitTypeLabel`, `appointmentStatusLabel`, `noteKindLabel`,
+// `diagnosticTypeLabel`, `invoiceStatusLabel` -- returned hard-coded
+// ENGLISH strings, and not one of them was called outside their own
+// test. Every screen reads these words from `messages/*.json` through
+// `getTranslations("enum.species")` and always did.
+//
+// They were not merely dead. A colleague building the animal picker's
+// new row reached for `speciesLabel` first, because it has the right
+// name and sits in the right file -- and it would have printed "Cat"
+// into a Turkish interface. An unused abstraction is debt; an unused
+// abstraction in the wrong language, wearing the correct name, is a
+// trap. A comment pointing at `enum.*` would not have helped: it is
+// the name that misleads, and the name would still have been there.
+//
+// `lib/whatsapp/messages.ts` keeps its own `visitTypeLabel`, which is
+// the one production calls: it takes a locale and reads both
+// catalogues, because a message goes out in the client's language
+// rather than the reader's.
+
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean).slice(0, 2);
   return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
@@ -91,6 +114,21 @@ export function formatTime(
 ): string {
   if (!date) return EMPTY;
   return dateFormat(target, hourOptions(target)).format(date);
+}
+
+/**
+ * The weekday on its own, e.g. "Salı" / "Tuesday".
+ *
+ * For places that want to say *when* without claiming a calendar date:
+ * the dashboard preview shows an example week, and a full date there
+ * would be a statement about a day the clinic can check.
+ */
+export function formatWeekday(
+  target: FormatTarget,
+  date: Date | null | undefined,
+): string {
+  if (!date) return EMPTY;
+  return dateFormat(target, { weekday: "long" }).format(date);
 }
 
 /** Weekday and day, e.g. "Wednesday, 23 September" — for day headings. */

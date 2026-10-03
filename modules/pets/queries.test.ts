@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     pet: { findMany: vi.fn(), count: vi.fn() },
+    // The picker row carries "last seen", which is one grouped query
+    // over the ids just fetched rather than one query per row.
+    visit: { groupBy: vi.fn() },
   },
 }));
 
@@ -13,6 +16,7 @@ import { listPets, listPetsPage, quickSearchPets } from "./queries";
 // archive nobody can undo (backlog 39).
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(prisma.visit.groupBy).mockResolvedValue([] as never);
   vi.mocked(prisma.pet.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.pet.count).mockResolvedValue(0 as never);
 });

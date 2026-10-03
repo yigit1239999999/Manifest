@@ -140,7 +140,11 @@ export function NotificationActions({
           </div>
           <details className="text-xs text-muted-foreground">
             <summary className="cursor-pointer">{t("preview")}</summary>
-            <pre className="mt-2 whitespace-pre-wrap rounded-control bg-muted/40 p-3 font-sans text-xs text-foreground">
+            {/* The composed message, capped to a reading measure like
+                any other prose. Not the same case as the settings
+                preview, which is left uncapped because its line breaks
+                are the thing being shown. */}
+            <pre className="mt-2 max-w-prose whitespace-pre-wrap rounded-control bg-muted/40 p-3 font-sans text-xs text-foreground">
               {m.body}
             </pre>
           </details>

@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { ClientForm } from "@/components/forms/client-form";
+import { ownerLabel } from "@/lib/pet-label";
 
 export default async function EditClientPage({
   params,
@@ -29,7 +30,7 @@ export default async function EditClientPage({
       <BackLink href={`/clients/${client.id}`} label={tCommon("back")} />
       <PageHeader
         title={t("edit")}
-        description={`${client.firstName} ${client.lastName}`}
+        description={ownerLabel(client)}
       />
       <Card className="p-6">
         <ClientForm client={client} />

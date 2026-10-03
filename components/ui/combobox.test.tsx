@@ -698,6 +698,76 @@ describe("what the list says while it has nothing to show", () => {
   });
 });
 
+// The state the block above did not count, found by ux on the day a
+// clinic is least able to shrug it off: `/visits/new` on a clinic with
+// nothing in it. Focus opens the list before a key is pressed, so the
+// first sentence the product ever said to that clinic was "Sonuç yok."
+// -- a refusal to a search nobody had run.
+//
+// The tests that would fall if the condition were drawn too wide come
+// first, because that is the risk: a sentence about an empty clinic
+// appearing in a clinic with records is worse than the defect it fixes.
+describe("what the list says to a clinic that has nothing yet", () => {
+  function picker(props: Partial<React.ComponentProps<typeof Combobox>> = {}) {
+    const view = render(
+      <Combobox
+        name="petId"
+        options={[]}
+        noResultsLabel="Sonuç yok."
+        emptyCatalogueLabel="Bu klinikte henüz hayvan yok."
+        {...props}
+      />,
+    );
+    return { ...view, input: view.container.querySelector('input[type="text"]')! };
+  }
+
+  it("keeps the refusal for a search that really found nothing", () => {
+    const { input } = picker({ options: OPTIONS });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "zzz" } });
+
+    expect(screen.getByText("Sonuç yok.")).toBeInTheDocument();
+    expect(screen.queryByText("Bu klinikte henüz hayvan yok.")).toBeNull();
+  });
+
+  it("keeps it on an empty clinic too, once somebody has actually looked", () => {
+    const { input } = picker();
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Zeytin" } });
+
+    // Typed and matched nothing is an answer, and the answer does not
+    // change because the catalogue behind it is empty.
+    expect(screen.getByText("Sonuç yok.")).toBeInTheDocument();
+  });
+
+  it("says what is missing when nobody has looked yet", () => {
+    const { input } = picker();
+    fireEvent.focus(input);
+
+    expect(screen.getByText("Bu klinikte henüz hayvan yok.")).toBeInTheDocument();
+    expect(screen.queryByText("Sonuç yok.")).toBeNull();
+  });
+
+  it("says it again when the typed query is wiped back out", () => {
+    const { input } = picker();
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Ze" } });
+    fireEvent.change(input, { target: { value: "" } });
+
+    // `typed` never goes back to false, so an emptied field would keep
+    // the refusal on screen for a search that is no longer there.
+    expect(screen.getByText("Bu klinikte henüz hayvan yok.")).toBeInTheDocument();
+  });
+
+  it("is silent in every picker that was not given the sentence", () => {
+    const { input } = picker({ emptyCatalogueLabel: undefined });
+    fireEvent.focus(input);
+
+    // Four pickers ship without it today. None of them may change.
+    expect(screen.getByText("Sonuç yok.")).toBeInTheDocument();
+  });
+});
+
 // Two things can be true at once and the note used to pick one.
 //
 // pm measured the cost on a clinic of 63 with a cap of 50: open the
@@ -756,5 +826,265 @@ describe("the note when the list is short of the clinic", () => {
     // warning is a separate question and is still open — the server
     // does not report whether its own answer was cut short.
     expect(screen.queryByText("En az iki harf yazın.")).toBeNull();
+  });
+});
+
+// The door, and why it is gone. The vet's own account: "the dog is on
+// the table, the owner is crying, and what I got was not a blank page
+// but a door" -- two of them, and the box for the animal's name was on
+// the third screen. The card had promised the animal and the owner
+// could be made on the way, so the screen was making the product a
+// liar. The way out is not a door in front of the form; it is a row
+// inside the picker.
+describe("making the record the typed name does not match yet", () => {
+  const PETS: ComboOption[] = [
+    { value: "p-1", label: "Limon · Ayşe Çelik" },
+    { value: "p-2", label: "Limon · Kerem Doğan" },
+  ];
+
+  const typed = (text: string, onCreate = vi.fn()) => {
+    const view = render(
+      <Combobox
+        name="petId"
+        options={PETS}
+        onCreate={onCreate}
+        createLabel={(q) => `+ "${q}" adıyla yeni hayvan aç`}
+      />,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: text } });
+    return { ...view, input, onCreate };
+  };
+
+  const rowText = () =>
+    screen.getAllByRole("option").map((o) => o.textContent);
+
+  // Three Zeytins and four Pamuks is what this clinic actually has, so
+  // the row that leaves the screen may never stand above the records
+  // that are already here.
+  it("offers to create only under what it found", () => {
+    typed("Limon");
+
+    expect(rowText()).toEqual([
+      "Limon · Ayşe Çelik",
+      "Limon · Kerem Doğan",
+      '+ "Limon" adıyla yeni hayvan aç',
+    ]);
+  });
+
+  // An exact match is not an answer either: the second Limon is a
+  // different animal, and only the vet knows which one is on the table.
+  it("still offers it when a name matches exactly", () => {
+    typed("Limon · Ayşe Çelik");
+
+    expect(rowText().at(-1)).toBe('+ "Limon · Ayşe Çelik" adıyla yeni hayvan aç');
+  });
+
+  // Nothing is created by pressing Enter on arrival. This is how the
+  // fifth duplicate Limon would be born, each with its own vaccination
+  // history.
+  it("is never the row a hurried hand lands on", () => {
+    const { input, onCreate } = typed("Limon");
+
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+
+  it("carries the typed name to whoever makes the record", () => {
+    const { input, onCreate } = typed("  Limon  ");
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onCreate).toHaveBeenCalledWith("Limon");
+  });
+
+  it("says nothing about creating before anything is typed", () => {
+    render(
+      <Combobox name="petId" options={PETS} onCreate={vi.fn()} createLabel={(q) => q} />,
+    );
+    fireEvent.focus(document.querySelector('input[type="text"]')!);
+
+    expect(rowText()).toEqual(["Limon · Ayşe Çelik", "Limon · Kerem Doğan"]);
+  });
+});
+
+// The gap between a keystroke and the server's answer, and why it is
+// not a detail. The vet types the whole name before looking up --
+// "'Pam' works in the mock, but I finish the word, that is a reflex" --
+// and for those few hundred milliseconds the list still belongs to the
+// previous query. Offer "create" there and the product invents the
+// duplicate the vet is most afraid of, at the exact moment they cannot
+// see it: "the fourth Pamuk. That mistake is silent."
+describe("offering to create while the server is still answering", () => {
+  const answer = (options: ComboOption[]) =>
+    vi.fn(async () => ({ options, hasMore: false }));
+
+  const withSearch = (onSearch: ReturnType<typeof answer>) => {
+    const onCreate = vi.fn();
+    const view = render(
+      <Combobox
+        name="petId"
+        options={[]}
+        onSearch={onSearch}
+        onCreate={onCreate}
+        createLabel={(q) => `+ ${q}`}
+      />,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    return { ...view, input, onCreate };
+  };
+
+  const rowText = () => screen.queryAllByRole("option").map((o) => o.textContent);
+
+  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+  afterEach(() => vi.useRealTimers());
+
+  it("says nothing about creating until this query has been answered", async () => {
+    const onSearch = answer([{ value: "p-1", label: "Pamuk · kedi" }]);
+    const { input } = withSearch(onSearch);
+
+    fireEvent.change(input, { target: { value: "Pamuk" } });
+
+    // The debounce has not even started the request yet, so `status`
+    // is still idle and the old list is what is on screen.
+    expect(rowText().some((t) => t?.startsWith("+"))).toBe(false);
+  });
+
+  // The other bound, and it is the reason the rule is not "wait for
+  // quiet": somebody typing a genuinely new name must be offered the
+  // way out, or the feature does not exist for them.
+  it("offers it once the answer for this query arrives", async () => {
+    const onSearch = answer([]);
+    const { input } = withSearch(onSearch);
+
+    fireEvent.change(input, { target: { value: "Ceviz" } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(rowText().at(-1)).toBe("+ Ceviz");
+  });
+
+  // A stale answer must not unlock it either: the reply that arrives
+  // belongs to "Pam", and the box now says "Pamuk".
+  it("locks again when the typing moves past the answer", async () => {
+    const onSearch = answer([]);
+    const { input } = withSearch(onSearch);
+
+    fireEvent.change(input, { target: { value: "Pam" } });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    fireEvent.change(input, { target: { value: "Pamuk" } });
+
+    expect(rowText().some((t) => t?.startsWith("+"))).toBe(false);
+  });
+});
+
+// The owner's name moved off the first line and onto the second, and a
+// filter that only read labels would have quietly removed the way a vet
+// actually looks for an animal: by whose it is.
+describe("finding an animal by its owner", () => {
+  it("matches the quieter second line too", () => {
+    render(
+      <Combobox
+        name="petId"
+        options={[
+          { value: "p-1", label: "Pamuk · kedi", caption: "Ayşe Yılmaz · 7 ay önce" },
+          { value: "p-2", label: "Zeytin · köpek", caption: "Kerem Doğan · 2 gün önce" },
+        ]}
+      />,
+    );
+    const input = document.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Kerem" } });
+
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Zeytin · köpekKerem Doğan · 2 gün önce",
+    ]);
+  });
+});
+
+/**
+ * The row a keyboard user is actually reading.
+ *
+ * The second line is the tiebreaker -- the owner, and when the animal
+ * was last seen -- so it is the line that decides between three animals
+ * called Zeytin. It was drawn at `accent-foreground/80` on the
+ * highlighted row, which measures 4.35:1 in the light theme against
+ * `--accent`, under the 4.5 that 12px text asks for. The one row
+ * somebody is looking at was the one row that failed.
+ *
+ * Pinned as "no alpha on either state" rather than as a number, because
+ * the number is not checkable here: jsdom resolves no custom properties
+ * and would report the class, not the contrast. What a test can hold is
+ * the shape of the rule -- each state uses its own foreground token at
+ * full strength, and rank comes from the 12px. A tint added back is how
+ * this returns, and it returns silently.
+ */
+describe("the second line of a highlighted row", () => {
+  it("uses its foreground at full strength, in both states", () => {
+    const withCaptions: ComboOption[] = [
+      { value: "p1", label: "Zeytin · kedi", caption: "Ayşe Yılmaz" },
+      { value: "p2", label: "Zeytin · kedi", caption: "Mehmet Kaya" },
+    ];
+    const view = render(<Combobox name="petId" options={withCaptions} />);
+    fireEvent.focus(view.container.querySelector('input[type="text"]')!);
+
+    const { container } = view;
+    const captions = [...container.querySelectorAll("li span.block")];
+    expect(captions.length).toBeGreaterThan(0);
+
+    for (const caption of captions) {
+      expect(caption.className).not.toMatch(/text-[a-z-]+\/\d+/);
+    }
+  });
+});
+
+/**
+ * The two rows that carry a typed name, at 390px.
+ *
+ * "Create Devrim Aksoy" is the longest string the list ever holds,
+ * because the vet just typed part of it. Both rows lay the icon and the
+ * label out with flex, and flex takes the space it needs out of
+ * whichever child will give: a `size-4` icon with no `shrink-0` is
+ * squashed to a sliver beside the text that explains it.
+ *
+ * `buttonVariants` sets `[&_svg]:shrink-0` on every button in the
+ * product for exactly this. These two rows are not buttons and did not
+ * inherit it.
+ */
+describe("the rows that offer to create what was typed", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("keep the icon square when the label is long", () => {
+    const view = render(
+      <Combobox
+        name="petId"
+        options={[]}
+        onCreate={() => {}}
+        createLabel={(typed) => `"${typed}" adıyla yeni hayvan aç`}
+      />,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Devrim Aksoy" } });
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    const icons = view.container.querySelectorAll("li svg");
+    expect(icons.length).toBeGreaterThan(0);
+    for (const icon of icons) {
+      expect(icon.getAttribute("class")).toContain("shrink-0");
+    }
   });
 });

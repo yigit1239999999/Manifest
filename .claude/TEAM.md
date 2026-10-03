@@ -30,6 +30,77 @@ davranışının kanıtı değildir.** Buna göre:
   taşıma, bir kliniğin ürünle ilk tanıştığı an. Orada eksik bırakılan
   her şey güveni baştan kaybettirir.
 
+## SAYI ODAKLI YAKLAŞIM İNDİRİLDİ — dışarıya bakılacak (21 Eylül 2026, kullanıcı kararı)
+
+**Bu bölüm dosyanın geri kalanını yönetir. Aşağıdaki hiçbir kural, bu
+bölümle çatıştığında geçerli değildir.**
+
+Kullanıcının kendi cümlesi: *"bir de sayı odaklı yaklaşımımız yanlış
+olabilir. Teams'ten onu çıkaralım bence. Çünkü uygulama şu an tamamen
+testte, prodda değil. Biraz daha dünya çapında uygulamalara bakmalıyız
+gibi geliyor yaklaşımlarımızda."*
+
+Gerekçe bizim değil kullanıcının, ve doğrudur: **bu ürünün henüz gerçek
+kullanıcısı yok.** Sayıyla önceliklendirme, gerçek kullanımı olan bir
+üründe anlamlıdır — orada sayı, insanların ne yaptığının izidir. Burada
+öyle bir iz yok. Elimizdeki sayılar kendi fikstürlerimizden, kendi
+kurduğumuz zeminlerden ve kendi yazdığımız senaryolardan çıkıyor. Böyle
+bir sayı bir şeyi kanıtlamaz; yalnız **kendimizi ikna eder**, ve bu en
+tehlikeli ikna biçimidir çünkü rakam gibi görünür.
+
+### Ne durdu
+
+- **Sayı, kalitenin ölçütü olmaktan çıktı.** "Şu ekranda kaç alan var",
+  "kaç ekran gezildi", "kaç saniyede açıldı" — bunlar artık bir şeyin iyi
+  olduğunun kanıtı değil. Kullanıcı bu çerçeveyi bir kez zaten reddetti:
+  ekip onboarding'i *"10 ekrandan 6'ya indirdik"* diye ölçtüğünde cevabı
+  *"onboarding'i çok çok zayıf kılmış, world class değil"* oldu. Sayı
+  düşmüştü; ürün iyileşmemişti.
+- **Sayı, ne yapacağımızın gerekçesi olmaktan çıktı.** Bir işin sıraya
+  girme sebebi artık "şu sayı şu kadar" değil.
+- **Kendi ürettiğimiz veriden çıkarılan sayı kanıt sayılmaz.** Fikstür,
+  seed, e2e ve elle kurulmuş klinikler bizim yazdığımız şeylerdir.
+
+### Ne yerine geçti
+
+**Dünya çapındaki uygulamalara bakmak.** Bir akışı tasarlarken ilk soru
+*"sayı ne diyor"* değil, **"bunu dünyada en iyi yapan ürün nasıl
+yapıyor, ve neden öyle yapıyor"**. Sonra: hangi parçası bu ürüne uyar,
+hangisi uymaz, **niçin uymaz**. Uymayanı ayıklamak en az uyanı getirmek
+kadar değerlidir; bu ürün şişirilmeye değil sadeleştirilmeye çalışılıyor.
+
+Bakılan şey adıyla yazılır. *"Top uygulamalarda böyle"* bir gerekçe
+değildir — hangi ürün, hangi ekran, ne yapıyor, o yazılır.
+
+Zaten yazılı olan 23. kural bu bölümün özüdür ve artık ölçütün kendisidir:
+**"Ölçüt 'hata yok' değil, 'world-class'. Bir akış teknik olarak geçtiği
+hâlde ucuz veya hantal görünüyorsa, bu bir bulgudur."**
+
+### Ne DURMADI, ve ayrım burada
+
+İki ayrı şey aynı kelimeyle yazılmıştı. Yalnız biri indi:
+
+| durdu | durmadı |
+|---|---|
+| Sayıyla **karar vermek** — neyin iyi olduğu, neyin sıraya gireceği | Bir değişikliğin bir şeyi **bozmadığını görmek** |
+| Kendi fikstürümüzden çıkan rakamı **kanıt** saymak | Testin gerçekten bir şey tuttuğunu **mutasyonla** sınamak |
+| Kaliteyi **rakamla** savunmak | Ölçümün hangi **zeminde** alındığını yazmak |
+
+Yani: erişilebilirlik eşiği, mutasyon sınavı, zemin commit'i, "iddianı
+`dosya:satır` ile kanıtla" — **hepsi duruyor.** Bunlar kalite ölçütü
+değil, **kendimizi yanıltmama araçlarıdır**, ve bugün tam bu araçlar
+sayesinde sekiz dosyalık bir kayıp ve üç bayat zemin yakalandı.
+
+Ayrımın tek cümlelik hâli: **sayı artık ne yapacağımızı söylemiyor, ama
+yaptığımızın ne olduğunu hâlâ söylüyor.**
+
+### Bu bölümün kendi sınavı
+
+Bir bulgu yazarken sor: *bu sayıyı kim üretti?* Cevap "biz" ise, o sayı
+bir iddiayı destekleyemez — yalnız bir değişikliği tarif edebilir.
+
+---
+
 ## Önceliklendirme — kullanıcının koyduğu sıra (21 Eylül 2026)
 
 Kullanıcının kendi cümlesi: *"Olabildiğince UX odaklı bir uygulamaya
@@ -351,6 +422,569 @@ tek bir yer bırakmayacağız — eksik gedik kabul edilmiyor.
 - **Şüphedeyken kullanıcıya sor, varsayma.** Ama sormadan önce koda bak:
   cevabın yarısı çoğu zaman zaten orada duruyor.
 
+## Altı UX kuralı — hepsi ölçümle doğdu (ux, 21 Eylül 2026)
+
+`ux` yazdı, ana oturum kaleme aldı. **Her kuralın yanında onu doğuran vaka
+duruyor, ve bu kasıtlı: vakasız bir kural altı ayda unutulur, vakalı bir
+kural kendi kendini savunur.** Kullanıcının talebi şuydu: *"UX bu
+uygulamanın bel kemiği, UX-first kültürünü herkese aşıla"* — ve `ux`'in
+cevabı nutuk değil, **başkalarının onsuz uygulayabileceği kurallar** oldu.
+
+1. **Ekran, kullanıcının kendi eyleminin sonucunu söyler.**
+   *Vaka:* "Bekliyor" rozeti hem *"yarın dokuzda gidecek"* hem *"hiç
+   gitmeyecek"* demekti. **Sessizlik yalnız kimsenin bir şey yapmadığı
+   yerde masumdur.**
+2. **Tıklanan şey ile varılan yer aynı kümeyi anlatır.**
+   *Vaka:* pano kartı 8 gösterip 3'e götürüyordu. Sayı ile satırlar
+   ayrışırsa insanlar **ikisini de** okumayı bırakır.
+3. **Bir metni yeniden kullanmak, taşıdığı vaadi de yeniden kullanmaktır.**
+   *Vaka:* *"kopyalayıp elle iletebilirsiniz"* cümlesi, kopyalama düğmesi
+   **olmayan** ekrana taşınıyordu. Anahtar ortak olabilir, cümle çağrı
+   yerine göredir.
+4. **Tahmini okuma tarafında yap, yazma tarafında yapma.**
+   *Vaka:* telefonu saklarken normalleştirmek, tahmin edilmiş bir `+90`'ı
+   **kalıcı** yazar ve kullanıcının yazdığını siler. Gösterimdeki tahmin
+   geri alınabilir, kaydedilen tahmin alınamaz.
+5. **Sayı, nüfusu değil yapılacak işi gösterir.**
+   *Vaka:* *"400 müşteriye sorulmamış"* korkutur ve hiçbir iş göstermez;
+   *"önümüzdeki günlerde 12 mesaj gitmeyecek"* **aranabilir bir kümedir.**
+6. **Aynı kural üçüncü kez elden yazılıyorsa bileşen eşiği geçilmiştir.**
+   *Vaka:* çevrilebilir numara kuralı üç yerde kopyalanmıştı. Aynı gün
+   ikinci örneği: hayvan etiketi `${ad} · ${sahip}` iki yerde yazılıydı,
+   iki yerde değildi — ve ikisi **tek bir açılır listenin içinde** karşı
+   karşıya geldi (`24bac17`).
+
+7. **Uyarı değil nöbetçi. Yorum sebebi anlatır, nöbetçi kuralı tutar.**
+   Bir kural yalnız yorumda yaşıyorsa, onu okumayan biri geldiğinde
+   **yoktur.**
+   *Vaka (aynı gün, iki ayrı elden):* `components/ui/button.tsx`
+   `transition-colors`'ın Tailwind v4'te `outline-color`'ı kapsadığını
+   ve bunun *"ekibe bir tur kaybettirdiğini"* **zaten yazıyordu** — ve
+   aynı tuzak aynı gün `pm`'e bir tur daha kaybettirdi. Aynı gün `ux`
+   önizlemenin örnek isimlerini elle seçti, iki kez gerçek veriyle
+   çakıştı, ve ikincisinde kendisi söyledi: *"sorun benim isim seçimim
+   değil, **isim seçmenin kendisi** — her seferinde elle kontrol
+   edilecekse er geç kaçar."* İkisi de aynı dersin hâli: **uyarı yazmak
+   işe yaramadı.** Çözüm kalıbı düzeltmek ya da nöbetçi yazmak; uyarıyı
+   güçlendirmek değil.
+
+8. **Görsel ağırlık bir vaattir.**
+   Bir şeye gerçek bir kartın ağırlığını verirseniz, okuyan kişi orada
+   **yapacak bir iş** olduğunu anlar — metni ne derse desin.
+   *Vaka:* `pm` teknisyenin ilk çalıştırma kartını ölçtü; kart hekimin
+   kartıyla **aynı görsel ağırlıktaydı** ama içinde düğme yoktu.
+   İzlenimi: *"ilk bakışta 'burada bir şey yapmam bekleniyor' hissi
+   veriyor, okuyunca çözülüyor — **yarım saniyelik yanlış vaat**."*
+   `ux`'in kararı: ağırlık hafifler, ama **kesikli çerçeveyle değil** —
+   kesikli bu kod tabanında *"burada henüz bir şey yok"* demek, oysa
+   orada bir şey **var**, yalnız o kişinin işi değil.
+
+9. **Paylaşımlı indeks bu ağaçta güvenli değil — commit'i kendi
+   indeksinde kes.**
+   Birden fazla ajan aynı ağaçta çalışırken `git add <kendi dosyam>`
+   **başkasının sahnelediğini kaldırmaz**, ve paylaşımlı indeks biri
+   commit atar atmaz **bayatlar.** Bayat indeksten kesilen bir commit,
+   o arada **yeni oluşturulmuş** bir dosyayı "yok" diye kaydeder — yani
+   başkasının işini **siler.**
+
+   **Yöntem (`dev` önerdi, ana oturum uyguluyor):**
+   ```
+   export GIT_INDEX_FILE=$(mktemp)   # kendi indeksim
+   git read-tree HEAD                # HEAD'den taze başla
+   git add <yalnız kendi dosyalarım>
+   git diff --cached --stat          # ve her yolu OKU
+   git commit
+   git reset HEAD -- <az önce commit ettiğin yollar>   # AYNI KOMUTTA
+   ```
+
+   **Son satır ayrı bir adım değil, komutun parçasıdır — ve bu, kuralı
+   yazanın onu üç kez atlamasıyla öğrenildi.** Özel indeksle commit
+   etmek, paylaşımlı indeksi o yollarda **bayat** bırakır: HEAD ilerler,
+   paylaşımlı indeks eski ağacı tutmaya devam eder. Yani `git status`
+   `MM` gösterir ve `git diff --cached` o yolları **silen** bir hâl
+   çizer. Oradan kesen bir sonraki kişi, senin commit'lerini geri alır.
+
+   21 Eylül'de bu tam olarak oldu ve yalnız şans eseri yakalandı:
+   paylaşımlı indeks üç dosyada **246 satır silen** bir hâl tutuyordu
+   (`TEAM.md`'nin kültür değişikliği, `BACKLOG.md`'nin onboarding
+   kararı, bir ajan tanımının düzeltmesi) ve `dev-ui` tam o sırada
+   commit etmek üzereydi. Aynı gün, aynı mekanizma `9df1227`'de sekiz
+   dosyayı zaten silmişti.
+
+   **Dersin kendisi kuralın içeriğinde değil, yerinde:** "commit et,
+   sonra sıfırla" diye iki adım olarak yazılan bir kural, ikinci adımı
+   atlanacak biçimde yazılmıştır. Tek komut hâline getir.
+
+   **Ve yukarıdaki hâli eksik: tetikleyici commit DEĞİL.** Bunu `dev`
+   buldu ve kendi eşitlemesini yaptıktan *sonra* yeniden bayatlayan bir
+   indeksle kanıtladı. Yani "her commit'ten sonra sıfırla" biçimi bir
+   hâli kaçırıyor; doğrusu şu:
+
+   > **Ortak indeksin tek meşru hâli HEAD'dir.** Sahnelenmiş iş asla
+   > ortak indekste beklemez — bütün sahneleme özel `GIT_INDEX_FILE`'da
+   > olur. Bayatlığın tetikleyicisi commit değil, **ortak indekse
+   > yapılan her yazmadır**, bu yüzden kontrol commit'e değil
+   > `git status`'te görülen **her ikinci sütun `M`**'ye bağlanır.
+
+   **`M` görünce varsayma, dört hash oku:**
+
+   ```
+   git rev-parse :<yol>          # indeks ne tutuyor
+   git hash-object <yol>         # ağaç ne tutuyor
+   git rev-parse HEAD:<yol>
+   git rev-parse HEAD~1:<yol>
+   ```
+
+   Ağaç `HEAD` ile eşit ve indeks `HEAD~1` ile eşitse, indeks **son
+   commit'i geri alacak hâldedir** → `git read-tree HEAD`.
+
+   **Ama `HEAD~1` bir ipucudur, sınav değil — ve dar hâli aynı gün iki
+   yanlış alarm üretti.** İndeks birden fazla commit geride kalabilir:
+   `.claude/TEAM.md`'nin indeks blob'u bir kez **üç** commit öncesindendi,
+   ve yalnız `HEAD`/`HEAD~1` karşılaştıran bir okuma onu *"hiçbir commit'te
+   yok"* sanıp **DUR** dedi. Kayıp yoktu; kaybı olan bir hâlle bayat bir hâl
+   aynı görünüyordu.
+
+   Sınav tek satırdır ve tarihin tamamına bakar:
+
+   ```
+   git log --all --oneline --find-object=<indeks blob'u>
+   ```
+
+   Boş dönerse dur. Bir şey dönerse — hangi commit olursa olsun —
+   bayatlıktır, `read-tree HEAD` güvenlidir. Bu, `dev`'in
+   `visit-intake.test.tsx`'te okuduğu tablonun ta kendisi: dosya
+   diskte doğruydu, ikinci `M` ağacın değil **indeksin** geride
+   kaldığını söylüyordu.
+
+   **Aletin çıktısını bulgu sanma** (bu incelik `dev-ui`'den): sahnelenmiş
+   *silme* görünen bir yol için `git rev-parse :<yol>` hata verir — bu
+   "dosya kayıp" demek değil, komutun o hâlde söyleyecek sözü olmaması
+   demektir. `git cat-file -e HEAD:<yol>` geçiyorsa ve dosya diskteyse,
+   elindeki yalnızca bayat bir silme kaydıdır; `read-tree` geri koyar.
+
+   **Gerçekten durulacak tek hâl:** indekste **içeriği olan** ve hiçbir
+   commit'te bulunmayan bir blob — `git log --all --find-object=<hash>`
+   boş dönüyorsa. O zaman sıfırlama; o blob birinin henüz commit
+   etmediği işidir, sahibine yaz.
+
+   **Ve sahneleme yaptığını bilmeden sahneleyebilirsin:** `git mv` ortak
+   indekse **yazar**. `dev-ui` yirmi dosyayı rota gruplarına taşırken
+   bunu fark etmedi ve yirmi yeniden adlandırma kaydı ortak indekste
+   beklemeye başladı — kimsenin `git add` çalıştırmadığı, herkesin
+   "sahneleme yapmıyorum" dediği bir anda. O sırada `dev` de aynı
+   ağaçtaydı ve ekipte "commit etmeyin" talimatı vardı, yani kayıtlar
+   orada belirsiz bir süre bekleyecekti. Düz bir `git read-tree HEAD`
+   çeken biri yirmisini birden silerdi; dört hash okuması olmasaydı
+   bunu yapan da bu dosyanın yazarı olacaktı.
+
+   Sonucu: `git add` dışında da indekse yazan komutlar var (`git mv`,
+   `git rm`, çakışma çözümü). Kuralın bağlandığı yer bu yüzden
+   **komutun adı değil `git status`'ün ikinci sütunu**.
+
+   **İkinci yarısı, `dev-ui`'den ve kaybı yaşayan taraftan:**
+   **paylaşımlı bir dosyadaki düzenlemeyi başka iş yaparken elde
+   tutma.** O iki dizeyi yazıp başka bir bileşene geçmek, yarım saat
+   boyunca `messages/*.json`'da commit edilmemiş iş bırakmak demekti —
+   *"o checkout bulmasaydı başka bir şey bulacaktı."* Paylaşımlı dosyaya
+   dokunan, **kendi işi bitmeden** o dosyayı commit eder.
+
+   İkisi birlikte kuralın tamamı: **sahnelenen her yolu tanı, ve
+   paylaşımlı dosyayı elde tutma.** Birincisi silmeyi, ikincisi
+   silinmeyi önlüyor.
+
+   **Üçüncü madde, kuralı kullanırken bulundu ve olmazsa kural kendi
+   mayınını üretiyor:** özel indeksle commit etmek **senin** commit'ini
+   korur, ama paylaşılan indeksi **bayat bırakır** — orada o dosyanın
+   commit'inden **önceki** hâli asılı kalır, ve bir sonraki kişi onu
+   götürür. Yani sen kendini korurken **arkanda bir mayın** bırakmış
+   olursun. Aynı gün iki kez oldu, ikisinde de kurbanı `TEAM.md`'nin
+   **kural 9'u** olacaktı.
+
+   **Bu yüzden commit'ten sonra paylaşılan indeksi kendi yollarınla
+   tazele:** `git reset <commit ettiğin yollar>`. **Düz `git reset`
+   değil** — başkasının sahnelediği iş o an orada duruyor olabilir, ve
+   onu boşaltmak kuralın önlemeye çalıştığı şeyin aynısıdır.
+
+   **Ve kuralın yazılma sebebi, uyarının neden yetmediği:** ana oturum
+   *"commit'ten önce `git diff --cached --stat` oku"* kuralını aynı gün
+   koydu, başkasına yazdırdı, **kendisi çalıştırdı** — ve çıktıda duran
+   sekiz yabancı dosyayı **kendi diff'i sandı** (`9df1227`, bir dakika
+   sonra `db36842` ile geri alındı; aynı kaza `e333e24`'te de olmuştu).
+   Yani **listeyi görmek onu okumak değil.** Kural 7'nin bu ekibe
+   kendi içinden gelen kanıtı: uyarı vardı, okundu, ve yine kaçtı —
+   çare uyarıyı güçlendirmek değil, **indeksi paylaşmayı bırakmak.**
+
+   **Dördüncü madde, ve okumanın yakalayamadığı hâli o kapatıyor:
+   commit'ten önce sahnelenmiş yol SAYISINI yaz, sonra karşılaştır.**
+
+   ```
+   git diff --cached --name-only | wc -l
+   ```
+
+   Beklediğin sayıdan **fazlaysa** dur — başkasının işi indekstedir.
+   **Sıfırsa da dur** — ve bu hâl 22 Eylül'de `2ab2894`'ü üretti:
+   **456 dosyayı silen, boş ağaçlı bir commit.** Sebebi `$$`'ydi.
+   `dev-ui` kendi indeksini `"$CLAUDE_JOB_DIR/tmp/idx5.$$"` diye
+   adlandırmıştı; `$$` **her kabukta farklı bir PID** verir, yani
+   sahneleme bir dosyaya, commit **başka** bir dosyaya baktı. Git var
+   olmayan indeksi **boş** indeks sayar ve boşluğu sorgusuz commit eder.
+   Önceki üç commit'te aynı kalıp çalışmıştı, çünkü sahneleme ile commit
+   tesadüfen aynı kabuktaydı.
+
+   **Ve asıl ders mekanizmada değil, okumanın sınırında.** `dev-ui`
+   kuralın *"her yolu oku"* kısmını yaptı — ama boş indekste okunacak yol
+   yoktur, ve 456 satırlık bir **silme** listesini zaten kimse satır satır
+   okumaz. Bir liste ne kadar uzunsa, onu okuduğunu sanmak o kadar kolaydır;
+   **bir sayı ise tek bakışta yanlış çıkar.** Bu yüzden sayma adımı
+   okumanın yerine geçmez, **önüne** geçer: önce sayı tutuyor mu, sonra
+   yollar doğru mu.
+
+   İndeks dosyasının adı da bu yüzden **sabit** olur — `$$`, `$RANDOM`,
+   `mktemp` gibi her çağrıda değişen bir ad, sahneleme ile commit'in ayrı
+   kabuklarda olduğu anda sessizce boş indekse düşer. Kabuk değişse bile
+   aynı dosyaya bakmak istiyorsan adını kendin sabitle.
+
+   **Kurtarma, kaza olduğunda:** `git reset --soft HEAD~1` — hiçbir şey
+   push edilmediyse bozuk commit tarihten temizce çıkar, çalışma ağacına
+   dokunulmaz. **`git revert` kullanma:** 456 dosyayı silip geri koyan bir
+   çift commit tarihe yerleşir ve bu depo `git blame`'i sürekli kullanır
+   (AGENTS.md) — bütün dosyaların blame'i o çiftte düğümlenir.
+
+   **Beşinci madde, `ux`'ten, ve dördüncüyü tek başına bırakmamak için
+   yazıldı: sahnelenmiş diff'in SAYISI kadar İŞARETİ de okunur.**
+
+   `--name-only | wc -l` **kaç yol** olduğunu sorar, **hangi yöne**
+   gittiğini sormaz. Bayat bir indeks bu sorunun ikisinden yalnız birini
+   yanlış cevaplar: az önce inmiş bir işi geri alan diff, **doğru sayıda
+   doğru dosyadan** oluşur. Sayma kuralı yeşil verir, commit `a0711ef`'i
+   siler.
+
+   ```
+   git diff --cached --stat     # yön burada görünür
+   ```
+
+   **Beklemediğin bir silme görürsen dur.** 22 Eylül'de indeks üç yolda
+   tam olarak bunu tutuyordu: `timeline.tsx`'e kaldırılmış alfayı geri
+   koyan, ve 83 satırlık alfa yasağı testini **silen** bir hâl — sahnelenmemiş
+   diff'in birebir tersi. Kimse bir şeyi geri almak istemiyordu.
+
+   Üç alet artık üç ayrı hâli yakalıyor, ve karıştırılmamaları için:
+
+   | soru | alet |
+   |---|---|
+   | bu iş **sahnelenmiş mi** | `git log --all --find-object=<blob>` |
+   | bu iş **inmiş mi** | `git show HEAD:<yol> \| grep -c "<anahtar>"` |
+   | sahnelenmiş olan **ters mi** | `git diff --cached --stat`, işarete bak |
+
+   **Ve tekrarın kendisi bir bulgudur.** Paylaşımlı indeks aynı gün
+   **dört kez** bayat bulundu, her seferinde özel indeksle atılmış bir
+   commit'in ardından. Yukarıdaki "commit ile aynı satırda `git reset
+   <yollar>`" kuralı biliniyordu ve yine de atlandı — çünkü kuralı
+   uygulayan kişi ile bedelini ödeyen kişi **farklı**. Bu yüzden
+   temizlik yalnız commit atanın sorumluluğu değil: **`git status`'te
+   ikinci sütunu `M` olmayan ama birinci sütunu `M` olan her yol,
+   onu göreni ilgilendirir.**
+
+   **Altıncı madde, ve dört tekrarın KÖK SEBEBİ buydu — "aynı satırdaki
+   `git reset`" özel indeksin hâlâ açık olduğu kabukta çalışırsa
+   PAYLAŞIMLI indekse hiç dokunmaz.**
+
+   ```
+   export GIT_INDEX_FILE=…/my-index
+   git add <yollarım>
+   git commit
+   git reset HEAD -- <yollarım>     # ← BU, KENDİ indeksini sıfırlar
+   ```
+
+   Son satır hatasız çalışır, çıktı vermez, ve paylaşımlı indeksi
+   **olduğu gibi bayat bırakır.** Kuralı yazan kişi onu uyguladığını
+   görür; `git status` başkasının kabuğunda `MM` gösterir. 22 Eylül'de
+   paylaşımlı indeks dört kez bayat bulundu, dördünde de commit'i atan
+   *"sıfırladım"* diyordu ve **doğru söylüyordu** — yanlış indeksi.
+
+   Doğrusu, temizliği ayrı bir kabuğa çıkarmak ya da değişkeni düşürmek:
+
+   ```
+   git commit && env -u GIT_INDEX_FILE git reset HEAD -- <yollarım>
+   ```
+
+   **Ve doğrulaması commit'i atanın kendi kabuğunda yapılamaz** — orada
+   her şey temiz görünür. Sınav, `GIT_INDEX_FILE` olmayan bir kabukta:
+   `git status --short` çıktısında **birinci sütunu `M` olan kendi
+   yolun kalmamalı.**
+
+   Kuralın altı maddesinin ortak dersi de burada toplanıyor: bu maddenin
+   beşi, **kuralı uyguladığını gösteren bir çıktı** ile **kuralın
+   uygulandığı** arasındaki farktan doğdu. Listeyi görmek okumak değil;
+   sayıyı tutturmak yönü tutturmak değil; ve komutu çalıştırmak, onu
+   doğru indekste çalıştırmak değil.
+
+   **Ve delik BİR değil İKİ — bunu `dev-ui` düzeltti, kök sebep tek
+   mekanizmaya bağlanmıştı.** Yukarıdaki `GIT_INDEX_FILE` tuzağı
+   gerçek, ama günün üç bayatlığını o açıklamıyor. Kanıt blob'larda:
+
+   ```
+   git rev-parse fb7cc52:.claude/TEAM.md   → 7e54d09   (bulunan bayat blob)
+   git rev-parse 90676d2:.claude/TEAM.md   → 5f001da   (bulunan öteki)
+   ```
+
+   Birincisi **kurtarma** deliği, ikincisi **commit sonrası** delik:
+
+   - **Kurtarma:** boş ağaç kazasından sonra atılan `git reset fb7cc52`
+     çalışma ağacını kurtardı ve paylaşımlı indeksi **fb7cc52'ye
+     sabitledi.** Ağaç doğru, indeks yanlış. HEAD sonra ilerledi, ve
+     özel indeksle atılan her commit o yollarda bayatlığı **görünür**
+     kıldı — sebebi değildi, ortaya çıkaranıydı.
+   - **Commit sonrası:** `a81e7f2`'nin ardından koşan `git reset`,
+     `GIT_INDEX_FILE` hâlâ açık olduğu için özel indekse gitti.
+
+   Eklenen kural, `dev-ui`'nin cümlesiyle: **paylaşımlı indeksi HEAD
+   dışında bir şeye eşitleyen her komuttan sonra indeks HEAD'e geri
+   çekilir.** Kurtarma bittiğinde ağaca bakılıp *"kayıp yok"* denir ve
+   herkes dağılır; indeksin yanlış kaldığını **bir sonraki commit'i
+   atacak kişi** öğrenir — yine kuralı uygulayanla bedelini ödeyenin
+   farklı olması.
+
+   `dev-ui`'nin ikinci ayrımı da kalsın, çünkü teşhisi hızlandırıyor:
+   **çıktının değişmesi ile çıktının boş olması farklı şeylerdir.**
+   Onun onarımları ayrı kabuk çağrılarındaydı (değişken taşınmaz), doğru
+   indekse gitti ve `--name-only` çıktısının **kısaldığı** görüldü;
+   yanlış indekse giden `reset` ise hiçbir şey yazmaz. Sessiz başarı ile
+   gerçek başarıyı ayıran şey burada çıktının **boyu**.
+
+10. **Kimlik alanı yerinde düzeltilmez. Hekim bunu kendisi reddetti.**
+   Bir seçicide yanlış kaydı seçmişken adı *"düzeltmek"*, gerçek bir
+   insanın kaydını **sessizce başkasının adıyla** değiştirmektir.
+   *Vaka ve gerekçe hekimin kendi cümlesi:* *"Telefon eklemek zararsız;
+   yanlış kişideysem 'bu numara sizin mi' diye sorunca anlarım. Ama **ad
+   kimliktir** — yanlış Ayşe'yi seçip adını düzeltirsem gerçek bir insanın
+   kaydını başkasının adıyla değiştirmiş olurum ve **hiç fark etmem.**"*
+
+   > **"Kopya en azından iki dosya bırakır; yanlış yeniden adlandırma tek
+   > dosya bırakır, ve o dosya yalan söyler."**
+
+   **Ve istediği şey düzeltmek değil, FARK ETMEK:** *"Adın yanlış olduğunu
+   fark ettiğim an istediğim şey düzeltmek değil; yanına 'sahibin sayfası'
+   bağlantısı yetsin, ben hasta çıktıktan sonra düzeltirim."* Yani doğru
+   tasarım, hatayı **kolay düzeltilir** değil **görünür** yapmak — ve
+   düzeltmeyi, dikkatin tam olduğu bir ana bırakmak.
+
+   Ayrımı da o koydu: **telefon eklenebilir** (yanlışsa aynı anda
+   sorulabilir, yani kendi kendini doğruluyor), **ad değiştirilemez**
+   (yanlışsa hiçbir yerden anlaşılmıyor).
+
+11. **Vaadi geri çekmek tutulmamış söz üretir; genişletmek üretmez.**
+   Asimetri gerçek ve **kontrol edilebilir** — bu yüzden bir üslup
+   tavsiyesi değil, bir kural. (`dev-ui`'nin sözü; ana oturumun ilk
+   taslağı *"eksik vaat et, sonra genişlet"* diye yazılmıştı ve o hâli
+   yalnız bir tavsiyeydi.)
+
+   **Pratik sonucu:** bir cümle ne kadar vaat edeceğine karar verirken,
+   **bugün tutabildiğin kadarını** söyle. Yarın daha fazlasını
+   yapabiliyorsan cümle büyür ve kimse bir şey kaybetmez. Bugün
+   tutamadığın bir şeyi söylersen, onu geri aldığın gün kullanıcı
+   **kaybettiğini** görür — ve bir daha o ekranın cümlelerine inanmaz.
+
+   **Kusurun nasıl DOĞDUĞU, ve bu kuralın önleyici yarısı** — cümleyi
+   yazan kişi kendi anlattı: *"O cümleyi **ben yazmıştım**, ve **iyi
+   niyetle** yazmıştım — **yapmayı planladığımız davranışı**
+   anlatıyordu."*
+
+   > **Kusur özensizlik değil: gelecek zamanı şimdiki zaman gibi
+   > yazmak.**
+
+   Kimse bilerek yalan cümle yazmıyor. Tasarımı bilen biri, **inecek**
+   olanı **inmiş** gibi tarif ediyor — ve o cümle, arkasındaki iş
+   gecikince tek başına ekranda kalıyor. Pratik önlem: bir cümle
+   yazarken *"bu bugün doğru mu"* diye sor, *"bu doğru olacak mı"* diye
+   değil.
+
+   **Ve kuralın SINIRI, çünkü az vaat etmenin kendi tuzağı var:**
+
+   > **Küçültülmüş bir vaat yalan bir vaatten iyidir; gizlenmiş bir
+   > iyilik ise gereksiz kayıptır.**
+
+   Vaadi kısarken ürünün **gerçekten yaptığı** iyi şeyi de kısmak, bu
+   kuralın yanlış uygulanmasıdır. *Vaka:* aynı cümlenin iki adayı
+   vardı; kazanan, ayrılmayı adıyla söylerken (*"açmaya gider"*)
+   dönüşü de söyleyen oldu (*"kaldığınız yere dönersiniz"*) — çünkü
+   hekimin **övdüğü** şey tam olarak oydu (*"hiçbir şeyi iki kez
+   yazmadım"*). Az vaat eden cümle, **doğru olan iyiliği** saklamaz.
+
+   *Vaka:* ilk çalıştırma kartı *"hayvanı ve sahibini **yol üstünde**
+   açarsınız"* diyordu ve ekran bunu yapmıyordu. **İki hekim de bunu
+   yalan diye işaretledi**, biri kendi ağzıyla: *"beni yalancı
+   çıkarmayın."* Ara çözüm cümlesi bilerek **daha az** vaat ediyor
+   (*"önce sahibini ve hayvanı açacaksınız; yazdıklarınız taşınır"*),
+   çünkü tek ekran indiğinde cümle **büyüyecek** — ve o yönde büyümenin
+   bedeli yok.
+
+12. **Bir tespit kuralı, tespit ettiği şeyin SİLDİĞİ alana bağlanamaz.**
+   `value` kendi kural setini sayarken buldu, `ux` üçlü tabloyu yazan
+   kişi olarak *"bunu görmemiştim"* dedi.
+
+   *Vaka:* mükerrer **sahip** kaydını yakalamak için kural **telefon
+   numarası** üzerinden eşleştiriyordu. Ama o kopyanın en yaygın doğma
+   sebebi zaten **numaranın değişmiş olması**: sahip numarasını
+   değiştirir, söylemez, resepsiyon yeni numarayla arar, bulamaz, **yeni
+   kayıt açar.** Yani kural, tam da kendisini doğuran olayın **sildiği**
+   alana yaslanıyordu — ve en sık vakada hiç ateşlemiyordu.
+
+   > **Teşhis: kural, kendisini doğuran olayın sildiği alana bağlıydı.**
+
+   **Çözüm anahtarı genişletmek oldu**, yeni kural değil: *aynı telefon
+   **ya da** aynı katlanmış sahip adı*, ve yanında **ikinci** bir koşul
+   (aynı hayvan adı). Güç tek sinyalden değil **birleşimden** geliyor:
+   *"aynı isimde iki sahip"* tek başına zayıf (üç Mehmet Yılmaz), ama
+   ikisinin de aynı adlı bir hayvanı olması tesadüf değil.
+
+   **Ve kural, yazıldığı hâliyle KENDİ tarif ettiği kusuru taşıyordu.**
+   `pm` ikinci bir vaka getirdi ve dar hâl onu **kapsamıyordu:** randevu
+   kartı kliniğin mesajlaşma durumunu `isChannelConfigured` üzerinden
+   okuyor — ama kliniğin gerçekte içinde bulunduğu hâl (*"ayarlar hiç
+   açılmadı"*) o alana **hiç yazmıyor.** Orada bir şey **silinmiş**
+   değil; alan o soruyu **hiç taşımıyor.**
+
+   **Genel hâli, ve kuralın doğru sınırı:**
+
+   > **Doğru soruyu yanlış alana sorma.** Alanın cevabı taşımamasının
+   > iki yolu var: olay onu **siler**, ya da alan o cevabı **hiç
+   > tutmaz.** İkisi de kuralı en sık vakada sessiz bırakır.
+
+   **Sorulacak soru:** bu kuralın dayandığı alan, yakalamaya çalıştığı
+   olay sırasında **değişmiş** olabilir mi — **ya da o cevabı hiç tutuyor
+   mu?** Olabiliyorsa kural en sık
+   vakada sessiz kalır — ve sessiz kaldığı için kimse fark etmez.
+
+13. **Soru sormanın da maliyeti var, ve bozuk soru ölçüm değildir.**
+   *Vaka:* `ux` bir kararı **hekime sormadan** verdi ve sebebini yazdı:
+   cevap kararı değiştirmiyordu (maliyet bir `OR` dalı), vaka hekimin
+   kendi ağzından defalarca anlattığı vakaydı. *"Bugün hekime on ikiden
+   fazla soru gitti; dikkati, cevabı kararı değiştirmeyecek bir soruya
+   harcanmamalı."*
+
+   **`value` kuralı kendi kuyruğuna uyguladı ve bir adım ileri
+   götürdü:** bir soru yalnız *kararı değiştirmediği* için değil,
+   **cevabın hiçbir yönü bir şey söylemediği** için de düşer. Kâğıttan
+   geçmiş bir hekimde veri kaybı yarası **olmayabilir**, ve olmaması
+   kanıt değildir — yani soru **ölçüm olarak bozuk.**
+
+   **Ve `ux`'in çıkardığı biçim:** *vaat tasarımında sorulacak soru
+   geçmişi değil **eşiği** ölçer* — *"bunu yaşadın mı"* değil, **"sana
+   ne söylenirse güvenirdin"**.
+
+   **Hekimin dikkati bu ekipteki en kıt kaynak.** Sorular tek mesajda
+   ve **koşullu sırayla** gider: birincinin cevabı bir dalı kapatıyorsa
+   ikincisi hiç sorulmaz.
+
+14. **Yanlış yerde duran doğru bilgi.** Bugün **üç ayrı yerde** aynı
+   cümleyle tarif edildi, dördüncüsünde adı kondu — `value`'nun sözü:
+
+   > **Bilginin sistemde olması ile kararın verildiği yerde olması ayrı
+   > şeylerdir.**
+
+   *Vakalar:* mükerrer sahip notu **müşteri** sayfasındaydı, oysa hekim
+   **hayvanın** geçmişine bakıyordu (üç vizit görüyor, ötekinde sekiz
+   vizit ve bir **alerji kaydı** var) · `/reminders` mesajlaşmanın kapalı
+   olduğunu söylüyordu, randevu kartı aynı klinik için **uyarısız "SMS
+   gönder"** sunuyordu · ve panel *"Yaklaşan aşı yok"* derken **45 gün
+   gecikmiş** bir aşı duruyordu.
+
+   Üçünde de **eksik olan veri değil**: ürün bunu biliyordu. Eksik olan
+   şey, bilginin **kararın verildiği ekranda** olması.
+
+   **Sorulacak soru:** bu bilgiyi kim, **hangi ekranda** kullanacak — ve
+   o ekran onu görüyor mu?
+
+   **Ve kural 12'den AYIRT ET — kardeş dal, alt dal değil, çünkü
+   çareleri farklı** (`ux`'in ayrımı):
+
+   | | ne oldu | çare |
+   |---|---|---|
+   | **14 — yanlış yerde duran doğru bilgi** | doğru türetilmiş, **yanlış sayfada** | **dağıtım**: aynı bilgiyi kararın verildiği yere taşı |
+   | **12 — doğru soruyu yanlış alana sormak** | **hiç doğru türetilmemiş**; alan o cevabı taşımıyor | **anahtarı değiştir**, taşıma |
+
+   **İkincisi daha sinsi, ve sebebi şu:** cevap **kendinden emin**
+   çıkıyor. `isChannelConfigured` hiç boş dönmüyordu — **yanlış**
+   dönüyordu. Boş dönen bir cevap şüphe uyandırır; dolu ve yanlış olan
+   uyandırmaz.
+
+   **Üçüncü kardeş (`pm` ekledi, üçlüyü kapatıyor): doğru soru, doğru
+   alan, YANLIŞ AN.**
+
+   *Vaka:* rıza sorusu. Alan doğru, soru doğru, kolon üç hâli doğru
+   tutuyor, cevap doğru kaydediliyor — **bozuk olan yalnızca sırası.**
+   Ürün, kliniğe bildirimlerin var olduğunu söylemeden önce müşterisinin
+   bildirim iznini soruyor.
+
+   **Ne dağıtım çözer** (bilgi zaten doğru yerde), **ne anahtar
+   değiştirmek** (alan zaten doğru alan). Çare **sırayı** değiştirmek:
+   soruyu, cevabının anlamlı olduğu ana taşımak.
+
+   **Teşhis işareti:** *cevap doğru kaydediliyor ama neredeyse hep
+   boş.*
+
+   > **UYARI, ve `ux`'in bugün koyduğu ölçütün kendimize uygulanması:**
+   > bu işaretin bizdeki örnekleri (*"63 müşterinin 61'i"*, *"183
+   > kliniğin 180'i"*) **fikstür verisidir** — HÂL'i biz doldurduk, o
+   > klinikleri ekip üretti. **İşaret geçerli, o sayılar saha kanıtı
+   > değil.** Gerçek kanıt için `pm`'in kuralı geçerli: **yalnız düşüşü
+   > kanıt say** — sabit bir oran hiçbir şey kanıtlamaz.
+
+   **Ve her ailenin kanıtı farklı** (`pm`'in eşlemesi):
+
+   | aile | nasıl kanıtlanır |
+   |---|---|
+   | **dağıtım** (14) | iki ekranı **yan yana** okumak |
+   | **anahtar** (12) | *"kaç hâl var, kaçını gördüm"* sütunu |
+   | **sıra** (bu) | oran ölçümü + *"yalnız düşüşü kanıt say"* |
+
+   *Ve bu ayrımı yapmanın bedeli ölçüldü:* mükerrer sahip vakasında
+   `ux` **notu taşımaya** çalışıyordu (14'ün çaresi), `value`
+   **anahtarın kırık** olduğunu gösterdi (12'nin çaresi). Yanlış aileye
+   koysaydık doğru çareyi hiç denemeyecektik.
+
+15. **Küçük değişiklikler ucuz göründüğü için çakışır.**
+   `dev-ui`'nin kendi kuralı, bugün **üçüncü** çakışmasından sonra:
+
+   > **Karşı tarafın son mesajına cevap vermeden kod indirme — özellikle
+   > tek dizelik işlerde**, çünkü orada indirmek beklemekten **ucuz
+   > görünüyor** ve tam o yüzden çakışıyor.
+
+   *Vakalar (hepsi aynı gün, ikisi aynı çift arasında):* önizleme
+   dolgusu · tire kararı · kart cümlesi. Her seferinde **ikisi de
+   karşısındakinin bir ÖNCEKİ mesajına** cevap veriyor, ve öteki taraf
+   çoktan geçtiği bir kararı buluyor.
+
+   **Simetrik yarısı, `ux`'ten** — çünkü indirme tarafını kapatmak tek
+   başına yetmiyor:
+
+   > **Canlı hâl hakkında varsayımla karar verme.** *"İnen kalsın"*
+   > demeden önce ya **sor**, ya **hash yaz**, ya da **koşullu kur**
+   > (*"şu an canlı olan X ise kalsın"*). Bedeli sıfır.
+
+   Bugün üç çakışmanın üçü de **bu iki ucun ikisi birden açıkken** oldu:
+   biri son mesajı beklemeden indirdi, öteki canlı hâli varsayarak karar
+   verdi.
+
+   **Ve maliyetin nerede olduğu:**
+
+   > **Tek dizelik işlerde asıl maliyet dizede değil, iki kişinin
+   > farklı bir gerçeği doğru sanmasında — ve o maliyet dizenin
+   > boyutuyla ölçeklenmiyor.**
+
+   Kart cümlesinde sonuç bir **yanlış varsayıma** dönüştü: biri *"inen
+   cümle kalsın"* dedi, ama o sırada inen **öbürününkiydi.** Düzelten
+   kişi üçüncü kez aynı dizeyi taşıdı ve savunmadı — sebebini yazdı:
+   *"bir hafta boyunca ikimizin **farklı bir cümlenin canlı olduğunu
+   sanması** daha pahalıya gelirdi."*
+
+**Ve bir ölçüm kuralı, aynı gün beş kez lazım oldu:**
+
+> **İki sabiti çarpmak ölçüm değildir.** Ölçülmemiş bir sayı, ölçülmüş gibi
+> yazılmaz. **"Ölçemedim" bir cevaptır; "iyi görünüyor" değildir.**
+
 ## Ortak ilkeler
 
 **1. İddianı kanıtla.** Her bulgu `dosya:satır` ile gösterilir. "Sanırım",
@@ -439,6 +1073,78 @@ tarafındaki hâli.**
 **Ve kapatılmayan boşluk açıkça yazıldı (30c):** *"resepsiyonist ve vet
 tech elendi, **klinisyen olmayan ADMIN elenmedi**"* — "kapandı" değil.
 Gerçek çaresi çok rollülük ve o bu paketin kırk katı.
+
+**12f. BİR KOLONU NULLABLE YAPMAK, HER OKUYUCUSUNU SAYMAYI GEREKTİRİR.**
+Alanı isteğe bağlı yapmak bir form kararı gibi görünür; oysa o kolonu okuyan
+**her** yer, bugüne kadar hiç karşılaşmadığı bir değerle karşılaşmaya başlar.
+Ve okuyucuların çoğu kolonun adını taşımaz, o yüzden karar verilen yerden
+görünmezler.
+
+22 Eylül'de `Client.lastName` isteğe bağlıyken `${firstName} ${lastName}`
+diye elle birleştiren **yedi** okuyucu vardı. `pm` ekranda **birini** gördü
+— hatırlatma formunun seçicisi — ve kapsamı doğru ölçtü: ekranda gerçekten
+tek yüzey vardı. Ama üçü ekrana değil **giden mesaja** yazıyordu:
+`modules/notifications/service.ts:188 · :971 · :1410` → `clientName` →
+`lib/messaging/sms-templates.ts` ve `lib/whatsapp/messages.ts` →
+**`Sayın ${ctx.clientName},`**
+
+Yani soyadsız müşteri *"Sayın Ayşe null, Limon için … randevunuz
+bulunmaktadır."* diye SMS alıyordu. `.trim()` kurtarmıyor: `` `${"Ayşe"}
+${null}`.trim() === "Ayşe null" ``.
+
+**Bunu üç şey aynı anda zor yapıyor:**
+- **Ekranda saymak yetmiyor.** "Kaç yerde görünüyor" sorusunun doğru cevabı,
+  "kaç yerde var" sorusunun yanlış cevabıydı — çünkü bazı okuyucular ekrana
+  değil dışarıya yazıyor.
+- **`null` sessizce dizeye dönüşüyor.** Tip sistemi durdurmuyor, test
+  durdurmuyor, ve çıktı "boş" değil **"null"**.
+- **Kusur, kolonu değiştiren commit'te doğmuyor;** o kolonda ilk `null`
+  değer yazıldığında doğuyor, yani günler sonra ve başka birinin işinde.
+
+**Yapılacak:** kolonu nullable yapan commit, `grep` ile **bütün** okuyucuları
+sayar ve hepsini aynı commit'te tek bir ortak biçimlendiriciye bağlar
+(burada `ownerLabel()`, `lib/pet-label.ts`). Sonra **statik bir nöbetçi**
+koyar: o ham desen kodda bir daha geçemesin. Yedincisi bugün bulundu,
+sekizincisi yarın yazılırdı.
+
+**Aynı kural dize anahtarları için de geçerli, ve aynı gün ikinci kez
+çarptı.** `staff.you` anahtarının **değeri** `"Siz"`den `"{name} (siz)"`ye
+çevrildi — formlarda doğru, ama `/staff` listesi aynı anahtarı
+**parametresiz** bir rozet olarak kullanıyordu (`staff/(list)/page.tsx:59`).
+Ekranda görünen şey şu oldu:
+
+    Hâl Yönetici({name} (siz))
+
+Yani ham şablon kullanıcının gözüne çıktı, ve yalnız **oturumu açık olan
+kişinin** satırında — herkesin göreceği bir kusur değil, kendi satırına
+bakan herkesin göreceği bir kusur.
+
+Mekanizma kolon vakasıyla birebir aynı: **şekli değişen şeyin her okuyucusu
+sayılmalı.** Kolonda `null` yeni bir değerdi; burada parametre yeni bir
+şekil. İkisinde de tip sistemi durdurmuyor, ikisinde de çıktı boş değil
+**yanlış**, ve ikisinde de kusur değişikliği yapan commit'te değil onu
+parametresiz çağıran **eski** satırda görünüyor.
+
+**Yapılacak:** bir çeviri anahtarına parametre eklerken `grep` ile bütün
+çağrı yerleri sayılır. `messages/messages.test.ts` bu ailenin doğal
+nöbetçisi.
+
+**Ve çare anahtarı BÖLMEK değil, anahtarı küçültmek.** Bu satır önce
+"parametresiz kalması gereken bir çağrı varsa anahtar bölünür" diye
+yazılmıştı; `ux` aynı gün daha iyisini buldu ve ilk hâli yanlıştı.
+Bölmek, aynı işaretin iki kopyasını üretir (`"{name} (siz)"` ve `"(siz)"`)
+ve **iki kopya bir gün birbirinden ayrılır** — biri düzeltilir, öteki
+kalır, ve bu sefer kusur iki anahtarın arasında saklanır.
+
+Doğrusu: anahtar **yalnız değişmeyen parçayı** taşır — burada işaretin
+kendisi, `(siz)` / `(you)` — ve adı **çağrı yeri** önüne yazar. Tek anahtar,
+tek şekil, sıfır kopya. Yan faydası, `ux`'in aynı bulguda yakaladığı ikinci
+kusuru da imkânsız kılması: dizede zaten duran parantezin üstüne çağrı
+yerinin kendi parantezini eklemesi. Parantez artık tek bir yerde.
+
+**Genel hâli:** bir anahtar iki iş görüyorsa, çözüm ikinci anahtar açmak
+değil, anahtarın **ortak olan** parçaya inmesidir. İki anahtar iki bakım
+yeri demektir; bir anahtar artı bir birleştirme, tek bakım yeri.
 
 **13. Doldurulmayan girdi üzerine kurulan özellik, yapılmamış özellikten
 kötüdür** — çünkü yapılmış sanılır ve çalışmadığı fark edilmez. Bir akışın
@@ -1785,6 +2491,48 @@ ux'in getirdiği girdi.** Danışma bir oy değil, bir **girdi türü** — ve b
 sınır olmadan iki kişi aynı kararı iki kez verir, ki 32k'nın (*"iki tasarım
 sesi varsa uygulayan hakem yapılmaz"*) karar tarafındaki hâli budur.
 
+## pm NE ZAMAN ÖLÇER — sürekli değil, toplu inişte (22 Eylül 2026, kullanıcı kararı)
+
+Kullanıcının cümlesi: *"PM testlere sadece geliştirmeler maine toplu halde
+çıkıldığında girsin. Sürekli testte beklemesin."*
+
+**Eski düzen ve neye mal olduğu.** 21–22 Eylül turunda `pm` sürekli hazırda
+bekledi. Sonucu: **beş ayrı tazeleme**, üç kez bayat zeminde ölçüm, bir kez
+koşunun **ortasında** kayan zemin (yarısı çöpe gitti), ve bir raporda
+yanlış hash. Bunların hiçbiri `pm`'in hatası değildi — **bekleme düzeninin**
+hatasıydı.
+
+Ve o güne kurduğumuz araçların çoğu bu bekleyişi **yönetmek** için vardı:
+`SERVED_COMMIT.txt`, `MEASURING` bayrağı, bitiş tahmini, tazeleme öncesi
+haber. Hepsi işe yaradı; ama bir aracın varlık sebebi bir düzen kusuruysa,
+düzeni düzeltmek araçtan ucuzdur.
+
+**Yeni düzen:**
+
+1. **`pm` varsayılan olarak boştadır.** Her commit'ten sonra çağrılmaz, her
+   tazelemeyi beklemez, hazırda oturmaz.
+2. **Bir tur içinde iş biriktirilir.** `dev` ve `dev-ui` kendi hatlarında
+   çalışır, commit eder, birbirlerine rapor verir. Ölçüm için durmaz.
+3. **Toplu iniş olduğunda** — turun işi bittiğinde, ya da bir kapı kapandığında
+   — ana oturum **tek tazeleme** yapar ve `pm`'i **o zaman** çağırır.
+4. **`pm` bir koşuda tüm listeyi alır**, kırmızıları lidere verir, işi biter.
+5. Kırmızı çıkarsa: tek toplu düzeltme commit'i → tek tazeleme → `pm`
+   **yalnız kırmızıları** yeniden ölçer.
+
+**Bunun bozduğu şey ve kabul ettiğimiz bedel:** bir kusur, doğduğu commit'te
+değil turun sonunda bulunur, yani teşhis biraz daha uzağa düşer. Buna karşılık
+`pm` bir turda beş kez değil **bir ya da iki kez** ölçer, ve her ölçümü adı
+olan tek bir zemin üzerindedir.
+
+**Araçlar kalıyor, sebebi değişiyor.** `MEASURING` artık "beklerken zemin
+kaymasın" için değil, **ölçüm sürerken kimse tazelemesin** için. `SERVED_COMMIT.txt`
+artık her turda değil, her **toplu inişte** yazılıyor. İkisi de daha az
+kullanılacak — bu iyi işaret, kötü değil.
+
+**Ana oturuma düşen:** `pm`'i çağırmadan önce üç şeyi doğrula — ağaç temiz,
+kapılar yeşil, damga yazıldı. Çağırdığın anda `pm`'in önünde **tam bir liste**
+ve **sabit bir zemin** olsun; ikisi yoksa çağırma.
+
 ## ÖLÇÜM YÖNTEMİ — ölçmeden önce okunur
 
 Bu oturumda ölçüm **sekiz kez** yanılttı ve yedi ayrı kural doğurdu. Dağınık
@@ -1794,6 +2542,65 @@ araç.** value'nun isteğiyle toplandı.
 **Bu bölüm operatif listedir.** Her maddenin arkasındaki vaka kaydı aşağıda,
 "Kod tabanına özgü" altında duruyor — oradakiler **neden**i anlatır, buradaki
 satır **ne yapılacağını**. Çelişirlerse burası izlenir ve oradaki düzeltilir.
+
+### Ölçümün yedi sütunu — `pm` topladı, 22 Eylül 2026
+
+Bir ölçüm sonucu, **kendi geçerlilik koşulunu taşımıyorsa** bilgi değildir.
+Aşağıdaki yedi soru o koşulu yazıya döker. Her biri bir hatayı yakaladıktan
+**sonra** eklendi, ve 22 Eylül'de yedisi de en az bir kez iş gördü.
+
+**Listeyi `pm` topladı ama hepsi `pm`'den çıkmadı, ve bu ayrım kayda
+geçmeli:** altıncı sütun (*iddia ateşlenebilir mi*) `dev`'in — `clinical.spec.ts`'te
+`(?!new)` taşımayan bir URL iddiasının gönderilen formun kendisiyle
+eşleştiğini, yani yeşil olduğu hâlde hiçbir şey beklemediğini buldu.
+Dördüncü sütun (*sayfa gerçekten çizildi mi*) `ux`'ten geldi. `pm` ikisini
+ölçüm tarafına çevirdi ve geçmişe uyguladı.
+
+Bu düzeltmeyi `pm` kendisi istedi, ve gerekçesi maddelerden biri kadar
+değerli: **kolektif bir şeyi tek isme yazmak, bir sonraki turda kimin ne
+getirdiğini görünmez kılar.**
+
+Sütunların `pm`'in **kendi** hatalarını yakaladığı vaka sayısı: **beş** —
+geçiş süresi (1), yanlış eleman (2), eksik küme (3), çıkarımın zemini (5),
+yanlış kanal (7). Bunlardan yalnız sonuncusu **rapora kadar gitti**;
+dördü rapordan önce yakalandı. Bir aracın değerini ölçen şey, sahibini kaç
+kez durdurduğudur.
+
+Her ölçüm raporunda bu yedisi cevaplanır:
+
+1. **Ne kadar sürdü?** Geçişli bir şeyi tek kare ölçmek, o şeyi hiç
+   ölçmemektir. İki iskeletin arka arkaya çizildiği kusur yalnız zaman
+   serisinde göründü (t=1627 → t=1880).
+2. **Hangi elemanı yakaladım?** İskelet ile form aynı elemanları
+   taşımaz; eşleştirme kimlikle değil konumla yapılır. İskeletin son
+   kutusunu gönder düğmesi sanmak anlamsız bir sayı üretti (+445).
+3. **Kaç hâl var, kaçını gördüm?** İskeleti **tek hâl** sanmak, on rotalık
+   bir tabloyu yanlış zeminde ürettirdi; gezinme yoluna göre iki hâl vardı.
+4. **Sayfa gerçekten çizildi mi?** Nabız sayısı ve metin uzunluğu, ölçülen
+   şeyin beklenen sayfa olduğunu gösterir. Aleti bilinen bir değerle
+   sınamadan alınan okuma, iddia değildir.
+5. **Çıkarımın zemini ne?** Ölçüm doğru alınıp **şimdiki zamanla**
+   söylenirse bayatlığı görünmez olur. Rapor başlığı port + commit taşır;
+   iki canlı zemin varsa ikisi de yazılır.
+6. **İddia ateşlenebilir mi?** Yeşil olduğu hâlde hiçbir şey bekleyemeyen
+   bir iddia bilgi taşımaz. Bir gösterge yeşil olduğu için değil,
+   **kırmızıya dönebildiği için** bilgi taşır — mutasyonla gösterilir.
+7. **Hangi kanaldan baktım?** Uygulama mı, tarayıcı mı, sunucu mu. "Hata
+   yok" sonucu, *"hatayı gösterecek kanala baktım"* bilgisini içermiyordu:
+   native `required` `aria` yazmaz ve baloncuğunu Playwright çizmez, yani
+   aynı okuma hem "sessiz red" hem "tarayıcı durdurdu" ile uyumluydu. Bu
+   sütun eksikken bir kusur **rapora kadar gitti**.
+
+**Ve raporun kendisi için iki kural, aynı kökten:**
+
+- **Yan etkiye bakmadan rapor etme.** *"Ad boşken kayıt oluyor"* diye
+  yazılmak üzereydi; oluşan müşteriye bakılınca adının **seçiciye yazılan
+  metin** olduğu görüldü — alan hiç boş değilmiş. Ölçüm doğru çalışıyordu,
+  **kurulum** yanlıştı, ve ikisi ekranda birebir aynı görünüyordu.
+- **"Ölçemedim" bir sonuçtur, "yok" değildir.** Ayırt edilemeyen bir şey
+  için "yok" yazmak, ölçümün yokluğunu bulguya çevirir. Başka bir aletin
+  (bir e2e iddiası, bir kaynak satırı) aynı şeyi ölçmüş olması, boşluğu
+  silmeden doldurur.
 
 **Her ölçüm raporunun İLK SATIRI commit ve derleme zamanıdır — istenmiş
 olsun ya da olmasın.** (pm'in kuralı; gerekçesi: talimatla taşınan disiplin,
@@ -1878,6 +2685,62 @@ talimat gelmeyince düşer.) Üretim derlemesinin kimliği
    **döndüğünü görmek** gerekir; *"eski dal bunu render etmiyordu"* metinsel
    bir olgudur, kırmızı gördüm değildir. Ve doğrulama **paylaşılan ağaçta
    değil** kopyada yapılır.
+
+9. **Kaç hâlden kaçını gördün?** `pm`'in kendi hatasından çıkardığı soru,
+   ve listedeki ötekilerin hiçbiri onu sormuyordu: bir ekranın **iki**
+   hâlini görüp *"doğru çalışıyor"* diye okudu — ekran **dört** hâl
+   taşıyordu ve gördüğü ikisinde gerçekten doğru çalışıyordu.
+   *"Eksik olanın **hangi soruyu sormadığını** görmemiştim."*
+
+   Yani ölçüm doğru, sonuç yanlış olabiliyor — ve bu, **yokluğu**
+   ölçerken en tehlikeli hâline geliyor: görmediğin hâl, görmediğin için
+   yok sayılıyor. **Kümeyi say, sonra kaçını gördüğünü yaz.**
+
+   Kardeş kural, koda bakan taraftan: *"bu ekran komşusunun bildiği bir
+   şeyi bilmiyor mu?"* (satır ~2132). İkisi aynı kusurun iki ucu.
+
+10. **Ölçtüğün şey oraya gelmiş miydi?** `pm` kendi ölçümünü çürüterek
+   buldu: bir hayvan sayfasının *"öncesi"* okumasını **boş bir `main`**
+   üzerinde almış — `uyarı: null`, `role="alert"`: 0. Rakamlar
+   *"sessiz"*in rakamlarıydı. **Ama sayfa henüz çizilmemişti.**
+
+   > **"Sessiz" ile "henüz yok" aynı okumayı verir.**
+
+   Ve tehlikesi şu: beklenen cevabı **yanlış sebeple** üretiyor, yani
+   doğrulama refleksini hiç tetiklemiyor. `pm` bir `h1` beklemesi koyup
+   yeniden okudu, sonra *"sessiz olduğunu söyleyebilirim"* dedi.
+
+   **Bu kod tabanı aynı biçimi başka bir yerde zaten biliyor:**
+   `scripts/loop-metrics.mjs`'teki `ratio` yardımcısının yorumu —
+   *"`0/0` ve `0 out of 40` bir listede aynı görünür ve **zıt şeyler**
+   anlatır; biri 'kimse dönmedi', öteki 'kimsenin dönme vakti gelmedi'."*
+   Orada payda, burada sayfa: **yokluğu ölçerken, ölçülen şeyin var
+   olduğunu önce kanıtla.**
+
+   **Uygulanabilir hâli (`ux` genelleştirdi, `pm` zaten uygulamıştı):**
+
+   > **"Yok" sonucu veren her ölçüm, yanında ölçülen yüzeyin
+   > ÇİZİLDİĞİNİ kanıtlayan bir sayı taşır.**
+
+   `pm` metin uzunluğunu kaydetti (622). Bir satır, ve *"sessiz"* ile
+   *"henüz yok"*u ayırmanın tek ucuz yolu — **sonucu yokluk olan bütün
+   ölçümler bu tuzağı taşıyor**, biri fark edene kadar hepsi doğru
+   görünür.
+
+**Ve bir ayrım daha, `pm`'den, ve gerileme riskini o taşıyor:**
+
+- **Bir şeyin YOKLUĞUNU ölçmekle VARLIĞINI ölçmek farklı iş görür.**
+  *Vaka:* yakın adlı hayvan çiftinde bir şeyin **yokluğu** belgelendi
+  (*"Pamık" listede hiç yok*) — kazanç, onun görünür olması. Ortak
+  telefonlu müşteri çiftinde ise **varlık** belgelendi (*ikisi de
+  sessizce kaydedildi*) — ve orada **kaydın kaydedilmeye devam etmesi
+  korunması gereken davranış.**
+
+  > **"Bugün çalışan bir şeyi bozmak, çalışmayan bir şeyi eklememekten
+  > daha pahalı."**
+
+  Yani her *"öncesi"* ölçümünün yanına şu yazılır: **bu ölçüm neyin
+  kazanılacağını mı, neyin korunacağını mı gösteriyor.**
 
 **Ve sonucu yazarken iki ayrım korunur:**
 
@@ -2008,6 +2871,473 @@ Kanıtı aynı kişinin aynı turdaki iki raporu: pm performans turunda
 *"`.next-prod` 14:21, HEAD 14:29"* yazdı ve **işe yaradı**; genişlik turunda
 yazmadı ve **doğru bir bulgusunu iptal etti.** Hash'siz bir ölçüm "yeni"
 görünür ve hiçbir alarm çalmaz.
+
+### Ölçmeden önce, ÖLÇÜLECEK ŞEY MÜMKÜN MÜ diye bakılır (ui, 22 Eylül 2026)
+
+`ux` masaüstünde bir koşul ekledi: *"ipucu iki satıra sararsa
+`sm:grid-cols-2` ızgarasının iki sütunu ayrışır mı."* `ui` ölçüme
+gitmeden önce kaynağa baktı ve koşulun **yapısal olarak
+gerçekleşemeyeceğini** gördü: `Field` bir `flex flex-col`, sırası
+etiket → kutu → ipucu, yani ipucu kutunun **altında**; uzadığında yalnız
+aşağı büyür ve iki kutu hücrelerinin tepesinde hizada kalır.
+
+`ux`'in düzeltmesi ailenin adını koydu: *"sezgim doğru aileyi işaret
+ediyordu, üye yanlıştı."* Aynı dosyada gerçek bir hizasızlık vakası
+yazılı — zorunlu alanların `*` işareti boyutsuz kalıp etiket satırını
+24px'e çıkarıyordu — ama o fark **kutunun ÜSTÜNDEYDİ.**
+
+> **Kural: bir koşulu ölçmeye gitmeden önce, düzenin onu üretip
+> üretemeyeceği kaynaktan okunur.** Mümkün olmayan bir şeyi ölçmek
+> "bakıldı, temiz" kaydı üretir — ve o kayıt, aynı ailenin gerçekten
+> mümkün olan üyesini aramayı durdurur.
+
+`ui` mümkün olanı da buldu ve onu ölçmeye aldı: hizasızlık değil,
+**sağ sütunun altındaki boşluk asimetrisi.**
+
+### Bir şey KUSUR olduğu gösterilmeden düzeltilmez — sarma vakası
+
+Dört kişi aynı cümleyi kurdu: *"ipucu uzadı, 390px'te sarar, satır
+ritmini taşırır."* `dev-ui` not etti, `ux` aktardı, `ui` onayladı, ana
+oturum tekrarladı. **Kimse görmemişti.** `ui` durdu:
+
+> Sarma kendi başına kusur değil — zincir bloğunda aynısı oldu ve kabul
+> edildi. Kusur ancak hizayı kaybettiriyorsa, kenar boşluğunu yiyorsa ya
+> da gövdeyi kutudan görünür biçimde taşırıyorsa doğar. **Göstermeden
+> kesersem, kesilmemesi gereken bir cümleyi ölçmeden kesmiş olurum.**
+
+`ux` eşiği ekledi ve kendi kesme sırasını ona bağladı: **asimetri tek
+başına kusur değil** — bugün de var ve kimse bildirmedi. Eşik şu:
+*bir şeyi okumayı ya da kullanmayı zorlaştırıyor mu.* Zorlaştırmıyorsa
+simetri uğruna **doğru bir cümle** kesilmiş olur; o cümle bir vaat
+taşıyor, simetri taşımıyor.
+
+**Ve ölçülemeyen risk kusur diye yazılmadı:** telefonda yazılım klavyesi
+görüntü alanının yarısını yiyor ve açılır liste kutunun altında
+açılıyor; cümle sararsa ikinci satır klavyenin arkasında kalabilir.
+Playwright yazılım klavyesi çizmiyor — kimse ölçemez. *"Bilmiyoruz"*
+diye duruyor, ve tek başına bir kısaltmayı haklı çıkarmıyor (3118'in
+ÖLÇÜLEMEDİ sütunu).
+
+### Ölçüm, tezi DOĞRULAMAK için değil ÇÜRÜTMEK için istenir (ui)
+
+`ui` `/visits/new` için *"çerçeve enflasyonu"* tezini kurmuştu ve
+`dev-ui`'den yüzey envanterini **tezini çürütmek üzere** istedi. Envanter
+çürüttü: üç `fieldset` **kardeş**, üst üste binmiş çerçeve yok, en derin
+gerçek iç içelik `Card → fieldset → FormSection` ve sonuncusu yüzey bile
+değil; üstelik yüzey hiyerarşisi deponun kendi kuralıyla doğru kurulmuş
+(dış kart gölgeli, iç yüzeyler gölgesiz).
+
+**Kabul edildi, ve görevde eski tez "ÇÜRÜDÜ" diye bırakıldı** — silinen
+bir tez sonraki turda aynı yoldan yeniden kurulur.
+
+Yerine geçen teşhis hem daha dar hem daha ağır: gövdedeki **en ağır
+yazı, isteğe bağlı işin başlığı** (SOAP ve vitaller `legend`'ları), ve
+ekranın **zorunlu ana sorusunun** etiketinden ağır. `dev-ui` koddan
+doğruladı — `font-semibold` taşıyan yalnız üç şey var, `font-bold`,
+`text-base`, `text-lg` hiç yok, yani iddiayı çürütecek dördüncü bir ağır
+öğe yok. `ui` bunu kendi `198d6f7` hatasıyla aynı sınıfa koydu:
+**ikincil olan, birincil olandan ağır çiziliyor** — aynı hata, bir ekran
+ötede.
+
+**Ve envanter HEAD'den okundu, çalışma kopyasından değil** — `visit-form.tsx`
+o sırada yarım bir işle kirliydi; kopyadan okunsaydı hem sayım hem tez
+başka çıkardı.
+
+### YEŞİL BİR TEST, DOĞRU SEBEPLE yeşil olmayabilir — bir turda üç örnek
+
+Üçü de aynı gün, üç ayrı kişi tarafından, üç ayrı yerde bulundu. Ortak
+şekil: **iddia yazılmış, ama düşemeyecek hâlde yazılmış.**
+
+**1. Ürünün sevk etmediği bir yapılandırmayı sınayan test** (`pm`).
+`components/ui/combobox.test.tsx:724` *"eşleşmeyen sorguda 'Sonuç yok.'
+görünür"* garantisini savunuyor ve yeşil. Ama yardımcısı Combobox'ı
+**`onCreate` vermeden** kuruyor — üründe o seçicilerin hiçbiri öyle
+çizilmiyor. `onCreate` varken "Oluştur" satırı bir `row` olduğu için
+`rows.length === 0` hiç doğru olmuyor ve boş satır hiç çıkmıyor
+(`combobox.tsx:666`). Yani test **hiçbir zaman kırmızıya dönemez**, ve
+garantinin gerçek hâli üründe yıllardır yok.
+
+**2. Yanlış sebeple geçen bir e2e** (`dev`).
+`e2e/money.spec.ts` `toHaveURL(/\/clients\/[\w-]+$/)` ile bekliyordu ve
+**`[\w-]+` "new" ile eşleşiyor**. Test, kayıt oluşmadan bir sonraki
+ekrana geçiyordu; yeşilliği bir şey kanıtlamıyordu, ve sunucu yavaşladığı
+an kırmızıya dönüyordu (üç koşuda üçü). `(?!new)` ile kapandı, aynı
+dosyadaki ikinci örneği de, ve `e2e/` tarandı.
+
+**3. Şartnamenin istediği ama testi hiç yazılmamış bir koşul** (`dev`,
+mutasyon sınavıyla). `!creatingOwner` mutantı ilk turda **hayatta kaldı**
+— o koşulu hiçbir test tutmuyormuş. Çıkan kural `dev`'in cümlesi, ve
+`ux` onu kendi işine bağladı:
+
+> **Mutasyon sınavı yalnız testin gücünü değil, ŞARTNAMENİN KAPSAMINI da
+> ölçer.**
+
+`ux`'in bağladığı hâli: bundan sonra bir şartnameye koşul yazarken
+yanına *"bu koşul düşerse hangi test kırmızıya döner"* sorusu da
+yazılır. Bugüne kadar istenen şey (**düşebilir iddia**) bundan zayıftı:
+iddianın yanlışlanabilir olmasını istiyor ama **kimin yanlışlayacağını**
+söylemiyor.
+
+### Metinle bulunan bir eleman, tek başına ELEMAN KİMLİĞİ değildir
+
+Aynı gün iki kişi aynı kapıdan girdi. `ui` bir sarmalayıcıdan okuyup
+*"iki cümle aynı anda ekranda"* dedi; `ux` piksellerle çürüttü. `pm` bir
+sarmalayıcı yakalayıp *"açılır liste ipucunu örtmüyor"* dedi; ekran
+görüntüsüyle kendi kendini çürüttü.
+
+> **Kural (`pm`): metinden bulduğun elemanın `getBoundingClientRect`'i,
+> ekran görüntüsüyle karşılaştırılmadan sayı olarak yazılmaz.**
+
+Ve ayrımın kendisi kayda geçsin, çünkü ikisi çelişmiyor: `Field` ipucu
+`position: static` — akışta durur, **örtmez, yer açar**; örten şey
+açılır liste panelidir (`absolute top-full`), ve yalnız **açıkken**.
+Kapalı hâlde hiçbir şey örtülmüyor. İki ölçüm farklı öğeden söz ederken
+birbirini yalanlıyor göründü.
+
+### Görevde bıraktığın TAHMİNİ silmeye gitmek, bulgunun kendisini bulduruyor
+
+`pm`'in kendi cümlesi, ve tekrarlanabilir kısmın dikkat olmadığını
+söylemek için yazdı:
+
+> Ekranda gördüğüm şey yalnız *"eşleşmeyen sorgu bir cümle eksik
+> söylüyor"*du; oraya kadar bu sıradan bir tutarsızlıktı. Testi açmamın
+> sebebi kendi taslağıma **"muhtemelen önceden beri böyle"** diye bir
+> tahmin yazmış olmamdı — **tahmini silmek için kaynağa gittim**, ve
+> `picker()` yardımcısının `onCreate` almadığını orada gördüm.
+
+Yani turun en değerli bulgusunu (kırmızıya dönemeyen yeşil bir test)
+ortaya çıkaran şey ölçüm değil, **bir tahminin görevde bırakılmaması**
+oldu.
+
+> **Kural: bir görev metnine yazdığın her "muhtemelen" / "sanırım" /
+> "önceden beri böyledir", teslimden önce ya kaynağa gidilip
+> DOĞRULANIR ya da "doğrulanmadı" diye işaretlenir.** Birincisi sık sık
+> bulgu üretir; ikincisi en azından sonraki okuyucuyu yanıltmaz.
+
+Ailesi: *"kanıtı varsayım sanma"* ile *"anlayamadım bir sonuçtur, yok
+bir iddiadır"*. Farkı şu — bu ikisi yanlış bir şey **yazmamayı**
+söylüyor, bu kural doğru olanı **aramaya** gönderiyor.
+
+**Ve aynı koşudan, aynı ailenin beşinci üyesi:** red sonrası alan
+taraması `e.value` okuduğu için **işaretlenmemiş onay kutularını da
+"dolu" saydı** (`phoneLater: "on"`, `consent` hem `true` hem `false`);
+doğrusu `.checked`. Sorulan soruyu (yazılan metin duruyor mu)
+bozmadığı için rapora girmedi ama `pm` yine de bildirdi. Bir okuma,
+yanlış olduğu hâlde **doğru cevabı vermiş** olabilir.
+
+### Bir kural zaten yazılıysa ve yine kaçtıysa, ÜÇÜNCÜ KEZ YAZMA — ALETE GÖM
+
+`pm`'in kararı, ve bu bölümün en önemli maddesi.
+
+23 Eylül'de damga, disk ve sunulan derleme üçe ayrıldı. TEAM.md'de
+*"zemini gösteren mekanizma kendi tazeliğini taşımalı"* diye bir madde
+**zaten vardı** ve işe yaramadı. `pm`'in teşhisi:
+
+> Damgayı **okumak** alışkanlık; damgayı **diskle ve sunucuyla
+> karşılaştırmak** değil. Ben bugün elle yaptım; bir dahaki sefere
+> yapmayabilirim.
+
+Ve kuralı üçüncü kez yazmayı **reddetti.** Bunun yerine kabul betiğinin
+ilk işi yaptı: `SERVED_COMMIT.txt`'in `BUILD_ID`'si · `.next-prod/BUILD_ID`
+· **sunulan HTML'in içindeki kimlik** — üçü eşit değilse betik **ölçmeden
+çıkıyor.**
+
+```
+# ZEMİN SINAVI  damga=xxbYDX…  disk=qTCrko…  sunulan=xxbYDX…  -> AYRIŞIK
+# DURDU: üç kaynak aynı derlemeyi göstermiyor. Ölçüm yapılmadı;
+# ürün hakkında hiçbir şey söylenmedi.
+```
+
+> **Kural: bir disiplin iki kez yazılıp iki kez kaçtıysa, üçüncü yazım
+> onu tutmaz. Kontrolü, onu atlayamayacak olan şeye — alete — koy.**
+> Ölçüm aleti zemini doğrulamadan çalışmıyorsa, ölçen kişi doğrulamayı
+> unutamaz.
+
+Aynı gün aynı biçim ikinci kez çıktı: `dev-ui` kendi tarafına *"commit
+etmeden önce `SERVED_COMMIT.txt`'e bak"* kapısını koydu — kural olarak
+değil, kendi adımı olarak.
+
+### "AĞAÇ TEMİZ" ve "DAMGA GÜNCEL" birer ÖLÇÜM İDDİASIDIR — yazmadan önce koşulur
+
+Aynı gün, aynı saat, iki kişi, aynı şeyin iki ucu:
+
+- **`ui`:** ölçüme giderken gerekçesini *"ağaç temiz"* diye yazdı,
+  **kontrol etmeden.** Ağaçta iki dosya kirliydi ve **tam da ölçtüğü iki
+  dosyaydı.** Sayıları **ön okuma** diye kaydedip hüküm vermedi, ve karelerin
+  klasör adının (`firstrun-9e2d2df`) yanıltıcı olduğunu da yazdı.
+- **`dev-ui`:** damga basıldıktan sonra commit attı, *"damga güncel"*
+  varsayımıyla. Damga bir commit geride kaldı ve sunulan kart, kararı
+  verilmiş karttan başkaydı.
+
+`dev-ui`'nin ortak kaydı: **ikisi de tek komutla doğrulanabilirdi**
+(`git status --porcelain`, `SERVED_COMMIT.txt`), **ikisi de bedavaydı,
+ikisi de atlandı.**
+
+> **`ui`'nin eklediği madde:** *"yok" demeden önce kapsamı söyle* kuralının
+> kardeşi — **"temiz" demeden önce koş.**
+
+### Damga basıldıktan sonra inen her commit ÖLÇÜMÜ BAYATLATIR
+
+`dev-ui`'nin önerisi, ve `MEASURING` tetiğinin kapsamadığı boşluk:
+
+> Ana oturumun tetiği *"sunulan derlemeyi değiştirebilecek bir şey
+> koşuyorum"*. Ama **commit atmak sunulan derlemeyi değiştirmez —
+> damgayı bayatlatır.** Bu, dosyaya dokunmadan ölçümü geçersiz kılmanın
+> yoludur.
+
+> **Kural: damga basıldıktan sonra inen her commit ölçümü bayatlatır ve
+> ölçüm sahibine haber verilir.** Haber vermek commit'in parçasıdır,
+> sonraki bir iyi niyet değil.
+
+### Bir ÖLÇÜT, açıklığın İKİ UCU DA adlandırılmadan ölçülebilir değildir
+
+Aynı kart iki kişi tarafından ölçüldü ve **ikisi de doğru ölçtü**:
+`pm` 0,448 / 0,480 · `dev` 0,516 / 0,551. Fark, kartın **sağ dolgusunun**
+çıkarılıp çıkarılmaması — yani açıklığın **hangi kenardan** ölçüldüğü.
+
+Bedeli somut: kartın genişliği **üç kez** değişti (576 → 512 → 576 → 512),
+ve ortadaki dönüş yanlış bir ölçüye dayanan doğru bir karardı.
+
+`dev-ui`'nin çözümü sayıya değil **sağlamlığa** dayanıyor ve emsal olsun:
+son değeri *"her iki okumada da eşiğin altında"* olduğu için seçti, ve
+gerekçeyi dosyaya yazdı — **bir sonraki okuma kararı çeviremesin diye.**
+
+Aynı eksik aynı gün K4'te de çıkmıştı (`pm`: *"hangi iki kenar, hangi
+kapsayıcı"*). İki ayrı ölçüt, tek eksik.
+
+### Doğrulama yalnız KARAR VERMEDEN önce değil, İLETMEDEN önce de gerekir
+
+`dev-ui` bir bulguyu ana oturuma taşımadan önce kaynağa baktı ve
+**zaten kapandığını** gördü. Taşısaydı, çözülmüş bir şey bulgu diye
+gündeme girecekti.
+
+Ve **ucuz olmasının sebebini** de yazdı, ki kural uygulanabilir olsun:
+
+> İletilen bulgu **`dosya:satır`** taşıyorsa doğrulamak tek `grep`'tir —
+> yani **zorunludur, çünkü bedava.** *"Betik yanlış dizine derliyor"*
+> diye gelen bir bulguyu doğrulamak beş dakika sürer ve iletmek
+> savunulabilir olur.
+
+### "Açıklayamadım"ın yanına "KİM BİLİYOR OLABİLİR" satırı konur
+
+`pm` zeminde üçüncü bir derleme kimliği buldu ve doğru etiketledi:
+*"açıklayamadım, 'yok' demiyorum."* Cevap ana oturumdaydı — iki derleme
+koşmuş ve damgayı güncellememişti.
+
+> `pm`'in kendi düzeltmesi: **etiket doğruydu ama bir adım eksikti.**
+> Açıklanamayan bir sabit, **ekipte birinin bildiği** bir şey olabilir.
+
+3118'in üç sütununa (ÖLÇÜLEMEDİ · ÖLÇÜLMEDİ · AÇIKLANAMADI) eklenen şey:
+üçüncüsü **kime sorulacağını** da taşır.
+
+### BİR KİŞİNİN hata listesi dikkatsizlik gibi okunur; BEŞ KİŞİNİNKİ sınıfı gösterir
+
+23 Eylül'de görevde *"`ui`'nin altı düzeltmesi"* diye bir liste birikti.
+`dev-ui`'nin önerisiyle `ui` onu yeniden adlandırdı: **"bu turda herkes
+düştü."**
+
+| kim | ne |
+|---|---|
+| `ui` | uydurulmuş bir sayı · yanlış bir kayıt · aşırı bir hüküm · bir yokluk iddiası · adsız bir zemin · yanlış bir etiket |
+| `dev-ui` | `pb-16`'yı sınıfta değil onu **açıklayan yorumda** bulan test |
+| `pm` | dar kapsamlı arama — dosya `e2e/` altında değil `app/` altındaydı |
+| ana oturum | `MEASURING` almadan koşulmuş iki derleme |
+| `ux` | doğrulamadan devralınıp iddiaya çevrilmiş bir niteleme |
+
+**Sınıf tek cümlede duruyor: doğrulamadan kurulmuş bir dayanak.** Ve
+beşinin ortak yanı, onu bir karakter kusuru olmaktan çıkarıyor: **hepsi
+tek komutla doğrulanabilirdi, hepsi bedavaydı, hiçbiri yapılmadı.**
+
+> **Kural: bir hata listesi tek kişinin adıyla birikiyorsa, yanlış
+> adlandırılmıştır.** Aynı biçimi başkalarında ara; bulunuyorsa liste
+> kişinin değil **sınıfın** listesidir, ve çaresi de kişisel olamaz.
+
+### TABAN SINAVININ ŞARTI: sınav değeri, ÖLÇÜLEN DEĞİŞİKLİKTEN BAĞIMSIZ olmalı
+
+`pm` kabul betiğine *"bilinen taban değerleri tutmazsa önce aleti
+şüphelen"* yazdı — ve **koşmadan önce kendi kuralında bir kusur buldu:**
+
+> Seçtiğim taban değerlerinden biri (kartın yüksekliği), **ölçümün
+> değiştirmesi beklenen** bir değerdi. Tutmaması beklenen sonuç;
+> onu alet arızası sayarsam **doğru bir ürün değişikliğini alet hatası
+> diye okur, durur ve yanlış şey yazarım.**
+
+Düzeltilmiş sınavı **değişmemesi gereken** iki şeye bağladı: CTA sayısı
+(turun konusu değil) ve kabinin blok sayısı (**bir testin koruduğu
+sabit**).
+
+**Ve aynı gün işe yaradı:** ilk koşuda K2 **tek blok** okudu, sınav
+**iki** diyordu; `pm` ürünü değil **aleti** şüphelendi ve seçicinin
+`ui`'nin eklediği ortalayıcı sütunu yakaladığını buldu. Kendi cümlesi:
+**"O sınav olmasaydı K2'yi yanlışlıkla geçirecektim, çünkü atıl blok
+görünmüyordu."**
+
+### İKİ UCU ADLANDIRMAK YETMEZ — ölçüt HANGİ ÖĞEYİ ölçtüğünü de söyler
+
+Aynı kart üç kişi tarafından ölçüldü, üç sayı çıktı, ve **hiçbiri yanlış
+ölçmedi**: `pm` 0,272 · `ui` 0,337 · `dev` 0,516. Üçü de farklı ucu
+ölçmüştü.
+
+İlk ders *"açıklığın iki ucu adlandırılmalı"*ydı. `ui` bir kat derinini
+buldu:
+
+> Tanımda *"dolgu hariç"* **yazılıydı** — ve ben yine sert tarafı ölçüp
+> onu **tanımın etiketiyle** yayınladım. Yazılı olması yetmemiş;
+> **ölçen kişinin seçtiği öğe kuralı sessizce değiştirmiş.**
+
+Ve `pm` ölçerken paydada bir boşluk buldu: sarmalayıcı 364px, içindeki
+iki paragraf da 364px — **paragraflar kabı dolduruyor**, yani ölçütün
+paydası bir **yerleşim** genişliği, bir **metin** genişliği değil.
+Bugün hüküm değişmedi (hepsi eşiğin çok altında) ama **eşiğe
+yaklaşıldığı gün ikiye bölünürdü.**
+
+> **Kural: bir ölçüt, (a) hangi iki kenar, (b) hangi kapsayıcıda, ve
+> (c) hangi öğe yakalanarak ölçüldüğünü söylemeden tamam değildir.**
+> Üçü yazılınca üç kişinin sayısı ±0,004 içinde uzlaştı.
+
+### DENETİM KAYDI bir günlüktür, DURUM DEPOSU değildir
+
+`value` bir durumu (*"hekim bu kaydı doğruladı mı"*) denetim
+kaydından türetmeyi düşündü; `ux` türetilebileceğini gösterdi ve yine de
+reddetti:
+
+> Bugünkü hâli günlükten türetmek, durumu **amacı geçmişi anlatmak
+> olan** bir yapıya emanet etmektir. Günlük budanır; budandığı gün
+> 41 hayvan sessizce cevapsızlar kümesine döner ve kimse sebebini
+> bulamaz.
+
+Ve usulü de kayda değer: ***"alternatif yok"* yerine *"alternatif var ve
+şu yüzden reddedildi"* demek, onay isterken daha sağlam duruyor.**
+
+### KAPATILAMAYAN LİSTE — bir kümeyi bildirmek, onu kapatılabilir kılmıyorsa işe yaramaz
+
+`ux`'in yakaladığı hâl: aktarımdan gelen bir kaydı hekim **onayladığında
+kayıtta hiçbir şey değişmiyorsa**, o kayıt kümede **sonsuza kadar**
+kalır ve liste hiç kapanmaz.
+
+Emsali kayıtta (`/reminders`). **Ve bir liste kapatılamıyorsa insanlar
+ona bakmayı bırakır** — o zaman "yüksek sesle bildir" kazancı da
+"sonradan bulunabilir olsun" şartı da boşa gider.
+
+Kök sebep: **köken** (nereden geldi) ile **doğrulama** (bakıldı mı) iki
+ayrı olgu; birini ötekinin yerine kullanan her çözüm ikisinden birini
+yok ediyor.
+
+Yanına iki kuyruk, ikisi de `value`'dan:
+- **Sessiz atlama tuzağı:** *"aynı değeri seçmek de onaydır"* dersek,
+  *"değişiklik yok, yazma"* optimizasyonu **hiçbir test kırmadan**
+  değişmezi bozar — hekim hepsini onaylar, liste hiç kısalmaz, sebebi
+  ekranda görünmez. **Şart olarak yazılır, "iyileştirme" diye değil.**
+- **41 jest doğru, 41 sayfa değil:** *"karar sayısı satır sayısından
+  bağımsız"* ölçütünün kuyruğu, satır başına bir sayfa yüklemesine
+  dönüşmemeli. Küme bir **rapor** değil, üstünde çalışılan bir **yüzey**
+  olur.
+
+### VARSAYILANI, KANITI HANGİ TARAFIN İSTEYECEĞİNE göre seç
+
+`value` bir mekanizmayı geniş başlatıp *"gürültülü olursa daraltırız"*
+diye yazdı. `ux` kararı değiştirmedi, **yönünü çevirdi**:
+
+> Dar başlayıp genişletmek, geniş başlayıp geri çekilmekten **ucuz**.
+
+Gerekçe gürültüden ağırdı: genel bir listede satır içi denetim, aynı
+tabloda **iki sınıf satır** yaratır ve hekime **güvenilmez bir kural**
+öğretir — hangi satırın üstünde çalışabileceğini satıra bakana kadar
+bilemez. **Görünüm kusuru değil, öğrenilen kuralın kusuru**, ve
+gürültüden farklı olarak **ölçmeden de biliniyor.**
+
+### "HAYIR" KARARLARI DA KARARDIR — gerekçesiz kalırsa unutulmuş sanılır
+
+`value` arama anahtarına hangi alanların gireceğini karara bağlarken üç
+*"hayır"*ı da gerekçesiyle yazdı, ve birinin yanına bir **bağ** koydu:
+notlar ileride aranabilir yapılırsa, o gün kesilen **artık telefon
+numaraları** da bedavaya bulunabilir olacak — *"ikisi bağlı, karar
+kaydına öyle geçsin."*
+
+> **Kural: kapsam dışı bırakılan her şey, bırakılma gerekçesiyle
+> yazılır.** Gerekçesiz bir dışarıda-kalan, bir sonraki okuyucuya
+> **unutulmuş** görünür ve sessizce geri alınır.
+
+**Ve bir "evet"in kanıtı sahadan geldi:** `Pet.color` aranabilir
+olacak, çünkü `vet`'in dosyasında **`"Limon (siyah)"`** yazıyor —
+birisi, aynı adda iki hayvanı ayırmak için **rengi hayvanın adına
+gömmüş.** Kullanıcının verisindeki bir çözüm yolu, üründeki bir eksiğin
+raporudur.
+
+### CANLI KAYNAĞI OLAN olguyu rapor etme — KAYNAĞINI göster
+
+`dev-ui` bir nota *"damga bayat"* yazdı, not doğruydu, ve **yazıldıktan
+sonra yaşlandı** — ana oturum bu arada tazelemişti. Zararı, notun
+önlemek istediği şeyle **aynı cinsten**: ölçüme girecek biri ona bakıp
+gereksiz yere durabilirdi. **Bayat bir "bayat" uyarısı da bayattır.**
+
+`ux` ile birlikte çıkardıkları ayrım:
+
+| olgu | nasıl yazılır |
+|---|---|
+| **canlı kaynağı var** — damga, `git status`, HEAD, `BUILD_ID` | **kaynağı göster, değeri değil.** Rapor yaşlanıyor, dosya yaşlanmıyor. |
+| **canlı kaynağı yok** — kontrast okuması, ekran ölçümü, bir gözlem | **değeri yaz, ama zeminiyle ve anıyla** — yeniden türetilemez. |
+
+Pratik hâli: *"şu an zemin bayat"* yerine **"ölçmeden önce
+`SERVED_COMMIT.txt`'e bak"** — ikincisi hiçbir zaman yanlış olmuyor.
+
+Bu, `pm`'in aynı gün koyduğu kuralın kardeşi: kontrolü **hatırlamaya**
+değil, **okunabilir tek bir kaynağa** bağlamak.
+
+### BİR NÖBETÇİ İKİ YÖNÜ BİRDEN SINANIR: yanlışı yakalamalı, doğruya İZİN VERMELİ
+
+Bu ekibin bütün mutasyon sınavları bugüne kadar tek soru sordu:
+*"kırmızıya dönebiliyor mu?"* `dev-ui` ilkini ikiye çıkardı, ve
+şartın yarısı **"yeşil kalmalı"** oldu:
+
+1. temiz ağaç → **yeşil**
+2. isteği bir linkten gönderen bir düğmeye çeviren **meşru** değişiklik
+   → **yine yeşil**
+3. ikinci bir istek eklemek → **kırmızı**
+
+Sebebi: iddia eskiden isteğin bir **link** olmasını şart koşuyordu.
+Kart bir gün gönderen düğmeye dönseydi sayı **sıfır** okunacak ve test
+**sessizce yeşil** kalacaktı — bekçi, koruduğu kuralın sınandığı anda
+susardı.
+
+> **Kural: yalnız "kırmızıya dönüyor mu" diye sınanan bir bekçi, meşru
+> bir değişikliği engellediği gün kimse sebebini bilmez.** İkinci koşu
+> bedava: mutasyon zaten elde.
+
+### "Alete gömülecek çare yok" demeden önce, AÇIKLIĞIN HANGİ TARAFINDA durduğuna bak
+
+Ana oturum bir tazeleme yaparken `MEASURING`'in üstüne yazdı, sildi, ve
+betiği koştu — muhafızı `--force` ile geçmedi, **konusunu ortadan
+kaldırdı**, ki bu daha kötüdür çünkü `--force` kayıtta görünürdü. Kusuru
+üstlenirken *"buna alete gömülecek bir çare yok, hiçbir betik kendisinden
+önce koşulan bir `rm`'i engelleyemez"* dedi.
+
+**`pm` itiraz etti ve haklıydı.** Tazeleyen tarafta çare yok, doğru. Ama
+**ölçen tarafta vardı**, ve asıl zarar da oradaydı:
+
+> Zeminin kaydığını ancak `ERR_CONNECTION_REFUSED` ile, yani **kazayla**
+> fark ettim. Yerinde bir tazeleme olsaydı bağlantı hiç kopmayacak ve
+> koşum **sessizce iki ayrı zemine yayılmış** sayıları basıp bitecekti.
+> Engellenemeyen şey tazeleme değil, ölçümün **sessizce bozulması**.
+
+Çare: **koşu bütünlüğü kontrolü.** Ölçümden önce `MEASURING`'in içeriği
+ve sunulan `BUILD_ID` not alınır, ölçümden sonra ikisi de yeniden
+okunur; biri değişmişse sonuçlar **şüpheli** basılır ve rapor edilmez.
+
+İki kontrol birbirinin yerine geçmez ve ikisi de gerekli:
+- **Yazan tarafta** (`MEASURING`'i oku, silme) → **kaydın kaybolmasını** önler.
+- **Ölçen tarafta** (koşu bütünlüğü) → kayıt kaybolduysa **sayıların rapora
+  girmesini** önler.
+
+**Ve `pm`'in asıl bulgusu bir alışkanlıkta:**
+
+> Bugün üç kez *"kuralı alete göm"* dedik ve üç kez **başkasının aletini**
+> kastettik. Bu sefer kendi tarafımdaydı, ve ben de ilk bakışta *"çare
+> yok"* diye geçmiştim.
+
+> **Kural: bir açıklığın kapanamaz olduğunu söylemeden önce, onun hangi
+> tarafında durduğuna bak.** "Kapanamaz" çoğu zaman "benim tarafımdan
+> kapanamaz" demektir, ve öteki taraf odada.
 
 ### Ölçüm noktaları koddan türetilir, cihazdan değil
 
@@ -5461,3 +6791,763 @@ paylaşılan zemine zarar veren.** Üçü de "yok" değil, ve üçünün de
 
 *(Geri alma aslında vardı — toast'ta, gerekçesiyle. pm tıklamadığı
 için göremedi, ve tıklamaması yine de doğruydu.)*
+
+### Ölçünün vekil olduğunu, ölçüyü verirken söyle
+
+value `EXPIRED`'ın tonunu bir ölçüm tetiğine bağladı ve **eşiği
+yüzdeyle vermeyi reddetti:**
+
+> *Uyduracağım bir sayı olurdu.*
+
+Yerine Deniz'in kendi cümlesinden **davranışsal** bir ölçü koydu:
+*uyarıya çıkarıldığında sabahki liste hâlâ **tek tek aranabilecek
+boyutta** kalıyor mu?*
+
+**Ve asıl kayda değer olan, ölçünün ne olmadığını yazması:**
+> Frekans bir **vekil ölçü.** Asıl bilmek istediğimiz, `EXPIRED`'ın
+> **gerçekten ulaşmamayla örtüşmesi** — ama onu ancak **Deniz arayıp
+> öğrendiğinde** bilebiliriz.
+
+> **Bir vekil ölçü, vekil olduğu yazılmazsa asıl ölçü sanılır** — ve
+> altı ay sonra kimse neyin yerine geçtiğini hatırlamaz.
+
+Ayrıca tetiğin **yönünü** düzeltti ve kendi hatasını yazdı: *"seninki
+kalıyor"* derken tonun hâlâ `attention` olduğunu sanıyordu, oysa
+dev-ui çoktan `quiet`'e indirmişti. Doğrusu **taban nötr, ölçüm
+"nadir" derse yükselir.** Ve *"kaza iyi tarafa düştü"* — asimetri
+kuralı zaten nötr tabanı destekliyor, **çünkü yersiz uyarının bedeli
+geri alınamaz.**
+
+### "Boş değil ve benzersiz" ile "şu kelimeyi söylüyor" arasındaki fark
+
+dev-ui'nin hâl testi on beş hâli sentetik değerlerle **çiziyordu**,
+ama yalnız **boş olmadıklarını ve birbirinden farklı olduklarını**
+doğruluyordu.
+
+> `delivered` **benzersiz bir cümle** üretip **"ulaştı" demeden**
+> testten geçebilirdi.
+
+Beş kabul hâli artık **veterinerin okuyacağı kelimelerle** doğrulanıyor
+— `delivered`'ın **tarihini** taşıdığı dahil, ki value'nun 1.
+kriterinin o yarısı **kelime testinin kör noktasıydı.**
+
+value'nun tespiti: *bu fark, bu paketin tamamının üstünde durduğu
+fark.* Bütün gün *"kelime kanıtını aşmasın"* dedik; bir test yalnız
+**kelimenin varlığını** ölçerse, **hangi kelime olduğunu** hiç
+sormuyor.
+
+### Erişilebilir ad, satırın sesli söylenişidir
+
+value aşı kartındaki kapatma düğmesinin ürün niyetini netleştirdi:
+
+> Erişilebilir ad, veterinerin o satırı **sesli söyleyeceği gibi**
+> olmalı — *"Zeytin'in karma aşısını kapat"*. On satırda **adsız on
+> "Kapat" düğmesi hiçbir şey demiyor.**
+
+Ve `/reminders`'daki `actionFor` kalıbının aynısı — **desen zaten
+üründe var, yeni bir şey icat edilmiyor.**
+
+Aynı turda dev-ui aynı düğmenin Türkçe adındaki **kelime
+tekrarını** kapattı (*"Karma aşı **aşı** satırını kapat"*). İkisi
+birlikte: **bir erişilebilir ad, hem tam hem doğru dilbilgisiyle
+kurulur** — ve ikisinin de kontrolü `messages.test.ts`'in dışında.
+
+### İki metnin aynı olması, iki niyetin aynı olduğunu göstermez
+
+Süpürgenin aynı SMS'i tek turda iki kez gönderebildiğini bulunca ben
+şöyle özetledim: *"mesaj gerçekten gitti (ikizi gitti, metin aynı),
+ve sahip bilgilendirildi."*
+
+**İkinci yarısı yanlıştı.** Veteriner *"Kuduz aşısı"* ve *"Karma
+aşı"* diye **iki ayrı iş** yazmıştı. Giden metin:
+
+> *"Zeytin için aşı zamanı yaklaşıyor (23 Eyl)."*
+
+Sahip **bir** aşı olduğunu öğrendi. **İki** vardı.
+
+value'nun düzeltmesi: *metinler birbirinin ikizi, **niyetler değil.**
+Metin ikiz olduğu için değil, **şablon iki niyeti ayırt edemediği
+için** çakıştılar.* Yani bu bir **mükerrer değil, kayıp bilgi** — ve
+Netgsm mükerrer engelinde *"satırda hiçbir şey demeyin"* demenin
+gerekçesi burada **geçmiyor:** orada iki deneme gerçekten aynı
+mesajdı ve sahip onu almıştı.
+
+**Kural:** çakışmayı **çıktının** eşitliğinden değil, **girdinin**
+eşitliğinden oku. Aynı metin iki farklı iş anlamına geliyorsa,
+elediğin şey bir tekrar değil, bir **bilgi.**
+
+Kökü yine tanıdık aile: **veri var, metin kullanmıyor.**
+`composeReminderSms` hatırlatmanın `title`'ına `VACCINATION_DUE`'da
+hiç bakmıyor.
+
+### Bugün bilinen bir zararı, bir sıra önler
+
+Şablon `title`'ı kullanmaya başlarsa çakışma kendiliğinden kaybolur —
+iki farklı başlık iki farklı metin üretir. Ama `title` bugün
+müşteriye yalnız `CUSTOM`'da gidiyor **ve form bunu hiçbir yerde
+söylemiyor.**
+
+> Şablon önce değişirse, bugün içine iç kısaltma yazan her veteriner
+> o kısaltmayı sahibe göndermiş olur. *"Sahibi zor, dikkat"* başlıklı
+> bir aşı hatırlatması.
+
+value bunu **"iyileştirme" değil "şart"** diye yazdı ve haklı: önce
+formun önizleme/uyarısı, sonra şablon. **Bedeli yalnızca bir sıra;
+karşılığı bildiğimiz bir zarar.** Bir işi bölerken hangisinin önce
+geleceğini söylemek, bölmenin kendisi kadar iş.
+
+### Tohum derlemeden yeniyse, ölçtüğün ekran değil
+
+pm dört teslim hâlini ölçtü ve *"ekranda yapısal olarak görülemiyor,
+bu bir karar gerektiriyor"* diye üç seçenekle geldi. Karar gerekmedi:
+**seçenek zaten sevk edilmişti**, pm onu taşımayan bir derlemede
+ölçmüştü.
+
+Damgalar bunu **söylüyordu** ve pm ikisini de okumuştu:
+
+```
+SERVED_COMMIT  692ae18
+SEEDED         847e569   ← dört commit ileride
+```
+
+Hatta raporuna *"bu sefer tohum derlemeden **yeni**"* diye kendi
+eliyle yazmıştı. Okundu, sonucu çıkarılmadı.
+
+Bugüne kadar iki damganın eşleşmemesi *"veri eksik olabilir"*
+demekti — tohum **geriden** gelirse fikstür ekranda yoktur. Bu onun
+**aynası**: tohum **önden** gelirse **kod** eskidir, ve eksik olan
+şey veri değil, **düzeltmenin kendisi.**
+
+**Kural (pm'in ilk vakada incelttiği hâliyle):** iki damga
+eşleşmiyorsa **farka bak** — `git diff --stat <tohum> <derleme>`.
+Fikstür, şema ya da kod varsa **ölçme**. Yalnız belge varsa **ölç,
+ve farkı raporda yaz.**
+
+İlk vaka kuralın kendi commit'iydi: tohum `caae769`, derleme
+`ed2858c`, tohum ileride — ve aradaki tek dosya `.claude/TEAM.md`.
+Kuralın ilk hâli o ölçümü attırırdı.
+
+pm'in cümlesi: ***damga bir uyarı, fark bir cevap.*** `git diff
+--stat` bir saniye sürüyor ve *"geçersiz mi"* sorusunu **"neyi
+geçersiz kılar"**a çeviriyor. Aynı turda pm *"tarihe değil
+`git merge-base` ile içerilmeye bak"* dersini de uygulamıştı —
+**içerilmemek tek başına yetmiyor, neyin içerilmediği lazım.**
+
+Aynı ailenin kod tarafı zaten yazılı: bir commit hakkında konuşurken
+`cat` değil `git show <commit>:<file>`. Bu, onun **çalışan uygulama**
+tarafı.
+
+### Cevabını kendimizin yazdığı bir ölçüm, kullanıcı hakkında bir şey söylemez
+
+value'nun şablon önerisinin çürütme koşulu şuydu: *veterinerler
+`title` alanına fiilen aşı adı mı yazıyor, serbest not mu?* Ben bunu
+**bugün veride ölçülebilir** bir soru sanıp pm'e sıraya sokmayı
+önerdim.
+
+value reddetti, ve gerekçe ölçümün kendisinden önce geliyor:
+
+> *Bugünkü `VACCINATION_DUE` başlıklarını yazan kişi veteriner değil,
+> **dev** — fikstürü kurarken makul görüneni yazmış, ki o da doğal
+> olarak "Kuduz aşısı" olur. Ölçüm neredeyse kesinlikle tezi
+> doğrulayacak ve **hiçbir şeyin kanıtı olmayacak.***
+
+**Kural:** bir ölçümü sıraya sokmadan önce sor — *bu sayıyı kim
+yazdı?* Cevabı **biz** isek, ölçüm bir **davranış** sorusunu
+cevaplayamaz; yalnızca kendi varsayımımızı geri okur. Sentetik veri
+**mekanizma** sorularına cevap verir (*kaç kayıt aynı üçlüyü
+paylaşıyor*), **niyet** sorularına vermez (*insanlar oraya ne yazar*).
+
+Bu, bugün iki kez ödediğimiz bedelin üçüncüsüydü ve bu sefer
+**ödenmeden** görüldü. Niyet sorusunun tek geçerli kaynağı sahadaki
+veteriner — ve cevabın **ne zaman** gerektiği de ayrı bir soru:
+önizleme şablonun önünde olduğu için bu sorunun **aciliyeti yok**,
+yani sormadan beklemek de bir karar.
+
+### `never` kapısı ilk kez gerçek bir vakada tetiklendi
+
+`3a04210` teslim hâlleri için `default:` dalı yerine tükenmişlik
+kontrolü koymuştu — o gün gerekçesi vardı ama kanıtı yoktu, ve
+böyle bir korumanın kanıtı ancak birisi onu **istemeden** deneyince
+gelir.
+
+Bugün geldi: dev `duplicateSuppressed`'i ekledi, ve sayfa
+**derlenmeyi reddetti.**
+
+`default:` dalı olsaydı yeni hâl satıra **isimsiz** geçecek, ekran
+**boş bir satır** çizecekti — ve bunu **tek amacı sessiz olmamak
+olan** bir hâlde yapacaktı. Yani kaçak, en çok zarar vereceği yerde
+olacaktı.
+
+**Kural, artık bir örnekle:** tükenmişlik kontrolü, bugünün kodu
+için değil, **yarın birinin ekleyeceği hâl** için yazılır. `default:`
+her zaman "bir şey yaptım" der; asıl soru **ne** yaptığıdır, ve
+cevabı çoğu zaman "hiçbir şey, sessizce".
+
+### Davranıştan önce yazılan söz, yanlış söz olarak bekler
+
+`enabledHint`/`disabledNotice`'in *"elle gönderim her durumda
+çalışır"* vaadini, engelin kaldırılacağı işin **doğru olacağı hâle**
+getirmesini istemiştim. dev-ui yapmadı ve haklıydı:
+
+> *3'ün ne zaman ineceği dev'in ölçümüne bağlı, ve o arada metin
+> **yanlış** kalacaktı — yani davranıştan önce yazılmış bir söz.*
+
+Bunun yerine vaadi **kaldırdı**: metin artık yalnız anahtarın ne
+yaptığını söylüyor, bugün doğru, düzeltmeden sonra da doğru.
+
+**Kaybedilen şey bir güvence cümlesi** (*"yine de elle
+gönderebilirsin"*) ve o cümlenin değeri gerçek — veterinerin geçiş
+töreni tam olarak ona dayanıyor. Ama **dar ama doğru bir cümle**,
+sonradan yeniden hak edilmesi gereken güven verici bir cümleden iyi.
+
+**Ve kaybedilen cümle bir kaleme yazılır, yoksa kaybolur:** güvence
+metni, engeli kaldıran işin **kapsamının parçası** — ondan sonra
+yazılacak bir iyileştirme değil.
+
+### Bir kapı, görülmediği yerde duruyorsa kapı değildir
+
+dev yeni bir eleme sebebi ekledi, Türkçe açıklamasını yazmayı
+unuttu, ve süpürge özeti **`1 undefined`** bastı. Koruma **vardı ve
+çalıştı** — ama `stderr`'e yazıyordu, ve oraya kimse bakmıyordu.
+Artık eksik açıklama **sayının olduğu satırda** bağırıyor.
+
+Cümle dev'in: ***bir kapı, görülmediği yerde duruyorsa kapı
+değildir.***
+
+Bugün ikinci örneği: dev-ui'nin boru hatasında da gate gerçekten
+kırmızı verdi, `grep` çıktıyı yuttu ve zincir yeşil göründü.
+
+**Kural:** bir koruma yazarken *"ne zaman ateşler"* kadar *"ateşlediğinde
+kim görür"* de tasarımın parçası. `stderr`, yalnız hata olduğunda
+bakılan bir yerdir — yani tam olarak korumanın işe yaradığı anda
+bakılmayan yer.
+
+### Ölçümü çöpe atmak, ölçümü kurtarmaya çalışmaktan iyidir
+
+pm geciken aşı kartını ölçerken kart 4702 ms'de kayboldu ve
+*"kapatma işledi"* diye okuyacaktı. Okumadı: **tam o sırada tohum
+yeniden koşmuştu**, ve kartı onun kapatması mı yoksa tohum mu
+sildiği **ayrılamıyordu**.
+
+> *"`dueDismissedAt` `null`'dı — yani kapatmam ya hiç yazmamıştı ya
+> da üzerine yazılmıştı, **ayıramadım.**"*
+
+Damganın beş saniye sabit kaldığını doğrulayıp baştan yaptı, ve
+ikinci turda yazma **kanıtlandı**. Birinci turdan yalnız veriden
+bağımsız olan sayıyı (toast süresi) taşıdı, o da teyit edildi.
+
+**Kural:** bir ölçümün ortasında zemin değiştiyse, o ölçümden
+kurtarılabilecek tek şey zeminle **ilgisiz** olan kısımdır. Gerisi
+atılır — ve **atıldığı yazılır**, yoksa bir sonraki kişi aynı sayıyı
+yeniden üretip güvenir.
+
+### Eşleşme bir tahmin üretir, kolon bir olgu
+
+Bastırılan ikizin *"hangi mesajın yerine geçtiğini"* söylemesi için
+dev kolonsuz bir yol önerdi: okuma anında aynı `body` + `recipient`
+taşıyan kabul edilmiş mesajı bulmak. **Onayladım**, ve tek şart
+koydum: eşleşme bulunamazsa satır hiçbir şey demesin.
+
+**Şartım yetmiyordu.** dev-ui reddetti:
+
+> *Üç hatırlatma aynı metni kuruyorsa, `body` sana **birinin**
+> gittiğini söyler — **hangisinin** değil.*
+
+Yani benim kapattığım delik *"eşleşme yok"*; açık kalan delik
+**"eşleşme var ve yanlış olanı"**. Bir satırın *"şunun yerine
+geçti"* demesi için **kesin** olması gerekir, yoksa bir saat önce
+kaldırdığımız sınıfa katılır: **doğru görünen ve bazen yanlış olan
+bir sebep.**
+
+**Kural:** aynı anahtardan türeyen çoklu kayıtlarda, eşleme
+*varlığı* kanıtlar, *kimliği* kanıtlamaz. Kimlik gerekiyorsa
+işaretin kendisi saklanır.
+
+**Ve sonra dev kuralın bu vakada geçmediğini gösterdi — mekanizmayla,
+iddiayla değil:**
+
+> Üçünden yalnız **biri** gitmeye izinli, **çünkü elemenin kendisi
+> öyle yapıyor.** Dolayısıyla pencerede o metni taşıyan **tek bir
+> kabul edilmiş mesaj** vardır, ve o mesaj kendi hatırlatmasını
+> bilir.
+
+Yani burada eşleme kimliği kanıtlıyor, **ama eşlemenin kendi
+gücünden değil** — **elemenin tekilliği garanti etmesinden.**
+Belirsizlik yalnız elemenin kapsamadığı yerde (eski geçmiş, penceresi
+geçmiş partner) doğuyor, ve orada kod **birden fazla eşleşme görüp
+susuyor** (`deaf363`, `byPair` → `"ambiguous"` → `null`). Ben
+argümanı sözüne değil koduna bakarak doğruladım.
+
+**Kuralın kalıcı hâli, bu vakayla birlikte:** eşleme kimliği ancak
+**başka bir mekanizma tekilliği garanti ediyorsa** kanıtlar — ve o
+zaman kanıtlayan şey eşleme değil, **o garantidir.** Garanti nerede
+biterse, cevap orada susmalıdır.
+
+Satır bugünkü hâlinde kalıyor: *bu mesaj gitmedi*, ve *aynı metin
+gitti*. **Eksik, ama yanlış değil** — ve bu ikisi arasındaki fark,
+bugünün tamamı.
+
+Ve sıra burada da iş görüyor: şablon başlığı okumaya başlarsa iki
+farklı başlık iki farklı metin üretir, ikizler **seyrekleşir**, ve
+kolonun değeri düşer. **Kolonu şablondan önce açmak, çözülmekte olan
+bir sorunu şemaya yazmak olurdu.**
+
+### Ölçmemek seni korur, ürünü korumaz
+
+Kuralı *"damgalar eşleşmiyorsa farka bak; fikstür/şema/kod varsa
+ölçme"* diye yazdık. pm bugün onu uyguladı — ve **ölçmemenin
+yetmediğini** buldu.
+
+Tohum `MessageStatus`'e **`SUPPRESSED`** değerini eklemişti. Sunulan
+derlemenin Prisma istemcisi o değeri tanımıyordu. Sonuç:
+**`/reminders` hata sayfası veriyordu.** Diğer altı rota ayaktaydı,
+çünkü `message_logs` okumuyorlar. Veritabanında **tek bir**
+`SUPPRESSED` satır vardı, bir fikstürden.
+
+> **Tohum derlemeden ileriyse ölçüm geçersiz olmakla kalmaz —
+> uygulama çalışmayabilir.** Yeni bir enum değeri, yeni bir zorunlu
+> kolon, daraltılmış bir kısıt: üçü de eski istemciyi okurken
+> patlatır. Ve patlama **tohumlayan kişinin göremeyeceği yerde**
+> olur, çünkü o kendi derlemesine bakıyordur.
+
+**Kurala eklenen satır:** tohum derlemeden ileriyse, ölçmeden önce
+**duman kontrolü yap ve sonucu söyle.** Bir dakika sürüyor. Kırıksa
+kimse o zeminde çalışmasın.
+
+**Ve sıralama dersi:** kırılma tohumun erken koşmasından değil,
+**tohum + migration'ın derleme beklenmeden** koşmasından geliyor.
+**Şema ileri giderse derleme de gitmeli**; tersi sırada bir pencere
+açılıyor ve o pencerede ürün çalışmıyor.
+
+pm'in yan notu, kendi başına bir tuzak: aynı yedi rotaya `curl` ile
+bakınca **hepsi 307** dönüyordu — oturumsuz yönlendirme. *"Tarayıcı
+olmasa 'hepsi sağlam' derdim."* Bir duman kontrolü, **oturum
+açmadan** yapılırsa duman kontrolü değildir.
+
+### `tsc` kaynağı okur, sunulan istemciyi değil
+
+dev-ui *"yedi commit öndeyim, hiçbiri ekranda görülmedi"* derken
+ekranın **kendisi ayakta değildi** — ve kırılan sayfa tam olarak
+kendi işinin dayandığı sayfaydı.
+
+Kapıları temizdi ve temiz olmaya devam ediyordu, çünkü:
+
+> `tsc` **derlenmiş istemciyi değil kaynağı** okuyor.
+
+Kaynakta `SUPPRESSED` vardı, sunulan derlemenin Prisma istemcisinde
+yoktu, ve aradaki boşluk hiçbir kapının baktığı yerde değildi.
+
+**Kural:** yeşil kapılar *"yazdığım kod tutarlı"* der, *"sunulan şey
+çalışıyor"* demez. İkincisinin tek kanıtı **o derlemeye tarayıcıdan
+bakmaktır** — ve bu, `1 undefined` ailesinin dördüncü üyesi:
+**kontrol çalıştı, baktığı katman olayın olduğu katman değildi.**
+
+### Ölçüm sürerken hedefi oynatma
+
+dev-ui'nin elinde bağlanmaya hazır bir iş vardı ve **commit
+etmedi**, gerekçesiyle:
+
+> *Tazeleme `f21aeee` ile koştu ve pm ölçmek üzere. Şimdi commit
+> etmek **ölçülen hedefi oynatmak** olur.*
+
+Bu turda o çarkın bedelini defalarca ödedik: pm bir ölçümü tohum
+araya girdiği için çöpe attı, bir başkasını bayat derlemede yaptı.
+**Bekleyen iş ucuz, geçersiz ölçüm pahalı** — ve pahalı olan taraf
+bekleyen kişinin değil, ölçen kişinin hanesine yazılıyor, o yüzden
+bekleme kararını **işi elinde tutanın** vermesi gerekiyor.
+
+### Gösterim anındaki tahmin geri alınır, saklanan tahmin taşlaşır
+
+pm telefon numaralarının **normalleştirilmeden saklandığını** buldu —
+veride üç biçim yan yana. Doğru tespit, ve *"saklarken de
+normalleştirelim"* açık cevap gibi duruyordu.
+
+ux reddetti, gerekçe kodun kendisinde (`lib/phone.ts:12-18`):
+**`Clinic.country` için yazma yolu yok.** Her klinik `null` okunuyor
+ve varsayılan çağrı kodu Türkiye.
+
+> Bugün saklama anında normalleştirirsek, **tahmin edilmiş bir
+> `+90`'ı veritabanına kalıcı olarak yazarız.** Dubai'den gelen bir
+> müşterinin numarası yanlış ülkeyle taşlaşır, **ve yazdığı asıl
+> biçim de kaybolur.**
+
+Aynı tahmini **gösterim anında** yapmak geri alınabilir: ülke alanı
+geldiği gün ekran kendiliğinden düzelir, veri hiç bozulmamış olur.
+
+**Kural:** eksik bir girdiyi tahminle tamamlıyorsan, tahmini
+**okuma** tarafında yap. Yazma tarafındaki tahmin, kaynağı da
+silerek kendini doğrulanamaz hâle getirir. Sıra: **önce eksik
+girdinin yolu, sonra saklamada normalleştirme.**
+
+Ve bir ek tespit, ölçüyü değiştiriyor: *"96 boşluklu / 38 `+90` / 4
+düz"* dağılımı **bir veri kusuru değil, insanların yazdığı biçim.**
+Kusur, onu **olduğu gibi göstermemiz.**
+
+### Sahte görünen değer, sahte sayılan değer değildir
+
+Kaldırılan bir numaranın yerine konacak işareti seçerken dilsiz bir
+değer istedim (`000`) ve **ölçülmesini şart koştum.** dev ölçtü, ve
+karşılaştırma için *"bariz yer tutucu"* diye seçilebilecek bir
+değeri de denedi:
+
+```
+"000"          normalize: null       possible: false   telHref: null
+"0000000000"   normalize: 00000000   possible: true    telHref: tel:+00000000
+```
+
+**On sıfır, aranabilir sayılıyor.** Sekiz haneli bir "numara"ya
+normalleşiyor ve bir geçide öyle verilirdi.
+
+dev'in cümlesi: ***görünüş değil, hane sayısı karar veriyor.***
+İşaret *"bariz sahte görünsün"* diye seçilseydi, tam da kapatılmak
+istenen delik açık kalırdı — ve bunu **okuyarak değil, ölçerek**
+öğrendik.
+
+**Kural:** bir değeri *"zaten geçersizdir"* diye seçiyorsan, onu
+geçersiz kılanın **hangi kod** olduğunu ölç. Gözün geçersiz saydığı
+şey ile doğrulayıcının geçersiz saydığı şey aynı küme değil, ve
+aradaki fark tam olarak sessiz kusurun yaşadığı yer.
+
+Açık kalan hâli: `normalizePhone`'un sekiz hane alt sınırı *"anlamlı
+numara"* yerine geçiyor, yani bir müşterinin telefonuna
+`0000000000` yazan biri bugün **gönderilebilir** sayılıyor.
+
+### Türetilmiş sayı, türetmede görünmeyen terim yüzünden şaşar
+
+Combobox listesini kısaltırken *"8 × 32 = 256, `max-h-64` de 256,
+demek ki kaydırma kalkar"* dedim ve bunu **kazancın gerekçesi**
+yaptım — dört pikseli savunan şey buydu.
+
+dev-ui ölçtü: **`max-h-64` 256px ama `p-1` onun 8'ini yiyor**
+(border-box, aynı eleman), yani kullanılabilir yükseklik **248.**
+8 × 32 = 256 → hâlâ **8px taşıyor.** Taşma 40'tan 8'e indi,
+**sıfırlanmadı.**
+
+Yani değişiklik yine iyi, ama **gerekçem yanlıştı** — ve gerekçeyi
+ben *"eşik geçiyor"* diye satmıştım.
+
+dev-ui'nin tespiti kuralın kendisi: **bugün üçüncü kez, türetilmiş
+bir sayı türetmede görünmeyen bir terim yüzünden şaştı** —
+dev-ui'nin 118 karakteri, benim 8 × 32'm, pm'in geçiş süresi.
+
+**Kural:** bir sayıyı iki sabiti çarparak/karşılaştırarak elde
+ediyorsan, o sayı **ölçülmüş değildir** — arada iç boşluk, kenarlık,
+satır yüksekliği, kutu modeli gibi görünmeyen bir terim olabilir.
+Türetme bir **hipotez** verir; kanıtı ekranda ya da hesaplanmış
+değerde durur. Ve aritmetiği **dosyaya yaz**, yoksa bir dahaki kişi
+aynı umutla aynı çarpımı yapar.
+
+### Mekanizma doğru, konumu yanlış
+
+dev bugün üç düzeltmesine birden bakıp ortak şekli adlandırdı:
+
+| kontrol | nerede duruyordu | nerede durması gerekiyordu |
+|---|---|---|
+| sıfır dizisi kuralı | ülke kodu eklendikten **sonra** | **önce** (`"90"` sıfırdan farklı rakamı kendi sağlıyordu) |
+| eksik açıklama guard'ı | `stderr` | **sayının olduğu satır** |
+| ikiz eşleşmesi | zamanda **her iki yöne** | yalnız **geriye** (bastırma ancak bir gönderimden sonra olur) |
+
+> Üçünde de **mekanizma doğruydu, konumu yanlıştı.**
+
+Ve üçünün de belirtisi aynı: **hiçbir şey kırılmıyor.** Kontrol
+koşuyor, testler geçiyor, kod okununca doğru görünüyor — yalnız
+yakalaması gereken şeyi yakalamıyor, ya da yakaladığını kimseye
+söylemiyor.
+
+**Kural:** bir kontrol yazdıktan sonra ikinci soruyu sor — *bu, işini
+yapabileceği yerde mi duruyor?* Girdisi henüz bozulmamış mı,
+çıktısı bakılan yere mi düşüyor, kapsamı garantinin kapsamıyla aynı
+mı. Birincisi *"doğru mu"*, ikincisi *"yerinde mi"*, ve ikincisi
+sessizce başarısız olan taraf.
+
+### Kullanıcı boyutu pikselle değil, sığmayla ölçer
+
+Combobox listesinin son 8 pikselini kapatmayı dev-ui *"listenin
+**nasıl göründüğünü** değiştirir, **ne kadar büyük olduğunu**
+değil"* diye reddetmişti — yani kullanıcının şikâyetine denk
+düşmediğini düşündü.
+
+Karşı gerekçe: **kaydırma çubuğunun varlığı, listenin sığmadığının
+en görünür iddiasıdır.** 264'ü 256'dan kimse ayırt etmiyor;
+kaydırma çubuğunu herkes görüyor.
+
+dev-ui pozisyonunu değiştirdi ve kendi cümlesiyle özetledi: *"ben
+boyutu pikselle ölçtüm, kullanıcı **sığma** ile ölçüyor."* Ekledi:
+**sekiz piksel taşmak, taşımanın en kötü miktarı** — çubuk iki kat
+uzun bir liste için çıkacağı gibi çıkıyor, ve onu doğuran kıl payı
+algılanamıyor.
+
+### Ayrımı kullanan biri yoksa, ayrım bir maliyettir
+
+Bütün gün birbirine karışmış şeyleri ayırdık: `null` ile `false`,
+*"hiç sorulmadı"* ile *"hayır dedi"*, *"hiç kurulmadı"* ile
+*"kapatıldı"*, *"ulaşmadı"* ile *"rapor gelmedi"*. Sonra aynı
+refleksle bir ayrım daha kurmaya kalktık — kaldırılan bir numaranın
+yerine `000` yazıp *"hiç yoktu"* ile *"kaldırıldı"*yı ayırmak.
+
+dev-ui ekran maliyetini gösterdi, ben `NULL`'a döndüm, ve **ayrımı
+savunan dev kendi argümanının neden düşdüğünü yazdı:**
+
+> Ayrım doğru. Ama sorulmayan soru şuydu: **kim, ne zaman, ne için
+> kullanacak?** Cevap: bugünden sonra **kimse.** Yani ayrım **bir
+> kez** işe yarıyor — onu kurarken — ve maliyeti **her okumada**
+> ödeniyor.
+>
+> ***Ayrım kendi başına bir değer değil; ayrımı kullanan biri varsa
+> değerli.***
+
+Ve fark şurada: bugün ayırdığımız her şeyin **bir okuyucusu** vardı —
+veteriner, süpürge özeti, ekran cümlesi, panel sayısı. Bunun yoktu.
+
+**Kural:** bir ayrım önerirken okuyucusunu adıyla söyle. Söyleyemiyorsan
+ayrım değil, **süs**. Ve bu kural bu ekibin kendi en güçlü
+alışkanlığına karşı yazılmıştır — iyi bir refleks, uygulanacak yer
+kalmayınca da uygulanmaya devam eder.
+
+### Ölçüm aracı, kendi ortamını da uydurabilir
+
+Kullanıcı *"ekran sağa doğru çok büyüyor, UI kaymış"* dedi. pm ölçtü
+ve **kodda kusur olmadığını** buldu — ama asıl bulgu sebebin
+**ölçüm aracının kendisi** olmasıydı:
+
+```
+pencere (outerWidth)        1710
+görüntü alanı (innerWidth)  1920   ← 210px daha geniş
+```
+
+Sayfa, kullanıcının penceresinden **210 piksel geniş** çiziliyordu.
+Sebebi pm'in `browser_resize`'ı. Ve pm kuralı **çiğnemedi** — ajan
+tanımı *"tur sonunda 1920×1080'e geri al"* diyordu ve pm her turda
+tam onu yaptı. **1920 kullanıcının penceresi değildi**; bir
+varsayılan sanılıp sabitlendi, ve hata **kurala uyulduğu sanılarak**
+her turda tekrarlandı.
+
+**Sonra ikinci katman çıktı, ve o daha önemli:** pm `screen.width`'i
+okudu ve **1200** gördü — pencere genişliğine **birebir eşit.**
+Gerçek bir ekran pencereye tam eşit olmaz. Yani araç `screen`'i de
+**taklit ediyor**, dolayısıyla ilk ölçümdeki *"ekran 1920"* da
+sahteydi.
+
+> **Aracın sana ortam hakkında söylediği her sayı, aracın kendi
+> geçersiz kılmasından geçmiş olabilir.** Ürünü ölçerken aracı
+> hesaba katıyoruz; **ortamı** ölçerken aynı şüpheyi göstermedik.
+
+**Ve zinciri sonuna kadar götür:** pm *"içerik 1616px'e geriliyor"*
+diye rapor etti, ben o sayıya dayanarak bir genişlik kapağı koydum
+ve **sevk ettim.** Sayı zorlanmış görüntü alanında alınmıştı —
+kullanıcının hiç sahip olmadığı bir genişlikte. pm sayıyı geri
+çekti, ben commit'i geri aldım. **Bir ölçüm geçersizse, ondan
+türeyen karar da geçersizdir** ve geri alınması ayrı bir iş
+değildir, aynı işin ikinci yarısıdır.
+
+### Okunması kolay sayı ile karar veren sayı aynı değildir
+
+dev tazeleme gerekip gerekmediğini *"on bir commit önde"* diye
+değerlendirdi. Damgalara baktım, fark **tek dosyaydı ve o da
+belge** — yani sevk edilecek hiçbir davranış değişmemişti.
+
+dev'in kendi teşhisi kuralın kendisi:
+
+> *"On bir commit" bir **sayım**dı, bir **ölçüm** değil. Soru hiçbir
+> zaman kaç commit'in kımıldadığı değildi; **davranışı değiştiren
+> bir şeyin** kımıldayıp kımıldamadığıydı. **Okunması kolay sayıya
+> uzandım, karar vereni değil.**"*
+
+Ve damgalar **elinin altındaydı** — `SEEDED.txt`'i alıntıladı ama
+**karşılaştırmadı.**
+
+**Kural:** bir karar verirken kullandığın sayıyı seçerken sor — *bu
+sayı kararı mı veriyor, yoksa elimin altında mı duruyordu?* Bugünün
+listesi hep aynı ikame: commit sayısı yerine fark, karakter sayısı
+yerine satır sayısı, müşteri sayısı yerine mesaj sayısı, nüfus
+yerine iş, ve *"kaç satır ulaşılabilir"* yerine *"kaç **gerçek
+kişi** ulaşılabilir"*.
+
+### Bu hafta sıfıra inemeyen sayı, panele ait değildir
+
+value panel sayısının kapsamını **daralttı** ve bunu yaparken
+genelleştirilebilir bir test kurdu:
+
+> **Bu sayı bu hafta sıfıra inebilir mi?**
+>
+> - `optedOut` → **asla.** Karar verilmiş, geri gelmeyecek.
+> - `neverAsked` → **bu hafta hayır.** Ancak aylar süren ziyaretlerle
+>   erir.
+>
+> Sıfıra inemeyen bir sayıyı insanlar **okumayı bırakır.**
+
+Bu, Deniz'in kapatma tıkı şartıyla aynı gerekçe: sabah listesi
+kapanabilir olmalı, yoksa sabah listesi olmaktan çıkar.
+
+**Ayrım şöyle oturdu:**
+
+| küme | nerede | ne zaman bakılır |
+|---|---|---|
+| **denendi ve ulaşmadı** (`undelivered`, tükenmiş `failed`) | **panel sayısı** | sabah, telefonu elime alacağım |
+| **kayıt boşlukları** (`neverAsked`, `optedOut`, `noPhone`) | **"Ulaşmayacak" sekmesi** | temizlik yapmaya gidilir |
+
+Ve dayanağı yine veterinerin kendi cümlesi: *"Panelde bir satır
+yeter: **'3 hatırlatma gönderilemedi'**."* — **gönderilemedi**
+= denendi, olmadı. value kapsamı o cümleden geniş yazmıştı ve
+kendisi geri aldı.
+
+**Kriter de düzeldi:** *"panel sayısı sekmedeki satır sayısıyla
+birebir aynı"* artık doğru değil — panel, sekmenin **adlandırılmış
+bir alt kümesi.** Yerine: aynı fonksiyondan türer, ve **panel
+sayısına tıklanınca sekme o alt kümeye süzülmüş açılır.** Orijinal
+korku (*panel 3 der, liste 5 gösterir*) böylece daralmaya rağmen
+kapanıyor: **sayı neyi sayıyorsa, tıklayınca onu gösteriyor.**
+
+### Hipotezi sınayan ölçüm, hipotezden geniş kurulur
+
+Kullanıcı *"bildirimler çokluyor, kaydedildi kaydedildi"* dedi. Ben
+pm'e bir hipotez verdim: `notification-settings-form.tsx:44`, efektin
+bağımlılığında `t` var. **Mekanizma olarak doğruydu.**
+
+pm ölçümü hipoteze göre değil, **yüzeye göre** kurdu — Ayarlar'daki
+**üç kartı da** denedi. Sonuç:
+
+```
+notification-settings-form  [state.success, t]              ÇİFT
+clinic-settings-form        [state.success, t]              ÇİFT   ← hipotezde yoktu
+species-settings-form       [state.success, savedMessage]   TEK    ← kontrol grubu
+```
+
+**İki kazanç, ikisi de hipotezin dışından geldi:**
+
+1. **İkinci kusur.** Hipoteze göre ölçülseydi `clinic-settings-form`
+   düzeltilmeden kalırdı ve kullanıcı *"hâlâ çokluyor"* derdi.
+2. **Kontrol grubu.** Çiftlemeyen kart, sebebin `t`'nin **fonksiyon**
+   olması olduğunu **kanıtladı** — çünkü tek fark oydu. Yalnız
+   çiftleyeni ölçen biri sebebi **tahmin** ederdi.
+
+**Kural:** bir hipotezi sınarken ölçümü hipotezin **kapsamından
+geniş** kur. Aynı kalıbı taşıyan komşuları da dene — **biri
+hipotezin kaçırdığı vakayı, biri de kontrol grubunu** verir. pm bugün
+*"dar sorgu hipotezi yanlışlıkla çürütür"* dedi; bu onun aynası:
+**dar ölçüm, hipotezi eksik doğrular.**
+
+Ve kusurun **kendi çözümü zaten depodaydı** — çiftlemeyen form doğru
+deseni uyguluyordu. Bu, bugün üçüncü kez: çare icat edilmedi,
+**yanındaki dosyada duruyordu.**
+
+### "Varsayımını yaz" demeden önce, ölçülebilir mi diye sor
+
+Anahtarın *"hiç kurulmadı"* hâlini açarken dev'e şunu yazdım:
+
+> *Bugünkü veriyle geriye dönük çalışsın. Var olan klinikler `false`
+> taşıyor ve hangisinin "hiç kurulmadığını" bilmiyoruz. **Varsayımını
+> açıkça seç ve yaz.**
+
+dev varsaymadı, **ölçtü**:
+
+```
+notifications bloğu HİÇ YOK   180 klinik
+bloğu var, enabled=true         3 klinik
+açıkça false                    0 klinik   ← sıfır
+```
+
+*"Bilerek kapatmış"* bir klinik **hiç yoktu**, ve *"hiç kurulmadı"*
+bilgisi **anahtarın yokluğu olarak zaten kayıtlıydı** —
+`parseNotificationSettings` onu `false`'a çevirip **atıyordu.**
+Ailenin en saf hâli: **veri var, kod onu okurken yok ediyor.**
+
+Sonuç: şema yok, göç yok, geriye dönük tahmin yok. Ve önerdiğim
+varsayım **doğru çıktı** — ama artık varsayım değil, **kayıt.**
+
+**Kural, ve bu sefer brief yazan tarafa:** birine *"varsayımını
+açıkça yaz"* demeden önce sor — **bu şey ölçülebilir mi?** Ölçülebilen
+bir şeyi varsaymaya davet etmek, iyi niyetli bir talimatın üreteceği
+en pahalı şey: **doğru çıksa bile** geriye bir tahmin bırakır, ve o
+tahmin kayıt gibi okunur.
+
+*"Varsayımını yaz"* kuralı duruyor — ama **ölçüm tükendikten
+sonra** başlıyor.
+
+### İki yol bir soruyu cevaplıyorsa, hangisinin yanlış olduğunu yalnız karşılaştırma söyler
+
+dev günün sonunda üç kusurunu yan yana koyup ortak şekli adlandırdı:
+
+| soru | iki cevap |
+|---|---|
+| bu hatırlatma tükendi mi? | süpürgenin bütçesi · `reminderDeliveryState` |
+| bu müşteri listede mi? | süpürgenin aday sorgusu süzüyordu · `blockedReminders` süzmüyordu |
+| bu numara aranabilir mi? | `telHref` · yanındaki ham alan |
+
+Üçünde de **her cevap kendi durduğu yerde doğru görünüyordu.** Hiçbiri
+tek başına okunarak bulunamazdı; kusur **aralarındaki farkta**
+yaşıyordu.
+
+Ve dev'in asıl tespiti bunun **nasıl bulunduğu**:
+
+> Üçünde de karşılaştırmayı **dışarıdan bir şey zorladı** — bir
+> şart, bir okuma, bir itiraz. **Hiçbiri yazarın tekrar bakmasıyla
+> bulunmadı.**
+
+**Kural:** bir olguyu iki kod yolu üretiyorsa, o iki yol **birbirini
+gözden geçiremez** — ikisini de aynı kişi yazdıysa ikisi de aynı
+varsayımı taşır. Bulunmasının tek yolu **karşılaştırmayı zorlayan
+dışarıdan bir kısıt**: *"ikinci bir tanım yazma"*, *"aynı `where`'i
+kullan"*, *"tek fonksiyondan türesin"*. Bu kısıtlar tekrarı
+önlemek için değil, **ayrışmayı görünür kılmak** için yazılır.
+
+Dolayısıyla bir brief'te *"ikinci bir X yazma"* cümlesi bir üslup
+tercihi değil, **bir arama emri.**
+
+### Üründe "iç görev" diye bir nesne yok — her hatırlatma bir müşteri mesajıdır
+
+Veteriner, tahlil sonucu düğmesinin *"normal, sahibine bildirilsin"*
+demesini istedi — kendi işini bitiren bir düğme. Cazipti, ve
+benimseme argümanı bugün iki kez kazanmıştı.
+
+value engeli **kapsam disiplininde değil, yapıda** buldu:
+
+> *"Sahibine bildirilsin"* demek, birinin o işi **görmesi** demek.
+> Ürün içinde tek aday `Reminder` — yapılacak bir iş, tarihi var,
+> listede duruyor, kapatılabiliyor. **Tam oturuyor gibi.**
+
+**Oturmuyor.** Süpürgenin aday sorgusu (`modules/notifications/service.ts:864`)
+`status: "PENDING"` ile açılıyor ve **tür süzgeci yok** — doğruladım.
+Yani pencerede, onaylı bir müşteriye ait her bekleyen hatırlatma
+**müşteriye mesaj olarak gidiyor.** Veteriner *"sahibine bildirilsin"*
+diye bastığında sahibe *"kontrol zamanı yaklaşıyor"* diye bir **SMS**
+giderdi. Bir tahlil sonucu için.
+
+> **Üründe *"iç görev"* diye bir nesne yok. Her hatırlatma bir müşteri
+> mesajı tetikleyicisidir.**
+
+Ve *"mesaj göndermeyen özel bir hatırlatma"* uydurmak, bugün
+temizlediğimiz şeyin ta kendisi olurdu: **dışarıdan aynı görünen,
+içeride sessizce başka davranan bir kayıt.**
+
+**Kural:** bir düğmenin *"şunu şu kişiye geçir"* demesi, arkasında
+o işi **taşıyan bir nesne** olmasını gerektirir. Yoksa yapılacak
+tek dürüst şey **kalemi ayırmak** — kapsam disiplini için değil,
+**gidecek yeri olmadığı** için. Ve o kalemin adı *"bir düğmenin
+metni"* değil, **"ürüne iç görev kavramı girmesi".**
+
+### Bir izni genişletmek, ondan türeyen kapıları sessizce boşaltır
+
+`RECEPTIONIST`'e `diagnostics.write` verildi — kullanıcının kararı,
+gerekçesi *"bir devir hatasını yeni bir devirle çözme"*.
+
+Beklenmeyen sonuç: **dört rolün dördü de** o izni taşır oldu, yani
+`pets/[id]` ve `visits/[id]`'deki `canAddDiagnostic` kapıları
+**kimseyi reddetmeyen sorular** hâline geldi. Kod aynı, davranış
+aynı, ve kapılar artık **hiçbir şey yapmıyor.**
+
+`app/route-states.test.ts` bunu **dev fark etmeden** yakaladı ve
+kırmızı verdi. dev kapıları **kaldırdı**, belge diye bırakmadı —
+testin uyguladığı kural bu — ve yerlerine gerçek kısıtlamanın nerede
+yaşadığını yazan bir yorum koydu.
+
+> **Bir izni genişletmek, ondan türeyen her kapıyı gözden geçirmeyi
+> gerektirir.** Genişleyen izin yukarıda, boşalan kapı aşağıda durur;
+> ikisi arasında hiçbir derleyici hatası yoktur ve **hiçbir davranış
+> değişmez** — yalnız bir koruma sessizce süse dönüşür.
+
+Bugünün ailesinin bir üyesi daha, ve ayırt edici yanı şu: ötekiler
+**iki yolun ayrışmasıydı**, bu **tek yolun anlamını yitirmesi.** İkisi
+de kod okunarak görülmez; birincisini karşılaştırma, ikincisini
+**kapının hâlâ birini reddedip reddetmediğini soran bir test**
+yakalar.

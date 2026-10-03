@@ -18,6 +18,7 @@ import { createReminderAction } from "@/modules/reminders/actions";
 import { searchClientsAction } from "@/modules/clients/actions";
 import { searchPetsAction } from "@/modules/pets/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { ownerLabel, petLabel } from "@/lib/pet-label";
 
 /**
  * Whether a message can reach this client at all.
@@ -69,7 +70,11 @@ export function ReminderForm({
     () =>
       clients.map((c) => ({
         value: c.id,
-        label: `${c.firstName} ${c.lastName}`,
+        // `ownerLabel`, not the two parts joined by hand: a surname is
+        // allowed to be absent, and a template literal renders that
+        // absence as the word "null" -- pm found "Ayşe null" sitting in
+        // this picker. The same helper every list column uses.
+        label: ownerLabel(c),
       })),
     [clients],
   );
@@ -86,7 +91,13 @@ export function ReminderForm({
     clientOptions.find((o) => o.value === defaultClientId) ?? null;
   const initialPet = () => {
     const p = pets?.find((x) => x.id === defaultPetId);
-    return p ? { value: p.id, label: p.name } : null;
+    // The same condition the options below use, and it has to be the
+    // same: the dropdown offers "Zeytin · Ayşe Yılmaz" while a client
+    // is unchosen, and writing the chosen row back as "Zeytin" makes
+    // the confirmation of a choice weaker than the choice was. The
+    // vet picked the row that told them apart from the other two
+    // Zeytins; the field then stops saying which one.
+    return p ? { value: p.id, label: defaultClientId ? p.name : petLabel(p) } : null;
   };
 
   const [client, setClient] = useState<ComboOption | null>(initialClient);
@@ -181,7 +192,7 @@ export function ReminderForm({
     : (pets ?? []);
   const petOptions = choosablePets.map((p) => ({
     value: p.id,
-    label: clientId ? p.name : `${p.name} · ${p.ownerName}`,
+    label: clientId ? p.name : petLabel(p),
   }));
 
   // Adjusted during render rather than in an effect: an effect would paint
@@ -206,14 +217,21 @@ export function ReminderForm({
     [],
   );
 
+  const savedMessage = tCommon("saved");
+
+  // The message is resolved BEFORE the effect and the effect depends on
+  // the string, not on the translator. `useTranslations` hands back a
+  // new function identity on a re-render, so a dependency array holding
+  // it re-runs the effect for a render that changed nothing -- and the
+  // user gets a second toast for one save. A string is equal to itself.
   useEffect(() => {
     if (state.success) {
       reset();
-      toast.success(tCommon("saved"));
+      toast.success(savedMessage);
     }
     // No `toast.error`: the rule and its reasoning live in
     // `action-form.tsx`, which owns the box a failure goes into.
-  }, [state.success, tCommon, reset]);
+  }, [state.success, savedMessage, reset]);
 
   // These two are held up here, so `reset()` — which clears the
   // uncontrolled fields — cannot reach them. Adjusted during render for the

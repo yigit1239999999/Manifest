@@ -16,6 +16,7 @@ import { INVOICE_STATUSES } from "@/modules/invoices/schema";
 import { createInvoiceAction } from "@/modules/invoices/actions";
 import { searchClientsAction } from "@/modules/clients/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { ownerLabel } from "@/lib/pet-label";
 
 interface Line {
   description: string;
@@ -98,7 +99,9 @@ export function InvoiceForm({
     () =>
       clients.map((c) => ({
         value: c.id,
-        label: `${c.firstName} ${c.lastName}`,
+        // See `ReminderForm`: a surname may be absent, and joining the
+        // two by hand renders that absence as the word "null".
+        label: ownerLabel(c),
       })),
     [clients],
   );
@@ -112,7 +115,17 @@ export function InvoiceForm({
     setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
 
   return (
-    <ActionForm form={form} className="flex flex-col gap-6">
+    // `wide`: the line editor below is a grid that behaves like a
+    // table, not a column of labelled fields, and the form cap squeezes
+    // columns that need the room. The only opt-out in the app.
+    <ActionForm
+      form={form}
+      wide
+      focusFirstEmpty={Boolean(defaultClientId)}
+      className="flex flex-col gap-6"
+    >
+      {/* Part-filled arrivals only: the chain a new clinic walks, or a
+          deep link from a record's own page. See `focusFirstEmpty`. */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={tClient("one")} error={state.fieldErrors?.clientId} required>
           {/* Searchable only once the list is actually short of the whole

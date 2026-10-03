@@ -85,4 +85,5 @@ export type EntityNouns = {
   user: true;
   clinic: true;
   species: true;
+  importBatch: true;
 };

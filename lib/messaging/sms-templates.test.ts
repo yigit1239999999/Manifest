@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { composeAppointmentSms, composeReminderSms } from "./sms-templates";
 import { smsSegments } from "./sms/segments";
 import type { AppointmentMessageContext } from "@/lib/whatsapp/messages";
+import { ownerLabel } from "@/lib/pet-label";
 
 const base: AppointmentMessageContext = {
   locale: "tr",
@@ -53,5 +54,32 @@ describe("composeReminderSms", () => {
       "Sayın Ayşe Yılmaz, Sarı için aşı zamanı yaklaşıyor (1 Eki Per). Randevu için bize ulaşabilirsiniz. Yiğit Klinik 0212 555 00 00",
     );
     expect(smsSegments(text).segments).toBe(1);
+  });
+});
+
+/**
+ * The owner with one name, in the message that reaches them.
+ *
+ * `Client.lastName` is nullable because the counter is not allowed to
+ * ask the lady who brings the street cat for hers. Three call sites
+ * built `clientName` as `${firstName} ${lastName}`.trim() -- the trim
+ * covered the trailing space and not the other half, because a missing
+ * surname arrives in a template literal as the word "null". So the
+ * message this composes was about to open "Sayın Ayşe null,".
+ *
+ * Composed here rather than asserted on the helper, because the helper
+ * was never wrong: what matters is that the sentence leaving the
+ * clinic says the owner's name and nothing about the column.
+ */
+describe("a client who has only one name", () => {
+  it("is addressed by it, with no word standing in for the absent half", () => {
+    const text = composeAppointmentSms("APPOINTMENT_CONFIRMATION", {
+      ...base,
+      clientName: ownerLabel({ firstName: "Ayşe", lastName: null }),
+    });
+
+    expect(text).toContain("Sayın Ayşe,");
+    expect(text).not.toMatch(/null|undefined/);
+    expect(text).not.toMatch(/Ayşe\s{2,}/);
   });
 });

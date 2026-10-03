@@ -81,6 +81,28 @@ describe("DescriptionList", () => {
     expect(rendered.querySelector("dl")!.className).toContain("@container");
   });
 
+  it("caps the pair, so a wide cell leaves space between pairs not inside one", () => {
+    // The shell has no reading-width cap, so the cell this renders in is
+    // 287px at 1280 but 501px at 1920 and 714px at 2560 (measured, ui).
+    // Uncapped, the value drifts to the far end and ends up ~25px from
+    // the NEXT pair's label while 414px from its own -- the eye pairs it
+    // with the wrong label, on the card that exists to help a vet spot
+    // the wrong record. The cap goes on the pair: a container query on
+    // the cell still passes @2xs at 501px, and capping the cell makes
+    // the grid's columns unequal.
+    const row = render(
+      <DescriptionList layout="row" items={[{ label: "Kilo", value: "4 kg" }]} />,
+    ).container.querySelector("dt")!.parentElement!;
+    expect(row.className).toContain("@2xs:max-w-80");
+
+    // Not on stacked: there the value owns the full width on purpose,
+    // which is what addresses and free text need.
+    const stacked = render(
+      <DescriptionList items={[{ label: "Adres", value: "x" }]} />,
+    ).container.querySelector("dt")!.parentElement!;
+    expect(stacked.className).not.toContain("max-w-80");
+  });
+
   it("sets figures in tabular digits so a column of readings lines up", () => {
     // The vitals card is seven readings under each other. In proportional
     // digits "4,2" and "38,5" do not line up on the comma.

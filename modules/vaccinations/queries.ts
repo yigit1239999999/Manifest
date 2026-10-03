@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/prisma";
+import { fold } from "@/lib/search";
 import { intervalOf, type IntervalSuggestion } from "@/lib/vaccination-interval";
+import {
+  clinicVaccineList,
+  normalizeVaccineSettings,
+  offerByName,
+  type DoseRow,
+  type VaccineOffer,
+} from "./catalogue";
 
 export async function listVaccinationsForPet(
   clinicId: string,
@@ -147,7 +155,16 @@ export async function vaccinationIntervalSuggestions(
   const byName = new Map<string, { name: string; days: number }[]>();
   for (const row of rows) {
     if (!row.nextDueAt) continue;
-    const key = row.name.trim().toLowerCase();
+    // Folded, not lower-cased, and the difference is a whole feature. The
+    // shipped catalogue (`lib/vaccines.ts`) matches names with `fold()`, so
+    // a key made with `toLowerCase()` agrees with it on "kuduz" and
+    // disagrees on "köpek öksürüğü" -- the clinic's own measured interval
+    // would reach the list for some vaccines and not for others, with
+    // nothing on screen to say which. Two definitions of "the same name" is
+    // the defect this repo has now closed three times.
+    // Trimmed before folding: `fold` normalises letters, not whitespace,
+    // and "Kuduz " typed with a stray space is the same vaccine.
+    const key = fold(row.name.trim());
     if (!key) continue;
     const bucket = byName.get(key) ?? [];
     if (bucket.length >= SUGGESTION_WINDOW) continue;
@@ -189,4 +206,83 @@ export async function vaccinationIntervalSuggestions(
     suggestions[key] = best.interval;
   }
   return suggestions;
+}
+
+
+/**
+ * This clinic's vaccine list for one animal, and how many doses that animal
+ * has already had of each.
+ *
+ * Three reads and no more, whatever the list's length: the clinic's own
+ * settings, the interval history for the species, and this animal's own
+ * vaccinations. Counting the doses per vaccine in a loop would be a query
+ * per line of the list, on a screen a vet opens all day.
+ *
+ * WHY THE DOSE COUNT IS HERE AT ALL. "Karma üç doz, sahibi ikinci dozdan
+ * sonra kayboluyor, üç ay sonra geliyor. O an sorduğum şey 'en son ne
+ * zaman' değil, 'kaçıncı dozdaydık'." The form can only propose "this is
+ * dose 3 of 3" if somebody has counted the first two, and the count has to
+ * follow the vaccine through its renames -- a dose written last year under
+ * the old long name is still one of the three.
+ */
+export async function vaccineOffersForPet(
+  clinicId: string,
+  petId: string,
+  species: string,
+): Promise<{
+  offers: VaccineOffer[];
+  priorDoses: Record<string, number>;
+  /**
+   * The same rows the counts are made of, for the two questions the pet
+   * page asks of them (#45). Returned rather than re-read: this query
+   * already reads every vaccination this animal has, and asking again
+   * for four more columns of the same rows would be a second round trip
+   * for data already in hand.
+   */
+  doses: DoseRow[];
+}> {
+  const [clinic, history, given] = await Promise.all([
+    prisma.clinic.findUnique({ where: { id: clinicId }, select: { settings: true } }),
+    vaccinationIntervalSuggestions(clinicId, species),
+    prisma.vaccination.findMany({
+      where: { clinicId, petId },
+      select: {
+        name: true,
+        administeredAt: true,
+        nextDueAt: true,
+        doseNumber: true,
+        seriesOf: true,
+      },
+      // A series is three doses and an animal's whole record is short; this
+      // is a ceiling against a pathological row count, not a page size.
+      take: 200,
+    }),
+  ]);
+
+  const settings = normalizeVaccineSettings(
+    ((clinic?.settings ?? {}) as { vaccines?: unknown }).vaccines,
+  );
+  const offers = clinicVaccineList(species, settings, history);
+
+  const priorDoses: Record<string, number> = {};
+  for (const row of given) {
+    const offer = offerByName(offers, row.name);
+    if (!offer) continue;
+    priorDoses[offer.key] = (priorDoses[offer.key] ?? 0) + 1;
+  }
+  return { offers, priorDoses, doses: given };
+}
+
+/**
+ * This clinic's changes to the shipped vaccine list, for the settings
+ * screen. The list itself is code; only the difference is stored.
+ */
+export async function getVaccineSettings(clinicId: string) {
+  const clinic = await prisma.clinic.findUnique({
+    where: { id: clinicId },
+    select: { settings: true },
+  });
+  return normalizeVaccineSettings(
+    ((clinic?.settings ?? {}) as { vaccines?: unknown }).vaccines,
+  );
 }

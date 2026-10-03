@@ -25,6 +25,19 @@ export default async function PrescriptionsPage() {
       <PageHeader title={t("title")} description={t("subtitle")} />
 
       {prescriptions.length === 0 ? (
+        // No action here, and that is the decision rather than an
+        // omission: there is no `/prescriptions/new` route to send
+        // anyone to. A prescription is written inside a visit or on an
+        // animal's page, which is what the description says, and putting
+        // a button here would be the exact fault this work went round
+        // the other six screens to remove -- a button that leads
+        // somewhere the reader cannot finish.
+        //
+        // No missing-link state either, for the same reason: the two
+        // places a prescription is written are themselves behind the
+        // chain, and the screens that own those preconditions already
+        // say so. A third telling, on a screen nobody starts from, would
+        // be noise.
         <EmptyState
           icon={Pill}
           title={t("empty")}

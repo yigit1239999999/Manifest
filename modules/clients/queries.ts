@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { fold } from "@/lib/search";
+import { ownerLabel } from "@/lib/pet-label";
 
 export interface ListClientsArgs {
   clinicId: string;
@@ -80,6 +81,34 @@ export async function listClientsPage({
       take: perPage,
       include: {
         _count: { select: { pets: { where: { archivedAt: null } } } },
+        // Two names beside the count, because eleven people called Ayşe
+        // are told apart by their animals and not by their surnames.
+        //
+        // The same `where` as the count above, deliberately: a deceased
+        // animal is still counted here, since somebody phoning about a
+        // record they remember is exactly who this is for. Filtering
+        // the names differently would make the row disagree with
+        // itself -- two names from one set, "+N" from another.
+        //
+        // Ordered, and that is the part worth insisting on. An
+        // unordered `take: 2` returns whichever two rows the database
+        // finds convenient, which can differ between requests: the
+        // same client would read "Pamuk, Duman" on one load and
+        // "Duman, Tekir" on the next. A row that contradicts itself is
+        // worse than a row that is merely terse, and worst of all in a
+        // field used for recognition, where the vet is remembering
+        // what it said last time.
+        //
+        // Alphabetical is the cheap stable answer, not the best one:
+        // the two most recently seen animals would be the right two
+        // for recognition, and that needs a visit join. Written down
+        // so nobody mistakes "stable" for "correct".
+        pets: {
+          where: { archivedAt: null },
+          select: { name: true },
+          orderBy: { name: "asc" },
+          take: 2,
+        },
       },
     }),
     prisma.client.count({ where }),
@@ -110,7 +139,15 @@ export async function getClientLabel(clinicId: string, id: string) {
     where: { id, clinicId },
     select: { firstName: true, lastName: true },
   });
-  return client ? `${client.firstName} ${client.lastName}` : undefined;
+  // The same helper the picker's own options are built with. This one
+  // is handed to `Combobox` as `defaultLabel`, so a surname joined by
+  // hand puts "Ayşe null" into a field the vet is reading as a settled
+  // choice -- the very state this function exists to prevent.
+  return client ? ownerLabel(client) : undefined;
+}
+
+export async function countClients(clinicId: string) {
+  return prisma.client.count({ where: { clinicId, archivedAt: null } });
 }
 
 /**

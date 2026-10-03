@@ -85,6 +85,26 @@ export const optionalEmail = trim
  * "sabit hat yok" used to be stored as a phone and then silently skipped at
  * send time. See `lib/phone.ts` for the one reading of a number.
  */
+/**
+ * A phone number the record cannot do without.
+ *
+ * The counter's own rule, and the reason this exists beside
+ * `optionalPhone` rather than replacing it: "if I do not take her
+ * phone number I will never find that animal again". A surname is
+ * politeness, a number is the only handle the clinic has on the
+ * record afterwards -- and every reminder the product sends needs it.
+ * So the two swapped places on the client form.
+ *
+ * Still `isPossiblePhoneText` rather than a strict format: a demand
+ * the counter cannot satisfy produces a typed-in full stop, which is
+ * the defect the surname change is about.
+ */
+export const requiredPhone = (max = 40, field = "client.phone") =>
+  trim
+    .refine((v) => v.length > 0, requiredMsg(field))
+    .refine((v) => isPossiblePhoneText(v), msg("error.form.phone"))
+    .refine((v) => v.length <= max, maxLengthMsg(max, field));
+
 export const optionalPhone = (max = 40) =>
   trim
     .refine((v) => v === "" || isPossiblePhoneText(v), msg("error.form.phone"))

@@ -4,6 +4,7 @@ vi.mock("@/lib/prisma", () => {
   const prismaMock = {
     vaccination: { create: vi.fn(), findFirst: vi.fn(), delete: vi.fn() },
     pet: { findFirst: vi.fn() },
+    clinic: { findUnique: vi.fn(), update: vi.fn() },
     auditLog: { create: vi.fn() },
   };
   return { prisma: prismaMock };
@@ -11,7 +12,7 @@ vi.mock("@/lib/prisma", () => {
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
-import { createVaccination, deleteVaccination } from "./service";
+import { createVaccination, deleteVaccination, setVaccineSettings } from "./service";
 
 const ctx = {
   clinicId: "clinic-1",
@@ -30,6 +31,9 @@ const validInput = {
   site: null,
   administeredAt: new Date("2026-05-22T10:00:00.000Z"),
   nextDueAt: null,
+  doseNumber: null,
+  seriesOf: null,
+  nextDueSource: null,
   notes: null,
 };
 
@@ -38,6 +42,44 @@ beforeEach(() => {
 });
 
 describe("createVaccination", () => {
+  it("will not record where a date came from when there is no date", async () => {
+    // A source without a date claims a provenance for something that is
+    // not there, and reads six months later as a schedule somebody
+    // deleted. The pair travels together or not at all.
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    vi.mocked(prisma.vaccination.create).mockResolvedValue({ id: "v-1", petId: "pet-1" } as never);
+
+    await createVaccination({ ...validInput, nextDueSource: "LIST" }, ctx);
+
+    expect(prisma.vaccination.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ nextDueAt: null, nextDueSource: null }),
+    });
+  });
+
+  it("records the dose and the source the screen showed", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    vi.mocked(prisma.vaccination.create).mockResolvedValue({ id: "v-1", petId: "pet-1" } as never);
+
+    await createVaccination(
+      {
+        ...validInput,
+        nextDueAt: new Date("2027-05-22T10:00:00.000Z"),
+        nextDueSource: "LIST",
+        doseNumber: 2,
+        seriesOf: 3,
+      },
+      ctx,
+    );
+
+    expect(prisma.vaccination.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        nextDueSource: "LIST",
+        doseNumber: 2,
+        seriesOf: 3,
+      }),
+    });
+  });
+
   it("allows VET_TECH to administer", async () => {
     vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
     vi.mocked(prisma.vaccination.create).mockResolvedValue({ id: "v-1", petId: "pet-1" } as never);
@@ -87,6 +129,51 @@ describe("deleteVaccination", () => {
     expect(prisma.vaccination.delete).toHaveBeenCalledWith({ where: { id: "v-1" } });
     expect(prisma.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: "DELETE", entityType: "Vaccination" }),
+    });
+  });
+});
+
+describe("setVaccineSettings", () => {
+  const admin = { ...ctx, userRole: "ADMIN" };
+
+  it("is settings-manage only, like every other list on that screen", async () => {
+    await expect(
+      setVaccineSettings({ hidden: [], intervals: {}, added: [] }, ctx),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.clinic.update).not.toHaveBeenCalled();
+  });
+
+  it("keeps the clinic's other settings and drops what it cannot read", async () => {
+    // Two rules in one save. The merge is the one every settings writer
+    // here has to get right; the normalisation is why a half-readable
+    // override cannot become a proposed date later.
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({
+      settings: { enabledSpecies: ["DOG"], timezone: "Europe/Istanbul" },
+    } as never);
+    vi.mocked(prisma.clinic.update).mockResolvedValue({} as never);
+
+    await setVaccineSettings(
+      {
+        hidden: ["dog.kennelCough"],
+        intervals: { "dog.rabies": { unit: "fortnight", value: 2 } } as never,
+        added: [{ species: "DOG", name: "Leishmania" }],
+      },
+      admin,
+    );
+
+    expect(prisma.clinic.update).toHaveBeenCalledWith({
+      where: { id: "clinic-1" },
+      data: {
+        settings: {
+          enabledSpecies: ["DOG"],
+          timezone: "Europe/Istanbul",
+          vaccines: {
+            hidden: ["dog.kennelCough"],
+            intervals: {},
+            added: [{ species: "DOG", name: "Leishmania" }],
+          },
+        },
+      },
     });
   });
 });

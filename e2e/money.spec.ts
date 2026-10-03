@@ -1,5 +1,5 @@
-import { pickOption } from "./helpers";
-import { test, expect, type Page } from "@playwright/test";
+import { pickOption, test, expect, assertFormKept } from "./helpers";
+import type { Page } from "@playwright/test";
 
 // Money, end to end: what a person types must be what the clinic is owed.
 //
@@ -23,6 +23,7 @@ async function signUp(page: Page, stamp: number) {
   await page.getByLabel(/your name|adınız/i).fill("E2E Tester");
   await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(`money+${stamp}@pettrack.test`);
   await page.getByLabel(/^password|^şifre/i).fill("supersecret123");
+  await assertFormKept(page);
   await page.getByRole("button", { name: /create account|hesap oluştur/i }).click();
   await expect(page).toHaveURL("/");
 }
@@ -33,6 +34,12 @@ async function createClient(page: Page) {
   await page.getByLabel(/last name|soyad/i).fill("Yılmaz");
   await page.getByLabel(/^phone$|^telefon$/i).fill("0532 123 45 67");
   await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
+  // Not `[\w-]+`: that matches `/clients/new`, which is where the form
+  // is standing while the save is still in flight -- so this waited for
+  // a condition that was already true and walked on to an invoice the
+  // client had not reached yet. The same trap `first-run.spec.ts`
+  // names at its own redirect, and it only bites when the server is
+  // slow enough to lose the race.
   await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
 }
 
@@ -48,6 +55,8 @@ test.describe("Money is stored as the amount that was typed", () => {
     await page.getByPlaceholder(/^qty$|^adet$/i).fill("2");
     await page.getByPlaceholder(/unit price|birim fiyat/i).fill("500");
     await page.getByRole("button", { name: /save invoice|faturayı kaydet/i }).click();
+    // Same trap as the client redirect above, and the same fix: the
+    // bill's own page, not the form it was raised from.
     await expect(page).toHaveURL(/\/invoices\/(?!new)[\w-]+$/);
 
     // 500 is five hundred, not five: the total is 1000, not 10.

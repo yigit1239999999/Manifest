@@ -1,19 +1,32 @@
 import { prisma } from "@/lib/prisma";
+import { PAGE_SIZES } from "@/lib/pagination";
 
 /**
- * Below this many clients the dashboard offers the import. A clinic that
- * has typed in a handful by hand to try the product is exactly the clinic
- * that still has its real list somewhere else.
+ * The clinic's recent imports, newest first.
+ *
+ * Exists so that undo survives the screen. A vet who imports a file, closes
+ * the tab and opens the client list at noon has no way back to the result
+ * page; without this list, "undo" would only be reachable in the minute
+ * after the button, which is not when regret arrives.
+ *
+ * The counts are columns rather than a count per batch: one query for the
+ * whole list, and the numbers still read correctly after the rows they
+ * describe have been deleted by the undo.
  */
-export const IMPORT_PROMPT_BELOW = 20;
-
-/** Whether the dashboard should offer the import card, given the client count it already has. */
-export async function showImportPrompt(clinicId: string, clientCount: number): Promise<boolean> {
-  if (clientCount >= IMPORT_PROMPT_BELOW) return false;
-  const clinic = await prisma.clinic.findUnique({
-    where: { id: clinicId },
-    select: { settings: true },
+export async function listImportBatches(clinicId: string, take = PAGE_SIZES.DEFAULT) {
+  return prisma.importBatch.findMany({
+    where: { clinicId },
+    orderBy: { createdAt: "desc" },
+    take,
+    select: {
+      id: true,
+      fileName: true,
+      clientCount: true,
+      petCount: true,
+      mergedCount: true,
+      undoneAt: true,
+      createdAt: true,
+      createdBy: { select: { name: true } },
+    },
   });
-  const settings = (clinic?.settings ?? {}) as { importPromptDismissedAt?: unknown };
-  return !settings.importPromptDismissedAt;
 }

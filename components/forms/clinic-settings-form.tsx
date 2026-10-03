@@ -28,9 +28,18 @@ export function ClinicSettingsForm({ action, currency, invoiceCount }: Props) {
   const { state } = form;
   const [selected, setSelected] = useState(currency);
 
+  const savedMessage = t("saved");
+
+  // Resolved BEFORE the effect, and the effect depends on the string
+  // rather than on the translator. `useTranslations` hands back a new
+  // function identity on a re-render, so a dependency array holding it
+  // re-runs for a render that changed nothing -- and one save produces
+  // two toasts. A string is equal to itself. pm reproduced the double
+  // on this form 3/3 and proved the mechanism with a control: the
+  // species card depends on a string and fires once.
   useEffect(() => {
-    if (state.success) toast.success(t("saved"));
-  }, [state.success, t]);
+    if (state.success) toast.success(savedMessage);
+  }, [state.success, savedMessage]);
 
   const changed = selected !== currency;
   // Real numbers, not an invented example: the clinic's own invoice count

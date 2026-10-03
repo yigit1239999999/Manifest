@@ -9,7 +9,23 @@ export interface NotificationSettings {
   /** Delivery channel for every automatic message. */
   channel: Channel;
   whatsapp: {
-    enabled: boolean;
+    /**
+     * `null` means nobody has ever opened the settings for this
+     * clinic; `false` means somebody did and switched it off.
+     *
+     * Two different things that were one value. A clinic that has
+     * never been set up is not a clinic that decided against
+     * messaging, and the sentence a screen should show is different
+     * for each: "turn it on" versus "you turned it off". Everything
+     * that merely asks "may I send" keeps working unchanged, because
+     * `null` is falsy.
+     *
+     * No migration and no back-filled guess: the distinction was
+     * already in the data and this parser was discarding it. Measured
+     * when this was written -- 180 clinics with no notifications
+     * block at all, 3 with one, and not a single explicit `false`.
+     */
+    enabled: boolean | null;
     confirmOnBooking: boolean;
     reminder: ReminderConfig;
     /** Pet reminders (vaccination due, check-up, ...) sent N days ahead. */
@@ -20,7 +36,8 @@ export interface NotificationSettings {
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   channel: "SMS",
   whatsapp: {
-    enabled: false,
+    // Not `false`: nobody has said anything yet. See the field.
+    enabled: null,
     confirmOnBooking: true,
     reminder: { mode: "morningOf", hoursBefore: 3, morningHour: 9 },
     reminders: { enabled: true, daysBefore: 3 },
@@ -44,6 +61,9 @@ export function parseNotificationSettings(raw: unknown): NotificationSettings {
   return {
     channel: channelRaw === "WHATSAPP" ? "WHATSAPP" : "SMS",
     whatsapp: {
+      // The absence of the key is the answer, not a reason to invent
+      // one -- it is how "never set up" is recorded, and it has been
+      // all along.
       enabled: typeof src.enabled === "boolean" ? src.enabled : d.enabled,
       confirmOnBooking:
         typeof src.confirmOnBooking === "boolean" ? src.confirmOnBooking : d.confirmOnBooking,

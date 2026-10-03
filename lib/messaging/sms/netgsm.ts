@@ -44,7 +44,17 @@ export const NETGSM_ERRORS: Record<string, { key: string; scope: FailureScope }>
   "51": { key: "iys_brand_missing", scope: "CLINIC" },
   "70": { key: "invalid_parameters", scope: "CLINIC" },
   "80": { key: "sending_limit_exceeded", scope: "CLINIC" },
-  "85": { key: "duplicate_send_blocked", scope: "MESSAGE" },
+  // `PRODUCT`, and note which table this is: `85` is a SEND rejection,
+  // from the codes above. The report table has its own duplicate
+  // status (`13`) and they are different columns in different calls --
+  // three of us have now confused the two, so it is written here.
+  //
+  // The provider refuses the same text to the same number inside an
+  // hour. That means we sent it twice: nothing is wrong with the
+  // number, the clinic or the operator, and the refusal is evidence
+  // that the FIRST one was accepted. It must never spend one of the
+  // reminder's three automatic attempts (`automaticSendBlock`).
+  "85": { key: "duplicate_send_blocked", scope: "PRODUCT" },
 };
 
 /**

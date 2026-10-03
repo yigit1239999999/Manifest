@@ -25,6 +25,28 @@ const MAX_E164_DIGITS = 15;
 const PHONE_TEXT = /^[+()\-.\/\s\d]+$/;
 
 /**
+ * A number made only of zeros is a placeholder, not a number.
+ *
+ * The length floor was standing in for "long enough to mean
+ * something", and `0000000000` clears it: ten digits, accepted by the
+ * form, normalised to an eight-digit string, and handed to a gateway
+ * as a real send. Appearance is not what decides here -- digit count
+ * is -- so a value that looks obviously fake to a person passes
+ * anyway. Somebody who cannot leave a field empty types zeros, which
+ * makes this a habit rather than an accident.
+ *
+ * Checked on what was typed, before a calling code is prepended:
+ * afterwards "90" supplies the non-zero digit and the test would pass
+ * everything.
+ *
+ * Deliberately only zeros. "Must start with 5", "these prefixes are
+ * valid" and the rest belong to a country the clinic cannot yet
+ * declare (`Clinic.country` has no write path), and writing them now
+ * would reject a Dubai number to catch a placeholder.
+ */
+const hasRealDigit = (digits: string) => /[1-9]/.test(digits);
+
+/**
  * Whether text can be a phone number at all. Country-agnostic on purpose: a
  * form does not know which country the clinic is in, and rejecting a valid
  * foreign number is worse than accepting a badly spaced local one. It only
@@ -35,6 +57,7 @@ export function isPossiblePhoneText(raw: string): boolean {
   // A "+" only means anything at the front.
   if (raw.indexOf("+") > 0) return false;
   const digits = raw.replace(/\D/g, "");
+  if (!hasRealDigit(digits)) return false;
   return digits.length >= MIN_E164_DIGITS && digits.length <= MAX_E164_DIGITS;
 }
 
@@ -66,7 +89,7 @@ export function normalizePhone(
   if (!PHONE_TEXT.test(trimmed)) return null;
 
   const digits = trimmed.replace(/\D/g, "");
-  if (digits === "") return null;
+  if (!hasRealDigit(digits)) return null;
 
   const code = defaultCallingCode.replace(/\D/g, "") || DEFAULT_CALLING_CODE;
   const international =
@@ -106,4 +129,26 @@ export function telHref(
 ): string | null {
   const digits = normalizePhone(raw, defaultCallingCode);
   return digits ? `tel:+${digits}` : null;
+}
+
+/**
+ * A number with only its last four digits left, for output a person
+ * reads but no one should be able to dial from.
+ *
+ *   "905321234567" → "•••• 4567"
+ *
+ * Written for the sweep's dry run, which prints what would go out.
+ * The rehearsal exists so nobody has to send a real message to find
+ * out what a real message would say -- and it would be a poor
+ * rehearsal that spread the numbers around a terminal to do it. One
+ * of them reached mine today, from a read-only query that selected a
+ * column it did not need.
+ *
+ * Four digits is enough to tell two recipients apart and not enough
+ * to call either.
+ */
+export function maskPhone(raw: string | null | undefined): string {
+  const digits = (raw ?? "").replace(/\D/g, "");
+  if (digits.length < 4) return "••••";
+  return `•••• ${digits.slice(-4)}`;
 }

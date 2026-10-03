@@ -11,7 +11,7 @@ import {
   whatsappLink,
   type AppointmentMessageKind,
 } from "@/lib/whatsapp/messages";
-import { normalizePhone } from "@/lib/phone";
+import { maskPhone, normalizePhone } from "@/lib/phone";
 import { isPetSilenced } from "@/lib/pet-status";
 import { isReminderDue, isReminderNoticeDue, reminderNoticeDueAt } from "@/lib/whatsapp/schedule";
 import { composeAppointmentFor, composeReminderFor } from "@/lib/messaging/compose";
@@ -31,6 +31,7 @@ import {
   toMessagingProfile,
   type ClinicMessagingProfile,
 } from "./settings";
+import { ownerLabel } from "@/lib/pet-label";
 
 /** A failed automatic send is retried on later sweeps, up to this many times. */
 export const MAX_AUTOMATIC_ATTEMPTS = 3;
@@ -185,7 +186,13 @@ export function composeFor(
   const recipient = normalizePhone(appointment.client.phone, countryCallingCode(clinic.country));
   const messageCtx = {
     locale: language,
-    clientName: `${appointment.client.firstName} ${appointment.client.lastName}`.trim(),
+    // `ownerLabel`, and here it is not a label at all -- it is the
+    // name the owner is ADDRESSED by in a message that leaves the
+    // clinic. `.trim()` covered the trailing space and not the other
+    // half: a missing surname arrives in a template literal as the
+    // word "null", so an owner with one name was about to be sent
+    // "Sayın Ayşe null".
+    clientName: ownerLabel(appointment.client),
     petName: appointment.pet.name,
     startsAt: appointment.startsAt,
     durationMinutes: appointment.durationMinutes,
@@ -465,8 +472,13 @@ export const SWEEP_SKIP_REASONS = [
   "closed",
   "clientArchived",
   "noPhone",
-  /** Refused, or never asked: a null consent is a "no" everywhere. */
+  /**
+   * Asked, and told no. A decision, not a gap -- which is why it is
+   * counted apart from the one below.
+   */
   "optedOut",
+  /** Nobody asked. The only one of the two with anything to do about it. */
+  "neverAsked",
   /** The animal died or was archived; nothing is written about it. */
   "petSilenced",
   /** A message for this row already went out, by us or by hand. */
@@ -478,6 +490,15 @@ export const SWEEP_SKIP_REASONS = [
   "notDue",
   /** A number that is stored but cannot be dialled. */
   "noRecipient",
+  /**
+   * The same words had just gone to the same number.
+   *
+   * Ours, and decided rather than discovered: two reminders for one
+   * animal on one day compose an identical SMS, because the text is
+   * built from the owner, the animal, the type and the day and never
+   * reads the title or the body.
+   */
+  "duplicateSuppressed",
 ] as const;
 
 export type SweepSkipReason = (typeof SWEEP_SKIP_REASONS)[number];
@@ -494,6 +515,21 @@ export interface SweepKindSummary {
   skipped: Record<SweepSkipReason, number>;
 }
 
+/**
+ * A message the sweep would send, when it is only rehearsing.
+ *
+ * The number is masked because this is printed: four digits tell two
+ * recipients apart and will not dial either.
+ */
+export interface PlannedMessage {
+  kind: "APPOINTMENT_REMINDER" | "REMINDER_DUE";
+  /** Masked. See `maskPhone`. */
+  recipient: string;
+  body: string;
+  appointmentId?: string;
+  reminderId?: string;
+}
+
 export interface SweepSummary {
   configured: boolean;
   clinics: {
@@ -505,6 +541,14 @@ export interface SweepSummary {
   };
   appointments: SweepKindSummary;
   reminders: SweepKindSummary;
+  /**
+   * What would have gone out, filled only on a dry run.
+   *
+   * Empty on a real sweep rather than duplicating what was sent:
+   * `message_logs` is the record of that, and a second copy in a
+   * return value would be a second answer to one question.
+   */
+  planned: PlannedMessage[];
 }
 
 function emptyKindSummary(): SweepKindSummary {
@@ -545,13 +589,34 @@ function applyCensus(rows: CensusRow[], into: SweepKindSummary): void {
  * under; it does not change which rows come out eligible, and eligible
  * is the number that has to agree with the candidate query.
  */
+/**
+ * Consent, classified once for both censuses.
+ *
+ * `NULL` and `FALSE` were one bucket, and they are two different
+ * facts about a clinic: nobody asked, versus somebody asked and was
+ * told no. A settings screen counting the first as work to do would
+ * count the second as work too -- and an owner who said no is not
+ * missing data, it is a decision. Presenting it as a gap objects to
+ * the vet's own relationship with their client, on our behalf.
+ *
+ * One fragment, interpolated into both queries, because two copies of
+ * a classification eventually become two different numbers. The unit
+ * stays the row, not the distinct client: the census counts what the
+ * sweep would have looked at, and switching one line to
+ * COUNT(DISTINCT) would make the columns stop adding up.
+ */
+const CONSENT_CENSUS = Prisma.sql`
+  WHEN c."notificationsOptIn" IS NULL THEN 'neverAsked'
+  WHEN c."notificationsOptIn" = FALSE THEN 'optedOut'
+`;
+
 function appointmentCensus(clinicId: string, from: Date, to: Date) {
   return prisma.$queryRaw<CensusRow[]>(Prisma.sql`
     SELECT CASE
              WHEN a.status NOT IN ('SCHEDULED', 'CONFIRMED') THEN 'closed'
              WHEN c."archivedAt" IS NOT NULL THEN 'clientArchived'
              WHEN c.phone IS NULL THEN 'noPhone'
-             WHEN c."notificationsOptIn" IS NOT TRUE THEN 'optedOut'
+             ${CONSENT_CENSUS}
              WHEN p.deceased OR p."archivedAt" IS NOT NULL THEN 'petSilenced'
              ELSE 'eligible'
            END AS reason,
@@ -573,7 +638,7 @@ function reminderCensus(clinicId: string, from: Date, to: Date) {
              WHEN r.status <> 'PENDING' THEN 'closed'
              WHEN c."archivedAt" IS NOT NULL THEN 'clientArchived'
              WHEN c.phone IS NULL THEN 'noPhone'
-             WHEN c."notificationsOptIn" IS NOT TRUE THEN 'optedOut'
+             ${CONSENT_CENSUS}
              WHEN p.id IS NOT NULL AND (p.deceased OR p."archivedAt" IS NOT NULL)
                THEN 'petSilenced'
              ELSE 'eligible'
@@ -593,6 +658,25 @@ function reminderCensus(clinicId: string, from: Date, to: Date) {
 export const MIN_RETRY_INTERVAL_MS = 6 * 3_600_000;
 
 /**
+ * How long the provider refuses a repeat of the same text to the same
+ * number. Netgsm's own filter, not a rule of ours, which is why it is
+ * an hour and not something we chose -- and why the sweep's six-hour
+ * wait clears it six times over.
+ */
+export const DUPLICATE_WINDOW_MS = 3_600_000;
+
+/**
+ * How far back the sweep looks before deciding two reminders would say
+ * the same thing to the same person.
+ *
+ * A day, and not the provider's hour: the operator's filter protects
+ * its own network, this protects the owner. The composed text names a
+ * due date at day granularity, so two identical texts are about the
+ * same day's work however many hours apart the reminders fell due.
+ */
+export const DUPLICATE_SUPPRESSION_WINDOW_MS = 24 * 3_600_000;
+
+/**
  * Whether the sweep should leave this candidate alone for now.
  *
  * Three rules, and the middle one is why this function exists: a provider
@@ -606,14 +690,59 @@ export const MIN_RETRY_INTERVAL_MS = 6 * 3_600_000;
  * - Three failures: stop, and let someone look at it.
  * - Failed recently: wait, the attempt is not lost.
  */
+/**
+ * The failures that count against a reminder's three attempts.
+ *
+ * One definition, used by the sweep's decision and by the sentence on
+ * the row, because they are the same fact: whether anything automatic
+ * will try again. They had drifted -- `847e569` stopped our own
+ * duplicate blocks from spending attempts in the sweep and left the
+ * row computing exhaustion from every failure, so a reminder could
+ * read "no further attempts" while the sweep was still going to try.
+ *
+ * `PRODUCT` failures are ours: the provider refused a repeat of a
+ * message it had just accepted, which is evidence the first one went,
+ * not a reason to give up on this one.
+ */
+export function spentAttempts(
+  messages: { status: string; error?: string | null }[],
+): number {
+  return messages.filter((m) => m.status === "FAILED" && failureScope(m.error) !== "PRODUCT")
+    .length;
+}
+
 export function automaticSendBlock(
-  messages: { status: string; createdAt: Date }[],
+  messages: { status: string; createdAt: Date; error?: string | null }[],
   now: Date,
-): Extract<SweepSkipReason, "alreadySent" | "attemptsExhausted" | "coolingOff"> | null {
+):
+  | Extract<
+      SweepSkipReason,
+      "alreadySent" | "attemptsExhausted" | "coolingOff" | "duplicateSuppressed"
+    >
+  | null {
   if (messages.some((m) => m.status === "SENT" || m.status === "MANUAL")) return "alreadySent";
+  // Decided once and recorded, so later runs stop reconsidering it.
+  // Without the row the run-local check would only ever see its own
+  // run, and the twin would go out on the next one.
+  if (messages.some((m) => m.status === "SUPPRESSED")) return "duplicateSuppressed";
 
   const failures = messages.filter((m) => m.status === "FAILED");
-  if (failures.length >= MAX_AUTOMATIC_ATTEMPTS) return "attemptsExhausted";
+  // A failure we caused does not spend one of the reminder's three
+  // attempts.
+  //
+  // The duplicate block is the case: the provider refuses the same
+  // text to the same number inside an hour, so it fires when we sent
+  // the same thing twice -- and it is evidence the earlier message was
+  // ACCEPTED, not that this one cannot be. Counting it meant three of
+  // our own repeats could exhaust a reminder's budget and the sweep
+  // would abandon it for good, silently. That is this morning's defect
+  // with a new cause.
+  //
+  // Clinic-caused failures still count, deliberately. Three attempts
+  // against an unapproved sender title are equally futile, but a
+  // banner is already saying so on the screen: that abandonment is
+  // visible, and this one was not.
+  if (spentAttempts(messages) >= MAX_AUTOMATIC_ATTEMPTS) return "attemptsExhausted";
   if (failures.length === 0) return null;
 
   const lastFailure = Math.max(...failures.map((m) => m.createdAt.getTime()));
@@ -622,18 +751,46 @@ export function automaticSendBlock(
 
 /** The same decision as a yes-or-no, for callers that do not report why. */
 export function automaticSendBlocked(
-  messages: { status: string; createdAt: Date }[],
+  messages: { status: string; createdAt: Date; error?: string | null }[],
   now: Date,
 ): boolean {
   return automaticSendBlock(messages, now) !== null;
 }
 
-export async function runReminderSweep(now = new Date()): Promise<SweepSummary> {
+/**
+ * Runs the sweep, or rehearses it.
+ *
+ * `dryRun` answers "what would go out if I ran this now" without
+ * anything going out: the same candidate query, the same
+ * eliminations, the same composed text, and one branch at the very
+ * end where a real run hands the message to a transport and a
+ * rehearsal writes it down instead.
+ *
+ * Deliberately not a second function. Two code paths answering one
+ * question drift, and the day they do the rehearsal says "two
+ * messages" while the real run sends three -- which is worse than
+ * having no rehearsal, because somebody trusted it. The branch is as
+ * late as it can be for the same reason.
+ *
+ * Nothing is written: no `MessageLog` row, no reminder moved to
+ * SENT, no attempt spent, no suppression recorded. The counts still
+ * come out as they would have, so the summary reads the same.
+ *
+ * It exists because `SMS_PROVIDER=log` made rehearsal and reality
+ * indistinguishable, and the day a real gateway is connected that
+ * difference becomes the whole thing: without this, the first run
+ * against Netgsm is the live one.
+ */
+export async function runReminderSweep(
+  now = new Date(),
+  { dryRun = false }: { dryRun?: boolean } = {},
+): Promise<SweepSummary> {
   const summary: SweepSummary = {
     configured: false,
     clinics: { total: 0, swept: 0, messagingOff: 0, channelNotConfigured: 0 },
     appointments: emptyKindSummary(),
     reminders: emptyKindSummary(),
+    planned: [],
   };
 
   // Only the clinics that could send anything, chosen in the database.
@@ -738,6 +895,16 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           hold("noRecipient");
           continue;
         }
+        if (dryRun) {
+          summary.planned.push({
+            kind: "APPOINTMENT_REMINDER",
+            recipient: maskPhone(target.recipient),
+            body: target.body,
+            appointmentId: appointment.id,
+          });
+          appointments.sent++;
+          continue;
+        }
         try {
           await deliver(clinic, target, null);
           appointments.sent++;
@@ -749,10 +916,13 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
 
     if (!cfg.reminders.enabled) summary.reminders.clinicsDisabled++;
     else {
-      const reminderHorizon = new Date(
-        now.getTime() + (cfg.reminders.daysBefore + 2) * 86_400_000,
+      const { from: reminderFloor, to: reminderHorizon } = reminderNoticeWindow(
+        now,
+        cfg.reminders,
       );
-      const reminderFloor = new Date(now.getTime() - 86_400_000);
+      // What this run has already said, and to whom. Per clinic,
+      // because the number is the key and two clinics never share one.
+      const sentInRun = new Set<string>();
       const remindersSummary = summary.reminders;
       const hold = (reason: SweepSkipReason) => remindersSummary.skipped[reason]++;
       applyCensus(
@@ -774,7 +944,7 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           client: { select: CLIENT_SELECT },
           messages: {
             where: { kind: "REMINDER_DUE" },
-            select: { status: true, createdAt: true },
+            select: { status: true, createdAt: true, error: true },
           },
         },
       });
@@ -805,7 +975,7 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
         }
         const body = composeReminderFor(clinic.notifications.channel, {
           locale: language,
-          clientName: `${reminder.client.firstName} ${reminder.client.lastName}`.trim(),
+          clientName: ownerLabel(reminder.client),
           petName: reminder.pet?.name,
           type: reminder.type,
           title: reminder.title,
@@ -813,6 +983,81 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
           dueAt: reminder.dueAt,
           clinic,
         });
+
+        // Would this be the same sentence, to the same person, twice?
+        //
+        // The SMS is built from the owner, the animal, the type and the
+        // day: neither the title nor the body reaches it. So a vet who
+        // writes "Kuduz aşısı" and "Karma aşı" for one animal on one day
+        // has written two pieces of work whose messages are identical
+        // word for word, and both are candidates in the same run.
+        //
+        // Two checks, because one run cannot see the other: the set
+        // covers twins that come up together, the query covers a twin
+        // whose partner went out earlier. Neither is the provider's
+        // duplicate filter -- that one protects its network inside an
+        // hour, this protects the owner from reading the same thing
+        // twice.
+        const twinKey = `${recipient}|${body}`;
+        const alreadySaid =
+          sentInRun.has(twinKey) ||
+          (await prisma.messageLog.findFirst({
+            where: {
+              clinicId: clinic.id,
+              recipient,
+              body,
+              status: { in: ["SENT", "MANUAL"] },
+              createdAt: { gte: new Date(now.getTime() - DUPLICATE_SUPPRESSION_WINDOW_MS) },
+            },
+            select: { id: true },
+          }));
+        if (alreadySaid) {
+          // A rehearsal records the decision in its counts and
+          // nowhere else: writing the suppression row would leave the
+          // twin blocked for ever by a run that sent nothing.
+          if (dryRun) {
+            hold("duplicateSuppressed");
+            continue;
+          }
+          // A row of its own, and this is the point of it. Left with
+          // nothing the reminder is indistinguishable from one waiting
+          // its turn -- the screen would promise a send that is never
+          // coming, and the next run would weigh it again. What the
+          // vet decides about the second piece of work is theirs; the
+          // product's job is to say plainly that its message did not
+          // go and why.
+          await prisma.messageLog.create({
+            data: {
+              clinicId: clinic.id,
+              reminderId: reminder.id,
+              clientId: reminder.client.id,
+              channel: clinic.notifications.channel,
+              kind: "REMINDER_DUE",
+              recipient,
+              language,
+              body,
+              status: "SUPPRESSED",
+            },
+          });
+          hold("duplicateSuppressed");
+          continue;
+        }
+
+        if (dryRun) {
+          summary.planned.push({
+            kind: "REMINDER_DUE",
+            recipient: maskPhone(recipient),
+            body,
+            reminderId: reminder.id,
+          });
+          // Counted as it would be, and remembered as it would be:
+          // the twin of this message must still be held back in the
+          // rehearsal, or the rehearsal reports one more message than
+          // the real run would send.
+          sentInRun.add(twinKey);
+          remindersSummary.sent++;
+          continue;
+        }
         try {
           await deliver(
             clinic,
@@ -830,6 +1075,7 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
             where: { id: reminder.id },
             data: { status: "SENT", sentAt: now },
           });
+          sentInRun.add(twinKey);
           remindersSummary.sent++;
         } catch {
           remindersSummary.failed++;
@@ -854,6 +1100,30 @@ export async function runReminderSweep(now = new Date()): Promise<SweepSummary> 
  * why and on which attempt). A screen that reads the status can say
  * "sent" about a message that was rejected three times.
  */
+/**
+ * The days a reminder notice can be acted on: yesterday, through the
+ * clinic's notice lead time plus two.
+ *
+ * Exported and shared rather than recomputed, because two things now
+ * ask the question. The sweep asks "what may I send"; a screen asks
+ * "what will not go out", and the second is only honest inside the
+ * same horizon as the first. A count over all time would report work
+ * that is not work yet, and a second copy of this arithmetic would
+ * drift from the sweep the first time a clinic changed its lead time.
+ *
+ * The floor is a day back, matching the sweep: a notice whose day has
+ * just passed is still worth sending.
+ */
+export function reminderNoticeWindow(
+  now: Date,
+  reminders: { daysBefore: number },
+): { from: Date; to: Date } {
+  return {
+    from: new Date(now.getTime() - 86_400_000),
+    to: new Date(now.getTime() + (reminders.daysBefore + 2) * 86_400_000),
+  };
+}
+
 export type ReminderDeliveryState =
   | { state: "scheduled"; sendAt: Date; channel: Channel }
   /** The provider says it reached a handset. The only state that claims arrival. */
@@ -872,6 +1142,16 @@ export type ReminderDeliveryState =
   | { state: "sentNoReportChannel"; at: Date; channel: Channel }
   /** The validity period ran out. We do not know that it failed, only that we stopped hearing. */
   | { state: "reportExpired"; at: Date; channel: Channel }
+  /**
+   * Composed and held back: the same words had just gone to the same
+   * number, from another reminder for the same animal on the same day.
+   *
+   * Information, not a warning. Nothing failed and nobody needs to be
+   * phoned -- the owner did receive the sentence, once. Whether the
+   * second piece of work still needs doing is the vet's call, and the
+   * two rows sit next to each other so they can make it.
+   */
+  | { state: "duplicateSuppressed"; at: Date; channel: Channel }
   | {
       state: "failed";
       at: Date;
@@ -889,7 +1169,17 @@ export type ReminderDeliveryState =
   | { state: "petSilenced" }
   | { state: "noPhone" }
   | { state: "notConfigured"; channel: Channel }
+  /** Somebody opened the settings and switched sending off. */
   | { state: "disabled" }
+  /**
+   * Nobody has ever set this clinic up.
+   *
+   * Not the same as switched off, and the difference is what a vet
+   * should do next: turn it on, versus remember that you turned it
+   * off. Collapsing them told a clinic that had never seen the
+   * settings page that it had decided against messaging.
+   */
+  | { state: "notSetUp" }
   | null;
 
 export interface ReminderDeliveryRow {
@@ -955,17 +1245,36 @@ export function reminderDeliveryState(
     }
   }
 
+  // A held-back message and a failed one can both be in the history;
+  // the newest is the one that describes where the reminder stands.
+  const lastDecision = newestFirst.find(
+    (m) => m.status === "SUPPRESSED" || m.status === "FAILED",
+  );
+  if (lastDecision?.status === "SUPPRESSED")
+    return {
+      state: "duplicateSuppressed",
+      at: lastDecision.createdAt,
+      channel: lastDecision.channel,
+    };
+
   const failures = newestFirst.filter((m) => m.status === "FAILED");
   if (failures.length > 0)
     return {
       state: "failed",
       at: failures[0].createdAt,
       error: failures[0].error,
-      attempts: failures.length,
+      // The sweep's count, not every failure: a duplicate block of our
+      // own does not spend an attempt, so counting it here would show
+      // "3 attempts" beside a reminder the sweep still intends to
+      // retry. One number, one meaning -- two definitions of
+      // exhaustion were enough for one day.
+      attempts: spentAttempts(reminder.messages),
       // Derived here and not on the screen: the threshold is the sweep's
       // rule, and a copy of it in a component is a second place to
-      // change when it moves.
-      exhausted: failures.length >= MAX_AUTOMATIC_ATTEMPTS,
+      // change when it moves. Counted the sweep's way too -- our own
+      // duplicate blocks do not spend attempts, so a row must not say
+      // "no further attempts" while the sweep is still going to try.
+      exhausted: spentAttempts(reminder.messages) >= MAX_AUTOMATIC_ATTEMPTS,
       scope: failureScope(failures[0].error),
       channel: failures[0].channel,
     };
@@ -983,11 +1292,10 @@ export function reminderDeliveryState(
   if (reminder.status !== "PENDING") return null;
 
   const cfg = clinic.notifications.whatsapp;
-  // Clinic-wide reasons before per-client ones. With messaging switched
-  // off every row is equally stuck, and telling the vet "this owner did
-  // not consent" would send them to the wrong screen to fix it.
-  if (!cfg.enabled || !cfg.reminders.enabled) return { state: "disabled" };
   const channel = clinic.notifications.channel;
+  // No channel at all comes first, and stays first: with nothing
+  // configured even a manual send is refused, so nothing more specific
+  // about this owner would change what can be done.
   if (!isChannelConfigured(channel)) return { state: "notConfigured", channel };
   // Refused and never asked are one falsy value in code and two
   // different mornings for a vet: nothing to do about the first, a
@@ -997,6 +1305,27 @@ export function reminderDeliveryState(
   if (reminder.client.notificationsOptIn !== true) return { state: "neverAsked" };
   if (!normalizePhone(reminder.client.phone, countryCallingCode(clinic.country)))
     return { state: "noPhone" };
+
+  // Last, and it used to be first. The old order put the clinic-wide
+  // switch ahead of the per-owner reasons, on the argument that with
+  // messaging off every row is equally stuck and naming this owner's
+  // consent would send the vet to the wrong screen.
+  //
+  // `ed0f364` ended that: sending by hand now works while the switch
+  // is off, so the rows are no longer equally stuck. On a row whose
+  // owner never consented there is still nothing to do, and saying
+  // "notifications are off" there hides the only reason that matters
+  // -- while on every other row the switch is exactly what the
+  // sentence should name, beside a button that works.
+  //
+  // dev-ui found this, from the comment that used to justify the
+  // opposite: a reason written down is what makes it checkable when
+  // the thing underneath it moves.
+  // `null` is "nobody has said anything", `false` is "somebody said
+  // no". The reminders half only has a boolean, so an unset clinic
+  // reads as never set up whatever that says.
+  if (cfg.enabled === null) return { state: "notSetUp" };
+  if (!cfg.enabled || !cfg.reminders.enabled) return { state: "disabled" };
 
   return {
     state: "scheduled",
@@ -1048,9 +1377,24 @@ export async function sendReminderNow(reminderId: string, ctx: ActionContext) {
   ]);
   if (!reminder || !clinic) throw notFound("reminder", reminderId);
 
-  const cfg = clinic.notifications.whatsapp;
-  if (!cfg.enabled || !cfg.reminders.enabled)
-    throw new AppError("VALIDATION_FAILED", "error.notifications.remindersDisabled");
+  // The clinic's own switches are deliberately NOT checked here, and
+  // this is the one place the manual path and the sweep must differ.
+  //
+  // `whatsapp.enabled` and `reminders.enabled` govern the automatic
+  // loop: whether the app writes to owners unattended. Sending one
+  // message by hand, on purpose, to a person you chose, is a different
+  // act -- and it is how anyone comes to trust the loop enough to turn
+  // it on. The vet who asked for it put it as a deadlock: "to trust it
+  // I have to try it, to try it I have to switch it on, to switch it
+  // on I have to trust it." Gating both on one switch closes the only
+  // door in.
+  //
+  // The appointment page's manual send has never checked them either;
+  // this path checking them was the two halves of one action
+  // disagreeing about what is allowed.
+  //
+  // Everything else still applies below: consent, a dialable number, a
+  // living animal, a configured channel. Those are not preferences.
   if (!isChannelConfigured(clinic.notifications.channel))
     throw new AppError("VALIDATION_FAILED", "error.notifications.notConfigured");
   if (reminder.pet && isPetSilenced(reminder.pet))
@@ -1059,16 +1403,52 @@ export async function sendReminderNow(reminderId: string, ctx: ActionContext) {
     throw new AppError("VALIDATION_FAILED", "error.notifications.optedOut");
   if (automaticSendBlock(reminder.messages, new Date()) === "alreadySent")
     throw new AppError("VALIDATION_FAILED", "error.notifications.alreadySent");
-  // Note for whoever shortens the sweep's own wait: Netgsm blocks the
-  // same text to the same number inside an hour as a duplicate, and
-  // reports it as a failure that is ours rather than the owner's. The
-  // sweep waits six hours so it cannot trip that; this path does not
-  // wait at all, by design -- a person pressing send twice in a minute
-  // may see the provider refuse the second one.
+  // Note for whoever shortens the sweep's own wait: the sweep waits six
+  // hours, the provider's duplicate window is one, so the sweep cannot
+  // trip it. This path does not wait at all, by design -- which is why
+  // it has to check for itself, below.
 
   const language = toMessageLocale(reminder.client.preferredLanguage);
   const recipient = normalizePhone(reminder.client.phone, countryCallingCode(clinic.country));
   if (!recipient) throw new AppError("VALIDATION_FAILED", "error.notifications.noPhone");
+
+  const body = composeReminderFor(clinic.notifications.channel, {
+    locale: language,
+    clientName: ownerLabel(reminder.client),
+    petName: reminder.pet?.name,
+    type: reminder.type,
+    title: reminder.title,
+    body: reminder.body,
+    dueAt: reminder.dueAt,
+    clinic,
+  });
+
+  // Refused here rather than by the provider, and the difference is
+  // what the vet learns.
+  //
+  // The operator blocks the same text to the same number inside an
+  // hour. Pressing send after a failure -- the one moment this button
+  // exists for -- can land inside that window, and the provider's
+  // answer arrives as another failed row: a second failure that says
+  // nothing, for a message that already went. A vet reasonably
+  // concludes the product is broken.
+  //
+  // Checked across the clinic and not just this reminder, because the
+  // provider's filter is on the text and the number, and two different
+  // reminders for one animal on one day compose the same words.
+  const duplicateWindowStart = new Date(Date.now() - DUPLICATE_WINDOW_MS);
+  const recentlyAccepted = await prisma.messageLog.findFirst({
+    where: {
+      clinicId: ctx.clinicId,
+      recipient,
+      body,
+      status: { in: ["SENT", "MANUAL"] },
+      createdAt: { gte: duplicateWindowStart },
+    },
+    select: { id: true },
+  });
+  if (recentlyAccepted)
+    throw new AppError("VALIDATION_FAILED", "error.notifications.duplicateWindow");
 
   const log = await deliver(
     clinic,
@@ -1078,16 +1458,7 @@ export async function sendReminderNow(reminderId: string, ctx: ActionContext) {
       kind: "REMINDER_DUE",
       recipient,
       language,
-      body: composeReminderFor(clinic.notifications.channel, {
-        locale: language,
-        clientName: `${reminder.client.firstName} ${reminder.client.lastName}`.trim(),
-        petName: reminder.pet?.name,
-        type: reminder.type,
-        title: reminder.title,
-        body: reminder.body,
-        dueAt: reminder.dueAt,
-        clinic,
-      }),
+      body,
     },
     ctx.userId,
   );

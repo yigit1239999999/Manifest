@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
+import { ownerLabel } from "@/lib/pet-label";
 
 interface ClientResult {
   id: string;
@@ -146,7 +147,7 @@ export function CommandPalette() {
         // reads as a control from a different application. A focus mark
         // that moves between two colours as you tab along a row is
         // worse than either colour on its own.
-        className="hidden h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2 sm:inline-flex"
+        className="hidden h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs text-muted-foreground transition-colors-no-focus-delay hover:bg-muted focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2 sm:inline-flex"
         aria-label={tCommon("search")}
       >
         <Search className="size-3.5" />
@@ -216,7 +217,7 @@ export function CommandPalette() {
                   >
                     <Users className="size-4 text-muted-foreground" />
                     <span className="text-sm font-medium">
-                      {c.firstName} {c.lastName}
+                      {ownerLabel(c)}
                     </span>
                     {c.email && (
                       <span className="ml-auto text-xs text-muted-foreground">
@@ -239,7 +240,7 @@ export function CommandPalette() {
                     <PawPrint className="size-4 text-muted-foreground" />
                     <span className="text-sm font-medium">{p.name}</span>
                     <span className="ml-auto text-xs text-muted-foreground">
-                      {p.owner.firstName} {p.owner.lastName}
+                      {ownerLabel(p.owner)}
                     </span>
                   </PaletteItem>
                 ))}
@@ -266,7 +267,7 @@ function PaletteItem({
       value={value}
       onSelect={onSelect}
       className={cn(
-        "flex cursor-pointer items-center gap-2.5 rounded-control px-2 py-2 transition-colors",
+        "flex cursor-pointer items-center gap-2.5 rounded-control px-2 py-2 transition-colors-no-focus-delay",
         "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground",
       )}
     >

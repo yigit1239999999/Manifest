@@ -1,360 +1,165 @@
-// What a row of an imported spreadsheet can say, and how a column header is
-// recognised as saying it.
-//
-// One row is one animal with its owner beside it, because that is the shape
-// both hand-kept sheets and old clinic software exports actually have: the
-// owner repeats on every line that holds one of their animals. Splitting it
-// into an owners sheet and an animals sheet would be tidier and is not what
-// anybody has on their disk.
+import type { ColumnEvidence, ColumnKind } from "./infer";
 
-import { fold } from "@/lib/search";
+/**
+ * Where a column can land, and -- the harder half -- when we are allowed to
+ * say so without asking.
+ *
+ * Two rules hold this file up, and both come from things that were measured
+ * rather than assumed.
+ *
+ * RULE ONE: CONTENT ADMITS, HEADER ONLY ORDERS.
+ *
+ * A header may never introduce a candidate the values do not already allow. A
+ * column of pet names under a heading that says "Tel" is a column of pet
+ * names; the vet's file was typed by three people and its headings are a
+ * writing habit, so letting one override the values is how a name ends up in
+ * the phone field. But among candidates the content ALREADY allows, a heading
+ * is honest evidence and throwing it away would be silly: two phone-shaped
+ * columns are `phone` and `secondaryPhone` in some order, and "Cep" over one
+ * of them is the only thing in the file that says which.
+ *
+ * RULE TWO: ONE CANDIDATE IS NOT THE SAME AS ONE ANSWER.
+ *
+ * A proposal is `settled` only when the evidence leaves exactly one target AND
+ * the column was decidable in the first place. Everything else is `ask`, and
+ * `ask` is not a weaker version of `settled` -- it is the product refusing to
+ * decide something the vet has to (#20: the product proposes, it does not
+ * rule). Three name-shaped columns with three names in the target list is
+ * three questions, not three guesses.
+ */
 
-export const IMPORT_FIELDS = [
-  "ownerName",
-  "ownerFirstName",
-  "ownerLastName",
-  "phone",
-  "email",
-  "address",
-  "city",
-  "ownerNotes",
-  "petName",
-  "species",
-  "breed",
-  "sex",
-  "birthDate",
-  "color",
-  "microchip",
-  "neutered",
-  "weight",
-  "petNotes",
-  "vaccineName",
-  "vaccineDate",
-  "vaccineNextDue",
-] as const;
+/** A place a spreadsheet column can be imported into. */
+export type ImportField =
+  // Client
+  | "client.firstName"
+  | "client.lastName"
+  | "client.phone"
+  | "client.secondaryPhone"
+  | "client.email"
+  | "client.city"
+  | "client.address"
+  | "client.notes"
+  // Pet
+  | "pet.name"
+  | "pet.species"
+  | "pet.breed"
+  | "pet.sex"
+  | "pet.birthDate"
+  | "pet.microchipId"
+  | "pet.color"
+  | "pet.weightKg"
+  | "pet.notes"
+  // The column is read and thrown away, on purpose and on the record.
+  | "skip";
 
-export type ImportField = (typeof IMPORT_FIELDS)[number];
-
-/** Which group a field is listed under in the mapping step. */
-export const FIELD_GROUP: Record<ImportField, "owner" | "pet" | "vaccine"> = {
-  ownerName: "owner",
-  ownerFirstName: "owner",
-  ownerLastName: "owner",
-  phone: "owner",
-  email: "owner",
-  address: "owner",
-  city: "owner",
-  ownerNotes: "owner",
-  petName: "pet",
-  species: "pet",
-  breed: "pet",
-  sex: "pet",
-  birthDate: "pet",
-  color: "pet",
-  microchip: "pet",
-  neutered: "pet",
-  weight: "pet",
-  petNotes: "pet",
-  vaccineName: "vaccine",
-  vaccineDate: "vaccine",
-  vaccineNextDue: "vaccine",
+/**
+ * Which shapes a field will accept.
+ *
+ * Deliberately generous on `text`: almost anything can be typed into a name or
+ * a note, and a narrow list here would silently drop columns instead of asking
+ * about them. Narrowness belongs in `settled`, not in admission.
+ */
+const ACCEPTS: Record<Exclude<ImportField, "skip">, ColumnKind[]> = {
+  "client.firstName": ["text"],
+  "client.lastName": ["text"],
+  "client.phone": ["phone"],
+  "client.secondaryPhone": ["phone"],
+  "client.email": ["email"],
+  "client.city": ["text"],
+  "client.address": ["text"],
+  "client.notes": ["text"],
+  "pet.name": ["text"],
+  "pet.species": ["text"],
+  "pet.breed": ["text"],
+  "pet.sex": ["text"],
+  "pet.birthDate": ["date"],
+  "pet.microchipId": ["number", "text"],
+  "pet.color": ["text"],
+  "pet.weightKg": ["number"],
+  "pet.notes": ["text"],
 };
 
 /**
- * Header spellings per field, already in the folded form `headerKey`
- * produces: lower case, Turkish letters folded, punctuation as spaces.
+ * Heading words that ORDER candidates. They never admit one.
  *
- * Turkish first because the sheets are, English because old software
- * exports often are. "Cins" is a breed here and not a species: that is how
- * Turkish vet records use it ("Cinsi: Golden"), and reading it as species
- * would turn every golden retriever into a new species called "Golden".
+ * Folded the Turkish way before matching, because `/i` does not fold `İ` to
+ * `i` -- "TELEFON" and "Telefon" must hit the same entry as "telefon", and
+ * `"İ".toLowerCase()` produces `i` plus a combining dot that matches nothing.
+ *
+ * This list is allowed to be incomplete and allowed to be wrong about any
+ * particular clinic. That is the point of it only ordering: a missing word
+ * costs one extra question, a wrong word costs one wrong ORDER among already
+ * valid candidates, and neither can put a value where it does not belong.
  */
-const SYNONYMS: Record<ImportField, readonly string[]> = {
-  ownerName: [
-    "sahip",
-    "sahibi",
-    "sahip adi",
-    "sahip adi soyadi",
-    "sahip ad soyad",
-    "sahip ad soyadi",
-    "sahibin adi",
-    "musteri",
-    "musteri adi",
-    "musteri adi soyadi",
-    "musteri ad soyad",
-    "hayvan sahibi",
-    "ad soyad",
-    "adi soyadi",
-    "ad soyadi",
-    "isim soyisim",
-    "owner",
-    "owner name",
-    "client",
-    "client name",
-    "customer",
-    "customer name",
-    "full name",
-    "owner full name",
-  ],
-  ownerFirstName: ["ad", "adi", "isim", "first name", "firstname", "given name"],
-  ownerLastName: [
-    "soyad",
-    "soyadi",
-    "soyisim",
-    "sahip soyadi",
-    "musteri soyadi",
-    "last name",
-    "lastname",
-    "surname",
-    "family name",
-  ],
-  phone: [
-    "telefon",
-    "tel",
-    "tel no",
-    "telefon no",
-    "telefon numarasi",
-    "cep",
-    "cep no",
-    "cep tel",
-    "cep telefonu",
-    "gsm",
-    "mobil",
-    "sahip telefon",
-    "sahip telefonu",
-    "musteri telefon",
-    "musteri telefonu",
-    "phone",
-    "phone number",
-    "mobile",
-    "cell",
-    "telephone",
-  ],
-  email: [
-    "e posta",
-    "eposta",
-    "e posta adresi",
-    "mail",
-    "email",
-    "e mail",
-    "email address",
-  ],
-  address: ["adres", "ev adresi", "acik adres", "address"],
-  city: ["il", "sehir", "city"],
-  ownerNotes: [
-    "sahip notu",
-    "sahip notlari",
-    "musteri notu",
-    "musteri notlari",
-    "owner notes",
-    "client notes",
-  ],
-  petName: [
-    "hayvan",
-    "hayvan adi",
-    "hayvanin adi",
-    "evcil hayvan",
-    "evcil hayvan adi",
-    "hasta adi",
-    "pet",
-    "pet name",
-    "patient",
-    "patient name",
-    "animal",
-    "animal name",
-  ],
-  species: [
-    "tur",
-    "turu",
-    "hayvan turu",
-    "tur adi",
-    "tip",
-    "species",
-    "animal type",
-    "pet type",
-  ],
-  breed: ["irk", "irki", "cins", "cinsi", "breed"],
-  sex: ["cinsiyet", "cinsiyeti", "sex", "gender"],
-  birthDate: [
-    "dogum tarihi",
-    "dogum",
-    "d tarihi",
-    "birth date",
-    "birthdate",
-    "date of birth",
-    "dob",
-    "birthday",
-  ],
-  color: ["renk", "rengi", "renk desen", "renk ve desen", "color", "colour"],
-  microchip: [
-    "cip",
-    "cip no",
-    "cip numarasi",
-    "mikrocip",
-    "mikrocip no",
-    "mikrocip numarasi",
-    "microchip",
-    "microchip id",
-    "microchip no",
-    "microchip number",
-    "chip",
-    "chip no",
-  ],
-  neutered: [
-    "kisir",
-    "kisirlastirilmis",
-    "kisirlastirildi",
-    "kisirlastirildi mi",
-    "kisirlastirma",
-    "kastre",
-    "kastrasyon",
-    "neutered",
-    "spayed",
-    "spayed neutered",
-    "sterilized",
-  ],
-  weight: ["kilo", "kilo kg", "agirlik", "agirlik kg", "weight", "weight kg"],
-  petNotes: [
-    "not",
-    "notlar",
-    "notu",
-    "aciklama",
-    "hayvan notu",
-    "hayvan notlari",
-    "notes",
-    "note",
-    "pet notes",
-  ],
-  vaccineName: [
-    "asi",
-    "asi adi",
-    "son asi",
-    "son asi adi",
-    "son yapilan asi",
-    "vaccine",
-    "vaccine name",
-    "last vaccine",
-  ],
-  vaccineDate: [
-    "asi tarihi",
-    "son asi tarihi",
-    "asilama tarihi",
-    "vaccine date",
-    "last vaccine date",
-    "vaccination date",
-  ],
-  vaccineNextDue: [
-    "sonraki asi",
-    "sonraki asi tarihi",
-    "sonraki doz",
-    "sonraki doz tarihi",
-    "asi hatirlatma",
-    "asi hatirlatma tarihi",
-    "next due",
-    "next due date",
-    "next vaccine",
-    "next vaccine date",
-    "next vaccination",
-  ],
-};
+const HEADING_HINTS: Array<{ words: string[]; field: ImportField }> = [
+  { words: ["cep", "gsm", "mobil"], field: "client.phone" },
+  { words: ["ev tel", "is tel", "iş tel", "sabit", "diger tel", "diğer tel", "2. tel", "ikinci"], field: "client.secondaryPhone" },
+  { words: ["tel", "telefon", "numara"], field: "client.phone" },
+  { words: ["eposta", "e-posta", "email", "mail"], field: "client.email" },
+  { words: ["sahip", "musteri", "müşteri", "sahibi", "veli"], field: "client.firstName" },
+  { words: ["soyad", "soyisim"], field: "client.lastName" },
+  { words: ["adres"], field: "client.address" },
+  { words: ["sehir", "şehir", "il", "ilce", "ilçe"], field: "client.city" },
+  { words: ["hasta", "hayvan", "pet", "isim", "ad"], field: "pet.name" },
+  { words: ["tur", "tür", "cins", "cinsi"], field: "pet.species" },
+  { words: ["irk", "ırk"], field: "pet.breed" },
+  { words: ["cinsiyet", "erkek", "disi", "dişi"], field: "pet.sex" },
+  { words: ["dogum", "doğum", "yas", "yaş"], field: "pet.birthDate" },
+  { words: ["cip", "çip", "chip", "mikrocip", "mikroçip", "kunye", "künye"], field: "pet.microchipId" },
+  { words: ["renk"], field: "pet.color" },
+  { words: ["kilo", "agirlik", "ağırlık", "kg"], field: "pet.weightKg" },
+  { words: ["not", "aciklama", "açıklama"], field: "pet.notes" },
+];
 
-/** "Doğum Tarihi (gg.aa.yyyy)" → "dogum tarihi gg aa yyyy". */
-export function headerKey(header: string): string {
-  return fold(header)
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
+/** Turkish-aware folding: `İ`->`i`, `I`->`ı`, then lowercase. */
+export function fold(value: string): string {
+  return value.replace(/İ/g, "i").replace(/I/g, "ı").toLowerCase().trim();
 }
 
-const EXACT = 100;
+export type Proposal = {
+  /** Every field the column's CONTENT allows, best-ordered first. */
+  candidates: ImportField[];
+  /**
+   * True only when the content leaves exactly one candidate and the column was
+   * decidable. False means the screen asks -- which is most columns, by design.
+   */
+  settled: boolean;
+  /** The heading that moved the order, if one did. Shown so the vet can see why. */
+  orderedBy?: string;
+};
 
-/**
- * How strongly a header reads as a field: exact spelling beats a header
- * that merely contains a synonym's words, and a longer synonym beats a
- * shorter one ("Son Aşı Tarihi" is a vaccine date, not a vaccine name).
- */
-function score(key: string, field: ImportField): number {
-  if (!key) return 0;
-  const tokens = new Set(key.split(" "));
-  let best = 0;
-  for (const synonym of SYNONYMS[field]) {
-    if (synonym === key) return EXACT;
-    const words = synonym.split(" ");
-    // A one-letter-ish synonym ("il", "ad", "tel") inside a longer header
-    // is noise more often than signal: "Ad" is in "Hayvan Adı" too.
-    if (words.length === 1 && synonym.length < 4) continue;
-    if (words.every((w) => tokens.has(w))) best = Math.max(best, words.length);
+export function propose(evidence: ColumnEvidence, heading?: string): Proposal {
+  if (evidence.kind === "empty") {
+    // Nothing in it. Not a question -- there is no answer to get wrong.
+    return { candidates: ["skip"], settled: true };
   }
-  return best;
-}
 
-/** Column index → field, or null for a column that is not imported. */
-export type ColumnMapping = (ImportField | null)[];
+  const candidates = (Object.keys(ACCEPTS) as Array<Exclude<ImportField, "skip">>)
+    .filter((field) => ACCEPTS[field].includes(evidence.kind));
 
-/**
- * The mapping a person would most likely pick, from header text alone.
- *
- * Each field goes to at most one column, the one that reads most like it;
- * a tie goes to the column further left, which is the one a person reads
- * first. Anything unrecognised is left unmapped rather than guessed: an
- * unused column costs a click in the next step, a wrongly used one writes
- * a phone number into the notes.
- */
-export function autoMap(headers: readonly string[]): ColumnMapping {
-  const keys = headers.map(headerKey);
-  const candidates: { column: number; field: ImportField; score: number }[] = [];
-  keys.forEach((key, column) => {
-    for (const field of IMPORT_FIELDS) {
-      const s = score(key, field);
-      if (s > 0) candidates.push({ column, field, score: s });
+  // The heading may move one candidate to the front, and only if it is
+  // already in the list. A "Tel" heading over a column of names moves nothing.
+  let orderedBy: string | undefined;
+  if (heading && heading.trim() !== "") {
+    const folded = fold(heading);
+    const hit = HEADING_HINTS.find(
+      (h) => h.words.some((w) => folded.includes(w)) && candidates.includes(h.field as Exclude<ImportField, "skip">),
+    );
+    if (hit) {
+      orderedBy = heading.trim();
+      candidates.sort((a, b) => (a === hit.field ? -1 : b === hit.field ? 1 : 0));
     }
-  });
-  candidates.sort((a, b) => b.score - a.score || a.column - b.column);
-
-  const mapping: ColumnMapping = headers.map(() => null);
-  const used = new Set<ImportField>();
-  for (const c of candidates) {
-    if (used.has(c.field) || mapping[c.column] !== null) continue;
-    mapping[c.column] = c.field;
-    used.add(c.field);
   }
-  return mapping;
-}
 
-/** The fields a mapping must cover before rows can be read at all. */
-export function missingRequired(mapping: ColumnMapping): ImportField[] {
-  const has = (f: ImportField) => mapping.includes(f);
-  const missing: ImportField[] = [];
-  if (!has("ownerName") && !(has("ownerFirstName") && has("ownerLastName")))
-    missing.push("ownerName");
-  if (!has("petName")) missing.push("petName");
-  if (!has("species")) missing.push("species");
-  return missing;
-}
+  // `skip` is always available and always last: throwing a column away is a
+  // choice the vet gets to make about any column, not a fallback we pick.
+  const withSkip: ImportField[] = [...candidates, "skip"];
 
-/** Column index per field, the shape the row reader wants. */
-export function fieldIndex(
-  mapping: ColumnMapping,
-): Partial<Record<ImportField, number>> {
-  const out: Partial<Record<ImportField, number>> = {};
-  mapping.forEach((field, column) => {
-    if (field && out[field] === undefined) out[field] = column;
-  });
-  return out;
-}
-
-/**
- * A mapping that came over the wire, held to the shape this file defines.
- * Unknown names become "not imported"; a field claimed twice keeps its
- * first column, so the server never reads one field from two places.
- */
-export function sanitizeMapping(raw: unknown, columns: number): ColumnMapping {
-  const known = new Set<string>(IMPORT_FIELDS);
-  const list = Array.isArray(raw) ? raw : [];
-  const seen = new Set<string>();
-  return Array.from({ length: columns }, (_, i) => {
-    const value = list[i];
-    if (typeof value !== "string" || !known.has(value) || seen.has(value)) return null;
-    seen.add(value);
-    return value as ImportField;
-  });
+  return {
+    // One candidate plus skip is still one real answer; the heading never
+    // creates settledness, because ordering a list of two does not shorten it.
+    settled: evidence.decidable && candidates.length === 1,
+    candidates: withSkip,
+    orderedBy,
+  };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPossiblePhoneText, normalizePhone, telHref } from "./phone";
+import { isPossiblePhoneText, maskPhone, normalizePhone, telHref } from "./phone";
 
 describe("normalizePhone", () => {
   it("turns Turkish local formats into international digits", () => {
@@ -71,5 +71,58 @@ describe("telHref", () => {
     expect(telHref("sabit hat yok")).toBeNull();
     expect(telHref(null)).toBeNull();
     expect(telHref("")).toBeNull();
+  });
+});
+
+// Appearance is not what decides whether something is a number: digit
+// count was, and `0000000000` clears the floor. Somebody who cannot
+// leave a field blank types zeros, so this is a habit rather than an
+// accident -- and the day a gateway is connected it becomes a real
+// send attempt against a number that cannot exist.
+describe("a field filled with zeros is not a phone number", () => {
+  it("refuses one long enough to have passed the length floor", () => {
+    expect(isPossiblePhoneText("0000000000")).toBe(false);
+    expect(normalizePhone("0000000000")).toBeNull();
+    // The link is the visible half of the same mistake.
+    expect(telHref("0000000000")).toBeNull();
+  });
+
+  it("keeps refusing the short marker, which the floor already caught", () => {
+    // True today for a different reason -- three digits is under the
+    // floor -- and this pins it so a change to the floor cannot make
+    // `000` dialable without failing here first.
+    expect(isPossiblePhoneText("000")).toBe(false);
+    expect(normalizePhone("000")).toBeNull();
+  });
+
+  it("is decided on what was typed, not on what a calling code adds", () => {
+    // Prepending "90" supplies a non-zero digit, so a check made after
+    // that would accept everything.
+    expect(normalizePhone("0000000000", "90")).toBeNull();
+    expect(normalizePhone("+00 000 000 0000")).toBeNull();
+  });
+
+  it("still accepts a real number that happens to contain zeros", () => {
+    // The rule is "no digit but zero", not "no zeros" -- most Turkish
+    // mobiles start with one.
+    expect(normalizePhone("0532 000 00 00")).toBe("905320000000");
+    expect(isPossiblePhoneText("0500 000 00 01")).toBe(true);
+  });
+});
+
+// The dry run prints what would go out, and a rehearsal that spreads
+// real numbers through a terminal is a poor rehearsal. One reached
+// mine today from a read-only query selecting a column it did not
+// need.
+describe("maskPhone", () => {
+  it("keeps enough to tell two recipients apart, and no more", () => {
+    expect(maskPhone("905321234567")).toBe("•••• 4567");
+    expect(maskPhone("0532 123 45 67")).toBe("•••• 4567");
+  });
+
+  it("gives nothing away when there is nothing to keep", () => {
+    expect(maskPhone(null)).toBe("••••");
+    expect(maskPhone("")).toBe("••••");
+    expect(maskPhone("12")).toBe("••••");
   });
 });

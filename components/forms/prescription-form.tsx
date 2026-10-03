@@ -26,12 +26,19 @@ export function PrescriptionForm({
   const form = useActionForm(createPrescriptionAction, {});
   const { state, reset } = form;
 
+  const savedMessage = tCommon("saved");
+
+  // The message is resolved BEFORE the effect and the effect depends on
+  // the string, not on the translator. `useTranslations` hands back a
+  // new function identity on a re-render, so a dependency array holding
+  // it re-runs the effect for a render that changed nothing -- and the
+  // user gets a second toast for one save. A string is equal to itself.
   useEffect(() => {
     if (state.success) {
       reset();
-      toast.success(tCommon("saved"));
+      toast.success(savedMessage);
     }
-  }, [state.success, tCommon, reset]);
+  }, [state.success, savedMessage, reset]);
 
   return (
     <ActionForm

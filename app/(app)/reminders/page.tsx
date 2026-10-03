@@ -12,6 +12,8 @@ import {
   OPEN_REMINDER_STATUSES,
   reminderStatusCounts,
 } from "@/modules/reminders/queries";
+import { blockedReminders } from "@/modules/notifications/queries";
+import { PAGE_SIZES } from "@/lib/pagination";
 import { REMINDER_STATUSES } from "@/modules/reminders/schema";
 import {
   acknowledgeReminderAction,
@@ -32,6 +34,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FilterTabs } from "@/components/filter-tabs";
 import { Pagination } from "@/components/pagination";
 import { ReminderForm } from "@/components/forms/reminder-form";
+import { MissingLink } from "@/components/missing-link";
 import { ReminderCloseButtons } from "@/components/reminder-close-buttons";
 import {
   ReminderDeliveryLine,
@@ -50,6 +53,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
+import { ownerLabel } from "@/lib/pet-label";
 
 /**
  * Closed is derived, not listed again. A fifth status would otherwise have
@@ -63,16 +67,19 @@ const CLOSED_REMINDER_STATUSES = REMINDER_STATUSES.filter(
 export default async function RemindersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; group?: string; page?: string }>;
 }) {
   const fmt = await getFormatContext();
   const session = await requireSession();
-  const { status, page: pageParam } = await searchParams;
+  const { status, group, page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   // No parameter means open, because open is the working list. "All" is a
   // deliberate ask, not the resting state (TEAM.md #16c: the list has to be
   // countable against the vet's own memory, and "everything ever" is not).
-  const view = status === "closed" || status === "all" ? status : "open";
+  const view =
+    status === "closed" || status === "all" || status === "blocked"
+      ? status
+      : "open";
   const statuses =
     view === "open"
       ? [...OPEN_REMINDER_STATUSES]
@@ -80,7 +87,7 @@ export default async function RemindersPage({
         ? [...CLOSED_REMINDER_STATUSES]
         : [...REMINDER_STATUSES];
 
-  const [t, tType, tStatus, tCommon, tChannel, tFailure, clinic, result, counts, clients, pets] =
+  const [t, tType, tStatus, tCommon, tChannel, tFailure, clinic, result, counts, blocked, clients, pets] =
     await Promise.all([
       getTranslations("reminder"),
       getTranslations("enum.reminderType"),
@@ -95,6 +102,14 @@ export default async function RemindersPage({
       getClinicMessagingProfile(session.user.clinicId),
       listReminders({ clinicId: session.user.clinicId, statuses, page }),
       reminderStatusCounts(session.user.clinicId),
+      // Always, not only on that tab: the count belongs on the tab so a
+      // vet sees it without going looking, and the list and the number
+      // come out of one call so they cannot describe different sets
+      // (value's condition). `take: 0` when we only need the number --
+      // the window is read either way, and this saves the shaping.
+      blockedReminders(session.user.clinicId, {
+        take: view === "blocked" ? PAGE_SIZES.LIST : 0,
+      }),
       listClients({ clinicId: session.user.clinicId }),
       // Without `excludeDeceased` the picker offers an animal the
       // server will refuse: `createReminder` rejects a dead one, so the
@@ -115,8 +130,14 @@ export default async function RemindersPage({
   // Said once, above the list, instead of on every row. The master switch
   // being off is one fact about the clinic; printed per row it becomes a
   // hundred identical sentences pointing at the same single setting.
+  // Three-valued, and the middle value is the new one: `null` means
+  // nobody has opened the settings page yet, `false` means somebody
+  // decided against it. Telling a clinic that has never seen that page
+  // it "switched messaging off" describes a decision it never made --
+  // the same shape as `neverAsked` against `optedOut` one level down.
+  const notSetUp = clinic?.notifications.whatsapp.enabled === null;
   const messagingOff = clinic
-    ? !clinic.notifications.whatsapp.enabled ||
+    ? clinic.notifications.whatsapp.enabled === false ||
       !clinic.notifications.whatsapp.reminders.enabled
     : false;
 
@@ -140,6 +161,27 @@ export default async function RemindersPage({
     : false;
 
   const reminders = result.items;
+
+  // Which rows are actually on the page, so the fold under a suppressed
+  // one can tell a link it can keep from one it cannot: the anchor it
+  // points at only exists while that reminder is in the current filter.
+  const presentIds = new Set(reminders.map((r) => r.id));
+
+  // The dashboard counts one half of this tab and links here carrying
+  // the name of that half. Without the filter a vet reads "3 will not
+  // reach anyone", arrives, and counts eight rows -- the number and the
+  // rows describing different sets, which is the whole thing the count
+  // was made a subset to avoid.
+  //
+  // Filtered from `items` rather than asked for separately: the group
+  // is decided in the query and carried on every row, so choosing here
+  // is a selection and not a second derivation. Bounded by the same
+  // `take` as the list itself.
+  const unreachedOnly = group === "unreached";
+  const blockedRows = unreachedOnly
+    ? blocked.items.filter((b) => b.group === "unreached")
+    : blocked.items;
+
   const deliveries = clinic
     ? reminders.map((r) => reminderDeliveryState(r, clinic))
     : [];
@@ -177,12 +219,19 @@ export default async function RemindersPage({
     switch (delivery.state) {
       case "disabled":
       case "notConfigured":
+      case "notSetUp":
         return null;
       case "optedOut":
       case "neverAsked":
       case "noPhone":
       case "petSilenced":
         return { state: delivery.state };
+      case "duplicateSuppressed":
+        return {
+          state: "duplicateSuppressed",
+          at: delivery.at,
+          channel: tChannel(delivery.channel),
+        };
       case "failed":
         return delivery.scope === "CLINIC"
           ? { state: "failedClinic", at: delivery.at }
@@ -204,28 +253,22 @@ export default async function RemindersPage({
         return delivery.sendAt.getTime() <= now
           ? { state: "dueNow", channel: tChannel(delivery.channel) }
           : { ...delivery, channel: tChannel(delivery.channel) };
-      // Five ways a message can have been accepted, and in test mode all
-      // five collapse into one.
+      // Five ways a message can have been accepted, and in test mode
+      // each of them says so alongside what it says.
       //
-      // `logTransport` writes to a file and now also answers with a
-      // synthetic delivery report, so on this ground a row can reach
-      // `delivered` without anything having left the app. "Ulaştı" there
-      // would be the worst version of the claim this whole naming rule
-      // exists to prevent -- not a word reaching past its evidence, but a
-      // word with no evidence underneath it at all. The same goes for
-      // "Ulaşmadı": a fake report cannot fail either.
+      // `logTransport` writes to a file and answers with a synthetic
+      // delivery report, so on this ground a row really can reach
+      // `delivered` -- a provider was asked and it answered. What the
+      // note adds is what kind of provider that was. Replacing the
+      // five sentences instead of qualifying them was my first answer
+      // and the wrong one: development is the only place these five
+      // can be seen, since there is no provider account in production,
+      // and a state nobody can produce is a state nobody has measured.
       case "delivered":
       case "sentAwaitingReport":
       case "undelivered":
       case "sentNoReportChannel":
       case "reportExpired":
-        if (testMode)
-          return {
-            state: "sent",
-            at: delivery.at,
-            channel: tChannel(delivery.channel),
-            testMode: true,
-          };
         return {
           // `sentNoReportChannel` says "Sent" and stops, because that is
           // everything this channel will ever tell us -- no wait is
@@ -240,6 +283,7 @@ export default async function RemindersPage({
                 : delivery.state,
           at: delivery.at,
           channel: tChannel(delivery.channel),
+          testMode,
         };
     }
     // Not a `default:` branch, on purpose. A tenth state added to
@@ -270,7 +314,11 @@ export default async function RemindersPage({
           switch off nothing is being attempted, so that rejection is a
           record of the past and "nothing goes out at all" is the fact to
           act on first. */}
-      {messagingOff ? (
+      {notSetUp ? (
+        <NotificationBlockedBanner settingsHref={settingsHref}>
+          {t("banner.notSetUp")}
+        </NotificationBlockedBanner>
+      ) : messagingOff ? (
         <NotificationBlockedBanner settingsHref={settingsHref}>
           {t("banner.disabled")}
         </NotificationBlockedBanner>
@@ -291,6 +339,40 @@ export default async function RemindersPage({
         )
       )}
 
+      {/* The fifth instance of a pattern the other four closed this
+          morning, and the only one that shows its form inline rather
+          than behind a `/new` route -- which is exactly why it was
+          missed. A reminder is raised against a client (`clientId` is
+          required in `modules/reminders/schema.ts`; the animal is
+          optional), so on a clinic with none this card opened a form
+          whose required picker answered "no results" and offered
+          nowhere to go. pm found it by walking the list screens in the
+          dark theme.
+
+          The errand is this screen, not its form: `/reminders` went into
+          `ALLOWED_PATHS` in 62faf00 and deliberately carries no
+          `RECORD_PARAM`, so somebody who came here to read comes back
+          here to read, with the client now on file. Until that entry
+          existed the `next` was left off rather than guessed: `safeNext`
+          drops an unlisted destination silently, so it would have looked
+          like it worked and quietly not. */}
+      {clients.items.length === 0 ? (
+        <MissingLink
+          need="client"
+          next="/reminders"
+          // The same shape as /appointments and /invoices: what the
+          // screen is, then what is missing. It used to take the form
+          // card's title instead -- "New reminder", the name of an
+          // action, above a body explaining the vet cannot take it.
+          //
+          // It can carry the list's own hint now because the list's
+          // empty state stands down below (see `reminders.length`):
+          // this IS the screen's empty state on a clinic with no
+          // clients, rather than a card that happens to sit above one.
+          title={t("empty")}
+          description={t("emptyHint")}
+        />
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle>{t("new")}</CardTitle>
@@ -318,13 +400,14 @@ export default async function RemindersPage({
               // independently: a listed animal's owner is not
               // necessarily one of the listed clients, and the form
               // fills the client in from the animal.
-              ownerName: `${p.owner.firstName} ${p.owner.lastName}`,
+              ownerName: ownerLabel(p.owner),
             }))}
             clientsCapped={clients.hasMore}
             petsCapped={pets.hasMore}
           />
         </CardContent>
       </Card>
+      )}
 
       {/* Closing without a way to see what was closed is a list that eats
           rows: the user marks one done, it vanishes, and nothing confirms
@@ -345,6 +428,27 @@ export default async function RemindersPage({
           count: counts.open,
         })}
         options={[
+          // The number rides on the tab because the answer to "who will
+          // I not reach" is useless a click away -- a vet who has to
+          // open the tab to learn it is empty opens it every morning
+          // for nothing. It comes from the same call that fills the
+          // tab, so the two cannot disagree about which set they mean.
+          {
+            value: "blocked",
+            // The count follows the filter, because the dashboard now
+            // lands here already narrowed: a pill reading 5 above a
+            // list of 1 is the same drift the subset was invented to
+            // stop, arriving one screen later. Clicking the pill drops
+            // the group -- `FilterTabs` builds its hrefs from scratch
+            // -- so it is also the way back to all of them.
+            label: (unreachedOnly ? blocked.unreachedTotal : blocked.total)
+              ? t("filterBlockedCount", {
+                  count: unreachedOnly
+                    ? blocked.unreachedTotal
+                    : blocked.total,
+                })
+              : t("filterBlocked"),
+          },
           {
             value: "closed",
             label: t("filterCount", {
@@ -362,7 +466,124 @@ export default async function RemindersPage({
         ]}
       />
 
-      {reminders.length === 0 ? (
+      {/* A list of its own rather than a filter over the one below,
+          because membership is decided by `reminderDeliveryState` and
+          deriving it a second time here is how a tab and a badge end up
+          describing different sets. The rows are thinner on purpose --
+          there is no send to offer and no message log to fold open, and
+          the only action any of them has is a phone call. */}
+      {view === "blocked" ? (
+        blockedRows.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title={unreachedOnly ? t("emptyUnreached") : t("emptyBlocked")}
+            description={
+              unreachedOnly ? t("emptyUnreachedHint") : t("emptyBlockedHint")
+            }
+            action={
+              unreachedOnly ? (
+                <Link
+                  href="/reminders?status=blocked"
+                  className={buttonVariants({ variant: "secondary" })}
+                >
+                  {tCommon("clearFilter")}
+                </Link>
+              ) : undefined
+            }
+          />
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {blockedRows.map((b) => {
+              const dial = telHref(b.client.phone);
+              return (
+                <li
+                  key={b.id}
+                  className={cn(surface, "flex flex-col gap-1 p-4")}
+                >
+                  <p className="text-sm font-semibold">{b.title}</p>
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                    <span>{formatDate(fmt, b.dueAt)}</span>
+                    <span aria-hidden="true">·</span>
+                    <Link
+                      href={`/clients/${b.client.id}`}
+                      className="hover:underline"
+                    >
+                      {ownerLabel(b.client)}
+                    </Link>
+                    {b.pet && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <Link href={`/pets/${b.pet.id}`} className="hover:underline">
+                          {b.pet.name}
+                        </Link>
+                      </>
+                    )}
+                    {/* The number is the point of this tab: four of the
+                        six reasons end in somebody picking up a phone.
+                        Dialable becomes a link, unparseable stays as
+                        text the vet can read and key in, absent shows
+                        nothing at all -- the same three states the main
+                        list uses. */}
+                    {b.client.phone && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        {dial ? (
+                          <a href={dial} className="hover:underline">
+                            {b.client.phone}
+                          </a>
+                        ) : (
+                          <span>{b.client.phone}</span>
+                        )}
+                      </>
+                    )}
+                  </p>
+                  {/* `disabled` and `notSetUp` render nothing, exactly
+                      as in the main list: both are one fact about the
+                      clinic and the banner above already carries it. On
+                      this tab that means a clinic with the switch off
+                      sees every row without a reason line -- which is
+                      correct, and is why the banner is the thing
+                      explaining them.
+
+                      The two tried-and-missed reasons say the same
+                      sentences as the main list rather than shorter
+                      ones written for here. They were silent until the
+                      row carried a time and an attempt count, because
+                      the alternative was inventing a timestamp, and a
+                      wrong time on a record is worse than a missing
+                      one. */}
+                  {b.reason === "undelivered" && b.at ? (
+                    <ReminderDeliveryLine
+                      state="undelivered"
+                      at={b.at}
+                      channel={tChannel(clinic?.notifications.channel ?? "SMS")}
+                    />
+                  ) : b.reason === "failedExhausted" && b.attempts ? (
+                    <ReminderDeliveryLine
+                      state="failedExhausted"
+                      attempts={b.attempts}
+                    />
+                  ) : b.reason === "disabled" ||
+                    b.reason === "notSetUp" ||
+                    b.reason === "undelivered" ||
+                    b.reason === "failedExhausted" ? null : (
+                    <ReminderDeliveryLine
+                      {...(b.reason === "notConfigured"
+                        ? {
+                            state: "notConfigured" as const,
+                            channel: tChannel(
+                              clinic?.notifications.channel ?? "SMS",
+                            ),
+                          }
+                        : { state: b.reason })}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )
+      ) : reminders.length === 0 ? (
         view === "closed" ? (
           <EmptyState
             icon={ClipboardList}
@@ -377,6 +598,15 @@ export default async function RemindersPage({
               </Link>
             }
           />
+        ) : clients.items.length === 0 ? (
+          // Nothing: the gate at the top of the screen is already this
+          // news, in the same words. Both were drawn until pm measured
+          // it -- two centred boxes 428px apart, each with an icon,
+          // saying "vaccination due, check-up, follow-up" twice. The
+          // card being a different element from the list was never
+          // visible to the reader; keeping them apart in the source
+          // does not keep them apart on the screen.
+          null
         ) : (
           <EmptyState
             icon={ClipboardList}
@@ -437,7 +667,7 @@ export default async function RemindersPage({
                       href={`/clients/${r.client.id}`}
                       className="hover:underline"
                     >
-                      {r.client.firstName} {r.client.lastName}
+                      {ownerLabel(r.client)}
                     </Link>
                     {r.pet && (
                       <>
@@ -479,7 +709,10 @@ export default async function RemindersPage({
                       Folded shut: this is evidence, wanted rarely and
                       urgently, and open by default it would push the
                       working list off the screen. */}
-                  <ReminderMessageLog messages={r.messages} />
+                  <ReminderMessageLog
+                    messages={r.messages}
+                    presentIds={presentIds}
+                  />
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <StatusBadge
@@ -537,6 +770,22 @@ export default async function RemindersPage({
                       reminders actually go out never arrives. */}
                   {delivery &&
                     (delivery.state === "scheduled" ||
+                      // The clinic's switch is about the AUTOMATIC loop and
+                      // never belonged in this list. It sat here because
+                      // the server refused a manual send while it was off,
+                      // so hiding the button was following the server
+                      // correctly -- the divergence was underneath, in a
+                      // gate the appointment path never had. With that
+                      // fixed, and with the derivation now checking the
+                      // owner's own obstacles BEFORE the switch, a
+                      // `disabled` row is one the server will take.
+                      //
+                      // This matters more than a button: a vet told us
+                      // they will not turn the switch on until they have
+                      // sent a few by hand, and until now the screen made
+                      // that impossible in exactly the state they would be
+                      // in while deciding.
+                      delivery.state === "disabled" ||
                       (delivery.state === "failed" &&
                         delivery.scope !== "CLINIC")) && (
                       <ReminderSendNowButton
@@ -606,13 +855,15 @@ export default async function RemindersPage({
       )}
       {/* The 101st reminder used to be cut off with nothing on screen
           saying so (backlog 38). Renders nothing under one page. */}
-      <Pagination
-        basePath="/reminders"
-        total={result.total}
-        page={result.page}
-        perPage={result.perPage}
-        params={{ status: view === "open" ? undefined : view }}
-      />
+      {view !== "blocked" && (
+        <Pagination
+          basePath="/reminders"
+          total={result.total}
+          page={result.page}
+          perPage={result.perPage}
+          params={{ status: view === "open" ? undefined : view }}
+        />
+      )}
     </div>
   );
 }

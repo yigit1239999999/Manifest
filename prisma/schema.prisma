@@ -18,19 +18,44 @@ datasource db {
 // ===========================================================================
 
 model Clinic {
-  id         String   @id @default(cuid())
-  name       String
-  email      String?
-  phone      String?
-  address    String?
-  city       String?
-  postalCode String?
-  country    String?
-  timezone   String   @default("Europe/Istanbul")
-  currency   String   @default("TRY")
-  settings   Json?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                String    @id @default(cuid())
+  name              String
+  email             String?
+  phone             String?
+  address           String?
+  city              String?
+  postalCode        String?
+  country           String?
+  timezone          String    @default("Europe/Istanbul")
+  currency          String    @default("TRY")
+  settings          Json?
+  /// DELIBERATELY UNREAD. Nothing in the product writes or reads this
+  /// today, and that is a design decision rather than an oversight.
+  ///
+  /// It was going to let a clinic close the first-step card. The card
+  /// names the one missing link of the mandatory chain and removes
+  /// itself the moment that link exists, so the only clinic that keeps
+  /// seeing it is one that has not started -- and the card is then
+  /// saying something true. A dismiss button would take that sentence
+  /// off the screen and leave the situation where it was, and it would
+  /// also remove the only thing pointing the way during a clinic's
+  /// first week. Two vets met the card and both watched it disappear on
+  /// its own; neither asked to close one.
+  ///
+  /// The column stays rather than being dropped because the migration
+  /// is already applied to a shared database and a second migration to
+  /// undo it costs more than a nullable column nobody reads.
+  ///
+  /// What would make it live, so the next reader does not have to guess:
+  /// a real clinic saying it cannot close the card. On that day the
+  /// condition is that it must also be possible to bring the card back
+  /// -- no one-way door -- which is why this is a timestamp and not a
+  /// boolean: "never closed", "closed on this day" and "put back" are
+  /// three facts, and undo writes null so the first and the third are
+  /// the same state.
+  firstStepHiddenAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   users         User[]
   clients       Client[]
@@ -48,6 +73,7 @@ model Clinic {
   documents     Document[]
   auditLogs     AuditLog[]
   messages      MessageLog[]
+  importBatches ImportBatch[]
 
   @@map("clinics")
 }
@@ -86,9 +112,11 @@ model User {
   prescriptionsBy   Prescription[] @relation("PrescribedBy")
   treatmentsBy      Treatment[]    @relation("TreatmentBy")
   vaccinationsBy    Vaccination[]  @relation("VaccinationBy")
+  diagnosticsRead   Diagnostic[]   @relation("DiagnosticReadBy")
   notesBy           Note[]         @relation("NoteAuthor")
   documentsBy       Document[]     @relation("DocumentUploadedBy")
   auditLogs         AuditLog[]     @relation("AuditActor")
+  importBatches     ImportBatch[]  @relation("ImportBatchCreator")
   paymentsVoided    Payment[]      @relation("PaymentVoidedBy")
 
   @@index([clinicId])
@@ -119,7 +147,21 @@ model Client {
   clinicId                 String
   clinic                   Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   firstName                String
-  lastName                 String
+  /// Null when nobody asked, and that is not the same as empty.
+  ///
+  /// The counter meets a client who is standing there with an animal:
+  /// "I do not know the surname of the lady who brings the street cat,
+  /// and asking would be rude -- if you force it I will type a full
+  /// stop and the record becomes rubbish" (vet, measured). So the form
+  /// stopped demanding it, and this column had to stop demanding it
+  /// too: an empty string would be an answer where there is none, it
+  /// sorts and searches as a real value, and six months from now
+  /// "how many clients are missing a surname" would have no answer.
+  /// The same distinction `notificationsOptIn` keeps, one column up.
+  ///
+  /// `searchKey` already coalesces it, so full-name search is
+  /// unaffected by the null.
+  lastName                 String?
   email                    String?
   phone                    String?
   secondaryPhone           String?
@@ -175,6 +217,16 @@ model Client {
   /// simplifying this to "unaccent is enough" takes the full-name search
   /// away again, and nothing on screen will connect the two.
   searchKey                String?
+  /// The spreadsheet import that created this row, and nothing else.
+  ///
+  /// Set only when the import CREATED the client. A client the import
+  /// matched to an existing record keeps a null here, because undoing the
+  /// import must not be able to delete somebody the vet typed in
+  /// themselves -- see `modules/import/service.ts`, where undo is
+  /// "delete the rows carrying this batch" and that sentence is only
+  /// safe while this column means "we made this one".
+  importBatchId            String?
+  importBatch              ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
   archivedAt               DateTime?
   createdAt                DateTime       @default(now())
   updatedAt                DateTime       @updatedAt
@@ -197,6 +249,10 @@ model Client {
   @@index([clinicId, phone])
   @@index([clinicId, archivedAt])
   @@index([clinicId, createdAt(sort: Desc)])
+  /// Undo reads by batch, so the batch leads. `clinicId` is still in front
+  /// of it: every query in this product is clinic-scoped, and an index
+  /// that is not costs more as the table grows rather than less.
+  @@index([clinicId, importBatchId])
   @@map("clients")
 }
 
@@ -260,6 +316,10 @@ model Pet {
   /// in here: a generated column cannot read another table, so a search
   /// for an owner goes through `owner.searchKey`.
   searchKey         String?
+  /// The spreadsheet import that created this animal. See
+  /// `Client.importBatchId` -- same column, same promise, same undo.
+  importBatchId     String?
+  importBatch       ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -282,7 +342,50 @@ model Pet {
   @@index([clinicId, name])
   @@index([clinicId, microchipId])
   @@index([clinicId, archivedAt])
+  @@index([clinicId, importBatchId])
   @@map("pets")
+}
+
+/// One run of the spreadsheet import, so it can be undone as one thing.
+///
+/// A row exists because of what happens AFTER the import: the vet closes
+/// the screen, opens the client list, and sees two hundred rows they now
+/// have to judge. Without this table "undo" would mean selecting them by
+/// hand, and an import nobody dares to run is not an import. With it,
+/// undo is one statement over one indexed column.
+///
+/// `undoneAt` rather than deleting the batch row: what was imported and
+/// then taken back is a fact about the clinic's day, and the audit log
+/// points at this id.
+model ImportBatch {
+  id          String    @id @default(cuid())
+  clinicId    String
+  clinic      Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  /// Null once the user is gone; the batch and its undo outlive them.
+  createdById String?
+  createdBy   User?     @relation("ImportBatchCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  /// The vet's own file name, shown back to them when they pick a batch
+  /// to undo. "musteriler-2024.xlsx" is how they know which run this was;
+  /// a timestamp alone is not.
+  fileName    String
+  sheetName   String
+  /// What this run actually created, counted at commit time. Kept here
+  /// rather than counted on demand so the list of batches is one query
+  /// no matter how many batches there are, and so the numbers still read
+  /// correctly after the rows are undone and gone.
+  clientCount Int       @default(0)
+  petCount    Int       @default(0)
+  /// How many existing clients the run attached animals to. Not
+  /// deletable by undo and not counted with the created ones.
+  mergedCount Int       @default(0)
+  undoneAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  clients Client[]
+  pets    Pet[]
+
+  @@index([clinicId, createdAt(sort: Desc)])
+  @@map("import_batches")
 }
 
 /// Clinic-defined species beyond the built-in enum (e.g. "Kirpi", "At").
@@ -426,21 +529,61 @@ model Visit {
 // Vaccinations
 // ===========================================================================
 
+/// Where a next-due interval came from. See `Vaccination.nextDueSource`.
+enum DueSource {
+  /// Measured from this clinic's own records for this vaccine and species.
+  HISTORY
+  /// An interval this clinic typed into its own vaccine list (settings).
+  /// Deliberately not folded into LIST: one is their claim, the other is
+  /// ours, and a record that cannot tell them apart cannot be questioned.
+  CLINIC
+  /// The list the product ships with (`lib/vaccines.ts`).
+  LIST
+  /// Typed by a person, agreeing with neither or asked for by the list.
+  MANUAL
+}
+
 model Vaccination {
-  id               String    @id @default(cuid())
+  id               String     @id @default(cuid())
   clinicId         String
-  clinic           Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic           Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   petId            String
-  pet              Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  pet              Pet        @relation(fields: [petId], references: [id], onDelete: Cascade)
   visitId          String?
-  visit            Visit?    @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  visit            Visit?     @relation(fields: [visitId], references: [id], onDelete: SetNull)
   administeredById String?
-  administeredBy   User?     @relation("VaccinationBy", fields: [administeredById], references: [id], onDelete: SetNull)
+  administeredBy   User?      @relation("VaccinationBy", fields: [administeredById], references: [id], onDelete: SetNull)
   name             String
   manufacturer     String?
   lotNumber        String?
-  administeredAt   DateTime  @default(now())
+  administeredAt   DateTime   @default(now())
   nextDueAt        DateTime?
+  /// Where the interval behind `nextDueAt` came from, so the screen can
+  /// say it out loud. Null when there is no next date, or when the row
+  /// predates this column -- and those two are both "we do not know",
+  /// which is why nothing is back-filled.
+  ///
+  /// The distinction is the point of the field: an interval this clinic
+  /// has measured for itself and one the product shipped are not the
+  /// same claim, and showing them identically is how a default becomes
+  /// a medical fact nobody stated (#37, and TEAM.md #14).
+  nextDueSource    DueSource?
+  /// Which dose of the starting series this is, 1-based, and how many
+  /// the series had when it was written.
+  ///
+  /// The vet's most expensive problem, in their words: "Karma üç doz,
+  /// sahibi ikinci dozdan sonra kayboluyor, üç ay sonra geliyor. O an
+  /// sorduğum şey 'en son ne zaman' değil, 'kaçıncı dozdaydık'. Emin
+  /// olamayınca baştan başlatıyorum, sahibi de boşuna para veriyor."
+  /// `nextDueAt` cannot answer that: one date says when, never which.
+  ///
+  /// `seriesOf` is a SNAPSHOT rather than a lookup. A record says what
+  /// was believed when it was written; if the catalogue later says four
+  /// doses, a dose recorded as 2/3 stays 2/3, because that is what the
+  /// vet was told on the day. Reading the current catalogue instead
+  /// would silently restate history.
+  doseNumber       Int?
+  seriesOf         Int?
   /// Set when somebody closes this overdue row on the dashboard.
   ///
   /// It closes the ROW, not the animal: `Pet.archivedAt` is untouched,
@@ -459,8 +602,8 @@ model Vaccination {
   dueDismissedAt   DateTime?
   site             String?
   notes            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   @@index([clinicId, petId, administeredAt])
   @@index([clinicId, nextDueAt])
@@ -572,10 +715,51 @@ model Diagnostic {
   resultData     Json?
   interpretation String?
   notes          String?
+  /// Whether this result came from outside the clinic.
+  ///
+  /// The read-marker loop applies to these only. Three quarters of a
+  /// vet's tests are run in the room: the printout is in their hand
+  /// and they turn round and tell the owner, so the result closes in
+  /// the conversation. Asking them to press a button afterwards is
+  /// asking them to finish a finished job five times a day -- they
+  /// stop pressing within the week, unpressed rows pile up, the list
+  /// turns red and they stop reading the list. Which is the failure
+  /// the list exists to prevent.
+  ///
+  /// The ones that get lost share one property: the result arrived
+  /// while the vet was not in the room. Two or three a week.
+  ///
+  /// A fact, not a judgement. Not "does this need reading" -- that
+  /// would put a decision on whoever types it in. Where it came from
+  /// is something they already know.
+  ///
+  /// Defaults to false, and the two mistakes are not symmetrical:
+  /// wrongly marked external fills the list with in-house results and
+  /// kills it, wrongly left internal loses one row and the list lives.
+  externalLab    Boolean        @default(false)
+  /// When the person who decides saw this result, and who they were.
+  ///
+  /// "The result arrived" and "the vet read it" were the same fact,
+  /// and they are not: one is the result reaching the clinic, the
+  /// other is it reaching whoever acts on it. A histopathology report
+  /// sat in a file for three days with everyone doing their job
+  /// correctly, because nobody was asked whether the vet had seen it.
+  ///
+  /// Deliberately "saw", not "interpreted": a result that needs no
+  /// comment would otherwise stay unread for ever, and a count that
+  /// cannot reach zero stops being read. Writing `interpretation`
+  /// sets this too -- writing a comment is reading.
+  readAt         DateTime?
+  readById       String?
+  readBy         User?          @relation("DiagnosticReadBy", fields: [readById], references: [id], onDelete: SetNull)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   @@index([clinicId, petId, performedAt])
+  /// The unread count's own query: results in a clinic that nobody has
+  /// marked, oldest first. Without it that is a scan of every
+  /// diagnostic the clinic has ever recorded, on every dashboard load.
+  @@index([clinicId, readAt, createdAt])
   @@map("diagnostics")
 }
 
@@ -808,6 +992,16 @@ enum MessageStatus {
   SENT
   FAILED
   MANUAL
+  /// Composed, and deliberately not sent: an identical text had just
+  /// gone to the same number, so the owner would have received the
+  /// same words twice.
+  ///
+  /// Not `FAILED` -- nothing refused it and no attempt was spent --
+  /// and certainly not `SENT`. It exists because the decision has to
+  /// leave a trace: without a row, the reminder it belongs to is
+  /// indistinguishable from one still waiting its turn, and the sweep
+  /// would reconsider it on every run for ever.
+  SUPPRESSED
 }
 
 /// What became of a message the provider accepted.

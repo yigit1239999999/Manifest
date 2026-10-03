@@ -1,5 +1,5 @@
-import { pickOption } from "./helpers";
-import { test, expect, type Page } from "@playwright/test";
+import { pickOption, test, expect, assertFormKept } from "./helpers";
+import type { Page } from "@playwright/test";
 
 // The clinical happy path against a real, migrated database: a client, a pet
 // registered through the species picker, then a vaccination, a treatment and
@@ -12,6 +12,7 @@ async function signUp(page: Page, stamp: number) {
   await page.getByLabel(/your name|adınız/i).fill("E2E Tester");
   await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(`e2e+${stamp}@pettrack.test`);
   await page.getByLabel(/^password|^şifre/i).fill("supersecret123");
+  await assertFormKept(page);
   await page.getByRole("button", { name: /create account|hesap oluştur/i }).click();
   await expect(page).toHaveURL("/");
 }
@@ -22,13 +23,18 @@ async function createClient(page: Page) {
   await page.getByLabel(/last name|soyad/i).fill("Sonbahar");
   await page.getByLabel(/^phone$|^telefon$/i).fill("0532 123 45 67");
   await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
+  // `(?!new)`: without it this matches the form the save was
+  // submitted FROM, so it passes the instant the click lands and the
+  // next line navigates away before the record exists. That is a
+  // waiting assertion that waits for nothing, and it shows up as an
+  // empty owner picker one screen later.
   await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
 }
 
 async function createPet(page: Page) {
   await page.goto("/pets/new");
   await pickOption(page, page.getByLabel(/^owner$|^sahibi$/i));
-  await page.getByLabel(/^name$|^isim$/i).fill("Sarı");
+  await page.getByLabel(/^name$|^[İi]sim$/i).fill("Sarı");
   await page.getByRole("button", { name: /^cat$|^kedi$/i }).click();
   await page.getByLabel(/^breed$|^cins$/i).fill("Tekir");
   await page.getByLabel(/^sex$|^cinsiyet$/i).selectOption("MALE");

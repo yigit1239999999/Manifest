@@ -84,7 +84,18 @@ export function Field({
       <div className="flex items-center gap-0.5">
         <Label htmlFor={controlId}>{label}</Label>
         {required && (
-          <span className="text-destructive" aria-hidden="true">
+          // `text-sm`, which is the size of the label beside it, and the
+          // reason is four pixels rather than taste. The span carried no
+          // size, so it inherited the 16px base while the `Label` next
+          // to it is `text-sm`; in a `flex items-center` row the taller
+          // child wins, and every REQUIRED field was a 24px label row
+          // where every optional one was 20. Two consequences, both
+          // measured: in a two-column grid the rows did not match each
+          // other, and every skeleton in the product was 4px short per
+          // row that held a required field -- pm found it as a
+          // stubbornly constant +8 on four routes and +12 on the one
+          // with three such rows (`components/loaders.tsx`).
+          <span className="text-sm text-destructive" aria-hidden="true">
             *
           </span>
         )}

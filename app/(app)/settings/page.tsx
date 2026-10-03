@@ -1,6 +1,3 @@
-import Link from "next/link";
-import { FileSpreadsheet } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
@@ -23,6 +20,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SpeciesSettingsForm } from "@/components/forms/species-settings-form";
+import { VaccineSettingsForm } from "@/components/forms/vaccine-settings-form";
+import { VACCINE_CATALOGUE } from "@/lib/vaccines";
+import { getVaccineSettings } from "@/modules/vaccinations/queries";
+import { setVaccineSettingsAction } from "@/modules/vaccinations/actions";
 import { CustomSpeciesDeleteButton } from "@/components/custom-species-delete-button";
 import { SpeciesIcon } from "@/components/species-icon";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -40,17 +41,27 @@ export default async function SettingsPage() {
   const session = await requireSession();
   if (!can(session.user.role, "settings.manage")) return <ForbiddenState />;
 
-  const [t, tImport, tSpecies, enabled, customs, profile, clinic, invoiceCount] =
-    await Promise.all([
-      getTranslations("settings"),
-      getTranslations("import"),
-      getTranslations("enum.species"),
-      getEnabledSpecies(session.user.clinicId),
-      listCustomSpeciesWithUsage(session.user.clinicId),
-      getClinicMessagingProfile(session.user.clinicId),
-      getClinicSettings(session.user.clinicId),
-      countClinicInvoices(session.user.clinicId),
-    ]);
+  const [
+    t,
+    tSpecies,
+    tVaccination,
+    enabled,
+    customs,
+    profile,
+    clinic,
+    invoiceCount,
+    vaccineSettings,
+  ] = await Promise.all([
+    getTranslations("settings"),
+    getTranslations("enum.species"),
+    getTranslations("vaccination"),
+    getEnabledSpecies(session.user.clinicId),
+    listCustomSpeciesWithUsage(session.user.clinicId),
+    getClinicMessagingProfile(session.user.clinicId),
+    getClinicSettings(session.user.clinicId),
+    countClinicInvoices(session.user.clinicId),
+    getVaccineSettings(session.user.clinicId),
+  ]);
   // Both are the clinic row itself, read twice; neither is a profile the
   // clinic has yet to fill in. A user is deleted with their clinic
   // (`onDelete: Cascade`) and the `jwt` callback in `lib/auth.ts` drops a
@@ -103,22 +114,6 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Second, because a clinic arrives here in its first week with its
-          records still somewhere else. It is also the way back in after
-          the dashboard's card has been dismissed, so it is always here. */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{tImport("settingsCard.title")}</CardTitle>
-          <CardDescription>{tImport("settingsCard.hint")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/settings/import" className={buttonVariants({ variant: "secondary" })}>
-            <FileSpreadsheet aria-hidden="true" />
-            {tImport("settingsCard.action")}
-          </Link>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>{t("species.title")}</CardTitle>
@@ -131,6 +126,60 @@ export default async function SettingsPage() {
             enabled={enabled}
             saveLabel={t("species.save")}
             savedMessage={t("species.saved")}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("vaccines.title")}</CardTitle>
+          <CardDescription>{t("vaccines.hint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <VaccineSettingsForm
+            action={setVaccineSettingsAction}
+            rows={VACCINE_CATALOGUE.map((vaccine) => ({
+              key: vaccine.key,
+              species: vaccine.species,
+              name: vaccine.name,
+              ...(vaccine.bookName ? { bookName: vaccine.bookName } : {}),
+              shown: !vaccineSettings.hidden.includes(vaccine.key),
+              ...(vaccineSettings.intervals[vaccine.key]
+                ? { override: vaccineSettings.intervals[vaccine.key] }
+                : {}),
+              // What the list would do if this box is left empty, in words.
+              // The vaccine we refuse to date says so here too, rather than
+              // showing an empty box that looks like an oversight.
+              listLabel:
+                vaccine.adult.kind === "every"
+                  ? t("vaccines.listValue", {
+                      interval: tVaccination(`interval.${vaccine.adult.unit}`, {
+                        count: vaccine.adult.value,
+                      }),
+                    })
+                  : t("vaccines.listAsks"),
+            }))}
+            added={vaccineSettings.added}
+            speciesOptions={SPECIES.map((s) => ({ value: s, label: tSpecies(s) }))}
+            // Bare units, not "1 hafta": these label a selector that sits
+            // next to a number box, so the row reads "400 hafta" and not
+            // "400 [1 hafta]". The counted form belongs to a sentence.
+            unitLabels={{
+              week: t("vaccines.unit.week"),
+              month: t("vaccines.unit.month"),
+              year: t("vaccines.unit.year"),
+            }}
+            labels={{
+              onList: t("vaccines.onList"),
+              interval: t("vaccines.interval"),
+              intervalHint: t("vaccines.intervalHint"),
+              addTitle: t("vaccines.addTitle"),
+              addName: t("vaccines.addName"),
+              addSpecies: t("vaccines.addSpecies"),
+              remove: t("vaccines.remove"),
+              save: t("vaccines.save"),
+              saved: t("vaccines.saved"),
+            }}
           />
         </CardContent>
       </Card>

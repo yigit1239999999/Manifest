@@ -47,6 +47,8 @@ describe("currencySymbol", () => {
   });
 });
 
+
+
 describe("initials", () => {
   it("uses the first letter of up to two words", () => {
     expect(initials("Jamie Rivera")).toBe("JR");

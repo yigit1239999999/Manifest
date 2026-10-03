@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, assertFormKept } from "./helpers";
+import type { Page } from "@playwright/test";
 
 // How big the thing you tap actually is.
 //
@@ -54,8 +55,9 @@ const STATE_CLINIC = {
 
 async function signIn(page: Page) {
   await page.goto("/sign-in");
-  await page.getByLabel(/^email$/i).fill(STATE_CLINIC.email);
+  await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(STATE_CLINIC.email);
   await page.getByLabel(/^password|^şifre/i).fill(STATE_CLINIC.password);
+  await assertFormKept(page);
   await page
     .getByRole("button", { name: /sign in|giriş yap/i })
     .click();

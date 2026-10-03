@@ -181,6 +181,15 @@ export const DIAGNOSTIC_TESTS: Record<string, readonly string[]> = {
 // Vaccines a Turkish small-animal clinic gives, with the trade names staff
 // actually say in brackets so either spelling finds the row. Free text as
 // well: a product not listed is typed and saved as-is.
+//
+// NOT OFFERED ANYWHERE ANY MORE: the form now offers the clinic's own list
+// (`lib/vaccines.ts`, #37). The only thing that reads this is
+// `lib/vaccines.test.ts`, and that is why it stays -- it is the record of
+// every name this product has ever put in front of a vet, and the test
+// holds the new catalogue to recognising all of them. Deleting it would
+// delete the evidence, not the obligation: records written under these
+// names are in clinics' databases, and a count that stopped matching them
+// would restart a series someone had almost finished.
 export const VACCINES: readonly string[] = [
   // Köpek
   "Kuduz (Rabies)",

@@ -279,6 +279,71 @@ describe("searching for an animal once the client is known", () => {
  * message to the owner, so the save still happens. The screen says what
  * will not happen; it does not decide for anyone.
  */
+// The case the shared label was written for, and the one place the two
+// formats could stand side by side: `Combobox` appends server hits
+// AFTER the local options rather than replacing them, so a clinic over
+// the list cap sees both lists at once.
+describe("a clinic with more animals than the list holds", () => {
+  async function type(field: RegExp, text: string) {
+    const input = picker(field);
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: text } });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 260));
+    });
+  }
+
+  it("never stacks two ways of naming an animal in one list", async () => {
+    // Two animals called Zeytin: one in the handed list, one only the
+    // server knows about. Both must arrive named the same way, or the
+    // row without an owner reads as a different kind of thing.
+    searchPets.mockResolvedValueOnce({
+      options: [
+        {
+          value: "p-99",
+          label: "Zeytin · Mehmet Kaya",
+          ownerId: "c-2",
+          ownerLabel: "Mehmet Kaya",
+        },
+      ],
+      hasMore: false,
+    });
+    render(
+      <NextIntlClientProvider locale="tr" messages={tr}>
+        <ReminderForm
+          clients={CLIENTS}
+          pets={[{ id: "p-4", name: "Zeytin", ownerId: "c-1", ownerName: "Ayşe Demir" }]}
+          petsCapped
+        />
+      </NextIntlClientProvider>,
+    );
+
+    await type(/hayvan/i, "zey");
+
+    const labels = openOptions();
+    expect(labels).toEqual(["Zeytin · Ayşe Demir", "Zeytin · Mehmet Kaya"]);
+    // The real assertion: no row names an animal without its owner
+    // while both lists are on screen together.
+    expect(labels.some((l) => l === "Zeytin")).toBe(false);
+  });
+
+  // Filtering runs on the label, so the owner's name became searchable
+  // as a side effect -- and it is the key a vet actually holds
+  // ("whose cat"). Asserted so nobody removes it as a bug.
+  it("finds an animal by its owner's name", async () => {
+    render(
+      <NextIntlClientProvider locale="tr" messages={tr}>
+        <ReminderForm clients={CLIENTS} pets={PETS} />
+      </NextIntlClientProvider>,
+    );
+    const input = picker(/hayvan/i);
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Mehmet" } });
+
+    expect(openOptions()).toEqual(["Tekir · Mehmet Kaya"]);
+  });
+});
+
 describe("warning that this reminder cannot reach anyone", () => {
   // Read the way a screen reader reads it: follow the picker's own
   // `aria-describedby` to whatever it points at. The sentence is on the
@@ -465,5 +530,47 @@ describe("the title field, when the title is the message", () => {
     expect(document.getElementById(describedBy!)?.textContent).toBe(
       tr.reminder.customTitleHint,
     );
+  });
+});
+
+/**
+ * The client who has no surname, in the one picker that named them by
+ * hand.
+ *
+ * "Ayşe null" is what pm saw, and the word is the tell: the two parts
+ * were joined in a template literal, which renders an absent surname as
+ * the string "null". The surname became optional for the vet's reason
+ * -- "I do not know the surname of the lady who brings the street cat,
+ * and asking would be rude" -- and every list column already answers
+ * this with `ownerLabel`, which drops what is not there.
+ *
+ * Worth a rendered test rather than a unit one on the helper: the
+ * helper was never wrong. What was wrong is that this call site did not
+ * use it.
+ */
+describe("a client with no surname, in the picker", () => {
+  it("is named by what is known, not by the absence", async () => {
+    render(
+      <NextIntlClientProvider locale="tr" messages={tr}>
+        <ReminderForm
+          clients={[
+            {
+              id: "c-9",
+              firstName: "Ayşe",
+              lastName: null,
+              phone: "0532 000 00 00",
+              notificationsOptIn: true,
+            },
+          ]}
+          pets={[]}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    fireEvent.focus(picker(/müşteri/i));
+    const row = await screen.findByRole("option", { name: /Ayşe/ });
+
+    expect(row.textContent).toBe("Ayşe");
+    expect(row.textContent).not.toMatch(/null/);
   });
 });

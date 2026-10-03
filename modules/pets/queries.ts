@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { fold } from "@/lib/search";
+import { ownerLabel, petLabel } from "@/lib/pet-label";
 import type { Prisma } from "@/generated/prisma/client";
 
 export interface ListPetsArgs {
@@ -24,6 +25,36 @@ export interface ListPetsArgs {
    */
   excludeDeceased?: boolean;
   take?: number;
+}
+
+/**
+ * When each of these animals was last seen.
+ *
+ * The vet asked for it on the picker row, and the reason is the one
+ * they gave for the whole row: "I have two Pamuks, and I can only tell
+ * which one I mean from the owner" -- with the date as the second
+ * check. It is deliberately NOT on the list screen and NOT in
+ * `petLabel`, whose own note explains why a third part breaks a
+ * fifty-row list at 390px.
+ *
+ * ONE extra query for the whole page of rows, not one per row: a
+ * `groupBy` over the ids just fetched, which is what
+ * `@@index([clinicId, petId, visitedAt])` is shaped for. A nested
+ * `take: 1` per pet reads better and is the N+1 this codebase keeps
+ * catching.
+ */
+async function withLastVisit<T extends { id: string }>(
+  clinicId: string,
+  pets: T[],
+): Promise<(T & { lastVisitAt: Date | null })[]> {
+  if (pets.length === 0) return [];
+  const groups = await prisma.visit.groupBy({
+    by: ["petId"],
+    where: { clinicId, petId: { in: pets.map((p) => p.id) }, archivedAt: null },
+    _max: { visitedAt: true },
+  });
+  const seen = new Map(groups.map((g) => [g.petId, g._max.visitedAt ?? null]));
+  return pets.map((p) => ({ ...p, lastVisitAt: seen.get(p.id) ?? null }));
 }
 
 function buildPetWhere(args: {
@@ -75,7 +106,11 @@ export async function listPets({ take = PAGE_SIZES.DROPDOWN, ...args }: ListPets
       customSpecies: { select: { id: true, name: true } },
     },
   });
-  return { items: rows.slice(0, take), hasMore: rows.length > take };
+  const items = rows.slice(0, take);
+  return {
+    items: await withLastVisit(args.clinicId, items),
+    hasMore: rows.length > take,
+  };
 }
 
 export interface PagedPetsArgs extends Omit<ListPetsArgs, "take"> {
@@ -136,6 +171,16 @@ export async function getPetById(clinicId: string, id: string) {
   });
 }
 
+export async function countPets(clinicId: string) {
+  return prisma.pet.count({
+    where: {
+      clinicId,
+      archivedAt: null,
+      owner: { archivedAt: null },
+    },
+  });
+}
+
 export async function quickSearchPets(
   clinicId: string,
   term: string,
@@ -170,11 +215,16 @@ export async function quickSearchPets(
       id: true,
       name: true,
       species: true,
+      customSpecies: { select: { name: true } },
       ownerId: true,
       owner: { select: { firstName: true, lastName: true } },
     },
   });
-  return { items: rows.slice(0, take), hasMore: rows.length > take };
+  const items = rows.slice(0, take);
+  return {
+    items: await withLastVisit(clinicId, items),
+    hasMore: rows.length > take,
+  };
 }
 
 /**
@@ -192,9 +242,14 @@ export async function quickSearchPets(
 export async function getPetLabel(clinicId: string, id: string) {
   const pet = await prisma.pet.findFirst({
     where: { id, clinicId },
-    select: { name: true },
+    // The owner too, and this is the most load-bearing of the four places
+    // the label is built: a picker filled in from a `?petId=` link is the
+    // one the vet did not choose. A row they picked themselves they at
+    // least read while picking it; a field that arrived already filled
+    // reading "Zeytin" is simply believed.
+    select: { name: true, owner: { select: { firstName: true, lastName: true } } },
   });
-  return pet?.name;
+  return pet ? petLabel({ name: pet.name, ownerName: ownerLabel(pet.owner) }) : undefined;
 }
 
 /** Clinic-defined species, alphabetical — feeds the species combobox. */

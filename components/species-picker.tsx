@@ -388,7 +388,13 @@ export function SpeciesPicker({
       {manageHref && manageLabel && (
         <Link
           href={manageHref}
-          className="self-start text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          // Coloured like a link rather than like the sentence above it.
+          // It was `--muted-fg` with no underline and an underline only
+          // on hover, so the only thing saying it could be clicked was
+          // the cursor -- which a keyboard reader never sees and a
+          // touch reader has no way to ask for (pm measured it at 12px,
+          // rgb(107,101,89), `text-decoration: none`).
+          className="self-start text-xs text-primary underline-offset-2 hover:underline"
         >
           {manageLabel}
         </Link>

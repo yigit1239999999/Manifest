@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import { readdir, readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -89,6 +91,63 @@ describe("tr and en stay in step", () => {
 /** Pronouns with no formal reading. See the test that uses it for why. */
 const INFORMAL_PRONOUN = /(?:^|[^\p{L}])(sen|senin|sana|seni|sende|senden)(?![\p{L}])/iu;
 
+/**
+ * A message with a hole in it, used by somebody who thinks it is a word.
+ *
+ * `staff.you` was "Siz", and `/staff` drew it as one: `({t("you")})`
+ * beside the signed-in person's name. Then a second screen wanted "Selin
+ * Aydın (siz)" and took the same key for it, so the first screen started
+ * rendering `Hâl Yönetici({name} (siz))` -- the template itself, braces
+ * and all, in a table a clinic's administrator reads.
+ *
+ * Nothing caught it. The catalogues stayed in step with each other, both
+ * languages were equally wrong, and the call site still compiled: a
+ * missing parameter is not a type error, it is a brace on the screen.
+ *
+ * So the rule is about the SHAPE of the call rather than the text: a key
+ * asked for with no parameters must resolve to a message with no
+ * placeholders. Only flagged when there is no reading under which the
+ * call is safe -- a file's translators are matched by the namespaces it
+ * opens, so a key that exists parameterless in any of them passes.
+ */
+describe("a key asked for as a word", () => {
+  it("never resolves to a message with a hole in it", async () => {
+    const offenders: string[] = [];
+    for (const dir of ["app", "components"]) {
+      for await (const file of walk(resolve(dir))) {
+        if (file.includes(".test.")) continue;
+        const source = await readFile(file, "utf8");
+        const namespaces = [
+          ...source.matchAll(/(?:use|get)Translations\(\s*"([^"]+)"/g),
+        ].map((m) => m[1]);
+        if (namespaces.length === 0) continue;
+
+        // `t("key")` and nothing else inside the parentheses: a call
+        // that passes values is not what this is about.
+        for (const call of source.matchAll(/(?<![\w.])t[A-Z]?\w*\(\s*"([^"]+)"\s*\)/g)) {
+          const key = call[1];
+          const found = namespaces
+            .map((ns) => TR.get(`${ns}.${key}`))
+            .filter((v): v is string => v !== undefined);
+          if (found.length > 0 && found.every((v) => /\{\w+\}/.test(v))) {
+            offenders.push(`${file}: ${key}`);
+          }
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});
+
+async function* walk(dir: string): AsyncGenerator<string> {
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) yield* walk(full);
+    else if (/\.tsx?$/.test(entry.name)) yield full;
+  }
+}
+
 describe("Turkish house style", () => {
   // These are the wording rules the team wrote down after getting them wrong.
   // Prose rules get forgotten by the next person writing a screen; this file
@@ -99,6 +158,23 @@ describe("Turkish house style", () => {
     // Parentheses or a comma carry the same aside.
     const offenders = [...TR.entries()].filter(([, v]) => v.includes("—"));
     expect(offenders.map(([k]) => k)).toEqual([]);
+  });
+
+  // A note under a picker that has no "create" row underneath it was
+  // telling the reader to keep typing "before you create a new one".
+  // Four of the seven pickers it is shown in offer no such thing, and
+  // a fifth hides the row from a reader without the permission -- so
+  // the sentence pointed at a door that is not there.
+  //
+  // The invitation belongs to the row, which sits directly under this
+  // note when it exists. The note's job is the fact: the list is
+  // short of the clinic.
+  it("promises no door the picker may not have", () => {
+    const note = { tr: TR.get("common.searchMore"), en: EN.get("common.searchMore") };
+
+    expect(note.tr).toBeTruthy();
+    expect(note.tr).not.toMatch(/yeni kayıt|yeni bir kayıt/i);
+    expect(note.en).not.toMatch(/new record|before you create|creating/i);
   });
 
   it("calls animals 'hayvan', never 'hasta'", () => {
@@ -216,5 +292,48 @@ describe("the style rules have teeth", () => {
     expect(INFORMAL_PRONOUN.test("Kliniğiniz")).toBe(false);
     // And does not fire on the passive voice, which is formal Turkish.
     expect(INFORMAL_PRONOUN.test("Bu hayvan arşivlensin mi?")).toBe(false);
+  });
+});
+
+/**
+ * A sentence that quotes a control has to quote the one on screen.
+ *
+ * `error.form.phoneOrLater` tells the reader to tick a box and names
+ * it: "Enter a phone number, or tick ...". The name in that sentence
+ * is a copy of `client.phoneLater`, and copies drift -- the two live
+ * in different parts of the file, so a translator who improves the
+ * label has no reason to look at the error.
+ *
+ * It drifts per LANGUAGE, which is what makes a comment useless here:
+ * a change that updates both halves in Turkish and only the label in
+ * English leaves a sentence pointing at a control nobody can see, in
+ * one language, and every test still passes. So the tie is checked in
+ * each language against that language's own label (ux).
+ */
+describe("a sentence that names a control", () => {
+  /** A dotted path into a catalogue, which is read here as plain data. */
+  const at = (catalogue: Record<string, unknown>, path: string): string =>
+    path
+      .split(".")
+      .reduce<unknown>(
+        (node, key) => (node as Record<string, unknown> | undefined)?.[key],
+        catalogue,
+      ) as string;
+
+  it("names the control that language actually draws", () => {
+    for (const [lang, catalogue] of Object.entries({ tr, en })) {
+      expect(
+        at(catalogue, "error.form.phoneOrLater"),
+        `${lang}: the error does not quote its own label`,
+      ).toContain(at(catalogue, "client.phoneLater"));
+    }
+  });
+
+  it("would catch a label improved in one language only", () => {
+    // The mutation this exists for: the label is reworded, the sentence
+    // that quotes it is not.
+    expect('Telefon yazın ya da "Numarası yok" işaretleyin.').not.toContain(
+      "Numarasız kaydet",
+    );
   });
 });

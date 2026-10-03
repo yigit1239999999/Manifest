@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, assertFormKept } from "./helpers";
+import type { Page } from "@playwright/test";
 
 // Page-load performance budget.
 //
@@ -66,6 +67,7 @@ async function signUp(page: Page) {
   await page.getByLabel(/your name|adınız/i).fill("Perf Tester");
   await page.getByLabel(/^e-?mail$|^e-posta$/i).fill(`perf+${stamp}@pettrack.test`);
   await page.getByLabel(/^password|^şifre/i).fill("supersecret123");
+  await assertFormKept(page);
   await page
     .getByRole("button", { name: /create account|hesap oluştur/i })
     .click();

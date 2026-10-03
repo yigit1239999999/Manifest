@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { client: { findMany: vi.fn(), count: vi.fn() } },
+  prisma: { client: { findMany: vi.fn(), count: vi.fn(), findFirst: vi.fn() } },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { listClients, quickSearchClients } from "./queries";
+import {
+  getClientLabel,
+  listClients,
+  listClientsPage,
+  quickSearchClients,
+} from "./queries";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -48,6 +53,42 @@ describe("listClients, the picker's list", () => {
     const { hasMore } = await listClients({ clinicId: "clinic-1", take: 2 });
 
     expect(hasMore).toBe(false);
+  });
+});
+
+// Eleven people called Ayşe are told apart by their animals, not by
+// their surnames.
+describe("the animals on a client row", () => {
+  const includeOf = () =>
+    vi.mocked(prisma.client.findMany).mock.calls[0][0]?.include as {
+      _count?: { select?: { pets?: { where?: unknown } } };
+      pets?: { where?: unknown; take?: number; orderBy?: unknown };
+    };
+
+  beforeEach(() => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.client.count).mockResolvedValue(0 as never);
+  });
+
+  it("names them from the same set it counts", async () => {
+    // Two names from one set and "+N" from another is a row that
+    // disagrees with itself. A deceased animal is counted on purpose:
+    // somebody phoning about a record they remember is who this is for.
+    await listClientsPage({ clinicId: "clinic-1" });
+
+    expect(includeOf().pets?.where).toEqual(includeOf()._count?.select?.pets?.where);
+    expect(includeOf().pets?.take).toBe(2);
+  });
+
+  it("asks for them in a fixed order, so the row cannot change under the vet", async () => {
+    // An unordered `take: 2` returns whichever two rows the database
+    // finds convenient, and that can differ between requests: "Pamuk,
+    // Duman" on one load and "Duman, Tekir" on the next. In a field
+    // used for recognition, a row that contradicts itself is worse
+    // than one that is merely terse.
+    await listClientsPage({ clinicId: "clinic-1" });
+
+    expect(includeOf().pets?.orderBy).toEqual({ name: "asc" });
   });
 });
 
@@ -162,5 +203,39 @@ describe("searching for a name typed without Turkish letters", () => {
 
     expect(rows.items).toEqual([]);
     expect(prisma.client.findMany).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The label a picker shows for a client it was not handed.
+ *
+ * This exists because the list is capped: an id that arrives on a link
+ * or off a record can sit outside the fifty a `Combobox` was given, and
+ * without a label the field renders empty over a full hidden input --
+ * a selection that looks lost, where re-picking is the obvious move and
+ * re-picking is how the wrong record gets the work.
+ *
+ * So the one thing it must never do is put something wrong in that
+ * field, and it was: the two name columns joined by hand, which renders
+ * an absent surname as the word "null". The field the vet reads as a
+ * settled choice said "Ayşe null".
+ */
+describe("the label for a client outside the picker's list", () => {
+  it("says the name that exists and nothing about the one that does not", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      firstName: "Ayşe",
+      lastName: null,
+    } as never);
+
+    expect(await getClientLabel("clinic-1", "c-9")).toBe("Ayşe");
+  });
+
+  it("joins both when both are there", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      firstName: "Ayşe",
+      lastName: "Çelik",
+    } as never);
+
+    expect(await getClientLabel("clinic-1", "c-9")).toBe("Ayşe Çelik");
   });
 });
