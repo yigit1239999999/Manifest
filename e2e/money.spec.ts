@@ -33,7 +33,7 @@ async function createClient(page: Page) {
   await page.getByLabel(/last name|soyad/i).fill("Yılmaz");
   await page.getByLabel(/^phone$|^telefon$/i).fill("0532 123 45 67");
   await page.getByRole("button", { name: /create client|müşteri oluştur/i }).click();
-  await expect(page).toHaveURL(/\/clients\/[\w-]+$/);
+  await expect(page).toHaveURL(/\/clients\/(?!new)[\w-]+$/);
 }
 
 test.describe("Money is stored as the amount that was typed", () => {
@@ -48,7 +48,7 @@ test.describe("Money is stored as the amount that was typed", () => {
     await page.getByPlaceholder(/^qty$|^adet$/i).fill("2");
     await page.getByPlaceholder(/unit price|birim fiyat/i).fill("500");
     await page.getByRole("button", { name: /save invoice|faturayı kaydet/i }).click();
-    await expect(page).toHaveURL(/\/invoices\/[\w-]+$/);
+    await expect(page).toHaveURL(/\/invoices\/(?!new)[\w-]+$/);
 
     // 500 is five hundred, not five: the total is 1000, not 10.
     await expect(page.getByText(/1[.,]000[.,]00/).first()).toBeVisible();
