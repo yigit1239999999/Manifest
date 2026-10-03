@@ -23,7 +23,7 @@ import {
   type ExistingData,
 } from "./analyze";
 import { readImportFile, importError } from "./parse";
-import { readEmail, readPhone } from "./normalize";
+import { nameKey, readEmail, readPhone } from "./normalize";
 
 /**
  * Who may import. `settings.manage` because bringing a whole practice in
@@ -118,8 +118,10 @@ async function loadExisting(
 
   const phones = new Set(keys.phones);
   const emails = new Set(keys.emails);
+  const names = new Set(keys.names);
   const candidates = clients
     .filter((c) => {
+      if (!c.archivedAt && names.has(nameKey(c.firstName, c.lastName))) return true;
       const p = [c.phone, c.secondaryPhone].map((x) => readPhone(x ?? ""));
       const e = readEmail(c.email ?? "");
       return (

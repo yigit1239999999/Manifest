@@ -145,6 +145,12 @@ export interface AnalyzedRow {
   issues: Issue[];
   /** Owner name as the row wrote it, for the table. */
   ownerLabel: string;
+  /**
+   * The animal as the row wrote it. A skipped row has no plan, and "-" in
+   * the animal column of a row saying "already registered" leaves the
+   * clinic asking which animal.
+   */
+  petLabel: string;
   ownerId: string | null;
   pet: PetPlan | null;
   vaccine: VaccinePlan | null;
@@ -228,11 +234,12 @@ export function speciesKey(raw: string): string {
 export function contactKeys(
   rows: readonly string[][],
   mapping: ColumnMapping,
-): { phones: string[]; emails: string[]; chips: string[] } {
+): { phones: string[]; emails: string[]; chips: string[]; names: string[] } {
   const at = fieldIndex(mapping);
   const phones = new Set<string>();
   const emails = new Set<string>();
   const chips = new Set<string>();
+  const names = new Set<string>();
   for (const row of rows) {
     const cell = (f: ImportField) => (at[f] === undefined ? "" : (row[at[f]!] ?? ""));
     const phone = readPhone(cell("phone"));
@@ -241,8 +248,16 @@ export function contactKeys(
     if (email.kind === "ok") emails.add(email.key);
     const chip = readMicrochip(cell("microchip"));
     if (chip.kind === "ok") chips.add(chip.chip);
+    // Owners with nothing but a name: their namesakes' animals are loaded
+    // too, so importing the same file twice does not add them twice.
+    if (phone.kind !== "ok" && email.kind !== "ok") {
+      const split = splitFullName(cell("ownerName"));
+      const first = clean(cell("ownerFirstName")) || (split && "first" in split ? split.first : "");
+      const last = clean(cell("ownerLastName")) || (split && "last" in split ? split.last : "");
+      if (first && last) names.add(nameKey(first, last));
+    }
   }
-  return { phones: [...phones], emails: [...emails], chips: [...chips] };
+  return { phones: [...phones], emails: [...emails], chips: [...chips], names: [...names] };
 }
 
 class UnionFind {
@@ -438,6 +453,8 @@ export function analyzeRows(
   }
 
   const plans = new Map<number, OwnerPlan>();
+  /** Contactless groups whose name an existing client shares, by plan id. */
+  const nameTwins = new Map<string, string>();
   const groupRows = new Map<number, number[]>();
   owners.forEach((o, i) => {
     if (!o) return;
@@ -484,6 +501,7 @@ export function analyzeRows(
       for (const i of members) issues[i].push({ code: "archivedMatch" });
     }
     if (!match && phones.length === 0 && emails.length === 0 && existingByName.has(head.key)) {
+      nameTwins.set(`o${entries[root].line}`, existingByName.get(head.key)!.id);
       for (const i of members) issues[i].push({ code: "existingNameNoContact" });
     }
 
@@ -654,7 +672,15 @@ export function analyzeRows(
     if (!fatal && plan && name) {
       const ownerRef = plan.existing?.id ?? plan.id;
       const petKey = `${ownerRef}|${fold(name)}`;
-      if (plan.existing && existingPetNames.get(plan.existing.id)?.has(fold(name)))
+      // A name alone does not make two owners one person, so a contactless
+      // owner is never attached to a namesake. But the namesake already
+      // having an animal of this name is as much evidence as a file ever
+      // gives that this row was imported before.
+      const twin = nameTwins.get(plan.id);
+      if (
+        (plan.existing && existingPetNames.get(plan.existing.id)?.has(fold(name))) ||
+        (!plan.existing && twin && existingPetNames.get(twin)?.has(fold(name)))
+      )
         issues[i].push({ code: "petExists", name });
       else if (chip && existingChips.has(chip)) issues[i].push({ code: "chipExists", chip });
       else if (seenPets.has(petKey))
@@ -686,6 +712,7 @@ export function analyzeRows(
         : clean(cellOf(row, "ownerName")) ||
           clean(`${cellOf(row, "ownerFirstName")} ${cellOf(row, "ownerLastName")}`),
       ownerId: plan?.id ?? null,
+      petLabel: clean(cellOf(row, "petName")),
       pet:
         importable && name && species
           ? {

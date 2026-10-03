@@ -184,6 +184,19 @@ describe("owners already in the clinic", () => {
     expect(codes(a, 0)).toContain("archivedMatch");
   });
 
+  it("does not add a contactless row twice when the namesake already has the animal", () => {
+    const withPet: ExistingData = {
+      ...existing,
+      pets: [...existing.pets, { ownerId: "client-zeynep", name: "Fındık", microchipId: null }],
+    };
+    const a = run([{ owner: "Zeynep Kara", pet: "Fındık" }, { owner: "Zeynep Kara", pet: "Badem" }], withPet);
+    expect(a.rows[0].status).toBe("duplicate");
+    expect(codes(a, 0)).toContain("petExists");
+    // A new animal still goes in, under a new client, with the reason shown.
+    expect(a.rows[1].status).toBe("warning");
+    expect(a.counts).toMatchObject({ pets: 1, newClients: 1 });
+  });
+
   it("warns when a contactless owner shares a name with an existing client", () => {
     const a = run([{ owner: "Zeynep Kara", pet: "Fındık" }], existing);
     expect(a.counts.newClients).toBe(1);
