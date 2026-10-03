@@ -823,7 +823,8 @@
     "conflict": {
       "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",
       "emailInUse": "Bu e-posta adresi zaten kullanılıyor.",
-      "lastAdmin": "Bu kliniğin son yöneticisi devre dışı bırakılamaz. Önce başka bir yönetici ekleyiniz."
+      "lastAdmin": "Bu kliniğin son yöneticisi devre dışı bırakılamaz. Önce başka bir yönetici ekleyiniz.",
+      "invoiceVoided": "Bu fatura iptal edilmiş; üzerine ödeme kaydedilemez."
     },
     "auth": {
       "signupFailed": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
@@ -874,7 +875,9 @@
       "integer": "Geçerli bir tam sayı giriniz.",
       "integerRange": "{min} ile {max} arasında bir tam sayı giriniz.",
       "amount": "Geçerli bir tutar giriniz.",
-      "linesRequired": "En az bir satır ekleyiniz."
+      "linesRequired": "En az bir satır ekleyiniz.",
+      "paymentOverBalance": "Bu faturada kalan borç {remaining}. Ödeme bundan fazla olamaz; lütfen tutarı kontrol ediniz.",
+      "paymentNothingOwed": "Bu faturada ödenecek borç kalmadı."
     }
   }
 }

@@ -61,7 +61,8 @@ export const createInvoiceAction = action(
 export const recordPaymentAction = action(
   "invoice.record_payment",
   async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
-    const parsed = paymentSchema(await getLocale()).safeParse({
+    const locale = await getLocale();
+    const parsed = paymentSchema(locale).safeParse({
       invoiceId: String(formData.get("invoiceId") ?? ""),
       amount: String(formData.get("amount") ?? ""),
       method: String(formData.get("method") ?? ""),
@@ -77,7 +78,7 @@ export const recordPaymentAction = action(
       return { fieldErrors };
     }
 
-    await recordPayment(parsed.data, ctx);
+    await recordPayment(parsed.data, ctx, locale);
     return { success: true };
   },
 );
@@ -85,6 +86,6 @@ export const recordPaymentAction = action(
 export const voidInvoiceAction = action(
   "invoice.void",
   async (ctx, id: string): Promise<void> => {
-    const { clientId } = await voidInvoice(id, ctx);
+    await voidInvoice(id, ctx);
   },
 );

@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { conflict, notFound, validationFailed } from "@/lib/errors";
 import { withAudited, writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
+import { msg } from "@/lib/forms";
+import { formatMoney } from "@/lib/format";
 import type { ActionContext } from "@/lib/action";
+import type { Prisma } from "@/generated/prisma/client";
 import type { InvoiceInput, PaymentInput } from "./schema";
 
 function lineTotals(lines: InvoiceInput["lines"]) {
@@ -75,72 +78,124 @@ export async function createInvoice(input: InvoiceInput, ctx: ActionContext) {
   );
 }
 
-export async function recordPayment(input: PaymentInput, ctx: ActionContext) {
+/**
+ * A serializable transaction, run again when Postgres could not order it
+ * against a concurrent one (P2034).
+ *
+ * The retry is what turns a race into the right answer instead of an error
+ * page: of two payments that each fit the balance on their own, the second
+ * is re-run after the first has committed, sees the smaller balance, and is
+ * refused with the amount that is actually left.
+ */
+async function serializable<T>(
+  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await prisma.$transaction(fn, { isolationLevel: "Serializable" });
+    } catch (error) {
+      const code = (error as { code?: unknown } | null)?.code;
+      if (code !== "P2034" || attempt >= 2) throw error;
+    }
+  }
+}
+
+/** The payments that count towards an invoice. */
+async function paidCents(tx: Prisma.TransactionClient, invoiceId: string) {
+  const sum = await tx.payment.aggregate({
+    where: { invoiceId },
+    _sum: { amountCents: true },
+  });
+  return sum._sum.amountCents ?? 0;
+}
+
+/**
+ * `locale` is the one the amount was typed in. It is used only to word the
+ * refusal: the remaining balance is told back in the invoice's own currency,
+ * so the person sees at once which digit was one too many.
+ */
+export async function recordPayment(
+  input: PaymentInput,
+  ctx: ActionContext,
+  locale: string,
+) {
   requirePermission(ctx.userRole, "payments.write");
 
   // Tenant check before opening the (more expensive) serializable
   // transaction — keeps unauthorised lookups cheap.
   const guard = await prisma.invoice.findFirst({
     where: { id: input.invoiceId, clinicId: ctx.clinicId },
-    select: { id: true, totalCents: true, status: true },
+    select: { id: true },
   });
   if (!guard) throw notFound("invoice", input.invoiceId);
 
-  // Serializable ensures concurrent payments compute paidSoFar against
-  // the post-insert truth, not a stale snapshot. Postgres will retry /
-  // serialize, so the invoice status reflects the actual sum of payments.
-  const payment = await prisma.$transaction(
-    async (tx) => {
-      const created = await tx.payment.create({
-        data: {
-          invoiceId: input.invoiceId,
-          amountCents: input.amount,
-          method: input.method,
-          reference: input.reference,
-          notes: input.notes,
-        },
+  // The balance is read inside the same serializable transaction as the
+  // insert. Read before it, two payments taken at the same moment would
+  // each see the whole balance and both be accepted.
+  return serializable(async (tx) => {
+    const invoice = await tx.invoice.findFirst({
+      where: { id: input.invoiceId, clinicId: ctx.clinicId },
+      select: { totalCents: true, currency: true, status: true },
+    });
+    if (!invoice) throw notFound("invoice", input.invoiceId);
+    if (invoice.status === "VOID") throw conflict("error.conflict.invoiceVoided");
+
+    const paidBefore = await paidCents(tx, input.invoiceId);
+    const remaining = invoice.totalCents - paidBefore;
+    // Refused, never trimmed to fit: "1,234.56" on a 222.22 invoice is a
+    // typo, and quietly recording 222.22 instead would hide it a second time.
+    if (input.amount > remaining) {
+      throw validationFailed({
+        amount: [
+          remaining > 0
+            ? msg("error.form.paymentOverBalance", {
+                remaining: formatMoney(locale, remaining, invoice.currency),
+              })
+            : msg("error.form.paymentNothingOwed"),
+        ],
       });
+    }
 
-      const sum = await tx.payment.aggregate({
-        where: { invoiceId: input.invoiceId },
-        _sum: { amountCents: true },
-      });
-      const paidSoFar = sum._sum.amountCents ?? 0;
+    const created = await tx.payment.create({
+      data: {
+        invoiceId: input.invoiceId,
+        amountCents: input.amount,
+        method: input.method,
+        reference: input.reference,
+        notes: input.notes,
+      },
+    });
 
-      let newStatus = guard.status;
-      if (paidSoFar >= guard.totalCents) newStatus = "PAID";
-      else if (paidSoFar > 0) newStatus = "PARTIAL";
+    const paidSoFar = paidBefore + input.amount;
+    const newStatus = paidSoFar >= invoice.totalCents ? "PAID" : "PARTIAL";
 
-      await tx.invoice.update({
-        where: { id: input.invoiceId },
-        data: {
-          status: newStatus,
-          paidAt: newStatus === "PAID" ? new Date() : null,
+    await tx.invoice.update({
+      where: { id: input.invoiceId },
+      data: {
+        status: newStatus,
+        paidAt: newStatus === "PAID" ? new Date() : null,
+      },
+    });
+
+    await writeAudit(
+      {
+        clinicId: ctx.clinicId,
+        actorId: ctx.userId,
+        action: "UPDATE",
+        entityType: "Invoice",
+        entityId: input.invoiceId,
+        changes: {
+          paymentId: created.id,
+          paymentAmount: input.amount,
+          paidSoFar,
+          newStatus,
         },
-      });
+      },
+      tx,
+    );
 
-      await writeAudit(
-        {
-          clinicId: ctx.clinicId,
-          actorId: ctx.userId,
-          action: "UPDATE",
-          entityType: "Invoice",
-          entityId: input.invoiceId,
-          changes: {
-            paymentAmount: input.amount,
-            paidSoFar,
-            newStatus,
-          },
-        },
-        tx,
-      );
-
-      return created;
-    },
-    { isolationLevel: "Serializable" },
-  );
-
-  return payment;
+    return created;
+  });
 }
 
 /**

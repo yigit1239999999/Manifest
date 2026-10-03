@@ -823,7 +823,8 @@
     "conflict": {
       "invoiceDuplicate": "Invoice number is already in use.",
       "emailInUse": "This email is already in use.",
-      "lastAdmin": "This clinic's last administrator cannot be deactivated. Add another administrator first."
+      "lastAdmin": "This clinic's last administrator cannot be deactivated. Add another administrator first.",
+      "invoiceVoided": "This invoice has been voided, so no payment can be recorded on it."
     },
     "auth": {
       "signupFailed": "Sign-up failed. Please try again.",
@@ -874,7 +875,9 @@
       "integer": "Enter a whole number.",
       "integerRange": "Enter a whole number between {min} and {max}.",
       "amount": "Enter a valid amount.",
-      "linesRequired": "Add at least one line."
+      "linesRequired": "Add at least one line.",
+      "paymentOverBalance": "Only {remaining} is left to pay on this invoice. A payment cannot be more than that; please check the amount.",
+      "paymentNothingOwed": "Nothing is left to pay on this invoice."
     }
   }
 }
