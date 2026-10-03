@@ -587,6 +587,11 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
                   <span className="ms-2 text-warning">{t("barWaiting", { count: openQuestions })}</span>
                 )}
               </p>
+              {nothingNew ? (
+                <Link href="/" className={buttonVariants({ variant: "primary" })}>
+                  {t("resultGoDashboard")}
+                </Link>
+              ) : (
               <Button
                 type="button"
                 disabled={phase.kind === "saving" || phase.kind === "planning"}
@@ -594,6 +599,7 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
               >
                 {phase.kind === "saving" ? t("committing") : t("commitButton", { count: summary.petCount })}
               </Button>
+              )}
             </div>
             {askedWithQuestions && openQuestions > 0 && (
               <p className="mt-2 text-sm text-warning" role="alert">

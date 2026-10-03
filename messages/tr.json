@@ -863,7 +863,7 @@
     "statVaccinations": "{count, plural, one {# aşı kaydı} other {# aşı kaydı}}",
     "fromRows": "{rows} satırdan",
     "existingPets": "Bu dosyadaki {count, plural, one {# hayvan} other {# hayvan}} zaten kliniğinizde; tekrar eklenmeyecek.",
-    "existingVaccinations": "{count, plural, one {# aşı kaydı} other {# aşı kaydı}} de zaten var.",
+    "existingVaccinations": "{count, plural, one {# aşı kaydı} other {# aşı kaydı}} da zaten var.",
     "nothingNew": "Bu dosyada kliniğinize eklenecek yeni bir şey yok.",
     "vaccinesTitle": "Gelecek aşılar",
     "vaccineCount": "{name}: {count}",

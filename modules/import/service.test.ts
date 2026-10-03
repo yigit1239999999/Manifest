@@ -637,7 +637,8 @@ describe("vaccinations", () => {
     expect(summary.petCount).toBe(0);
     expect(summary.vaccinationCount).toBe(0);
     expect(summary.existingVaccinationCount).toBe(2);
-    expect(summary.rows[0]).toMatchObject({ status: "existing" });
+    // Said once as a count, not sixty times as rows.
+    expect(summary.rows).toEqual([]);
 
     const tx = fakeTx();
     const result = await commitImport(VAX_ROWS, vaxAnswers(), admin);

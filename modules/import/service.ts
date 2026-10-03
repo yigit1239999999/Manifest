@@ -512,7 +512,11 @@ export async function planImport(
     } else if (questionRows.has(row.index)) {
       status = "decision";
     } else if (a.existingPetOf.has(row.index)) {
-      status = "existing";
+      // Said once, as a count, above the list ("13 animals in this file
+      // are already in your clinic"). Sixty rows each saying "already on
+      // file" -- and a birth-year note on a record that will not be
+      // written -- is the diff drowned in its own lines.
+      continue;
     } else if (row.issue === "noPetName" || row.warnings.length > 0) {
       status = "warning";
       if (row.issue === "noPetName") fix("pet.name");
