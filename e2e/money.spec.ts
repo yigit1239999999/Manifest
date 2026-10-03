@@ -92,11 +92,34 @@ test.describe("Money is stored as the amount that was typed", () => {
       page.getByText(/enter a valid amount|geçerli bir tutar/i).first(),
     ).toBeVisible();
 
+    // One digit too many is refused with what is actually left, not stored:
+    // "5000" on the 500 still owed once closed the invoice as PAID.
+    await paymentCard.getByLabel(/^amount$|^tutar$/i).fill("5000");
+    await paymentCard.getByRole("button", { name: /^record$|^kaydet$/i }).click();
+    await expect(
+      page.getByText(/left to pay on this invoice|kalan borç .*500[.,]00\./i).first(),
+    ).toBeVisible();
+    await expect(outstanding.getByText(/(^|[^\d.,])500[.,]00/).first()).toBeVisible();
+    const invoiceUrl = page.url();
+
     // The dashboard owes the same number: payments are subtracted from what
     // was billed, so the card shows 500,00 and not the invoice's 1.000,00.
     await page.goto("/");
     const card = page.getByRole("link").filter({ hasText: /outstanding|ödenmemiş/i }).first();
     await expect(card).toContainText(/(^|[^\d.,])500[.,]00/);
     await expect(card).not.toContainText(/1[.,]000[.,]00/);
+
+    // Voiding the payment keeps the row, struck through, and gives the
+    // amount back to the balance.
+    await page.goto(invoiceUrl);
+    await page.getByRole("button", { name: /void the .*500[.,]00 payment|500[.,]00 tutarındaki ödemeyi iptal et/i }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /^void payment$|^ödemeyi iptal et$/i })
+      .click();
+    // The voided row still shows its 500,00 struck through in the payment
+    // list, so assert on the paid line rather than on the bare amount.
+    await expect(outstanding).toContainText(/(paid|ödendi):\s*\D*0[.,]00\s*\//i);
+    await expect(page.getByText(/^voided |^İptal edildi: /i).first()).toBeVisible();
   });
 });

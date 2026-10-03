@@ -641,6 +641,7 @@
     "emptyBlockedHint": "Mesajı gitmeyecek hatırlatmalar burada toplanır: onay verilmemiş, numarası olmayan ya da hayvanı artık takip edilmeyen müşteriler.",
     "filterClosed": "Kapatılanlar",
     "filterAll": "Tümü",
+    "filterCount": "{label} {count, number}",
     "emptyClosed": "Kapatılmış hatırlatma yok.",
     "emptyClosedHint": "Tamamladığınız ya da gerek kalmadığı için kapattığınız hatırlatmalar burada birikir.",
     "sendNow": "Şimdi gönder",
@@ -707,6 +708,7 @@
     "quantity": "Adet",
     "unitPrice": "Birim fiyat",
     "lineTotal": "Toplam",
+    "quantityTimesPrice": "{quantity} × {unitPrice}",
     "fromVisit": "Vizit: {date}",
     "notes": "Notlar",
     "outstanding": "Ödenmemiş",
@@ -717,6 +719,12 @@
       "amount": "Tutar",
       "remaining": "Kalan borç: {amount}",
       "payFull": "Tamamını öde",
+      "void": "Ödemeyi iptal et",
+      "voidName": "{amount} tutarındaki ödemeyi iptal et",
+      "voidConfirm": "{amount} tutarındaki ödeme iptal edilsin mi?",
+      "voidDescription": "Ödeme silinmez; listede üstü çizili olarak kalır ve artık bu faturaya sayılmaz. Faturanın kalan borcu {remaining} olur. Bu işlem geri alınamaz; doğru tutarı yeni bir ödeme olarak kaydedebilirsiniz.",
+      "voided": "İptal edildi: {date}, {name}",
+      "voidedNoName": "İptal edildi: {date}",
       "method": "Yöntem",
       "reference": "Referans",
       "notes": "Notlar",
@@ -1061,6 +1069,7 @@
       "note": "Not",
       "reminder": "Hatırlatma",
       "invoice": "Fatura",
+      "payment": "Ödeme",
       "clinic": "Klinik",
       "species": "Tür",
       "user": "Personel",
@@ -1069,7 +1078,8 @@
     "conflict": {
       "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",
       "emailInUse": "Bu e-posta adresi zaten kullanılıyor.",
-      "lastAdmin": "Bu kliniğin son yöneticisi devre dışı bırakılamaz. Önce başka bir yönetici ekleyiniz."
+      "lastAdmin": "Bu kliniğin son yöneticisi devre dışı bırakılamaz. Önce başka bir yönetici ekleyiniz.",
+      "invoiceVoided": "Bu fatura iptal edilmiş; üzerine ödeme kaydedilemez."
     },
     "auth": {
       "signupFailed": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
@@ -1123,7 +1133,9 @@
       "integer": "Geçerli bir tam sayı giriniz.",
       "integerRange": "{min} ile {max} arasında bir tam sayı giriniz.",
       "amount": "Geçerli bir tutar giriniz.",
-      "linesRequired": "En az bir satır ekleyiniz."
+      "linesRequired": "En az bir satır ekleyiniz.",
+      "paymentOverBalance": "Bu faturada kalan borç {remaining}. Ödeme bundan fazla olamaz; lütfen tutarı kontrol ediniz.",
+      "paymentNothingOwed": "Bu faturada ödenecek borç kalmadı."
     }
   }
 }

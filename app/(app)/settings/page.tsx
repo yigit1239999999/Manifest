@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ForbiddenState } from "@/components/ui/forbidden-state";
 import { requireSession } from "@/lib/session";
@@ -63,7 +62,18 @@ export default async function SettingsPage() {
     countClinicInvoices(session.user.clinicId),
     getVaccineSettings(session.user.clinicId),
   ]);
-  if (!profile || !clinic) redirect("/");
+  // Both are the clinic row itself, read twice; neither is a profile the
+  // clinic has yet to fill in. A user is deleted with their clinic
+  // (`onDelete: Cascade`) and the `jwt` callback in `lib/auth.ts` drops a
+  // token whose user is gone, so `requireSession` has already sent anyone
+  // without a clinic to sign-in. Getting here means the row vanished
+  // between those two reads. That is broken data, not a setup step, and
+  // there is nothing to set up: say so through the section's error
+  // boundary, which keeps the shell and reports it, rather than moving the
+  // user to the dashboard as if they had clicked the wrong link.
+  if (!profile || !clinic) {
+    throw new Error(`Clinic ${session.user.clinicId} not found`);
+  }
 
   const channel = profile.notifications.channel;
   const configured = isChannelConfigured(channel);

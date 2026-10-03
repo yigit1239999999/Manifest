@@ -2,17 +2,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    reminder: { findMany: vi.fn(), count: vi.fn() },
+    reminder: { findMany: vi.fn(), count: vi.fn(), groupBy: vi.fn() },
     messageLog: { findMany: vi.fn() },
   },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { listReminders, OPEN_REMINDER_STATUSES } from "./queries";
+import {
+  listReminders,
+  OPEN_REMINDER_STATUSES,
+  reminderStatusCounts,
+} from "./queries";
 
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(prisma.reminder.findMany).mockResolvedValue([] as never);
+  vi.mocked(prisma.reminder.count).mockResolvedValue(0 as never);
 });
 
 const callOf = () => vi.mocked(prisma.reminder.findMany).mock.calls[0][0];
@@ -44,7 +49,9 @@ describe("naming the message that went instead", () => {
       },
     ] as never);
 
-    const [row] = await listReminders({ clinicId: "clinic-1" });
+    const {
+      items: [row],
+    } = await listReminders({ clinicId: "clinic-1" });
 
     expect(row.messages[0].sentInstead).toEqual({ id: "r-1", title: "Kuduz aşısı" });
   });
@@ -72,7 +79,9 @@ describe("naming the message that went instead", () => {
       },
     ] as never);
 
-    const [row] = await listReminders({ clinicId: "clinic-1" });
+    const {
+      items: [row],
+    } = await listReminders({ clinicId: "clinic-1" });
 
     expect(row.messages[0].sentInstead).toBeNull();
   });
@@ -94,7 +103,9 @@ describe("naming the message that went instead", () => {
       },
     ] as never);
 
-    const [row] = await listReminders({ clinicId: "clinic-1" });
+    const {
+      items: [row],
+    } = await listReminders({ clinicId: "clinic-1" });
 
     // The old one never reaches the ambiguity check, because the query
     // does not ask for it.
@@ -119,7 +130,9 @@ describe("naming the message that went instead", () => {
       },
     ] as never);
 
-    const [row] = await listReminders({ clinicId: "clinic-1" });
+    const {
+      items: [row],
+    } = await listReminders({ clinicId: "clinic-1" });
 
     expect(row.messages[0].sentInstead).toBeNull();
     // The coarse bound is in the query too, so most of them never
@@ -132,7 +145,9 @@ describe("naming the message that went instead", () => {
   it("says nothing when the partner is gone", async () => {
     vi.mocked(prisma.messageLog.findMany).mockResolvedValue([] as never);
 
-    const [row] = await listReminders({ clinicId: "clinic-1" });
+    const {
+      items: [row],
+    } = await listReminders({ clinicId: "clinic-1" });
 
     expect(row.messages[0].sentInstead).toBeNull();
   });
@@ -200,5 +215,40 @@ describe("listReminders", () => {
       where: { clinicId: "clinic-1", status: { in: [...OPEN_REMINDER_STATUSES] } },
       orderBy: { dueAt: "asc" },
     });
+  });
+
+  it("pages instead of cutting the list off, and says how many there are", async () => {
+    // It used to be `take: 100` and nothing else: the 101st reminder was
+    // not on screen and nothing said it existed (backlog 38). The total is
+    // counted over the same filter as the rows, so the pager and the list
+    // describe the same set.
+    vi.mocked(prisma.reminder.count).mockResolvedValue(140 as never);
+
+    const result = await listReminders({ clinicId: "clinic-1", page: 2 });
+
+    expect(callOf()).toMatchObject({ skip: 100, take: 100 });
+    expect(vi.mocked(prisma.reminder.count).mock.calls[0][0]).toEqual({
+      where: callOf()?.where,
+    });
+    expect(result).toMatchObject({ total: 140, page: 2, perPage: 100 });
+  });
+});
+
+describe("reminderStatusCounts", () => {
+  it("splits the clinic's reminders into the list's open and closed tabs", async () => {
+    vi.mocked(prisma.reminder.groupBy).mockResolvedValue([
+      { status: "PENDING", _count: { _all: 3 } },
+      { status: "SENT", _count: { _all: 4 } },
+      { status: "ACKNOWLEDGED", _count: { _all: 80 } },
+      { status: "DISMISSED", _count: { _all: 4 } },
+    ] as never);
+
+    const counts = await reminderStatusCounts("clinic-1");
+
+    // SENT is open work, as on the dashboard card: 3 + 4, not 3.
+    expect(counts).toEqual({ open: 7, closed: 84, all: 91 });
+    expect(
+      vi.mocked(prisma.reminder.groupBy).mock.calls[0][0],
+    ).toMatchObject({ where: { clinicId: "clinic-1" } });
   });
 });

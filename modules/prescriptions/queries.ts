@@ -23,9 +23,3 @@ export async function activePrescriptions(clinicId: string, take = 20) {
     },
   });
 }
-
-export async function countActivePrescriptions(clinicId: string) {
-  return prisma.prescription.count({
-    where: { clinicId, status: "ACTIVE" },
-  });
-}

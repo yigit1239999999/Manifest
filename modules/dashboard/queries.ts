@@ -147,7 +147,8 @@ export async function dashboardInsights(
       -- rounding error, it is a made-up number.
       (SELECT COALESCE(SUM(GREATEST(i."totalCents" - COALESCE(paid.cents, 0), 0)), 0) FROM "invoices" i
         LEFT JOIN LATERAL (
-          SELECT SUM(p."amountCents") AS cents FROM "payments" p WHERE p."invoiceId" = i.id
+          SELECT SUM(p."amountCents") AS cents FROM "payments" p
+          WHERE p."invoiceId" = i.id AND p."voidedAt" IS NULL
         ) paid ON TRUE
         WHERE i."clinicId" = ${clinicId}
           AND i.status IN ('SENT','PARTIAL')

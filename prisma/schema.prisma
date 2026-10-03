@@ -117,6 +117,7 @@ model User {
   documentsBy       Document[]     @relation("DocumentUploadedBy")
   auditLogs         AuditLog[]     @relation("AuditActor")
   importBatches     ImportBatch[]  @relation("ImportBatchCreator")
+  paymentsVoided    Payment[]      @relation("PaymentVoidedBy")
 
   @@index([clinicId])
   @@map("users")
@@ -132,11 +133,20 @@ enum ContactMethod {
   SMS
 }
 
+/// The path a consent answer came in by. Derived from the code path that
+/// wrote it, never asked of staff: a "where did this consent come from?"
+/// dropdown is filled in empty or wrong. One path exists today, so there
+/// is one value, and that is not a gap.
+enum ConsentSource {
+  /// The client form in the app, filled in by clinic staff.
+  STAFF_FORM
+}
+
 model Client {
-  id                 String         @id @default(cuid())
-  clinicId           String
-  clinic             Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  firstName          String
+  id                       String         @id @default(cuid())
+  clinicId                 String
+  clinic                   Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  firstName                String
   /// Null when nobody asked, and that is not the same as empty.
   ///
   /// The counter meets a client who is standing there with an animal:
@@ -151,18 +161,18 @@ model Client {
   ///
   /// `searchKey` already coalesces it, so full-name search is
   /// unaffected by the null.
-  lastName           String?
-  email              String?
-  phone              String?
-  secondaryPhone     String?
-  address            String?
-  city               String?
-  postalCode         String?
-  country            String?
-  preferredContact   ContactMethod?
+  lastName                 String?
+  email                    String?
+  phone                    String?
+  secondaryPhone           String?
+  address                  String?
+  city                     String?
+  postalCode               String?
+  country                  String?
+  preferredContact         ContactMethod?
   /// BCP 47 language for outbound messages ("tr" | "en"). Null falls back
   /// to the clinic's default.
-  preferredLanguage  String?
+  preferredLanguage        String?
   /// Per-client switch for automatic SMS/WhatsApp messages (appointments,
   /// reminders). Timing is a clinic setting; this is the client's consent.
   ///
@@ -178,9 +188,19 @@ model Client {
   /// sides of the column have to keep them apart - see the form field in
   /// `modules/clients/schema.ts`, where an absent control must write
   /// nothing rather than `false`.
-  notificationsOptIn Boolean?
-  marketingOptIn     Boolean        @default(false)
-  notes              String?
+  notificationsOptIn       Boolean?
+  /// When the answer in `notificationsOptIn` was recorded, and by which
+  /// path. Proof of consent is a time and a source; a bare boolean is a
+  /// claim. Both are stamped only when the answer changes, so re-saving
+  /// an address does not move the date of a consent given a year ago.
+  ///
+  /// Null on every row answered before these columns existed, and that
+  /// is deliberate: back-filling `createdAt` would manufacture proof, and
+  /// a forged proof is worse than none. "We do not know" is the truth.
+  notificationsOptInAt     DateTime?
+  notificationsOptInSource ConsentSource?
+  marketingOptIn           Boolean        @default(false)
+  notes                    String?
   /// Accent-folded first name, last name, email and phone, joined by
   /// spaces. A STORED generated column: Postgres writes it, nothing here
   /// ever may, and `20260921190000_search_key_accent_folded` holds the
@@ -196,7 +216,7 @@ model Client {
   /// so did "Yigit Sonbahar" -- it was never an accent problem. Anyone
   /// simplifying this to "unaccent is enough" takes the full-name search
   /// away again, and nothing on screen will connect the two.
-  searchKey          String?
+  searchKey                String?
   /// The spreadsheet import that created this row, and nothing else.
   ///
   /// Set only when the import CREATED the client. A client the import
@@ -205,11 +225,11 @@ model Client {
   /// themselves -- see `modules/import/service.ts`, where undo is
   /// "delete the rows carrying this batch" and that sentence is only
   /// safe while this column means "we made this one".
-  importBatchId      String?
-  importBatch        ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
-  archivedAt         DateTime?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  importBatchId            String?
+  importBatch              ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  archivedAt               DateTime?
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
 
   pets         Pet[]
   appointments Appointment[]
@@ -907,8 +927,16 @@ model Payment {
   reference   String?
   notes       String?
   createdAt   DateTime      @default(now())
+  /// A payment recorded by mistake is voided, never deleted: the row stays
+  /// as the record that money was once entered and then taken back. Every
+  /// sum of what an invoice has been paid must filter on `voidedAt: null`.
+  voidedAt    DateTime?
+  voidedById  String?
+  voidedBy    User?         @relation("PaymentVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason  String?
 
   @@index([invoiceId])
+  @@index([voidedById])
   @@map("payments")
 }
 

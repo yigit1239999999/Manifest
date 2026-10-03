@@ -13,22 +13,70 @@ import { DUPLICATE_SUPPRESSION_WINDOW_MS } from "@/modules/notifications/service
  */
 export const OPEN_REMINDER_STATUSES = ["PENDING", "SENT"] as const;
 
+/**
+ * One page of reminders, and how many there are in all.
+ *
+ * Paged rather than capped. This used to be `take: 100` with no total and
+ * no pager on the screen, so the 101st reminder simply was not there and
+ * nothing said so (backlog 38) -- invisible on today's data, and certain
+ * to bite the first clinic whose automatic reminders reach three digits,
+ * which is the moment the list starts being useful. The page size stays
+ * at 100 so a clinic under that sees exactly what it saw before.
+ */
 export async function listReminders({
   clinicId,
   statuses = [...OPEN_REMINDER_STATUSES],
-  take = PAGE_SIZES.LIST,
+  page = 1,
+  perPage = PAGE_SIZES.LIST,
 }: {
   clinicId: string;
   statuses?: string[];
-  take?: number;
+  page?: number;
+  perPage?: number;
 }) {
+  const where = { clinicId, status: { in: statuses as never } };
+  const [items, total] = await Promise.all([
+    findReminderRows(where, page, perPage),
+    prisma.reminder.count({ where }),
+  ]);
+  return { items, total, page, perPage };
+}
+
+/**
+ * How many reminders each tab of the list holds, from one grouped count.
+ *
+ * The tabs carry numbers because a list the vet checks against their own
+ * notebook has to be countable: "Open 12 · Closed 84" says where the other
+ * rows went, where a bare "Closed" only says there is somewhere they
+ * might be (TEAM.md #16c). Open is the same constant the dashboard card
+ * counts, so the card's number and the tab's cannot drift apart.
+ */
+export async function reminderStatusCounts(clinicId: string) {
+  const groups = await prisma.reminder.groupBy({
+    by: ["status"],
+    where: { clinicId },
+    _count: { _all: true },
+  });
+  let open = 0;
+  let closed = 0;
+  for (const g of groups) {
+    if ((OPEN_REMINDER_STATUSES as readonly string[]).includes(g.status))
+      open += g._count._all;
+    else closed += g._count._all;
+  }
+  return { open, closed, all: open + closed };
+}
+
+async function findReminderRows(
+  where: { clinicId: string; status: { in: never } },
+  page: number,
+  perPage: number,
+) {
   const reminders = await prisma.reminder.findMany({
-    where: {
-      clinicId,
-      status: { in: statuses as never },
-    },
+    where,
     orderBy: { dueAt: "asc" },
-    take,
+    skip: (page - 1) * perPage,
+    take: perPage,
     include: {
       // The phone is on the row because the row is a piece of work, and
       // the work is usually a call. Without it the "Call" action is a
@@ -79,7 +127,7 @@ export async function listReminders({
     },
   });
 
-  return withSuppressedPartners(clinicId, reminders);
+  return withSuppressedPartners(where.clinicId, reminders);
 }
 
 /**
@@ -207,9 +255,3 @@ async function withSuppressedPartners<
 
 /** The reminder whose message went in place of a suppressed one. */
 export type SentInstead = { id: string; title: string } | null;
-
-export async function countOpenReminders(clinicId: string) {
-  return prisma.reminder.count({
-    where: { clinicId, status: { in: [...OPEN_REMINDER_STATUSES] as never } },
-  });
-}

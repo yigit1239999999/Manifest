@@ -41,6 +41,9 @@ export default async function AuditPage() {
           rows={entries}
           rowKey={(e) => e.id}
           caption={t("title")}
+          // 448px of columns in a 292px phone container. Stacked: when and
+          // what on the first line, who and on which record under it.
+          narrow="stack"
           columns={[
             {
               key: "when",
@@ -56,6 +59,7 @@ export default async function AuditPage() {
             {
               key: "action",
               header: t("action"),
+              stack: "end",
               cell: (e) => (
                 <Badge>{tAction(e.action as never)}</Badge>
               ),

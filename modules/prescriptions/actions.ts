@@ -11,7 +11,7 @@ export const createPrescriptionAction = action(
     const parsed = parse(prescriptionSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
-    const prescription = await createPrescription(parsed.data, ctx);
+    await createPrescription(parsed.data, ctx);
     return { success: true };
   },
 );

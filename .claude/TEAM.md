@@ -5,6 +5,31 @@ kurallarıdır.
 Her ajan kendi tanımına ek olarak bunu uygular. Kurallar çalışırken kazanıldı;
 her biri gerçek bir hatanın veya doğru kararın karşılığıdır.
 
+## Hedef ve test verisi — kullanıcının koyduğu çerçeve (3 Ekim 2026)
+
+Kullanıcının kendi cümlesi: *"Ölçülmüş nedenlere çok kapılmayalım çünkü
+şu an uygulama zaten testte. Test verisini canlı verisi gibi algılayabilir.
+Dünya çapında bir veteriner UI/UX uygulaması yapıyoruz, amacımız bu."*
+
+**Bu dosyadaki ölçüm kurallarının üstündedir.** Uygulamanın gerçek
+kullanıcısı henüz yok; veritabanındaki her sayı (seed kliniği, doluluk
+oranları, "son 90 günde %X", kayıt sayıları) **test verisidir, kullanıcı
+davranışının kanıtı değildir.** Buna göre:
+
+- **Test verisinden çıkan oran ve sayılar ürün kararına gerekçe olmaz.**
+  Bir tasarım önerisi "ölçülmedi" diye bekletilmez, "taban %18" diye
+  küçültülmez.
+- **Ölçüm teknik doğruluk için kalır:** taşma, kontrast, odak, hata, süre,
+  veri bütünlüğü. Bunlar test zemininde de gerçektir ve aşağıdaki ölçüm
+  geçerliliği kuralı onlar için aynen geçerlidir.
+- **Tasarım çıtası:** en iyi SaaS ürünlerinin ve en iyi veteriner
+  yazılımlarının bugün sunduğu deneyim. Soru "yeterli mi?" değil,
+  "bir veteriner bunu görünce *vay* der mi?" Öneriler cesur yazılır ve
+  gerekçesi deneyim kalitesine dayanır.
+- **İlk karşılaşma en ağır yerdir:** kayıt, ilk panel ve Excel ile veri
+  taşıma, bir kliniğin ürünle ilk tanıştığı an. Orada eksik bırakılan
+  her şey güveni baştan kaybettirir.
+
 ## SAYI ODAKLI YAKLAŞIM İNDİRİLDİ — dışarıya bakılacak (21 Eylül 2026, kullanıcı kararı)
 
 **Bu bölüm dosyanın geri kalanını yönetir. Aşağıdaki hiçbir kural, bu

@@ -99,7 +99,7 @@ describe("updateClient", () => {
 
     expect(prisma.client.findFirst).toHaveBeenCalledWith({
       where: { id: "c-x", clinicId: "clinic-1" },
-      select: { id: true },
+      select: { id: true, notificationsOptIn: true },
     });
     expect(prisma.client.update).not.toHaveBeenCalled();
   });
@@ -247,6 +247,87 @@ describe("consent that was never given and never refused", () => {
 
     const data = vi.mocked(prisma.client.update).mock.calls[0][0].data;
     expect(data.notificationsOptIn).toBeUndefined();
+  });
+});
+
+describe("consent stamp (backlog 14b)", () => {
+  const form = (fields: Record<string, string>) => {
+    const result = clientSchema.safeParse({
+      firstName: "Jamie",
+      lastName: "Rivera",
+      phone: "0532 111 22 33",
+      ...fields,
+    });
+    if (!result.success) throw new Error(JSON.stringify(result.error.issues));
+    return result.data;
+  };
+
+  beforeEach(() => {
+    vi.mocked(prisma.client.update).mockResolvedValue({ id: "c-1" } as never);
+    vi.mocked(prisma.client.create).mockResolvedValue({ id: "c-1" } as never);
+  });
+
+  it("stamps the time and the path when an answer is first given", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      id: "c-1",
+      notificationsOptIn: null,
+    } as never);
+
+    await updateClient("c-1", form({ notificationsOptIn: "true" }), ctx);
+
+    const data = vi.mocked(prisma.client.update).mock.calls[0][0].data;
+    expect(data.notificationsOptInAt).toBeInstanceOf(Date);
+    expect(data.notificationsOptInSource).toBe("STAFF_FORM");
+  });
+
+  it("stamps a change of mind, because the new answer needs its own proof", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      id: "c-1",
+      notificationsOptIn: true,
+    } as never);
+
+    await updateClient("c-1", form({ notificationsOptIn: "false" }), ctx);
+
+    const data = vi.mocked(prisma.client.update).mock.calls[0][0].data;
+    expect(data.notificationsOptInAt).toBeInstanceOf(Date);
+  });
+
+  it("does not move the date when the same answer is saved again", async () => {
+    // An address fix re-submits the consent the form already shows. If
+    // that moved the date, the stamp would say "last edited" and prove
+    // nothing about when the client agreed.
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      id: "c-1",
+      notificationsOptIn: true,
+    } as never);
+
+    await updateClient("c-1", form({ notificationsOptIn: "true" }), ctx);
+
+    const data = vi.mocked(prisma.client.update).mock.calls[0][0].data;
+    expect(data.notificationsOptInAt).toBeUndefined();
+    expect(data.notificationsOptInSource).toBeUndefined();
+  });
+
+  it("does not stamp when the form carried no answer", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      id: "c-1",
+      notificationsOptIn: null,
+    } as never);
+
+    await updateClient("c-1", form({}), ctx);
+
+    const data = vi.mocked(prisma.client.update).mock.calls[0][0].data;
+    expect(data.notificationsOptInAt).toBeUndefined();
+  });
+
+  it("stamps an answer given on creation, and not one that was not", async () => {
+    await createClient(form({ notificationsOptIn: "true" }), ctx);
+    await createClient(form({}), ctx);
+
+    const calls = vi.mocked(prisma.client.create).mock.calls;
+    expect(calls[0][0].data.notificationsOptInAt).toBeInstanceOf(Date);
+    expect(calls[0][0].data.notificationsOptInSource).toBe("STAFF_FORM");
+    expect(calls[1][0].data.notificationsOptInAt).toBeUndefined();
   });
 });
 

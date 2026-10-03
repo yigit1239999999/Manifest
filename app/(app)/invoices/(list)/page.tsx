@@ -130,6 +130,11 @@ export default async function InvoicesPage({
             rows={result.items}
             rowKey={(inv) => inv.id}
             caption={t("title")}
+            // On a phone the total and the status were the two columns
+            // past the edge of the screen. Stacked, the total shares the
+            // first line with the number and the status closes the
+            // second, both at the end edge.
+            narrow="stack"
             columns={[
               {
                 key: "number",
@@ -164,6 +169,7 @@ export default async function InvoicesPage({
               {
                 key: "status",
                 header: t("status"),
+                stack: "meta-end",
                 cell: (inv) => (
                   <StatusBadge
                     kind="invoice"

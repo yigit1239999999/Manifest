@@ -97,6 +97,11 @@ describe("every enum member a screen can draw has words for it", () => {
     // from the list". Giving the members labels would produce three
     // strings nobody asks for, which is the dead-catalogue-entry defect
     // this repo has already paid for once.
-    expect(undeclared).toEqual(["DueSource", "MessageDeliveryStatus"]);
+    //
+    // `ConsentSource` is not drawn either: it is the path a consent answer
+    // came in by, stamped by the code and read only when someone asks for
+    // the proof. No screen prints it today; the day one does, it moves up
+    // into `SHOWN` with its words.
+    expect(undeclared).toEqual(["ConsentSource", "DueSource", "MessageDeliveryStatus"]);
   });
 });

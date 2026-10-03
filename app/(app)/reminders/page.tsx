@@ -10,6 +10,7 @@ import { telHref } from "@/lib/phone";
 import {
   listReminders,
   OPEN_REMINDER_STATUSES,
+  reminderStatusCounts,
 } from "@/modules/reminders/queries";
 import { blockedReminders } from "@/modules/notifications/queries";
 import { PAGE_SIZES } from "@/lib/pagination";
@@ -31,6 +32,7 @@ import { listPets } from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterTabs } from "@/components/filter-tabs";
+import { Pagination } from "@/components/pagination";
 import { ReminderForm } from "@/components/forms/reminder-form";
 import { MissingLink } from "@/components/missing-link";
 import { ReminderCloseButtons } from "@/components/reminder-close-buttons";
@@ -65,11 +67,12 @@ const CLOSED_REMINDER_STATUSES = REMINDER_STATUSES.filter(
 export default async function RemindersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; group?: string }>;
+  searchParams: Promise<{ status?: string; group?: string; page?: string }>;
 }) {
   const fmt = await getFormatContext();
   const session = await requireSession();
-  const { status, group } = await searchParams;
+  const { status, group, page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
   // No parameter means open, because open is the working list. "All" is a
   // deliberate ask, not the resting state (TEAM.md #16c: the list has to be
   // countable against the vet's own memory, and "everything ever" is not).
@@ -84,7 +87,7 @@ export default async function RemindersPage({
         ? [...CLOSED_REMINDER_STATUSES]
         : [...REMINDER_STATUSES];
 
-  const [t, tType, tStatus, tCommon, tChannel, tFailure, clinic, reminders, blocked, clients, pets] =
+  const [t, tType, tStatus, tCommon, tChannel, tFailure, clinic, result, counts, blocked, clients, pets] =
     await Promise.all([
       getTranslations("reminder"),
       getTranslations("enum.reminderType"),
@@ -97,7 +100,8 @@ export default async function RemindersPage({
       // so until now every clinic's reminders sat here reading "Pending"
       // while nothing was going out and no screen said so.
       getClinicMessagingProfile(session.user.clinicId),
-      listReminders({ clinicId: session.user.clinicId, statuses }),
+      listReminders({ clinicId: session.user.clinicId, statuses, page }),
+      reminderStatusCounts(session.user.clinicId),
       // Always, not only on that tab: the count belongs on the tab so a
       // vet sees it without going looking, and the list and the number
       // come out of one call so they cannot describe different sets
@@ -155,6 +159,8 @@ export default async function RemindersPage({
   const testMode = clinic
     ? transportName(clinic.notifications.channel) === "log"
     : false;
+
+  const reminders = result.items;
 
   // Which rows are actually on the page, so the fold under a suppressed
   // one can tell a link it can keep from one it cannot: the anchor it
@@ -417,7 +423,10 @@ export default async function RemindersPage({
         // members tells the user the list contains something narrower than
         // it does. A sent reminder is still open work — the row's own badge
         // says "Sent" while the tab above it said "Pending" (TEAM.md #25).
-        allLabel={t("filterOpen")}
+        allLabel={t("filterCount", {
+          label: t("filterOpen"),
+          count: counts.open,
+        })}
         options={[
           // The number rides on the tab because the answer to "who will
           // I not reach" is useless a click away -- a vet who has to
@@ -440,8 +449,20 @@ export default async function RemindersPage({
                 })
               : t("filterBlocked"),
           },
-          { value: "closed", label: t("filterClosed") },
-          { value: "all", label: t("filterAll") },
+          {
+            value: "closed",
+            label: t("filterCount", {
+              label: t("filterClosed"),
+              count: counts.closed,
+            }),
+          },
+          {
+            value: "all",
+            label: t("filterCount", {
+              label: t("filterAll"),
+              count: counts.all,
+            }),
+          },
         ]}
       />
 
@@ -831,6 +852,17 @@ export default async function RemindersPage({
             );
           })}
         </ul>
+      )}
+      {/* The 101st reminder used to be cut off with nothing on screen
+          saying so (backlog 38). Renders nothing under one page. */}
+      {view !== "blocked" && (
+        <Pagination
+          basePath="/reminders"
+          total={result.total}
+          page={result.page}
+          perPage={result.perPage}
+          params={{ status: view === "open" ? undefined : view }}
+        />
       )}
     </div>
   );

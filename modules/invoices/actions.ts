@@ -5,7 +5,7 @@ import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { action, type FormState } from "@/lib/action";
 import { invoiceSchema, paymentSchema } from "./schema";
-import { createInvoice, recordPayment, voidInvoice } from "./service";
+import { createInvoice, recordPayment, voidInvoice, voidPayment } from "./service";
 
 // Invoices use a custom parse because lines come in as repeated form fields.
 function parseInvoiceFormData(formData: FormData, locale: string) {
@@ -61,7 +61,8 @@ export const createInvoiceAction = action(
 export const recordPaymentAction = action(
   "invoice.record_payment",
   async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
-    const parsed = paymentSchema(await getLocale()).safeParse({
+    const locale = await getLocale();
+    const parsed = paymentSchema(locale).safeParse({
       invoiceId: String(formData.get("invoiceId") ?? ""),
       amount: String(formData.get("amount") ?? ""),
       method: String(formData.get("method") ?? ""),
@@ -77,7 +78,7 @@ export const recordPaymentAction = action(
       return { fieldErrors };
     }
 
-    await recordPayment(parsed.data, ctx);
+    await recordPayment(parsed.data, ctx, locale);
     return { success: true };
   },
 );
@@ -85,6 +86,16 @@ export const recordPaymentAction = action(
 export const voidInvoiceAction = action(
   "invoice.void",
   async (ctx, id: string): Promise<void> => {
-    const { clientId } = await voidInvoice(id, ctx);
+    await voidInvoice(id, ctx);
+  },
+);
+
+// Returns its state instead of redirecting: the button that calls it
+// reports a refusal itself and loads the invoice again on success.
+export const voidPaymentAction = action(
+  "invoice.void_payment",
+  async (ctx, paymentId: string): Promise<FormState> => {
+    await voidPayment(paymentId, ctx);
+    return { success: true };
   },
 );

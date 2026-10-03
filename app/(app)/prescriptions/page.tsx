@@ -48,6 +48,9 @@ export default async function PrescriptionsPage() {
           rows={prescriptions}
           rowKey={(p) => p.id}
           caption={t("title")}
+          // 443px of columns in a 292px phone container, with the status
+          // past the edge. Stacked, it shares a line with the medication.
+          narrow="stack"
           columns={[
             {
               key: "medication",
@@ -81,6 +84,7 @@ export default async function PrescriptionsPage() {
             {
               key: "status",
               header: t("status"),
+              stack: "end",
               cell: (p) => (
                 <StatusBadge
                   kind="prescription"
