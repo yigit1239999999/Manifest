@@ -10,6 +10,7 @@ import { telHref } from "@/lib/phone";
 import {
   listReminders,
   OPEN_REMINDER_STATUSES,
+  reminderStatusCounts,
 } from "@/modules/reminders/queries";
 import { REMINDER_STATUSES } from "@/modules/reminders/schema";
 import {
@@ -29,6 +30,7 @@ import { listPets } from "@/modules/pets/queries";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterTabs } from "@/components/filter-tabs";
+import { Pagination } from "@/components/pagination";
 import { ReminderForm } from "@/components/forms/reminder-form";
 import { ReminderCloseButtons } from "@/components/reminder-close-buttons";
 import {
@@ -61,11 +63,12 @@ const CLOSED_REMINDER_STATUSES = REMINDER_STATUSES.filter(
 export default async function RemindersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string }>;
 }) {
   const fmt = await getFormatContext();
   const session = await requireSession();
-  const { status } = await searchParams;
+  const { status, page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
   // No parameter means open, because open is the working list. "All" is a
   // deliberate ask, not the resting state (TEAM.md #16c: the list has to be
   // countable against the vet's own memory, and "everything ever" is not).
@@ -77,7 +80,7 @@ export default async function RemindersPage({
         ? [...CLOSED_REMINDER_STATUSES]
         : [...REMINDER_STATUSES];
 
-  const [t, tType, tStatus, tCommon, tChannel, tFailure, clinic, reminders, clients, pets] =
+  const [t, tType, tStatus, tCommon, tChannel, tFailure, clinic, result, counts, clients, pets] =
     await Promise.all([
       getTranslations("reminder"),
       getTranslations("enum.reminderType"),
@@ -90,7 +93,8 @@ export default async function RemindersPage({
       // so until now every clinic's reminders sat here reading "Pending"
       // while nothing was going out and no screen said so.
       getClinicMessagingProfile(session.user.clinicId),
-      listReminders({ clinicId: session.user.clinicId, statuses }),
+      listReminders({ clinicId: session.user.clinicId, statuses, page }),
+      reminderStatusCounts(session.user.clinicId),
       listClients({ clinicId: session.user.clinicId }),
       // Without `excludeDeceased` the picker offers an animal the
       // server will refuse: `createReminder` rejects a dead one, so the
@@ -135,6 +139,7 @@ export default async function RemindersPage({
     ? transportName(clinic.notifications.channel) === "log"
     : false;
 
+  const reminders = result.items;
   const deliveries = clinic
     ? reminders.map((r) => reminderDeliveryState(r, clinic))
     : [];
@@ -335,10 +340,25 @@ export default async function RemindersPage({
         // members tells the user the list contains something narrower than
         // it does. A sent reminder is still open work — the row's own badge
         // says "Sent" while the tab above it said "Pending" (TEAM.md #25).
-        allLabel={t("filterOpen")}
+        allLabel={t("filterCount", {
+          label: t("filterOpen"),
+          count: counts.open,
+        })}
         options={[
-          { value: "closed", label: t("filterClosed") },
-          { value: "all", label: t("filterAll") },
+          {
+            value: "closed",
+            label: t("filterCount", {
+              label: t("filterClosed"),
+              count: counts.closed,
+            }),
+          },
+          {
+            value: "all",
+            label: t("filterCount", {
+              label: t("filterAll"),
+              count: counts.all,
+            }),
+          },
         ]}
       />
 
@@ -584,6 +604,15 @@ export default async function RemindersPage({
           })}
         </ul>
       )}
+      {/* The 101st reminder used to be cut off with nothing on screen
+          saying so (backlog 38). Renders nothing under one page. */}
+      <Pagination
+        basePath="/reminders"
+        total={result.total}
+        page={result.page}
+        perPage={result.perPage}
+        params={{ status: view === "open" ? undefined : view }}
+      />
     </div>
   );
 }

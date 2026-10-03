@@ -531,6 +531,7 @@
     "filterOpen": "Açık",
     "filterClosed": "Kapatılanlar",
     "filterAll": "Tümü",
+    "filterCount": "{label} {count, number}",
     "emptyClosed": "Kapatılmış hatırlatma yok.",
     "emptyClosedHint": "Tamamladığınız ya da gerek kalmadığı için kapattığınız hatırlatmalar burada birikir.",
     "sendNow": "Şimdi gönder",
