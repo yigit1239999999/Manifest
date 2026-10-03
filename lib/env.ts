@@ -55,7 +55,14 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 function loadEnv(): Env {
-  const result = envSchema.safeParse(process.env);
+  // An empty value is an absent one. `.env.example` ships optional keys as
+  // `KEY=""` so their names are in front of whoever copies it, and copying
+  // it verbatim must not refuse to start the app with "ANTHROPIC_API_KEY:
+  // too small", which is exactly what happened on the first local run.
+  const present = Object.fromEntries(
+    Object.entries(process.env).filter(([, value]) => value !== ""),
+  );
+  const result = envSchema.safeParse(present);
   if (result.success) return result.data;
 
   const issues = result.error.issues
