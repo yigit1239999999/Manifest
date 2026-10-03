@@ -108,7 +108,9 @@ test.describe("Money is stored as the amount that was typed", () => {
       .getByRole("dialog")
       .getByRole("button", { name: /^void payment$|^ödemeyi iptal et$/i })
       .click();
-    await expect(outstanding).not.toContainText(/500[.,]00/);
+    // The voided row still shows its 500,00 struck through in the payment
+    // list, so assert on the paid line rather than on the bare amount.
+    await expect(outstanding).toContainText(/(paid|ödendi):\s*\D*0[.,]00\s*\//i);
     await expect(page.getByText(/^voided |^İptal edildi: /i).first()).toBeVisible();
   });
 });
