@@ -86,7 +86,12 @@ export async function getInvoiceById(clinicId: string, id: string) {
           visit: { select: { id: true, visitedAt: true, type: true } },
         },
       },
-      payments: { orderBy: { paidAt: "desc" } },
+      // Voided payments too: they stay on the invoice, struck through,
+      // so the page says who took one back. Sums filter on `voidedAt`.
+      payments: {
+        orderBy: { paidAt: "desc" },
+        include: { voidedBy: { select: { name: true } } },
+      },
     },
   });
 }

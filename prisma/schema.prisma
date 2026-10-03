@@ -89,6 +89,7 @@ model User {
   notesBy           Note[]         @relation("NoteAuthor")
   documentsBy       Document[]     @relation("DocumentUploadedBy")
   auditLogs         AuditLog[]     @relation("AuditActor")
+  paymentsVoided    Payment[]      @relation("PaymentVoidedBy")
 
   @@index([clinicId])
   @@map("users")
@@ -742,8 +743,16 @@ model Payment {
   reference   String?
   notes       String?
   createdAt   DateTime      @default(now())
+  /// A payment recorded by mistake is voided, never deleted: the row stays
+  /// as the record that money was once entered and then taken back. Every
+  /// sum of what an invoice has been paid must filter on `voidedAt: null`.
+  voidedAt    DateTime?
+  voidedById  String?
+  voidedBy    User?         @relation("PaymentVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason  String?
 
   @@index([invoiceId])
+  @@index([voidedById])
   @@map("payments")
 }
 

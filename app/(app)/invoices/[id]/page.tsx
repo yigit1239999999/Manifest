@@ -4,8 +4,9 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getInvoiceById } from "@/modules/invoices/queries";
-import { voidInvoiceAction } from "@/modules/invoices/actions";
+import { voidInvoiceAction, voidPaymentAction } from "@/modules/invoices/actions";
 import { PaymentForm } from "@/components/forms/payment-form";
+import { PaymentVoidButton } from "@/components/payment-void-button";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/back-link";
 import { DeleteButton } from "@/components/delete-button";
@@ -49,7 +50,11 @@ export default async function InvoicePage({
   // the setting must not restate an invoice that was issued in another one.
   const currency = invoice.currency;
 
-  const paidSoFar = invoice.payments.reduce((s, p) => s + p.amountCents, 0);
+  // A voided payment stays in the list below but no longer counts.
+  const paidSoFar = invoice.payments.reduce(
+    (s, p) => (p.voidedAt ? s : s + p.amountCents),
+    0,
+  );
   const remaining = invoice.totalCents - paidSoFar;
 
   return (
@@ -233,16 +238,57 @@ export default async function InvoicePage({
               </CardHeader>
               <CardContent>
                 <ul className="flex flex-col gap-1.5 text-sm">
-                  {invoice.payments.map((p) => (
-                    <li key={p.id} className="flex justify-between">
-                      <span>
-                        {formatDateTime(fmt, p.paidAt)} · {tMethod(p.method as never)}
-                      </span>
-                      <span className="font-medium">
-                        {formatMoney(fmt, p.amountCents, currency)}
-                      </span>
-                    </li>
-                  ))}
+                  {invoice.payments.map((p) => {
+                    const amount = formatMoney(fmt, p.amountCents, currency);
+                    // Struck and quiet, not removed: the row is the record
+                    // that this amount was entered and taken back.
+                    if (p.voidedAt) {
+                      return (
+                        <li key={p.id} className="flex flex-col text-muted-foreground">
+                          <span className="flex justify-between gap-2">
+                            <span className="line-through">
+                              {formatDateTime(fmt, p.paidAt)} · {tMethod(p.method as never)}
+                            </span>
+                            <s className="tabular-nums">{amount}</s>
+                          </span>
+                          <span className="text-xs">
+                            {p.voidedBy
+                              ? t("payment.voided", {
+                                  date: formatDateTime(fmt, p.voidedAt),
+                                  name: p.voidedBy.name,
+                                })
+                              : t("payment.voidedNoName", {
+                                  date: formatDateTime(fmt, p.voidedAt),
+                                })}
+                          </span>
+                        </li>
+                      );
+                    }
+                    const remainingAfter = Math.max(0, remaining + p.amountCents);
+                    return (
+                      <li key={p.id} className="flex flex-col gap-0.5">
+                        <span className="flex justify-between gap-2">
+                          <span>
+                            {formatDateTime(fmt, p.paidAt)} · {tMethod(p.method as never)}
+                          </span>
+                          <span className="font-medium tabular-nums">{amount}</span>
+                        </span>
+                        {canRecordPayment && invoice.status !== "VOID" && (
+                          <span className="-me-2 self-end">
+                            <PaymentVoidButton
+                              action={voidPaymentAction.bind(null, p.id)}
+                              label={t("payment.void")}
+                              name={t("payment.voidName", { amount })}
+                              confirmText={t("payment.voidConfirm", { amount })}
+                              description={t("payment.voidDescription", {
+                                remaining: formatMoney(fmt, remainingAfter, currency),
+                              })}
+                            />
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </CardContent>
             </Card>
