@@ -113,10 +113,6 @@ export async function getClientLabel(clinicId: string, id: string) {
   return client ? `${client.firstName} ${client.lastName}` : undefined;
 }
 
-export async function countClients(clinicId: string) {
-  return prisma.client.count({ where: { clinicId, archivedAt: null } });
-}
-
 /**
  * Lightweight matches, used by the global command palette and — with a
  * larger `take` — by the pickers on the forms.

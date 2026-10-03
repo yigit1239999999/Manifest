@@ -78,9 +78,3 @@ export async function listReminders({
     },
   });
 }
-
-export async function countOpenReminders(clinicId: string) {
-  return prisma.reminder.count({
-    where: { clinicId, status: { in: [...OPEN_REMINDER_STATUSES] as never } },
-  });
-}

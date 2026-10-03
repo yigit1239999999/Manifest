@@ -122,25 +122,3 @@ export async function getInvoiceForVisit(clinicId: string, visitId: string) {
   });
   return line?.invoice ?? null;
 }
-
-export async function outstandingInvoicesCount(clinicId: string) {
-  return prisma.invoice.count({
-    where: {
-      clinicId,
-      client: { archivedAt: null },
-      status: { in: ["SENT", "PARTIAL"] },
-    },
-  });
-}
-
-export async function outstandingInvoiceTotal(clinicId: string): Promise<number> {
-  const result = await prisma.invoice.aggregate({
-    where: {
-      clinicId,
-      client: { archivedAt: null },
-      status: { in: ["SENT", "PARTIAL"] },
-    },
-    _sum: { totalCents: true },
-  });
-  return result._sum.totalCents ?? 0;
-}

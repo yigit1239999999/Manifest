@@ -141,17 +141,6 @@ export async function getVisitForInvoice(clinicId: string, id: string) {
   });
 }
 
-export async function countVisits(clinicId: string) {
-  return prisma.visit.count({
-    where: {
-      clinicId,
-      archivedAt: null,
-      pet: { archivedAt: null },
-      client: { archivedAt: null },
-    },
-  });
-}
-
 export async function recentVisits(clinicId: string, take = PAGE_SIZES.PREVIEW) {
   return prisma.visit.findMany({
     where: {
