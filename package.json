@@ -20,6 +20,7 @@
     "db:migrate:status": "prisma migrate status",
     "db:migrate:reset": "prisma migrate reset",
     "db:seed": "node --env-file=.env scripts/seed-states.mjs",
+    "env:pull": "npx vercel env pull .env --environment=production --yes",
     "sweep": "node --env-file=.env scripts/run-sweep.mjs",
     "sweep:watch": "node --env-file=.env scripts/run-sweep.mjs --every 15",
     "sweep:dry": "node --env-file=.env scripts/run-sweep.mjs --dry-run",
