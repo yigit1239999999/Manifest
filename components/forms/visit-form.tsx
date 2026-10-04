@@ -328,6 +328,12 @@ export function VisitForm({
   const unusualWeight = knownPet
     ? implausibleWeight(defaultPetSpecies, weightText)
     : null;
+  // Asked once on save, the way an empty vaccine date is: the warning under
+  // the box can be read past, and the vet who did saved 42 kg for a cat
+  // without a word. The second press saves as typed.
+  const [weightConfirmedFor, setWeightConfirmedFor] = useState<string | null>(null);
+  const weightNeedsConfirm =
+    unusualWeight !== null && weightConfirmedFor !== weightText;
 
   // A rejected submit is a server response, not an event this form can
   // subscribe to, so it is read as it arrives rather than in an effect:
@@ -356,6 +362,16 @@ export function VisitForm({
       // of an old one.
       draftKey={draftKey}
       className="flex flex-col gap-6"
+      onSubmit={(event) => {
+        if (weightNeedsConfirm) {
+          event.preventDefault();
+          setWeightConfirmedFor(weightText);
+          // Back to the field the question is about.
+          event.currentTarget
+            .querySelector<HTMLInputElement>('input[name="weightKg"]')
+            ?.focus();
+        }
+      }}
     >
       {/* Part-filled arrivals only: the chain a new clinic walks, or a
           deep link from a record's own page. See `focusFirstEmpty`. */}
@@ -613,7 +629,10 @@ export function VisitForm({
             unusualWeight
               ? t(`weightUnusual.${unusualWeight.species}`, {
                   weight: unusualWeight.kg,
-                })
+                }) +
+                (weightConfirmedFor === weightText
+                  ? ` ${t("weightConfirmAgain")}`
+                  : "")
               : undefined
           }
           hintTone="warning"

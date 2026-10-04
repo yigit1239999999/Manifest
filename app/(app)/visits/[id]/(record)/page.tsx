@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Edit3, Plus, ReceiptText } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
+import { implausibleWeight } from "@/modules/pets/plausible-weight";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
@@ -443,7 +444,20 @@ export default async function VisitPage({
                   label: t("weightKg"),
                   // The unit belongs to the reading, so it is only written
                   // when there is one; the list supplies the "-".
-                  value: visit.weightKg != null ? `${formatDecimal(fmt, visit.weightKg)} kg` : null,
+                  // Marked when it is out of range for the species, so a
+                  // 42 kg cat saved past the form's question still stands
+                  // out on the record the dose is read from.
+                  value:
+                    visit.weightKg != null ? (
+                      implausibleWeight(visit.pet.species, String(visit.weightKg)) ? (
+                        <span className="font-semibold text-warning">
+                          {formatDecimal(fmt, visit.weightKg)} kg ·{" "}
+                          {t("weightCheck")}
+                        </span>
+                      ) : (
+                        `${formatDecimal(fmt, visit.weightKg)} kg`
+                      )
+                    ) : null,
                   numeric: true,
                 },
                 {

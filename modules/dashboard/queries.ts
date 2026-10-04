@@ -29,6 +29,7 @@ interface CountsRow {
   outstanding_invoices: number;
   outstanding_total_cents: number;
   outstanding_other_currencies: string[];
+  draft_invoices: number;
   open_reminders: number;
 }
 
@@ -74,6 +75,8 @@ export interface DashboardInsights {
   outstandingInvoiceCents: number;
   /** Other currencies present among outstanding invoices, if any. */
   outstandingOtherCurrencies: string[];
+  /** Invoices saved as drafts and never sent: not owed yet, not asked for. */
+  draftInvoiceCount: number;
   upcomingAppointments: Awaited<ReturnType<typeof upcomingAppointments>>;
   upcomingVaccinations: Awaited<ReturnType<typeof upcomingVaccinations>>;
   /**
@@ -167,6 +170,14 @@ export async function dashboardInsights(
           AND i.currency <> ${currency}
           AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
       ) AS outstanding_other_currencies,
+      -- Drafts are not owed yet, so they stay out of the figure above; but a
+      -- draft nobody sent is money that never gets asked for. The vet: "Elif
+      -- taslağı gönderilmiş yapmayı unutursa akşam o para gözümden kaçar."
+      (SELECT COUNT(*) FROM "invoices" i
+        WHERE i."clinicId" = ${clinicId}
+          AND i.status = 'DRAFT'
+          AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
+      )::int AS draft_invoices,
       -- The same set the reminders list shows, taken from the same constant:
       -- the card used to count only PENDING while the list showed PENDING and
       -- SENT, so the number on the card and the number of rows behind it
@@ -262,6 +273,7 @@ export async function dashboardInsights(
     outstanding_invoices: 0,
     outstanding_total_cents: 0,
     outstanding_other_currencies: [],
+    draft_invoices: 0,
     open_reminders: 0,
   };
 
@@ -310,6 +322,7 @@ export async function dashboardInsights(
     },
     outstandingInvoiceCents: c.outstanding_total_cents,
     outstandingOtherCurrencies: c.outstanding_other_currencies ?? [],
+    draftInvoiceCount: c.draft_invoices ?? 0,
     upcomingAppointments: upcomingApptsList,
     upcomingVaccinations: upcomingVaccsList,
     overdueVaccinations: overdueVaccsList,

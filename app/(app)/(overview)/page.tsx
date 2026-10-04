@@ -144,6 +144,11 @@ export default async function DashboardPage() {
           ? ` · ${t("chart.otherCurrencyCount", {
               count: insights.outstandingOtherCurrencies.length,
             })}`
+          : "") +
+        // Not owed, so not in the figure; but a draft nobody sent is money
+        // nobody asks for, and this is where the evening check looks.
+        (insights.draftInvoiceCount > 0
+          ? ` · ${t("draftInvoices", { count: insights.draftInvoiceCount })}`
           : ""),
     },
     {

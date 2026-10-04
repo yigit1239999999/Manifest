@@ -161,6 +161,7 @@
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
     "overdueVaccinationsDismiss": "Close",
     "overdueVaccinationsBook": "Book",
+    "draftInvoices": "{count, plural, one {# draft not sent} other {# drafts not sent}}",
     "overdueVaccinationsDismissed": "Vaccination row closed.",
     "overdueVaccinationsUndo": "Undo",
     "overdueVaccinationsOlder": "Also {count, plural, one {# vaccination has} other {# vaccinations have}} been overdue for more than 6 months; each is on the animal's page."
@@ -334,6 +335,8 @@
     "createInvoice": "Create an invoice for this visit",
     "invoicedAs": "Invoiced as {number}",
     "archivedBySubject": "Its animal or its client is archived, so this visit does not appear in the lists.",
+    "weightCheck": "please check",
+    "weightConfirmAgain": "If it is right, press save once more.",
     "weightUnusual": {
       "CAT": "{weight, number} kg is unusual for a cat. Please check it.",
       "DOG": "{weight, number} kg is unusual for a dog. Please check it.",

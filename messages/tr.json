@@ -161,6 +161,7 @@
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
     "overdueVaccinationsDismiss": "Kapat",
     "overdueVaccinationsBook": "Randevu ver",
+    "draftInvoices": "{count, plural, one {# taslak gönderilmedi} other {# taslak gönderilmedi}}",
     "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
     "overdueVaccinationsUndo": "Geri al",
     "overdueVaccinationsOlder": "Ayrıca {count, plural, one {# aşı} other {# aşı}} 6 aydan uzun süredir gecikmiş; her biri hayvanın sayfasında."
@@ -334,6 +335,8 @@
     "createInvoice": "Bu vizit için fatura oluştur",
     "invoicedAs": "Faturası: {number}",
     "archivedBySubject": "Hayvanı veya müşterisi arşivlendiği için bu vizit listelerde görünmüyor.",
+    "weightCheck": "kontrol edin",
+    "weightConfirmAgain": "Doğruysa kaydetmek için bir kez daha basın.",
     "weightUnusual": {
       "CAT": "Bir kedi için {weight, number} kg alışılmışın dışında. Lütfen kontrol edin.",
       "DOG": "Bir köpek için {weight, number} kg alışılmışın dışında. Lütfen kontrol edin.",
