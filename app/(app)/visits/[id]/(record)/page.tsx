@@ -141,17 +141,13 @@ export default async function VisitPage({
       <BackLink href="/visits" label={tCommon("back")} />
 
       <PageHeader
-        title={visit.chiefComplaint ?? tType(visit.type as never)}
-        // When, and only when. The animal and the owner used to be
-        // here too, and the reason they left is not repetition: the
-        // product has already taught that an animal's name is a link
-        // -- the dashboard's overdue-vaccination and unread-result
-        // cards draw it as one -- so a plain copy of that name in a
-        // heading is the unclickable twin of a thing the vet has
-        // learned to click. They click, nothing happens, and what
-        // they take away is "there is no way to the animal from
-        // here" (ux). Two copies where one can act: the idle one
-        // goes, and the one that stays is the one that acts.
+        // Which animal first, then why it came. A heading of "Aşı" alone
+        // named a kind of visit, not a record: the vet reading a day's
+        // visits could not tell one from the next without scrolling.
+        // The appointment record heads itself the same way. The name is
+        // plain text here; the way to the animal is the link in the
+        // detail list (`app/record-exits.test.ts`).
+        title={`${visit.pet.name} · ${visit.chiefComplaint ?? tType(visit.type as never)}`}
         description={formatDateTime(fmt, visit.visitedAt)}
         // The only page whose heading is free text: it carries the
         // vet's own words for why the animal came. The whole of them
@@ -162,13 +158,8 @@ export default async function VisitPage({
         // the same words when nobody wrote a complaint -- so a wellness
         // check with no complaint read "Genel kontrol" twice, side by
         // side, which is the shape of a placeholder rather than of a
-        // record (pm, on a first-run clinic).
-        //
-        // Dropped rather than replaced. Putting the animal's name in the
-        // title instead would also fix it and is a bigger change than a
-        // repetition deserves: the description line already carries the
-        // animal and the owner, and which of the two should head this
-        // page is a question about the page, not about this defect (ux).
+        // record (pm, on a first-run clinic). So it only appears when the
+        // title carries a complaint instead.
         badge={
           visit.chiefComplaint ? <Badge>{tType(visit.type as never)}</Badge> : undefined
         }
@@ -497,7 +488,13 @@ export default async function VisitPage({
             </ul>
           )}
           {canAddVaccination && (
-            <details className="rounded-control border border-dashed border-border p-3 text-sm">
+            // Open on a vaccination visit that has none yet: recording the
+            // dose is what this visit is for, and it should not sit one
+            // click away behind a closed summary.
+            <details
+              open={visit.type === "VACCINATION" && visit.vaccinations.length === 0}
+              className="rounded-control border border-dashed border-border p-3 text-sm"
+            >
               <summary className="cursor-pointer font-medium">
                 <Plus className="me-1 inline size-3.5" />
                 {tVacc("new")}

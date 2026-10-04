@@ -16,15 +16,20 @@ import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { VisitForm } from "@/components/forms/visit-form";
 import { ownerLabel } from "@/lib/pet-label";
+import { VISIT_TYPES } from "@/modules/appointments/schema";
 
 export default async function NewVisitPage({
   searchParams,
 }: {
-  searchParams: Promise<{ petId?: string }>;
+  searchParams: Promise<{ petId?: string; type?: string }>;
 }) {
   const session = await requireSession();
   if (!can(session.user.role, "visits.write")) return <ForbiddenState />;
-  const { petId } = await searchParams;
+  const { petId, type } = await searchParams;
+  // Set by an appointment's "Start visit". Anything that is not a visit
+  // type is ignored, so the form keeps its own default rather than
+  // drawing a select with nothing chosen.
+  const defaultType = VISIT_TYPES.find((v) => v === type);
   // The animal and its owner are opened inside this form now, so this
   // page loads what `pets/new` loads: the clinic's species catalogue,
   // its clients, and the built-ins it has switched off. One round of
@@ -124,6 +129,7 @@ export default async function NewVisitPage({
           defaultVetId={defaultVetFor(vets, session.user.id)}
           defaultPetId={petId}
           defaultPetLabel={defaultPetLabel}
+          defaultType={defaultType}
           owners={owners.items.map((o) => ({
             id: o.id,
             firstName: o.firstName,
