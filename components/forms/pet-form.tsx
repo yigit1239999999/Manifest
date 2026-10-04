@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { Client, Pet } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { FormSection } from "@/components/ui/form-section";
@@ -16,7 +16,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { searchClientsAction } from "@/modules/clients/actions";
 import { SPECIES, SEXES } from "@/modules/pets/schema";
 import { createPetAction, updatePetAction } from "@/modules/pets/actions";
-import { toDateInput } from "@/lib/format";
+import { decimalInputValue, toDateInput } from "@/lib/format";
 import { BREEDS } from "@/lib/breeds";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import { createHref } from "@/lib/next-param";
@@ -120,6 +120,7 @@ export function PetForm({
   );
   const router = useRouter();
   const t = useTranslations("pet");
+  const locale = useLocale();
   const tClient = useTranslations("client");
   const tSpecies = useTranslations("enum.species");
   const tSex = useTranslations("enum.sex");
@@ -347,7 +348,7 @@ export function PetForm({
                   // Decimal text, not type="number"; see `parseDecimal`.
                   inputMode="decimal"
                   name="weightKg"
-                  defaultValue={pet?.weightKg ?? ""}
+                  defaultValue={decimalInputValue(locale, pet?.weightKg)}
                 />
               </Field>
               <Field label={t("color")} error={state.fieldErrors?.color}>

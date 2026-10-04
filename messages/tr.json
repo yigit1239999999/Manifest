@@ -21,6 +21,8 @@
     "signOut": "Çıkış"
   },
   "common": {
+    "close": "Kapat",
+    "notificationsRegion": "Bildirimler",
     "save": "Kaydet",
     "cancel": "İptal",
     "nevermind": "Vazgeç",
@@ -517,6 +519,8 @@
     "namePlaceholder": "Ara veya yazın: kuduz, karma, FVRCP…",
     "nextDueResult": "Bu tarih geldiğinde kayıt panelde görünür: tarihe kadar \"Yaklaşan aşılar\", tarih geçtiğinde \"Geciken aşılar\" arasında.",
     "nextDueEmpty": "Boş bırakılırsa bu aşı yaklaşanlar listesinde görünmez.",
+    "nextDueConfirm": "Sonraki aşı tarihi boş. Boş kaydederseniz bu hayvan yaklaşan aşılar listesine düşmez ve geri çağrılmaz.",
+    "nextDueSaveEmpty": "Boş kaydet",
     "suggestionChip": "{interval} sonra · {date}",
     "suggestionSource": "Bu klinikte son {count} \"{name}\" kaydının çoğu {interval} sonraya yazılmış.",
     "interval": {
@@ -720,6 +724,7 @@
     "remaining": "Kalan",
     "recordPayment": "Ödeme kaydet",
     "void": "Faturayı iptal et",
+    "markSent": "Gönderildi olarak işaretle",
     "payment": {
       "title": "Ödemeler",
       "amount": "Tutar",
@@ -738,6 +743,7 @@
     }
   },
   "timeline": {
+    "openVisit": "Viziti aç",
     "title": "Zaman çizelgesi",
     "empty": "Henüz aktivite yok.",
     "labels": {
@@ -751,7 +757,7 @@
       "invoice": "Fatura"
     },
     "nextDue": "sonraki",
-    "emptyHint": "Bu hayvan için eklenen kayıtlar (vizitler, aşılar, tedaviler ve notlar) burada görünür."
+    "emptyHint": "Bu kayda eklenen vizitler, aşılar, tedaviler ve notlar burada görünür."
   },
   "audit": {
     "title": "İşlem geçmişi",

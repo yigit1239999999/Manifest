@@ -178,7 +178,8 @@ export async function Timeline({ events }: { events: TimelineEvent[] }) {
                         href={`/visits/${event.id}`}
                         className="w-fit text-xs font-medium text-primary hover:underline"
                       >
-                        →
+                        {/* A bare arrow was read aloud as "→" (QA). */}
+                        {t("openVisit")} →
                       </Link>
                     )}
                   </div>

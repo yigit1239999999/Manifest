@@ -204,6 +204,9 @@ export function InvoiceForm({
               type="number"
               min="1"
               placeholder={t("quantity")}
+              // A placeholder is not a name; the field read as a bare
+              // "spinbutton" to a screen reader (QA).
+              aria-label={t("quantity")}
               value={line.quantity}
               onChange={(e) => updateLine(i, { quantity: e.target.value })}
               required={i === 0}

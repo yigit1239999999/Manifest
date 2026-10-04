@@ -77,6 +77,9 @@ function FilterPill({
   return (
     <Link
       href={href}
+      // The selected filter was shown by colour alone; this says it to a
+      // screen reader too (QA).
+      aria-current={active ? "page" : undefined}
       className={cn(
         "rounded-pill border px-3 py-1 text-xs font-medium transition-colors-no-focus-delay",
         // The ring is stated, not inherited, and the selected chip is

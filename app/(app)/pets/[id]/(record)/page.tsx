@@ -47,6 +47,7 @@ import {
   formatDate,
   formatDateOnly,
   formatDateTime,
+  formatDecimal,
   petAge,
 } from "@/lib/format";
 import { ownerLabel, ownerPhone } from "@/lib/pet-label";
@@ -308,7 +309,7 @@ export default async function PetPage({
                   label: t("weightKg"),
                   // The unit belongs to the reading, so it is only written
                   // when there is one; the list supplies the "-".
-                  value: pet.weightKg != null ? `${pet.weightKg} kg` : null,
+                  value: pet.weightKg != null ? `${formatDecimal(fmt, pet.weightKg)} kg` : null,
                 },
                 { label: t("microchipId"), value: pet.microchipId },
                 {

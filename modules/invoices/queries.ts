@@ -66,10 +66,16 @@ async function withRemaining<
   const paid = new Map(sums.map((s) => [s.invoiceId, s._sum.amountCents ?? 0]));
   return invoices.map((inv) => ({
     ...inv,
+    // Owed only once it has been sent. A draft is not a debt yet and a
+    // void one never will be ("-"); an invoice marked paid owes nothing,
+    // even when it was marked paid in the form rather than through a
+    // recorded payment (QA found "Ödendi" beside "Kalan ₺150").
     remainingCents:
-      inv.status === "VOID"
+      inv.status === "VOID" || inv.status === "DRAFT"
         ? null
-        : Math.max(0, inv.totalCents - (paid.get(inv.id) ?? 0)),
+        : inv.status === "PAID"
+          ? 0
+          : Math.max(0, inv.totalCents - (paid.get(inv.id) ?? 0)),
   }));
 }
 

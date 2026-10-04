@@ -5,7 +5,8 @@ import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { action, type FormState } from "@/lib/action";
 import { invoiceSchema, paymentSchema } from "./schema";
-import { createInvoice, recordPayment, voidInvoice, voidPayment } from "./service";
+import { createInvoice, recordPayment, markInvoiceSent,
+  voidInvoice, voidPayment } from "./service";
 
 // Invoices use a custom parse because lines come in as repeated form fields.
 function parseInvoiceFormData(formData: FormData, locale: string) {
@@ -80,6 +81,13 @@ export const recordPaymentAction = action(
 
     await recordPayment(parsed.data, ctx, locale);
     return { success: true };
+  },
+);
+
+export const markInvoiceSentAction = action(
+  "invoice.mark_sent",
+  async (ctx, id: string): Promise<void> => {
+    await markInvoiceSent(id, ctx);
   },
 );
 

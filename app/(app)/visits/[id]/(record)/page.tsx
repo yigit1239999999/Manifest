@@ -40,6 +40,7 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   formatDate,
   formatDateTime,
+  formatDecimal,
   formatMoney,
 } from "@/lib/format";
 import { ownerLabel } from "@/lib/pet-label";
@@ -442,14 +443,14 @@ export default async function VisitPage({
                   label: t("weightKg"),
                   // The unit belongs to the reading, so it is only written
                   // when there is one; the list supplies the "-".
-                  value: visit.weightKg != null ? `${visit.weightKg} kg` : null,
+                  value: visit.weightKg != null ? `${formatDecimal(fmt, visit.weightKg)} kg` : null,
                   numeric: true,
                 },
                 {
                   label: t("temperatureC"),
                   value:
                     visit.temperatureC != null
-                      ? `${visit.temperatureC} °C`
+                      ? `${formatDecimal(fmt, visit.temperatureC, 1)} °C`
                       : null,
                   numeric: true,
                 },

@@ -350,6 +350,33 @@ export function relativeTime(
  * `Intl` knows the right count for each one.
  */
 /**
+ * A measurement in the reader's notation: "4,2" in Turkish, "4.2" in
+ * English. Weights and temperatures were printed with `${n}`, so a cat
+ * typed as 4,2 kg came back as "4.2 kg" on a Turkish screen (QA).
+ */
+export function formatDecimal(
+  target: FormatTarget,
+  value: number,
+  maximumFractionDigits = 2,
+): string {
+  return new Intl.NumberFormat(intlLocale(localeOf(target)), {
+    maximumFractionDigits,
+  }).format(value);
+}
+
+/**
+ * The same number written back into an input, without grouping, so what
+ * the form shows is exactly what `parseDecimal` reads when it is saved.
+ */
+export function decimalInputValue(locale: string, value: number | null | undefined): string {
+  if (value == null) return "";
+  return new Intl.NumberFormat(intlLocale(locale), {
+    maximumFractionDigits: 2,
+    useGrouping: false,
+  }).format(value);
+}
+
+/**
  * The mark a locale puts in front of an amount: "₺", "$", "€".
  *
  * Read out of the same formatter `formatMoney` uses rather than a table of

@@ -21,6 +21,8 @@
     "signOut": "Sign out"
   },
   "common": {
+    "close": "Close",
+    "notificationsRegion": "Notifications",
     "save": "Save",
     "cancel": "Cancel",
     "nevermind": "Cancel",
@@ -517,6 +519,8 @@
     "namePlaceholder": "Search or type: rabies, DHPPi, FVRCP…",
     "nextDueResult": "When this date arrives the record shows on the dashboard: under \"Upcoming vaccinations\" until then, and under \"Overdue vaccinations\" once it has passed.",
     "nextDueEmpty": "Left empty, this vaccination will not appear in the upcoming list.",
+    "nextDueConfirm": "The next due date is empty. Saved empty, this animal will not appear among upcoming vaccinations and will not be called back.",
+    "nextDueSaveEmpty": "Save without a date",
     "suggestionChip": "{interval} later · {date}",
     "suggestionSource": "Most of the last {count} \"{name}\" records in this clinic were set {interval} later.",
     "interval": {
@@ -720,6 +724,7 @@
     "remaining": "Remaining",
     "recordPayment": "Record payment",
     "void": "Void invoice",
+    "markSent": "Mark as sent",
     "payment": {
       "title": "Payments",
       "amount": "Amount",
@@ -738,6 +743,7 @@
     }
   },
   "timeline": {
+    "openVisit": "Open visit",
     "title": "Timeline",
     "empty": "No activity yet.",
     "labels": {
@@ -751,7 +757,7 @@
       "invoice": "Invoice"
     },
     "nextDue": "next",
-    "emptyHint": "Records added for this pet — visits, vaccinations, treatments and notes — appear here."
+    "emptyHint": "Visits, vaccinations, treatments and notes added to this record appear here."
   },
   "audit": {
     "title": "Audit log",

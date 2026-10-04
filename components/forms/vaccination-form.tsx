@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
+import { Callout } from "@/components/ui/callout";
+import { buttonVariants } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
@@ -61,6 +63,12 @@ export function VaccinationForm({
    * that point the list is not what the vet used.
    */
   const [dueSource, setDueSource] = useState<"HISTORY" | "CLINIC" | "LIST" | "MANUAL" | "">("");
+  // Saving with no next date is allowed, and asked about once. The vet's
+  // words: "boş bıraktığımda kaydederken bir kez sorsun" -- left empty, the
+  // vaccine silently drops out of the upcoming list and the animal is not
+  // called back. The question names the consequence and offers the
+  // suggestion; it never fills the date on its own (TEAM.md #14).
+  const [askedEmptyDue, setAskedEmptyDue] = useState(false);
 
   const savedMessage = tCommon("saved");
 
@@ -87,6 +95,7 @@ export function VaccinationForm({
     setNextDue("");
     setDose(null);
     setDueSource("");
+    setAskedEmptyDue(false);
   }
 
   // The line of the clinic's list this name belongs to, matched through
@@ -167,7 +176,18 @@ export function VaccinationForm({
   }));
 
   return (
-    <ActionForm form={form} className="grid gap-3 sm:grid-cols-2">
+    <ActionForm
+      form={form}
+      className="grid gap-3 sm:grid-cols-2"
+      onSubmit={(event) => {
+        // Only for a vaccine this screen knows a schedule for, and only the
+        // first time: the second press saves exactly as typed.
+        if (!nextDue && suggestedDate && !askedEmptyDue) {
+          event.preventDefault();
+          setAskedEmptyDue(true);
+        }
+      }}
+    >
 
       <input type="hidden" name="petId" value={petId} />
       {visitId && <input type="hidden" name="visitId" value={visitId} />}
@@ -267,6 +287,41 @@ export function VaccinationForm({
         <p className="text-xs text-muted-foreground">
           {nextDue ? t("nextDueResult") : t("nextDueEmpty")}
         </p>
+
+        {askedEmptyDue && !nextDue && suggestedDate && (
+          <Callout variant="warning" className="mt-1">
+            <div className="flex flex-col gap-2">
+              <span>{t("nextDueConfirm")}</span>
+              <span className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNextDue(suggestedDate);
+                    setDueSource(
+                      offer?.due.kind === "history"
+                        ? "HISTORY"
+                        : offer?.due.kind === "clinic"
+                          ? "CLINIC"
+                          : "LIST",
+                    );
+                  }}
+                  className={buttonVariants({ variant: "secondary", size: "sm" })}
+                >
+                  {t("suggestionChip", {
+                    interval: intervalLabel,
+                    date: formatPlainDate(locale, suggestedDate),
+                  })}
+                </button>
+                <button
+                  type="submit"
+                  className={buttonVariants({ variant: "ghost", size: "sm" })}
+                >
+                  {t("nextDueSaveEmpty")}
+                </button>
+              </span>
+            </div>
+          </Callout>
+        )}
       </div>
 
       {/* What the record will remember about the number above. Hidden

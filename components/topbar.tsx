@@ -24,7 +24,11 @@ export async function Topbar({
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-4 md:px-8">
       {/* `min-w-0` beside `truncate`: this is the one thing in the
           header that may give way, so it has to be able to. */}
-      <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+      <span
+        // On a phone the controls leave no room and the name was cut to a
+        // 5px sliver of its first letter (QA); nothing beats that sliver.
+        className="hidden min-w-0 truncate text-sm font-semibold text-foreground sm:block"
+      >
         {clinicName}
       </span>
 

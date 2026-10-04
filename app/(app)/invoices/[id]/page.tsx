@@ -4,7 +4,12 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getInvoiceById } from "@/modules/invoices/queries";
-import { voidInvoiceAction, voidPaymentAction } from "@/modules/invoices/actions";
+import {
+  markInvoiceSentAction,
+  voidInvoiceAction,
+  voidPaymentAction,
+} from "@/modules/invoices/actions";
+import { MarkSentButton } from "@/components/mark-sent-button";
 import { PaymentForm } from "@/components/forms/payment-form";
 import { PaymentVoidButton } from "@/components/payment-void-button";
 import { PageHeader } from "@/components/page-header";
@@ -42,6 +47,7 @@ export default async function InvoicePage({
   // holds, so until now every other role — the vets included — was shown
   // a button that always refused.
   const canVoid = can(session.user.role, "invoices.void");
+  const canWrite = can(session.user.role, "invoices.write");
   // Recording money taken is its own permission and its own service check
   // (`modules/invoices/service.ts:79`). The list of payments already made
   // stays visible either way: it is what the invoice says, not an action.
@@ -73,6 +79,12 @@ export default async function InvoicePage({
           />
         }
       >
+        {canWrite && invoice.status === "DRAFT" && (
+          <MarkSentButton
+            action={markInvoiceSentAction.bind(null, invoice.id)}
+            label={t("markSent")}
+          />
+        )}
         {canVoid && invoice.status !== "VOID" && (
           <DeleteButton
             action={voidInvoiceAction.bind(null, invoice.id)}

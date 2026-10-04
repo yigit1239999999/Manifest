@@ -128,7 +128,10 @@ export default async function AppointmentPage({
             {tCommon("edit")}
           </Link>
         )}
-        {canWrite && appointment.status !== "CANCELLED" && (
+        {/* A no-show has nothing left to cancel (QA). */}
+        {canWrite &&
+          appointment.status !== "CANCELLED" &&
+          appointment.status !== "NO_SHOW" && (
           <DeleteButton
             // Cancelling is a status change, not a deletion: the row stays
             // and the edit screen can put it back to scheduled, because

@@ -307,6 +307,34 @@ export async function voidPayment(
  * books. In a single-vet clinic that vet is the administrator, so the limit
  * costs nothing; in a larger one it is exactly the separation intended.
  */
+/**
+ * Moves a draft to sent. A draft saved by mistake used to have no way
+ * forward: the page offered only "cancel" and "record payment", and it
+ * never counted as owed (QA). Only from DRAFT, so it cannot undo a
+ * payment's status or revive a void invoice.
+ */
+export async function markInvoiceSent(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "invoices.write");
+  const existing = await prisma.invoice.findFirst({
+    where: { id, clinicId: ctx.clinicId, status: "DRAFT" },
+    select: { id: true },
+  });
+  if (!existing) throw notFound("invoice", id);
+
+  await withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "UPDATE",
+      entityType: "Invoice",
+      entityId: id,
+      changes: { status: "SENT" },
+    },
+    (tx) => tx.invoice.update({ where: { id }, data: { status: "SENT" } }),
+  );
+  return existing;
+}
+
 export async function voidInvoice(id: string, ctx: ActionContext) {
   requirePermission(ctx.userRole, "invoices.void");
   const existing = await prisma.invoice.findFirst({

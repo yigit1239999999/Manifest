@@ -333,7 +333,13 @@ export default async function AppointmentsPage({
                         on exactly the breakpoint of the thing it stands
                         in for, column by column, or it leaves a hole
                         instead of a duplicate. */}
-                    <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground md:hidden">
+                    <div
+                      // One line, not one per fact: stacked on a phone a row
+                      // ran to six lines and five appointments filled the
+                      // screen (QA). The type and the phone sit side by side
+                      // and wrap only if they must.
+                      className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted-foreground md:hidden"
+                    >
                       <span className="sm:hidden">
                         {tType(a.type as never)}
                       </span>

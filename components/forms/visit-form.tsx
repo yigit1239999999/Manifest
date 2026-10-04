@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 import { useLocale, useTranslations } from "next-intl";
+import { decimalInputValue } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
 import type { Pet, User, Visit } from "@/generated/prisma/client";
@@ -538,7 +539,7 @@ export function VisitForm({
             // `parseDecimal` in lib/forms.ts for the 4,2 kg cat.
             inputMode="decimal"
             name="weightKg"
-            defaultValue={visit?.weightKg ?? ""}
+            defaultValue={decimalInputValue(locale, visit?.weightKg)}
           />
         </Field>
         <Field
@@ -550,7 +551,7 @@ export function VisitForm({
             // `parseDecimal` in lib/forms.ts for the 4,2 kg cat.
             inputMode="decimal"
             name="temperatureC"
-            defaultValue={visit?.temperatureC ?? ""}
+            defaultValue={decimalInputValue(locale, visit?.temperatureC)}
           />
         </Field>
         <Field

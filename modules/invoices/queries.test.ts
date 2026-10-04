@@ -75,6 +75,18 @@ describe("what the invoice list says is still owed", () => {
     expect(items.map((i) => i.remainingCents)).toEqual([0, null]);
   });
 
+  it("says nothing is owed on a draft, and nothing on an invoice marked paid without a payment", async () => {
+    vi.mocked(prisma.invoice.findMany).mockResolvedValue([
+      row("inv-1", "DRAFT", 20_000),
+      row("inv-2", "PAID", 15_000),
+    ]);
+    vi.mocked(prisma.payment.groupBy).mockResolvedValue([] as never);
+
+    const { items } = await listInvoicesPage({ clinicId: "clinic-1" });
+
+    expect(items.map((i) => i.remainingCents)).toEqual([null, 0]);
+  });
+
   it("filters on both unpaid statuses when asked for them", async () => {
     await listInvoicesPage({ clinicId: "clinic-1", statuses: ["SENT", "PARTIAL"] });
     const where = vi.mocked(prisma.invoice.findMany).mock.calls[0][0]?.where;
