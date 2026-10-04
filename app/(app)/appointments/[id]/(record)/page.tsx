@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Edit3 } from "lucide-react";
+import { Edit3, Stethoscope } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
@@ -78,6 +78,9 @@ export default async function AppointmentPage({
   // question from the one the server answers, the two drift into a hidden
   // door that is open or a visible one that is shut.
   const canWrite = can(session.user.role, "appointments.write");
+  // The question `/visits/new` asks before it draws the form, and the one
+  // the animal's page asks for its own "New visit".
+  const canStartVisit = can(session.user.role, "visits.write");
 
   return (
     <div className="flex flex-col gap-6">
@@ -98,6 +101,20 @@ export default async function AppointmentPage({
           </>
         }
       >
+        {/* An appointment exists to become a visit, so that is the primary
+            action here. The animal and the kind of visit travel with the
+            link: appointments and visits share one `VisitType` enum, so
+            the type carries over as it is, and `/visits/new` still checks
+            it before using it. */}
+        {canStartVisit && appointment.status !== "CANCELLED" && (
+          <Link
+            href={`/visits/new?petId=${appointment.pet.id}&type=${appointment.type}`}
+            className={buttonVariants()}
+          >
+            <Stethoscope />
+            {t("startVisit")}
+          </Link>
+        )}
         {canWrite && (
           <Link
             href={`/appointments/${appointment.id}/edit`}

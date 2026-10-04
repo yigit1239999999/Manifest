@@ -349,6 +349,7 @@
     "reason": "Reason",
     "notes": "Notes",
     "cancel": "Cancel appointment",
+    "startVisit": "Start visit",
     "duplicate": {
       "notice": "This animal already has an appointment at this time; you have been brought to the existing record.",
       "noticeDropped": "This animal already has an appointment at this time; you have been brought to the existing record. What you typed this time was not saved, and the appointment's own details were kept."

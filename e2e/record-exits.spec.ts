@@ -85,3 +85,33 @@ test.describe("A record leads back to the animal", () => {
     await expect(page.getByRole("heading", { name: "Limon" })).toBeVisible();
   });
 });
+
+test.describe("An appointment becomes its visit", () => {
+  // The animal has arrived: one press from the appointment to a visit
+  // form that already knows the animal and the kind of visit, then a
+  // record that says whose it is and opens on its main job.
+  test("start visit carries the animal and the type through", async ({ page }) => {
+    await signUp(page, Date.now());
+    await recordFirstVisit(page);
+
+    await page.goto("/appointments/new");
+    await pickOption(page, page.getByLabel(/^pet$|^hayvan$/i));
+    await page.getByLabel(/^type$|^tür$/i).selectOption("VACCINATION");
+    await page.getByRole("button", { name: /create appointment|randevu oluştur/i }).click();
+    await expect(page).toHaveURL(/\/appointments\/(?!new)[\w-]+/);
+
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: /start visit|vizite başla/i })
+      .click();
+    await expect(page).toHaveURL(/\/visits\/new\?petId=[\w-]+&type=VACCINATION/);
+    await expect(page.getByLabel(/^visit type$|^vizit türü$/i)).toHaveValue("VACCINATION");
+
+    await page.getByRole("button", { name: /create visit|viziti kaydet/i }).click();
+    await expect(page).toHaveURL(/\/visits\/(?!new)[\w-]+(\?|$)/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^Limon · /);
+    await expect(
+      page.locator("details", { hasText: /add vaccination|aşı ekle/i }),
+    ).toHaveAttribute("open", "");
+  });
+});

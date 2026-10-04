@@ -61,6 +61,12 @@ interface Props {
    */
   defaultPetLabel?: string;
   /**
+   * The kind of visit to open with, when a link carried one (an
+   * appointment's "Start visit"). Checked against `VISIT_TYPES` by the
+   * page; an edit keeps the visit's own.
+   */
+  defaultType?: (typeof VISIT_TYPES)[number];
+  /**
    * The signed-in user, when they are somebody a visit may be recorded
    * against. Absent for everyone else, and absent is not a fallback:
    * "not recorded" is a better answer than a name nobody chose.
@@ -118,6 +124,7 @@ export function VisitForm({
   vets,
   defaultPetId,
   defaultPetLabel,
+  defaultType,
   defaultVetId,
   owners = [],
   ownersCapped,
@@ -395,7 +402,7 @@ export function VisitForm({
         <Field label={t("type")} error={state.fieldErrors?.type} required>
           <Select
             name="type"
-            defaultValue={visit?.type ?? "WELLNESS_CHECK"}
+            defaultValue={visit?.type ?? defaultType ?? "WELLNESS_CHECK"}
             required
           >
             {VISIT_TYPES.map((v) => (
