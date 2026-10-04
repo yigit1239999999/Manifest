@@ -41,6 +41,7 @@ import {
   intlLocale,
 } from "@/lib/format";
 import { ownerLabel } from "@/lib/pet-label";
+import { newAppointmentHref } from "@/modules/appointments/prefill";
 
 export default async function DashboardPage() {
   const session = await requireSession();
@@ -590,9 +591,16 @@ export default async function DashboardPage() {
                           {v.pet.owner?.phone}
                         </a>
                       )}
+                      {/* Booked as the vaccine it is for. No day: it
+                          is already overdue, so the form offers the
+                          next slot the clinic is open. */}
                       {canBook && (
                         <Link
-                          href={`/appointments/new?petId=${v.pet.id}`}
+                          href={newAppointmentHref({
+                            petId: v.pet.id,
+                            type: "VACCINATION",
+                            reason: v.name,
+                          })}
                           className="whitespace-nowrap text-xs font-medium text-primary hover:underline"
                         >
                           {t("overdueVaccinationsBook")}

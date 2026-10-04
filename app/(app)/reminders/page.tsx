@@ -49,6 +49,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
 import { ownerLabel } from "@/lib/pet-label";
 import { isPetSilenced } from "@/lib/pet-status";
+import { reminderBookingHref } from "@/modules/appointments/prefill";
 
 /**
  * Closed is derived, not listed again. A fifth status would otherwise have
@@ -600,7 +601,10 @@ export default async function RemindersPage({
                       see the same guard on the main list. */}
                   {canBook && b.pet && !b.pet.silenced && (
                     <Link
-                      href={`/appointments/new?petId=${b.pet.id}`}
+                      href={reminderBookingHref(
+                        { ...b, petId: b.pet.id },
+                        { now: new Date(now), timeZone: fmt.timeZone },
+                      )}
                       aria-label={tCommon("actionFor", {
                         action: t("book"),
                         subject: b.pet.name,
@@ -806,7 +810,12 @@ export default async function RemindersPage({
                     !isPetSilenced(r.pet) &&
                     OPEN_REMINDER_STATUSES.includes(r.status as never) && (
                       <Link
-                        href={`/appointments/new?petId=${r.pet.id}`}
+                        // For what the reminder says, on its day when
+                        // that is still ahead (`reminderBookingHref`).
+                        href={reminderBookingHref(
+                          { ...r, petId: r.pet.id },
+                          { now: new Date(now), timeZone: fmt.timeZone },
+                        )}
                         aria-label={tCommon("actionFor", {
                           action: t("book"),
                           subject: r.pet.name,

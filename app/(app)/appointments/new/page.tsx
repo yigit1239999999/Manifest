@@ -13,15 +13,27 @@ import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
 import { AppointmentForm } from "@/components/forms/appointment-form";
 import { ownerLabel } from "@/lib/pet-label";
+import {
+  defaultAppointmentStart,
+  parseAppointmentPrefill,
+} from "@/modules/appointments/prefill";
 
 export default async function NewAppointmentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ petId?: string }>;
+  searchParams: Promise<{
+    petId?: string;
+    type?: string;
+    reason?: string;
+    date?: string;
+  }>;
 }) {
   const session = await requireSession();
   if (!can(session.user.role, "appointments.write")) return <ForbiddenState />;
-  const { petId } = await searchParams;
+  const { petId, ...params } = await searchParams;
+  // What the link that opened this form was about: the overdue vaccine,
+  // the reminder's title, the day it falls due. See `prefill.ts`.
+  const prefill = parseAppointmentPrefill(params);
   const [t, tCommon, pets, vets, defaultPetLabel, tSpecies, fmt] = await Promise.all([
     getTranslations("appointment"),
     getTranslations("common"),
@@ -62,6 +74,17 @@ export default async function NewAppointmentPage({
             defaultVetId={defaultVetFor(vets, session.user.id)}
             defaultPetId={petId}
             defaultPetLabel={defaultPetLabel}
+            defaultType={prefill.type}
+            defaultReason={prefill.reason}
+            // Here and not in the form: "now" and the clinic's opening
+            // hours are both on the clinic's clock, which the server
+            // has. Read once per request, so the field does not move
+            // between the server render and hydration either.
+            defaultStartsAt={defaultAppointmentStart({
+              now: new Date(),
+              date: prefill.date,
+              timeZone: fmt.timeZone,
+            })}
           />
         </Card>
       )}
