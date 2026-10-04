@@ -344,9 +344,8 @@ export function PetForm({
               </Field>
               <Field label={t("weightKg")} error={state.fieldErrors?.weightKg}>
                 <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  // Decimal text, not type="number"; see `parseDecimal`.
+                  inputMode="decimal"
                   name="weightKg"
                   defaultValue={pet?.weightKg ?? ""}
                 />

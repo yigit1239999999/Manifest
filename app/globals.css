@@ -75,6 +75,7 @@
 
 :root,
 :where([data-theme="light"]) {
+  color-scheme: light;
   --bg: #f6f4ef;
   --fg: #1f1d1a;
   --card: #ffffff;
@@ -118,14 +119,17 @@
 }
 
 [data-theme="dark"] {
+  /* Native controls (checkbox, select menu, date picker, scrollbars) follow
+     the theme too; without this they stay light on a dark card. */
+  color-scheme: dark;
   --bg: #0f1411;
   --fg: #f1efe9;
-  --card: #161c18;
+  --card: #1a211d;
   --card-fg: #f1efe9;
   --muted: #1f2521;
   --muted-fg: #a8a39a;
-  --border: #283029;
-  --input: #1c2320;
+  --border: #323b35;
+  --input: #46504a;
   --primary: #34c0a8;
   --primary-fg: #04140f;
   --primary-hover: #5cd6c0;
@@ -141,14 +145,15 @@
    and no hydration mismatch (the same dark palette as [data-theme="dark"]). */
 @media (prefers-color-scheme: dark) {
   [data-theme="system"] {
+    color-scheme: dark;
     --bg: #0f1411;
     --fg: #f1efe9;
-    --card: #161c18;
+    --card: #1a211d;
     --card-fg: #f1efe9;
     --muted: #1f2521;
     --muted-fg: #a8a39a;
-    --border: #283029;
-    --input: #1c2320;
+    --border: #323b35;
+    --input: #46504a;
     --primary: #34c0a8;
     --primary-fg: #04140f;
     --primary-hover: #5cd6c0;

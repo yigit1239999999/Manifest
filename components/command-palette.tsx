@@ -147,12 +147,12 @@ export function CommandPalette() {
         // reads as a control from a different application. A focus mark
         // that moves between two colours as you tab along a row is
         // worse than either colour on its own.
-        className="hidden h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs text-muted-foreground transition-colors-no-focus-delay hover:bg-muted focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2 sm:inline-flex"
+        className="inline-flex h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs text-muted-foreground transition-colors-no-focus-delay hover:bg-muted focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2"
         aria-label={tCommon("search")}
       >
         <Search className="size-3.5" />
-        <span>{tCommon("search")}</span>
-        <kbd className="ml-2 inline-flex items-center gap-0.5 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium">
+        <span className="hidden sm:inline">{tCommon("search")}</span>
+        <kbd className="ml-2 hidden items-center gap-0.5 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex">
           ⌘K
         </kbd>
       </button>

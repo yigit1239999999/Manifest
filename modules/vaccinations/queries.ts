@@ -95,7 +95,17 @@ export async function overdueVaccinations(clinicId: string, take = 5, now = new 
     where: overdueWhere(clinicId, now),
     orderBy: { nextDueAt: "asc" },
     take,
-    include: { pet: { select: { id: true, name: true, ownerId: true } } },
+    include: {
+      pet: {
+        select: {
+          id: true,
+          name: true,
+          ownerId: true,
+          // So the dashboard row can offer the call it exists to prompt.
+          owner: { select: { phone: true } },
+        },
+      },
+    },
   });
 }
 

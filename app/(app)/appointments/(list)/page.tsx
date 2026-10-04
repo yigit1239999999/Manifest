@@ -237,6 +237,11 @@ export default async function AppointmentsPage({
             rows={result.items}
             rowKey={(a) => a.id}
             caption={t("title")}
+            // Below 512px of its own container a row becomes a two-line
+            // card: time and status on top, the animal under it. At 390px
+            // the table form was 17px wider than its box and cut the
+            // status badge off at the edge.
+            narrow="stack"
             columns={[
               {
                 key: "startsAt",
@@ -336,7 +341,7 @@ export default async function AppointmentsPage({
                         (telHref(a.client.phone) ? (
                           <a
                             href={telHref(a.client.phone) ?? undefined}
-                            className="hover:underline"
+                            className="whitespace-nowrap hover:underline"
                           >
                             {a.client.phone}
                           </a>
@@ -344,7 +349,7 @@ export default async function AppointmentsPage({
                           // Not dialable, so not a link: something that
                           // looks tappable and does nothing is worse than
                           // plain text.
-                          <span>{a.client.phone}</span>
+                          <span className="whitespace-nowrap">{a.client.phone}</span>
                         ))}
                     </div>
                   </>
@@ -361,6 +366,7 @@ export default async function AppointmentsPage({
               {
                 key: "status",
                 header: t("status"),
+                stack: "end",
                 cell: (a) => (
                   <StatusBadge
                     kind="appointment"

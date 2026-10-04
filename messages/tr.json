@@ -158,6 +158,7 @@
     "unreachedRemindersCount": "{count, plural, one {1 tanesi ulaşmadı} other {# tanesi ulaşmadı}}",
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
     "overdueVaccinationsDismiss": "Kapat",
+    "overdueVaccinationsBook": "Randevu ver",
     "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
     "overdueVaccinationsUndo": "Geri al",
     "overdueVaccinationsOlder": "Ayrıca {count, plural, one {# aşı} other {# aşı}} 6 aydan uzun süredir gecikmiş; her biri hayvanın sayfasında."

@@ -527,8 +527,9 @@ export function VisitForm({
         </legend>
         <Field label={t("weightKg")} error={state.fieldErrors?.weightKg}>
           <Input
-            type="number"
-            step="0.01"
+            // Text with a decimal keypad, not type="number": see
+            // `parseDecimal` in lib/forms.ts for the 4,2 kg cat.
+            inputMode="decimal"
             name="weightKg"
             defaultValue={visit?.weightKg ?? ""}
           />
@@ -538,8 +539,9 @@ export function VisitForm({
           error={state.fieldErrors?.temperatureC}
         >
           <Input
-            type="number"
-            step="0.1"
+            // Text with a decimal keypad, not type="number": see
+            // `parseDecimal` in lib/forms.ts for the 4,2 kg cat.
+            inputMode="decimal"
             name="temperatureC"
             defaultValue={visit?.temperatureC ?? ""}
           />

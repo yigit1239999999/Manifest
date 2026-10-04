@@ -89,7 +89,7 @@ export default async function InvoicePage({
           container inside is only as good as the chain above it, which is
           why the one already on the table did not help (TEAM.md #27). */}
       <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 lg:self-start">
           <CardHeader>
             <CardTitle>{t("lines")}</CardTitle>
           </CardHeader>

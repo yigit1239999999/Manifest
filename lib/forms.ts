@@ -146,17 +146,33 @@ export const optionalDateTime = trim
   .refine((v) => v === "" || !Number.isNaN(Date.parse(v)), msg("error.form.date"))
   .transform((v) => (v === "" ? null : new Date(v)));
 
+/**
+ * A decimal as a person types it: "4,2" and "4.2" are both four point two.
+ *
+ * A Turkish keyboard puts the decimal comma under the thumb, and the vitals
+ * used to be `<input type="number">`, which in a browser set to English
+ * drops the comma without a word: a cat typed as "4,2" kg was saved as 42.
+ * One separator is read as the decimal point whichever it is; two of
+ * anything ("1.234,5", "4,2,1") is not a number we are sure of and is
+ * refused rather than guessed.
+ */
+export function parseDecimal(value: string): number {
+  const v = value.replace(/\s/g, "");
+  if ((v.match(/[.,]/g) ?? []).length > 1) return Number.NaN;
+  return Number(v.replace(",", "."));
+}
+
 export const optionalFloat = (opts: { min?: number; max?: number } = {}) =>
   trim
     .refine((v) => {
       if (v === "") return true;
-      const n = Number(v);
+      const n = parseDecimal(v);
       if (!Number.isFinite(n)) return false;
       if (opts.min != null && n < opts.min) return false;
       if (opts.max != null && n > opts.max) return false;
       return true;
     }, numberMsg(opts))
-    .transform((v) => (v === "" ? null : Number(v)));
+    .transform((v) => (v === "" ? null : parseDecimal(v)));
 
 export const optionalInt = (opts: { min?: number; max?: number } = {}) =>
   trim

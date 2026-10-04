@@ -118,6 +118,20 @@ describe("optionalFloat / optionalInt / requiredInt", () => {
     expect(optionalFloat().safeParse("abc").success).toBe(false);
     expect(requiredInt().safeParse("abc").success).toBe(false);
   });
+
+  // A cat typed as "4,2" kg was saved as 42: the number field dropped the
+  // comma. The parser now reads either separator as the decimal point.
+  it("reads a decimal comma the way it reads a decimal point", () => {
+    expect(optionalFloat({ min: 0, max: 1000 }).safeParse("4,2").data).toBe(4.2);
+    expect(optionalFloat({ min: 0, max: 1000 }).safeParse("4.2").data).toBe(4.2);
+    expect(optionalFloat({ min: 25, max: 50 }).safeParse("38,9").data).toBe(38.9);
+    expect(optionalFloat().safeParse(" 4,2 ").data).toBe(4.2);
+  });
+
+  it("refuses a number with more than one separator instead of guessing", () => {
+    expect(optionalFloat().safeParse("1.234,5").success).toBe(false);
+    expect(optionalFloat().safeParse("4,2,1").success).toBe(false);
+  });
 });
 
 describe("money helpers", () => {

@@ -158,6 +158,7 @@
     "unreachedRemindersCount": "{count, plural, one {1 did not arrive} other {# did not arrive}}",
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
     "overdueVaccinationsDismiss": "Close",
+    "overdueVaccinationsBook": "Book",
     "overdueVaccinationsDismissed": "Vaccination row closed.",
     "overdueVaccinationsUndo": "Undo",
     "overdueVaccinationsOlder": "Also {count, plural, one {# vaccination has} other {# vaccinations have}} been overdue for more than 6 months; each is on the animal's page."

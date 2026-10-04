@@ -15,6 +15,7 @@ import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
+import { telHref } from "@/lib/phone";
 import { dashboardInsights } from "@/modules/dashboard/queries";
 import { blockedReminders } from "@/modules/notifications/queries";
 import { unreadDiagnostics } from "@/modules/diagnostics/queries";
@@ -127,7 +128,8 @@ export default async function DashboardPage() {
       key: "outstandingInvoices" as const,
       icon: Receipt,
       value: insights.counts.outstandingInvoices,
-      href: "/invoices",
+      // The list of what is owed, not every invoice ever raised.
+      href: "/invoices?status=unpaid",
       // The count is currency-agnostic and stays whole. The amount beside
       // it is only what is owed in the clinic's own currency — adding
       // dollars to lira and printing one symbol was the defect — so when
@@ -250,6 +252,7 @@ export default async function DashboardPage() {
   const canImport =
     can(session.user.role, "clients.write") &&
     can(session.user.role, "pets.write");
+  const canBook = can(session.user.role, "appointments.write");
 
   if (firstRun) {
     return (
@@ -371,18 +374,20 @@ export default async function DashboardPage() {
 
       {firstStep && <FirstStepCard need={firstStep} size="inline" />}
 
-      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+      {/* Two across on a phone: eight full-width figures took ~600px
+          before anything a vet acts on. */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {metrics.map(({ key, icon: Icon, value, href, hint }) => (
           <Link
             key={key}
             href={href}
             className={cn(surface, "p-4 transition-colors hover:border-primary/30")}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {t(`metrics.${key}` as never)}
               </span>
-              <Icon className="size-4 text-muted-foreground" />
+              <Icon className="hidden size-4 shrink-0 text-muted-foreground sm:block" />
             </div>
             {/* `tabular-nums` here and not on each card: six cards sit in
                 one grid and their figures are read across as much as down.
@@ -413,6 +418,258 @@ export default async function DashboardPage() {
           which is exactly what pm's did, on the same build, minutes
           apart from the run that found it. */}
       <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("sections.upcomingAppointments")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {insights.upcomingAppointments.length === 0 ? (
+              <EmptyState size="inline" title={t("empty.appointments")} />
+            ) : (
+              <ul className="-mx-2 flex flex-col gap-1">
+                {insights.upcomingAppointments.map((a) => (
+                  <li key={a.id}>
+                    <Link
+                      href={`/appointments/${a.id}`}
+                      className="flex items-center justify-between gap-3 rounded-control px-2 py-2 hover:bg-muted"
+                    >
+                      <span className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {a.pet.name} · {ownerLabel(a.client)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDateTime(fmt, a.startsAt)}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("sections.recentVisits")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {insights.recentVisits.length === 0 ? (
+              <EmptyState size="inline" title={t("empty.visits")} />
+            ) : (
+              <ul className="-mx-2 flex flex-col gap-1">
+                {insights.recentVisits.map((v) => (
+                  <li key={v.id}>
+                    <Link
+                      href={`/visits/${v.id}`}
+                      className="flex items-center justify-between gap-3 rounded-control px-2 py-2 hover:bg-muted"
+                    >
+                      <span className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {v.pet.name} · {ownerLabel(v.client)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDateTime(fmt, v.visitedAt)} · {tVisitType(v.type)}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* A result nobody has read is the only thing on this page
+            that can cost an animal rather than a morning, so it goes
+            above the vaccination backlog.
+
+            Rows and not a single number, because one link cannot take
+            a vet to three results and the job ends where each
+            result's text is -- this card carries them there and the
+            button is waiting when they arrive.
+
+            Absent at zero, and value drew the line finer than that:
+            no "everything has been read" sentence either. The vet
+            said they would like one and the answer is still no. A
+            reassurance we print is a claim we have to keep being
+            right about; something never asserted cannot be wrong. */}
+        {unread.total > 0 && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{tDiag("sectionUnread")}</CardTitle>
+              {/* The total, not the row count: the list is capped, and
+                  "three of three" and "three of forty" are different
+                  mornings. */}
+              <p className="text-sm text-muted-foreground">
+                {tDiag("unreadCount", { count: unread.total })}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ul className="-mx-2 flex flex-col gap-1">
+                {unread.items.map((d) => (
+                  <li
+                    key={d.id}
+                    className="flex items-center justify-between gap-2 rounded-control px-2 py-2"
+                  >
+                    <span className="text-sm font-medium">
+                      <Link
+                        href={`/pets/${d.pet.id}`}
+                        className="hover:underline"
+                      >
+                        {d.pet.name}
+                      </Link>{" "}
+                      · {d.name ?? tDiagType(d.type as never)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(fmt, d.createdAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Only when there is something overdue. A card that says
+            "nothing is overdue" every day takes a place on the
+            dashboard to speak on the days it is least needed, and
+            teaches the eye to skip the place where the bad news
+            appears. Above the upcoming card on purpose: a backlog is
+            read before a plan. */}
+        {(insights.overdueVaccinationCount > 0 || insights.overdueOlderVaccinationCount > 0) && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{t("sections.overdueVaccinations")}</CardTitle>
+              {/* The count, not the row count: the list shows five and
+                  "five of five" and "five of forty" are different
+                  mornings. */}
+              <p className="text-sm text-muted-foreground">
+                {t("overdueVaccinationsCount", { count: insights.overdueVaccinationCount })}
+              </p>
+              {insights.overdueOlderVaccinationCount > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {t("overdueVaccinationsOlder", { count: insights.overdueOlderVaccinationCount })}
+                </p>
+              )}
+            </CardHeader>
+            <CardContent>
+              <ul className="-mx-2 flex flex-col gap-1">
+                {insights.overdueVaccinations.map((v) => (
+                  <li
+                    key={v.id}
+                    className="flex items-center justify-between gap-2 rounded-control px-2 py-2"
+                  >
+                    {/* The animal is a link for the same reason it is one on a
+                        reminder row: somebody reading which vaccinations
+                        are overdue wants to go to the animal, and the card
+                        was making them find it by hand. Half of what this
+                        card is for is getting them there.
+
+                        Both lists on this page, not just the one that was
+                        reported: the same gap, and one linked card beside
+                        one unlinked card is a worse answer than neither. */}
+                    <span className="text-sm font-medium">
+                      <Link href={`/pets/${v.pet.id}`} className="hover:underline">
+                        {v.pet.name}
+                      </Link>{" "}
+                      · {v.name}
+                    </span>
+                    <span className="flex flex-wrap items-center justify-end gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(fmt, v.nextDueAt)}
+                      </span>
+                      {/* The two things an overdue line leads to: ringing
+                          the owner and booking the animal in. They used
+                          to be two pages away. */}
+                      {telHref(v.pet.owner?.phone) && (
+                        <a
+                          href={telHref(v.pet.owner?.phone) ?? undefined}
+                          className="whitespace-nowrap text-xs text-muted-foreground hover:underline"
+                        >
+                          {v.pet.owner?.phone}
+                        </a>
+                      )}
+                      {canBook && (
+                        <Link
+                          href={`/appointments/new?petId=${v.pet.id}`}
+                          className="whitespace-nowrap text-xs font-medium text-primary hover:underline"
+                        >
+                          {t("overdueVaccinationsBook")}
+                        </Link>
+                      )}
+                      <VaccinationDueDismissButton
+                        action={setVaccinationDueDismissedAction.bind(null, v.id)}
+                        label={t("overdueVaccinationsDismiss")}
+                        // `actionFor`, the same pattern every named row
+                        // action on `/reminders` uses -- "Close: Zeytin ·
+                        // Karma aşı". Ten rows carry ten buttons reading
+                        // "Close", and by voice they are one button ten
+                        // times over unless the row is in the name.
+                        //
+                        // It replaces a key of its own, which had put the
+                        // word "aşı" after a vaccine name that already
+                        // ended in it. Building the sentence out of the
+                        // shared pattern instead of writing a new one
+                        // also means no new place for a Turkish suffix to
+                        // go wrong: `actionFor` joins with a colon and
+                        // inflects nothing.
+                        name={tCommon("actionFor", {
+                          action: t("overdueVaccinationsDismiss"),
+                          subject: `${v.pet.name} · ${v.name}`,
+                        })}
+                        undoLabel={t("overdueVaccinationsUndo")}
+                        undoneLabel={t("overdueVaccinationsDismissed")}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>{t("sections.upcomingVaccinations")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {insights.upcomingVaccinations.length === 0 ? (
+              <EmptyState size="inline" title={t("empty.vaccinations")} />
+            ) : (
+              <ul className="-mx-2 flex flex-col gap-1">
+                {insights.upcomingVaccinations.map((v) => (
+                  <li
+                    key={v.id}
+                    className="flex items-center justify-between rounded-control px-2 py-2"
+                  >
+                    {/* Not `v.pet?.name ?? "?"`. `Vaccination.petId` is
+                        non-null in the schema and the query includes the
+                        relation, so the guard defended a case that cannot
+                        happen — and printed a made-up "?" for it, which is
+                        the thing TEAM.md #21 is about. ux read the `?.` as
+                        evidence the field was nullable; defensive code had
+                        become the documentation. */}
+                    <span className="text-sm font-medium">
+                      <Link href={`/pets/${v.pet.id}`} className="hover:underline">
+                        {v.pet.name}
+                      </Link>{" "}
+                      · {v.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(fmt, v.nextDueAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* The work comes first: what is booked, what was seen, what is
+            unread and what is overdue. Charts describe the clinic and are
+            read on a quiet afternoon, so they follow (ux measured the
+            overdue list at y≈1475 on a 900px screen behind them). */}
         <Card>
           <CardHeader>
             <CardTitle>{t("sections.visitsLast12Weeks")}</CardTitle>
@@ -489,68 +746,6 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t("sections.upcomingAppointments")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {insights.upcomingAppointments.length === 0 ? (
-              <EmptyState size="inline" title={t("empty.appointments")} />
-            ) : (
-              <ul className="flex flex-col gap-1">
-                {insights.upcomingAppointments.map((a) => (
-                  <li key={a.id}>
-                    <Link
-                      href={`/appointments/${a.id}`}
-                      className="flex items-center justify-between gap-3 rounded-control px-2 py-2 hover:bg-muted"
-                    >
-                      <span className="flex flex-col">
-                        <span className="text-sm font-medium">
-                          {a.pet.name} · {ownerLabel(a.client)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDateTime(fmt, a.startsAt)}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("sections.recentVisits")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {insights.recentVisits.length === 0 ? (
-              <EmptyState size="inline" title={t("empty.visits")} />
-            ) : (
-              <ul className="flex flex-col gap-1">
-                {insights.recentVisits.map((v) => (
-                  <li key={v.id}>
-                    <Link
-                      href={`/visits/${v.id}`}
-                      className="flex items-center justify-between gap-3 rounded-control px-2 py-2 hover:bg-muted"
-                    >
-                      <span className="flex flex-col">
-                        <span className="text-sm font-medium">
-                          {v.pet.name} · {ownerLabel(v.client)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDateTime(fmt, v.visitedAt)} · {tVisitType(v.type)}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>{t("sections.petsBySpecies")}</CardTitle>
           </CardHeader>
           <CardContent>
@@ -570,172 +765,6 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* A result nobody has read is the only thing on this page
-            that can cost an animal rather than a morning, so it goes
-            above the vaccination backlog.
-
-            Rows and not a single number, because one link cannot take
-            a vet to three results and the job ends where each
-            result's text is -- this card carries them there and the
-            button is waiting when they arrive.
-
-            Absent at zero, and value drew the line finer than that:
-            no "everything has been read" sentence either. The vet
-            said they would like one and the answer is still no. A
-            reassurance we print is a claim we have to keep being
-            right about; something never asserted cannot be wrong. */}
-        {unread.total > 0 && (
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>{tDiag("sectionUnread")}</CardTitle>
-              {/* The total, not the row count: the list is capped, and
-                  "three of three" and "three of forty" are different
-                  mornings. */}
-              <p className="text-sm text-muted-foreground">
-                {tDiag("unreadCount", { count: unread.total })}
-              </p>
-            </CardHeader>
-            <CardContent>
-              <ul className="flex flex-col gap-1">
-                {unread.items.map((d) => (
-                  <li
-                    key={d.id}
-                    className="flex items-center justify-between gap-2 rounded-control px-2 py-2"
-                  >
-                    <span className="text-sm font-medium">
-                      <Link
-                        href={`/pets/${d.pet.id}`}
-                        className="hover:underline"
-                      >
-                        {d.pet.name}
-                      </Link>{" "}
-                      · {d.name ?? tDiagType(d.type as never)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(fmt, d.createdAt)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Only when there is something overdue. A card that says
-            "nothing is overdue" every day takes a place on the
-            dashboard to speak on the days it is least needed, and
-            teaches the eye to skip the place where the bad news
-            appears. Above the upcoming card on purpose: a backlog is
-            read before a plan. */}
-        {(insights.overdueVaccinationCount > 0 || insights.overdueOlderVaccinationCount > 0) && (
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>{t("sections.overdueVaccinations")}</CardTitle>
-              {/* The count, not the row count: the list shows five and
-                  "five of five" and "five of forty" are different
-                  mornings. */}
-              <p className="text-sm text-muted-foreground">
-                {t("overdueVaccinationsCount", { count: insights.overdueVaccinationCount })}
-              </p>
-              {insights.overdueOlderVaccinationCount > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {t("overdueVaccinationsOlder", { count: insights.overdueOlderVaccinationCount })}
-                </p>
-              )}
-            </CardHeader>
-            <CardContent>
-              <ul className="flex flex-col gap-1">
-                {insights.overdueVaccinations.map((v) => (
-                  <li
-                    key={v.id}
-                    className="flex items-center justify-between gap-2 rounded-control px-2 py-2"
-                  >
-                    {/* The animal is a link for the same reason it is one on a
-                        reminder row: somebody reading which vaccinations
-                        are overdue wants to go to the animal, and the card
-                        was making them find it by hand. Half of what this
-                        card is for is getting them there.
-
-                        Both lists on this page, not just the one that was
-                        reported: the same gap, and one linked card beside
-                        one unlinked card is a worse answer than neither. */}
-                    <span className="text-sm font-medium">
-                      <Link href={`/pets/${v.pet.id}`} className="hover:underline">
-                        {v.pet.name}
-                      </Link>{" "}
-                      · {v.name}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(fmt, v.nextDueAt)}
-                      </span>
-                      <VaccinationDueDismissButton
-                        action={setVaccinationDueDismissedAction.bind(null, v.id)}
-                        label={t("overdueVaccinationsDismiss")}
-                        // `actionFor`, the same pattern every named row
-                        // action on `/reminders` uses -- "Close: Zeytin ·
-                        // Karma aşı". Ten rows carry ten buttons reading
-                        // "Close", and by voice they are one button ten
-                        // times over unless the row is in the name.
-                        //
-                        // It replaces a key of its own, which had put the
-                        // word "aşı" after a vaccine name that already
-                        // ended in it. Building the sentence out of the
-                        // shared pattern instead of writing a new one
-                        // also means no new place for a Turkish suffix to
-                        // go wrong: `actionFor` joins with a colon and
-                        // inflects nothing.
-                        name={tCommon("actionFor", {
-                          action: t("overdueVaccinationsDismiss"),
-                          subject: `${v.pet.name} · ${v.name}`,
-                        })}
-                        undoLabel={t("overdueVaccinationsUndo")}
-                        undoneLabel={t("overdueVaccinationsDismissed")}
-                      />
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{t("sections.upcomingVaccinations")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {insights.upcomingVaccinations.length === 0 ? (
-              <EmptyState size="inline" title={t("empty.vaccinations")} />
-            ) : (
-              <ul className="flex flex-col gap-1">
-                {insights.upcomingVaccinations.map((v) => (
-                  <li
-                    key={v.id}
-                    className="flex items-center justify-between rounded-control px-2 py-2"
-                  >
-                    {/* Not `v.pet?.name ?? "?"`. `Vaccination.petId` is
-                        non-null in the schema and the query includes the
-                        relation, so the guard defended a case that cannot
-                        happen — and printed a made-up "?" for it, which is
-                        the thing TEAM.md #21 is about. ux read the `?.` as
-                        evidence the field was nullable; defensive code had
-                        become the documentation. */}
-                    <span className="text-sm font-medium">
-                      <Link href={`/pets/${v.pet.id}`} className="hover:underline">
-                        {v.pet.name}
-                      </Link>{" "}
-                      · {v.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(fmt, v.nextDueAt)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

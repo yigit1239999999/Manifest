@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
@@ -16,10 +17,19 @@ import { ActionForm, useActionForm } from "@/components/forms/action-form";
 export function PrescriptionForm({
   petId,
   visitId,
+  alerts,
 }: {
   petId: string;
   visitId?: string;
+  /**
+   * The animal's medical alerts (allergies, "bites"). Repeated here, next
+   * to the drug name, because the page's own warning is a screen higher by
+   * the time anyone writes a prescription: a vet entered amoxicillin for a
+   * cat whose penicillin allergy was out of sight above.
+   */
+  alerts?: string | null;
 }) {
+  const tPet = useTranslations("pet");
   const t = useTranslations("prescription");
   const tStatus = useTranslations("enum.prescriptionStatus");
   const tCommon = useTranslations("common");
@@ -48,6 +58,15 @@ export function PrescriptionForm({
 
       <input type="hidden" name="petId" value={petId} />
       {visitId && <input type="hidden" name="visitId" value={visitId} />}
+      {alerts && (
+        <Callout
+          variant="warning"
+          title={tPet("alerts")}
+          className="col-span-full"
+        >
+          {alerts}
+        </Callout>
+      )}
 
       <Field
         label={t("medicationName")}

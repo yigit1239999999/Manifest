@@ -145,9 +145,16 @@ export default async function PetPage({
 
       <PageHeader
         title={pet.name}
-        description={`${pet.customSpecies?.name ?? tSpecies(pet.species as never)}${
-          pet.breed ? ` · ${pet.breed}` : ""
-        } · ${tSex(pet.sex as never)} · ${petAge(fmt, pet.birthDate) ?? "-"}`}
+        // Parts that are not known are left out rather than shown as a
+        // lone "-" at the end of the line.
+        description={[
+          pet.customSpecies?.name ?? tSpecies(pet.species as never),
+          pet.breed,
+          tSex(pet.sex as never),
+          petAge(fmt, pet.birthDate),
+        ]
+          .filter(Boolean)
+          .join(" · ")}
       >
         {canStartVisit && (
           <Link
@@ -239,7 +246,9 @@ export default async function PetPage({
       {/* See `/invoices/[id]`: a grid item will not shrink below its own
           content, and these four pages share this line. */}
       <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
-        <Card className="lg:col-span-1">
+        {/* `self-start`: as tall as its own contents, not as tall as the
+            four cards in the next column (it used to run ~1100px empty). */}
+        <Card className="lg:col-span-1 lg:self-start">
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
               <span className="flex size-9 items-center justify-center rounded-tile bg-accent text-accent-foreground">
@@ -447,7 +456,7 @@ export default async function PetPage({
                     {tRx("new")}
                   </summary>
                   <div className="mt-3">
-                    <PrescriptionForm petId={pet.id} />
+                    <PrescriptionForm petId={pet.id} alerts={pet.alerts} />
                   </div>
                 </details>
               )}

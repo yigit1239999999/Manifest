@@ -539,7 +539,11 @@ export default async function VisitPage({
                 {tRx("new")}
               </summary>
               <div className="mt-3">
-                <PrescriptionForm petId={visit.petId} visitId={visit.id} />
+                <PrescriptionForm
+                  petId={visit.petId}
+                  visitId={visit.id}
+                  alerts={visit.pet.alerts}
+                />
               </div>
             </details>
           )}
