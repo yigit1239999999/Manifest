@@ -106,7 +106,11 @@ export default async function AppointmentPage({
             link: appointments and visits share one `VisitType` enum, so
             the type carries over as it is, and `/visits/new` still checks
             it before using it. */}
-        {canStartVisit && appointment.status !== "CANCELLED" && (
+        {/* Not for an appointment that did not happen: a no-show or a
+            cancellation has no visit to start. */}
+        {canStartVisit &&
+          appointment.status !== "CANCELLED" &&
+          appointment.status !== "NO_SHOW" && (
           <Link
             href={`/visits/new?petId=${appointment.pet.id}&type=${appointment.type}`}
             className={buttonVariants()}

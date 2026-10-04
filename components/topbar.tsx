@@ -41,7 +41,11 @@ export async function Topbar({
           So the group keeps its size and the clinic name is the
           thing that yields, which is the right way round: a name can
           be shortened and read, a row of controls cannot. */}
-      <div className="flex shrink-0 items-center gap-3">
+      {/* Below `sm` the gaps tighten and the initials go, because search
+          is on this row now too (an icon on a phone: there was no way to
+          search there at all). Same rule as the labels below: what costs
+          header width yields on the narrowest screen first. */}
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <CommandPalette />
         <ThemeToggle initialTheme={theme} />
         <LocaleSwitcher />
@@ -51,7 +55,7 @@ export async function Topbar({
               two stray letters. */}
           <span
             aria-hidden="true"
-            className="flex size-9 items-center justify-center rounded-pill bg-accent text-sm font-semibold text-accent-foreground"
+            className="hidden size-9 items-center justify-center rounded-pill bg-accent text-sm font-semibold text-accent-foreground sm:flex"
           >
             {initials(userName)}
           </span>

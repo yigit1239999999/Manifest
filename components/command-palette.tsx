@@ -147,7 +147,7 @@ export function CommandPalette() {
         // reads as a control from a different application. A focus mark
         // that moves between two colours as you tab along a row is
         // worse than either colour on its own.
-        className="inline-flex h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs text-muted-foreground transition-colors-no-focus-delay hover:bg-muted focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2"
+        className="inline-flex h-9 w-9 items-center justify-center gap-2 rounded-control border border-border bg-card text-xs sm:w-auto sm:justify-start sm:px-3 text-muted-foreground transition-colors-no-focus-delay hover:bg-muted focus-visible:outline-2 focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2"
         aria-label={tCommon("search")}
       >
         <Search className="size-3.5" />
