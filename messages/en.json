@@ -714,6 +714,8 @@
     "fromVisit": "From the visit on {date}",
     "notes": "Notes",
     "outstanding": "Outstanding",
+    "unpaid": "Unpaid",
+    "remaining": "Remaining",
     "recordPayment": "Record payment",
     "void": "Void invoice",
     "payment": {

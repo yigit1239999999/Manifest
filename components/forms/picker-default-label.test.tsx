@@ -216,4 +216,29 @@ describe("an invoice opened for a visit", () => {
     expect(hidden(container, "lines[0].visitId")).toBeUndefined();
     expect(hidden(container, "lines[0].petId")).toBeUndefined();
   });
+
+  // A visit's fee saved as a draft was owed nowhere: the dashboard's
+  // outstanding total and the unpaid list both skip drafts. The visit
+  // arrival opens on SENT (`app/(app)/invoices/new/page.tsx`); a plain
+  // new invoice still opens on DRAFT.
+  it("opens on the status it is given, and on draft otherwise", () => {
+    const status = (container: HTMLElement) =>
+      container.querySelector<HTMLSelectElement>('select[name="status"]')?.value;
+
+    const fromVisit = wrap(
+      <InvoiceForm
+        clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]}
+        defaultClientId="c-1"
+        prefilledLine={prefilled}
+        defaultStatus="SENT"
+      />,
+    );
+    expect(status(fromVisit.container)).toBe("SENT");
+    fromVisit.unmount();
+
+    const plain = wrap(
+      <InvoiceForm clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]} />,
+    );
+    expect(status(plain.container)).toBe("DRAFT");
+  });
 });

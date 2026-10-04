@@ -714,6 +714,8 @@
     "fromVisit": "Vizit: {date}",
     "notes": "Notlar",
     "outstanding": "Ödenmemiş",
+    "unpaid": "Ödenmemiş",
+    "remaining": "Kalan",
     "recordPayment": "Ödeme kaydet",
     "void": "Faturayı iptal et",
     "payment": {

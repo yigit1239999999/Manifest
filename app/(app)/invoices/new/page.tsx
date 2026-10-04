@@ -98,6 +98,10 @@ export default async function NewInvoicePage({
             defaultClientLabel={clientLabel}
             defaultNumber={defaultNumber}
             prefilledLine={prefilledLine}
+            // A visit's fee is owed once it is billed. Opened as a draft,
+            // it counted nowhere: neither the dashboard's outstanding
+            // total nor the unpaid list includes drafts.
+            defaultStatus={visit ? "SENT" : undefined}
           />
         </Card>
       )}

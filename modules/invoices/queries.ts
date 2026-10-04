@@ -43,13 +43,43 @@ export interface PagedInvoicesArgs extends Omit<ListInvoicesArgs, "take"> {
   perPage?: number;
 }
 
+/**
+ * What is still owed on each of these invoices: the total less every
+ * payment that has not been voided, floored at zero the way the invoice
+ * page floors it. Null for a voided invoice, which owes nothing, and
+ * where a zero would read as "settled".
+ *
+ * ONE extra query for the page, not one per row: a `groupBy` over the
+ * ids just fetched, summed in the database and served by
+ * `payments_invoiceId_idx`. Scoped by those ids alone because a payment
+ * has no clinic of its own; the ids came from a clinic-scoped query.
+ */
+async function withRemaining<
+  T extends { id: string; status: string; totalCents: number },
+>(invoices: T[]): Promise<(T & { remainingCents: number | null })[]> {
+  if (invoices.length === 0) return [];
+  const sums = await prisma.payment.groupBy({
+    by: ["invoiceId"],
+    where: { invoiceId: { in: invoices.map((i) => i.id) }, voidedAt: null },
+    _sum: { amountCents: true },
+  });
+  const paid = new Map(sums.map((s) => [s.invoiceId, s._sum.amountCents ?? 0]));
+  return invoices.map((inv) => ({
+    ...inv,
+    remainingCents:
+      inv.status === "VOID"
+        ? null
+        : Math.max(0, inv.totalCents - (paid.get(inv.id) ?? 0)),
+  }));
+}
+
 export async function listInvoicesPage({
   page = 1,
   perPage = PAGE_SIZES.DEFAULT,
   ...args
 }: PagedInvoicesArgs) {
   const where = buildInvoiceWhere(args);
-  const [items, total] = await Promise.all([
+  const [rows, total] = await Promise.all([
     prisma.invoice.findMany({
       where,
       orderBy: { issuedAt: "desc" },
@@ -62,6 +92,7 @@ export async function listInvoicesPage({
     }),
     prisma.invoice.count({ where }),
   ]);
+  const items = await withRemaining(rows);
   return { items, total, page, perPage };
 }
 

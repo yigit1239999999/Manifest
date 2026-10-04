@@ -12,7 +12,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
-import { INVOICE_STATUSES } from "@/modules/invoices/schema";
+import { INVOICE_STATUSES, type InvoiceStatus } from "@/modules/invoices/schema";
 import { createInvoiceAction } from "@/modules/invoices/actions";
 import { searchClientsAction } from "@/modules/clients/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
@@ -71,6 +71,12 @@ interface Props {
    * the most expensive version of "it did something you did not see".
    */
   prefilledLine?: Line;
+  /**
+   * The status the form opens on. Draft unless the caller knows better:
+   * billing a visit is billing work already done, so that arrival opens
+   * on SENT and the fee counts as owed from the moment it is saved.
+   */
+  defaultStatus?: InvoiceStatus;
 }
 
 export function InvoiceForm({
@@ -80,6 +86,7 @@ export function InvoiceForm({
   defaultClientLabel,
   defaultNumber,
   prefilledLine,
+  defaultStatus = "DRAFT",
 }: Props) {
   const t = useTranslations("invoice");
   const locale = useLocale();
@@ -157,7 +164,7 @@ export function InvoiceForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("status")} error={state.fieldErrors?.status} required>
-          <Select name="status" defaultValue="DRAFT" required>
+          <Select name="status" defaultValue={defaultStatus} required>
             {INVOICE_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {tStatus(s)}
