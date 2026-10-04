@@ -178,12 +178,21 @@ test.describe("Saving without leaving the page", () => {
     await createOwner(page);
 
     await page.goto("/reminders");
+    // The form is folded behind a drawer so the list leads the screen,
+    // but on an empty list the drawer arrives open: there is nothing to
+    // read yet, and the form is the next step.
+    const drawer = page.locator("details").filter({
+      has: page.locator("summary", { hasText: /new reminder|yeni hatırlatma/i }),
+    });
+    await expect(drawer).toHaveAttribute("open", "");
     await pickOption(page, page.getByLabel(/^client$|^müşteri$/i));
     await page.getByLabel(/^name$|^title$|^başlık$/i).fill("Rabies booster due");
     await page.getByRole("button", { name: /create reminder|hatırlatma oluştur/i }).click();
 
     await expect(page.getByText("Rabies booster due")).toBeVisible();
     await expect(page.getByText(/no reminders/i)).toHaveCount(0);
+    // With a row to read, the drawer folds away and the list leads.
+    await expect(drawer).not.toHaveAttribute("open", "");
 
     // Closing and reopening keep the list in step as well. A closed row
     // leaves the open list and is found under "Closed"; reopened, it comes

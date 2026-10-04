@@ -80,6 +80,32 @@ describe("blockedReminders", () => {
     ]);
   });
 
+  // The screen offers a booking from these rows, and must not for a
+  // dead or archived animal. The reason cannot carry that alone: a
+  // message already tried is reported before the animal is looked at,
+  // so an animal that died after its message went undelivered reads
+  // `undelivered`.
+  it("says whether the animal is silenced, whatever the reason reads", async () => {
+    const undelivered = [
+      { status: "SENT", createdAt: new Date("2026-09-20T06:00:00.000Z"), error: null, channel: "SMS", deliveryStatus: "UNDELIVERED" },
+    ];
+    vi.mocked(prisma.reminder.findMany).mockResolvedValue([
+      reminder({
+        id: "r-dead-undelivered",
+        pet: { ...reminder().pet, deceased: true },
+        messages: undelivered,
+      }),
+      reminder({ id: "r-undelivered", messages: undelivered }),
+    ] as never);
+
+    const { items } = await blockedReminders("clinic-1");
+
+    expect(items.map((i) => [i.id, i.reason, i.pet?.silenced])).toEqual([
+      ["r-dead-undelivered", "undelivered", true],
+      ["r-undelivered", "undelivered", false],
+    ]);
+  });
+
   // "What is stuck" is a different question from "what went wrong".
   // A reminder that is simply waiting its turn is not an obstacle,
   // and neither is one whose message already went.

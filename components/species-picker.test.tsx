@@ -110,6 +110,33 @@ describe("choosing a species by keyboard", () => {
   });
 });
 
+// Chosen and focused must not look alike.
+//
+// The inline animal block puts the cursor on the first chip when it
+// opens, and that chip is not chosen. With the choice drawn as a ring --
+// the same mark focus uses everywhere -- an unchosen chip under the
+// focus outline read as the answer (ux, `/visits/new`).
+describe("telling the chosen chip from the focused one", () => {
+  it("marks the choice with something other than a ring", () => {
+    picker("CAT");
+    const chosen = screen.getByRole("button", { name: /Kedi/ });
+    expect(chosen.className).not.toMatch(/\bring-/);
+    // The tick is the mark; the unchosen chips keep their species icon.
+    expect(chosen.querySelector("svg.lucide-check")).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Köpek/ }).querySelector("svg.lucide-check"),
+    ).toBeNull();
+  });
+
+  it("submits from inside the named group, so an error can name it", () => {
+    const { container } = picker();
+    const input = container.querySelector('input[name="species"]');
+    expect(input?.closest('[role="group"]')).toBe(
+      screen.getByRole("group", { name: "Tür" }),
+    );
+  });
+});
+
 // Turning a species off says what the picker offers, not what exists.
 //
 // The clinic switches "Kedi" off, the chip goes, and the next vet with a
