@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList } from "lucide-react";
+import { CalendarClock, ClipboardList, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
@@ -46,14 +46,9 @@ import { NotificationBlockedBanner } from "@/components/notification-blocked-ban
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
 import { ownerLabel } from "@/lib/pet-label";
+import { isPetSilenced } from "@/lib/pet-status";
 
 /**
  * Closed is derived, not listed again. A fifth status would otherwise have
@@ -126,6 +121,13 @@ export default async function RemindersPage({
   const settingsHref = can(session.user.role, "settings.manage")
     ? "/settings"
     : undefined;
+
+  // A reminder about an animal usually ends in a booking: the owner
+  // calls back, and the receptionist used to leave this list for
+  // Appointments, open a new one and search the animal up again. The
+  // row offers it directly -- to the roles that can book, since a vet
+  // tech holds no `appointments.write` and the form would refuse them.
+  const canBook = can(session.user.role, "appointments.write");
 
   // Said once, above the list, instead of on every row. The master switch
   // being off is one fact about the clinic; printed per row it becomes a
@@ -373,11 +375,26 @@ export default async function RemindersPage({
           description={t("emptyHint")}
         />
       ) : (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("new")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      // Folded, the way "+ Aşı ekle" is on the animal's page. Open, the
+      // form took the first ~550px and the list -- what this screen is
+      // read for every morning -- started below the fold (ux).
+      //
+      // Open on arrival only when the working list is empty: then the
+      // form IS the next step, and a closed drawer above "no reminders"
+      // is one more click on a clinic's first visit. React leaves an
+      // unchanged `open` alone, so a drawer the reader opened stays open
+      // through a rejected submit and through the refresh after a save;
+      // the one flip is the first reminder arriving, when the list it
+      // was folded away for finally exists.
+      <details
+        open={view === "open" && reminders.length === 0}
+        className="rounded-control border border-dashed border-border p-3 text-sm"
+      >
+        <summary className="cursor-pointer font-medium">
+          <Plus className="me-1 inline size-3.5" />
+          {t("new")}
+        </summary>
+        <div className="mt-3">
           <ReminderForm
             clients={clients.items.map((c) => ({
               id: c.id,
@@ -405,8 +422,8 @@ export default async function RemindersPage({
             clientsCapped={clients.hasMore}
             petsCapped={pets.hasMore}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </details>
       )}
 
       {/* Closing without a way to see what was closed is a list that eats
@@ -471,7 +488,8 @@ export default async function RemindersPage({
           deriving it a second time here is how a tab and a badge end up
           describing different sets. The rows are thinner on purpose --
           there is no send to offer and no message log to fold open, and
-          the only action any of them has is a phone call. */}
+          the actions are a phone call and, for an animal, the booking
+          that call is usually for. */}
       {view === "blocked" ? (
         blockedRows.length === 0 ? (
           <EmptyState
@@ -577,6 +595,24 @@ export default async function RemindersPage({
                           }
                         : { state: b.reason })}
                     />
+                  )}
+                  {/* Not for an animal that has died or been archived;
+                      see the same guard on the main list. */}
+                  {canBook && b.pet && !b.pet.silenced && (
+                    <Link
+                      href={`/appointments/new?petId=${b.pet.id}`}
+                      aria-label={tCommon("actionFor", {
+                        action: t("book"),
+                        subject: b.pet.name,
+                      })}
+                      className={cn(
+                        buttonVariants({ variant: "secondary", size: "sm" }),
+                        "mt-2 self-start",
+                      )}
+                    >
+                      <CalendarClock />
+                      {t("book")}
+                    </Link>
                   )}
                 </li>
               );
@@ -757,6 +793,33 @@ export default async function RemindersPage({
                       reader, and gone above `sm` where the row is wide
                       enough not to wrap at all. */}
                   <div className="h-0 basis-full sm:hidden" />
+                  {/* Open rows only: a closed reminder is work already
+                      dealt with, and a booking offered under "Done"
+                      reads as though it were still owed. Named by the
+                      animal, so ten of these are not ten identical
+                      announcements (TEAM.md #26). Not for an animal
+                      that has died or been archived: the appointment
+                      service refuses an archived one, and nobody books
+                      a dead one. */}
+                  {canBook &&
+                    r.pet &&
+                    !isPetSilenced(r.pet) &&
+                    OPEN_REMINDER_STATUSES.includes(r.status as never) && (
+                      <Link
+                        href={`/appointments/new?petId=${r.pet.id}`}
+                        aria-label={tCommon("actionFor", {
+                          action: t("book"),
+                          subject: r.pet.name,
+                        })}
+                        className={buttonVariants({
+                          variant: "secondary",
+                          size: "sm",
+                        })}
+                      >
+                        <CalendarClock />
+                        {t("book")}
+                      </Link>
+                    )}
                   {/* Offered only where the server would take it. A row
                       blocked by consent, a missing number, the channel or
                       the clinic switch gets the sentence saying why and no

@@ -9,7 +9,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { SpeciesIcon } from "@/components/species-icon";
 import { fold } from "@/lib/search";
 import { cn } from "@/lib/utils";
@@ -247,7 +247,6 @@ export function SpeciesPicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <input type="hidden" name={name} value={value} />
       <div
         role="group"
         aria-label={label}
@@ -271,6 +270,14 @@ export function SpeciesPicker({
           invalid && invalid !== "false" && "border-destructive",
         )}
       >
+        {/* Inside the group, not beside it. A rejected submit names the
+            field by walking out from the element carrying the `name`
+            (`labelFor` in `action-form.tsx`), and this input is that
+            element: outside the group it found no label and no
+            `aria-label` on the way, so the summary printed
+            "newPet[species]: Tür gerekli." instead of "Tür: ...". A
+            hidden input draws nothing, so the flex row is unchanged. */}
+        <input type="hidden" name={name} value={value} />
         {all.map((o, i) => {
           const active = o.value === value;
           return (
@@ -284,14 +291,32 @@ export function SpeciesPicker({
               tabIndex={i === stopIndex ? 0 : -1}
               onKeyDown={(e) => onChipKeyDown(e, i)}
               onClick={() => select(o.value)}
+              // Chosen and focused speak two different languages, and
+              // used to speak the same one. The chosen chip wore a ring,
+              // and a ring is what focus looks like everywhere in this
+              // product -- so when the block opened with the cursor on
+              // the first chip, an unchosen chip with a focus outline
+              // read as the answer (ux: `aria-pressed="false"` under
+              // what looked like a selection). Now the choice is a fill,
+              // a border and a tick, and focus is only the global
+              // outline (`[tabindex]:focus-visible` in `globals.css`),
+              // standing off the chip by its 2px gap.
+              //
+              // The tick replaces the species icon rather than joining
+              // it, so choosing does not widen the chip and reflow the
+              // row under the pointer.
               className={cn(
-                "inline-flex h-10 items-center gap-2 rounded-control border px-3 text-sm transition-colors",
+                "inline-flex h-10 items-center gap-2 rounded-control border px-3 text-sm transition-colors-no-focus-delay",
                 active
-                  ? "border-primary bg-accent font-medium text-accent-foreground ring-2 ring-ring/30"
+                  ? "border-primary bg-accent font-medium text-accent-foreground"
                   : "border-border bg-card text-foreground hover:border-primary/40",
               )}
             >
-              <SpeciesIcon species={o.icon ?? "OTHER"} className="size-4" />
+              {active ? (
+                <Check className="size-4" aria-hidden="true" />
+              ) : (
+                <SpeciesIcon species={o.icon ?? "OTHER"} className="size-4" />
+              )}
               {o.label}
             </button>
           );

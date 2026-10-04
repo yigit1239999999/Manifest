@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PAGE_SIZES } from "@/lib/pagination";
+import { isPetSilenced } from "@/lib/pet-status";
 import { reminderDeliveryState, reminderNoticeWindow } from "./service";
 import { getClinicMessagingProfile } from "./settings";
 
@@ -113,7 +114,14 @@ export interface BlockedReminder {
    * has one home.
    */
   client: { id: string; firstName: string; lastName: string | null; phone: string | null };
-  pet: { id: string; name: string } | null;
+  /**
+   * `silenced` when the animal has died or been archived. The reason
+   * cannot say so on its own: a message already tried is reported
+   * before the animal is looked at, so an animal that died after its
+   * message went undelivered reads `undelivered`, and the row would
+   * offer to book it.
+   */
+  pet: { id: string; name: string; silenced: boolean } | null;
 }
 
 /**
@@ -217,7 +225,9 @@ export async function blockedReminders(
         lastName: row.client.lastName,
         phone: row.client.phone,
       },
-      pet: row.pet ? { id: row.pet.id, name: row.pet.name } : null,
+      pet: row.pet
+        ? { id: row.pet.id, name: row.pet.name, silenced: isPetSilenced(row.pet) }
+        : null,
     });
   }
 

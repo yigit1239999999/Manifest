@@ -648,6 +648,7 @@
     "emptyClosed": "No closed reminders.",
     "emptyClosedHint": "Reminders you have completed, or closed because they were no longer needed, collect here.",
     "sendNow": "Send now",
+    "book": "Book appointment",
     "customTitleHint": "This title is sent to the client word for word.",
     "log": {
       "summary": "{count, plural, one {Message sent} other {# messages sent}}",

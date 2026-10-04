@@ -18,6 +18,8 @@ import {
   useActionForm,
   type ActionFormApi,
 } from "@/components/forms/action-form";
+import { Field } from "@/components/ui/field";
+import { SpeciesPicker } from "@/components/species-picker";
 
 // Where a failed submit is reported, and what happens when it is.
 //
@@ -463,6 +465,41 @@ describe("what the box says when fields are wrong", () => {
           <input type="hidden" name="species" value="" />
           <button type="button">Kedi</button>
         </div>
+      </ActionForm>,
+    );
+    await act(async () => {});
+
+    expect(view.container.querySelector("[data-form-error]")).toHaveTextContent(
+      "Tür: Tür gerekli.",
+    );
+  });
+
+  it("names the real species picker by its group, as the inline animal block renders it", async () => {
+    // The case above, built by hand, passed while the product failed:
+    // `SpeciesPicker` drew its hidden input beside the group rather than
+    // in it, so the walk out from the input met neither a `<label>` nor
+    // the group's `aria-label`, and `/visits/new` printed
+    // "newPet[species]: Tür gerekli." (ux). Rendering the component
+    // itself, inside a `Field` as both forms do, is what holds it.
+    Element.prototype.scrollIntoView = vi.fn();
+    const view = render(
+      <ActionForm
+        form={{
+          ...api({ fieldErrors: { "newPet[species]": ["Tür gerekli."] } }),
+          responseToken: 1,
+        }}
+      >
+        <Field label="Tür" error={["Tür gerekli."]} required>
+          <SpeciesPicker
+            name="newPet[species]"
+            label="Tür"
+            options={[{ value: "CAT", label: "Kedi", icon: "CAT" }]}
+            newLabel="+ Yeni tür"
+            newHint="hint"
+            newPlaceholder="placeholder"
+            addLabel="Ekle"
+          />
+        </Field>
       </ActionForm>,
     );
     await act(async () => {});
