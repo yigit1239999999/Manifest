@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { invoiceSchema, paymentSchema } from "./schema";
+import { invoiceSchema, invoiceStatusesForFilter, paymentSchema } from "./schema";
 
 // The form sends what a person typed, in the locale they typed it in; the
 // schema is the only place that becomes cents. A payment of 500 lira was
@@ -69,5 +69,27 @@ describe("invoice line and tax", () => {
       lines: [{ ...line, unitPrice: "abc" }],
     });
     expect(r.success).toBe(false);
+  });
+});
+
+// The dashboard's outstanding tile links to `/invoices?status=unpaid`,
+// and the list has to show the same invoices the tile counted: SENT and
+// PARTIAL (`modules/dashboard/queries.ts`).
+describe("the list's status filter", () => {
+  it("reads unpaid as billed and not yet settled", () => {
+    expect(invoiceStatusesForFilter("unpaid")).toEqual(["SENT", "PARTIAL"]);
+  });
+
+  it("reads a single status as itself", () => {
+    expect(invoiceStatusesForFilter("PAID")).toEqual(["PAID"]);
+  });
+
+  it("reads nothing, or a value that names nothing, as no filter", () => {
+    // An unknown value must not reach an enum column: an old link would
+    // be an error page instead of a list.
+    expect(invoiceStatusesForFilter(undefined)).toBeNull();
+    expect(invoiceStatusesForFilter("")).toBeNull();
+    expect(invoiceStatusesForFilter("paid")).toBeNull();
+    expect(invoiceStatusesForFilter("OVERDUE")).toBeNull();
   });
 });

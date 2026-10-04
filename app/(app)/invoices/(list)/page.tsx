@@ -5,7 +5,11 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { listInvoicesPage } from "@/modules/invoices/queries";
-import { INVOICE_STATUSES } from "@/modules/invoices/schema";
+import {
+  INVOICE_STATUSES,
+  UNPAID_FILTER,
+  invoiceStatusesForFilter,
+} from "@/modules/invoices/schema";
 import { countClients } from "@/modules/clients/queries";
 import { MissingLink } from "@/components/missing-link";
 import { PageHeader } from "@/components/page-header";
@@ -30,8 +34,13 @@ export default async function InvoicesPage({
   // looks like it did nothing. The permission is the same one the service
   // enforces, read from one place (`lib/permissions.ts`).
   const canCreate = can(session.user.role, "invoices.write");
-  const { page: pageParam, status } = await searchParams;
+  const { page: pageParam, status: statusParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
+  // `unpaid` is two statuses, SENT and PARTIAL: the dashboard's
+  // outstanding tile links here with it. A value that names nothing is
+  // dropped, so it neither selects a tab nor claims the list is filtered.
+  const statuses = invoiceStatusesForFilter(statusParam);
+  const status = statuses ? statusParam : undefined;
   const [t, tCommon, tStatus, tClient, result] = await Promise.all([
     getTranslations("invoice"),
     getTranslations("common"),
@@ -39,7 +48,7 @@ export default async function InvoicesPage({
     getTranslations("client"),
     listInvoicesPage({
       clinicId: session.user.clinicId,
-      statuses: status ? [status] : null,
+      statuses,
       page,
     }),
   ]);
@@ -76,10 +85,15 @@ export default async function InvoicesPage({
         label={t("status")}
         active={status}
         allLabel={tCommon("all")}
-        options={INVOICE_STATUSES.map((s) => ({
-          value: s,
-          label: tStatus(s),
-        }))}
+        // First after "all": "who has not paid?" is the question this
+        // list is opened with at the end of the day.
+        options={[
+          { value: UNPAID_FILTER, label: t("unpaid") },
+          ...INVOICE_STATUSES.map((s) => ({
+            value: s,
+            label: tStatus(s),
+          })),
+        ]}
       />
 
       {result.items.length === 0 ? (
@@ -165,6 +179,33 @@ export default async function InvoicesPage({
                 numeric: true,
                 cellClassName: "font-medium",
                 cell: (inv) => formatMoney(fmt, inv.totalCents, inv.currency),
+              },
+              {
+                key: "remaining",
+                header: t("remaining"),
+                numeric: true,
+                // Stacked, the total already holds the first line's end
+                // and the headers are off-screen, so a second bare amount
+                // could be either. It names itself there, and only when
+                // something is owed: a paid row's zero is noise on a phone.
+                stack: "meta",
+                cell: (inv) =>
+                  inv.remainingCents ? (
+                    <span className="font-medium">
+                      <span className="hidden @max-lg:inline">
+                        {t("remaining")}{" "}
+                      </span>
+                      {formatMoney(fmt, inv.remainingCents, inv.currency)}
+                    </span>
+                  ) : (
+                    // Null is a voided invoice: it owes nothing, but it
+                    // was never settled either, so it is not a zero.
+                    <span className="text-muted-foreground @max-lg:hidden">
+                      {inv.remainingCents === null
+                        ? "-"
+                        : formatMoney(fmt, 0, inv.currency)}
+                    </span>
+                  ),
               },
               {
                 key: "status",

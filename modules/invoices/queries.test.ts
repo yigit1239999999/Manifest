@@ -3,17 +3,86 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     invoiceLine: { findFirst: vi.fn() },
-    invoice: { findFirst: vi.fn() },
+    invoice: { findFirst: vi.fn(), findMany: vi.fn(), count: vi.fn() },
+    payment: { groupBy: vi.fn() },
   },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { getInvoiceById, getInvoiceForVisit } from "./queries";
+import { getInvoiceById, getInvoiceForVisit, listInvoicesPage } from "./queries";
 
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(prisma.invoiceLine.findFirst).mockResolvedValue(null);
   vi.mocked(prisma.invoice.findFirst).mockResolvedValue(null);
+  vi.mocked(prisma.invoice.findMany).mockResolvedValue([]);
+  vi.mocked(prisma.invoice.count).mockResolvedValue(0);
+  vi.mocked(prisma.payment.groupBy).mockResolvedValue([] as never);
+});
+
+// "Who has not paid, and how much is left?" A partly paid invoice owes
+// its remainder, not its total, and a voided payment is money taken back.
+describe("what the invoice list says is still owed", () => {
+  const row = (id: string, status: string, totalCents: number) =>
+    ({ id, status, totalCents, currency: "TRY" }) as never;
+
+  it("is the total less the payments that were not voided", async () => {
+    vi.mocked(prisma.invoice.findMany).mockResolvedValue([
+      row("inv-1", "PARTIAL", 100_000),
+      row("inv-2", "SENT", 45_000),
+    ]);
+    vi.mocked(prisma.payment.groupBy).mockResolvedValue([
+      { invoiceId: "inv-1", _sum: { amountCents: 30_000 } },
+    ] as never);
+
+    const { items } = await listInvoicesPage({ clinicId: "clinic-1" });
+
+    expect(items.map((i) => i.remainingCents)).toEqual([70_000, 45_000]);
+    // The voided ones are left out where they are summed, in the database.
+    const args = vi.mocked(prisma.payment.groupBy).mock.calls[0][0];
+    expect(args.where).toEqual({
+      invoiceId: { in: ["inv-1", "inv-2"] },
+      voidedAt: null,
+    });
+  });
+
+  it("asks once for the whole page, not once per row", async () => {
+    vi.mocked(prisma.invoice.findMany).mockResolvedValue([
+      row("inv-1", "SENT", 1),
+      row("inv-2", "SENT", 1),
+      row("inv-3", "SENT", 1),
+    ]);
+    await listInvoicesPage({ clinicId: "clinic-1" });
+    expect(prisma.payment.groupBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not ask at all for an empty page", async () => {
+    await listInvoicesPage({ clinicId: "clinic-1" });
+    expect(prisma.payment.groupBy).not.toHaveBeenCalled();
+  });
+
+  it("never goes below zero, and says nothing for a voided invoice", async () => {
+    vi.mocked(prisma.invoice.findMany).mockResolvedValue([
+      row("inv-1", "PAID", 10_000),
+      row("inv-2", "VOID", 10_000),
+    ]);
+    vi.mocked(prisma.payment.groupBy).mockResolvedValue([
+      { invoiceId: "inv-1", _sum: { amountCents: 12_000 } },
+    ] as never);
+
+    const { items } = await listInvoicesPage({ clinicId: "clinic-1" });
+
+    expect(items.map((i) => i.remainingCents)).toEqual([0, null]);
+  });
+
+  it("filters on both unpaid statuses when asked for them", async () => {
+    await listInvoicesPage({ clinicId: "clinic-1", statuses: ["SENT", "PARTIAL"] });
+    const where = vi.mocked(prisma.invoice.findMany).mock.calls[0][0]?.where;
+    expect(where).toMatchObject({
+      clinicId: "clinic-1",
+      status: { in: ["SENT", "PARTIAL"] },
+    });
+  });
 });
 
 // A visit billed twice is two demands for the same money, and the

@@ -18,6 +18,38 @@ export const INVOICE_STATUSES = [
   "VOID",
 ] as const;
 
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+
+/**
+ * Billed and not yet settled: the set behind "who has not paid?".
+ *
+ * The dashboard's outstanding figure counts the same two statuses
+ * (`modules/dashboard/queries.ts`), so the tile and the list it opens
+ * agree on what is owed. A draft has not been asked for yet, and a
+ * voided invoice is no longer owed at all.
+ */
+export const UNPAID_INVOICE_STATUSES = ["SENT", "PARTIAL"] as const satisfies readonly InvoiceStatus[];
+
+/** The list's `?status=` value for {@link UNPAID_INVOICE_STATUSES}. */
+export const UNPAID_FILTER = "unpaid";
+
+/**
+ * The statuses a list `?status=` value stands for, or null for "all".
+ *
+ * Unknown values read as no filter rather than reaching the database:
+ * the column is an enum, and an old or mistyped link would otherwise be
+ * an error page instead of a list.
+ */
+export function invoiceStatusesForFilter(
+  filter: string | null | undefined,
+): InvoiceStatus[] | null {
+  if (filter === UNPAID_FILTER) return [...UNPAID_INVOICE_STATUSES];
+  if (filter && (INVOICE_STATUSES as readonly string[]).includes(filter)) {
+    return [filter as InvoiceStatus];
+  }
+  return null;
+}
+
 export const PAYMENT_METHODS = [
   "CASH",
   "CARD",
