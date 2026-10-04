@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarClock, Plus } from "lucide-react";
+import { AlertTriangle, CalendarClock, Plus, Stethoscope } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
@@ -47,6 +47,9 @@ const PER_DAY = 100;
  */
 const OPEN_STATUSES = ["SCHEDULED", "CONFIRMED", "ARRIVED", "IN_PROGRESS"];
 
+/** Over, or never happened: no visit left to start from the row. */
+const VISIT_CLOSED_STATUSES = ["CANCELLED", "NO_SHOW", "COMPLETED"];
+
 function isOpenAndPast(a: { startsAt: Date; status: string }) {
   return OPEN_STATUSES.includes(a.status) && a.startsAt.getTime() < Date.now();
 }
@@ -63,6 +66,9 @@ export default async function AppointmentsPage({
   // looks like it did nothing. The permission is the same one the service
   // enforces, read from one place (`lib/permissions.ts`).
   const canCreate = can(session.user.role, "appointments.write");
+  // The same question the appointment's own page asks before offering
+  // "Start visit", and the one `/visits/new` asks before drawing it.
+  const canStartVisit = can(session.user.role, "visits.write");
   const { page: pageParam, status, date: dateParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
 
@@ -412,6 +418,44 @@ export default async function AppointmentsPage({
                   );
                 },
               },
+              // The day plan is where reception sees the animal arrive,
+              // so the visit starts from the row rather than one page
+              // further in. Not for an appointment that is over, and
+              // not for one that never happened: neither has a visit to
+              // start. Stacked, it takes the second line's end, across
+              // from the animal it is for.
+              ...(canStartVisit
+                ? [
+                    {
+                      key: "startVisit",
+                      header: t("startVisit"),
+                      headerHidden: true,
+                      align: "end" as const,
+                      stack: "meta-end" as const,
+                      cell: (a: (typeof result.items)[number]) =>
+                        VISIT_CLOSED_STATUSES.includes(a.status) ? null : (
+                          <Link
+                            href={`/visits/new?${new URLSearchParams({
+                              petId: a.pet.id,
+                              type: a.type,
+                              appointmentId: a.id,
+                            })}`}
+                            aria-label={tCommon("actionFor", {
+                              action: t("startVisit"),
+                              subject: a.pet.name,
+                            })}
+                            // Free to wrap in the table, the one column
+                            // added to a row that was already six wide;
+                            // stacked, `meta-end` keeps it on one line.
+                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                          >
+                            <Stethoscope className="size-3.5 shrink-0" aria-hidden="true" />
+                            {t("startVisit")}
+                          </Link>
+                        ),
+                    },
+                  ]
+                : []),
             ]}
           />
           {showAllDates && (

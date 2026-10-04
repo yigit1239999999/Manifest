@@ -112,6 +112,35 @@ test.describe("Appointments day plan", () => {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
+
+    // The visit starts from the row, and the row still fits its card.
+    const start = page.getByRole("link", { name: /start visit: tarcin|vizite başla: tarcin/i });
+    await expect(start).toBeVisible();
+    await expect(start).toHaveAttribute(
+      "href",
+      /^\/visits\/new\?petId=[\w-]+&type=WELLNESS_CHECK&appointmentId=[\w-]+$/,
+    );
+    const tableOverflow = await page
+      .locator("table")
+      .evaluate((t) => t.parentElement!.scrollWidth - t.parentElement!.clientWidth);
+    expect(tableOverflow).toBeLessThanOrEqual(0);
+  });
+
+  test("a booking link opens on what it was about", async ({ page }) => {
+    await signUp(page, Date.now() + 3);
+    await createPet(page, "Zeytin");
+    await expect(page).toHaveURL(/\/pets\/(?!new)[\w-]+$/);
+    const petId = new URL(page.url()).pathname.split("/").pop()!;
+
+    // What the reminders list sends for a vaccine due in three days.
+    const day = dayKey(3);
+    await page.goto(
+      `/appointments/new?petId=${petId}&type=VACCINATION&reason=Kuduz&date=${day}`,
+    );
+    await expect(page.getByLabel(/^type$|^tür$/i)).toHaveValue("VACCINATION");
+    await expect(page.getByLabel(/^reason$|^sebep$/i)).toHaveValue("Kuduz");
+    // That day, at opening time, not an hour from now.
+    await expect(page.getByLabel(/starts at|başlangıç/i)).toHaveValue(`${day}T09:00`);
   });
 
   test("the status filter narrows the day rather than replacing it", async ({

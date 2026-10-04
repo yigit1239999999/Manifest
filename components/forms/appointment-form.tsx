@@ -66,6 +66,18 @@ interface Props {
    * and a reader cannot tell a deliberate difference from an oversight.
    */
   defaultVetId?: string;
+  /**
+   * What a link into a new appointment already knows: "VACCINATION" and
+   * the vaccine's name from an overdue row, a reminder's title and due
+   * day. A new appointment only; an edit shows what was booked.
+   */
+  defaultType?: (typeof VISIT_TYPES)[number];
+  defaultReason?: string;
+  /**
+   * Where the start field opens, worked out by the page on the clinic's
+   * clock (`defaultAppointmentStart`). Absent, it is an hour from now.
+   */
+  defaultStartsAt?: Date;
 }
 
 export function AppointmentForm({
@@ -76,6 +88,9 @@ export function AppointmentForm({
   defaultPetId,
   defaultPetLabel,
   defaultVetId,
+  defaultType,
+  defaultReason,
+  defaultStartsAt,
 }: Props) {
   const petOptions = useMemo(
     () =>
@@ -100,9 +115,11 @@ export function AppointmentForm({
   const { state } = form;
   const defaultStart = useMemo(
     () =>
+      appointment?.startsAt ??
+      defaultStartsAt ??
       // eslint-disable-next-line react-hooks/purity -- one-shot initial value, never recomputed
-      appointment?.startsAt ?? new Date(Date.now() + 3600 * 1000),
-    [appointment?.startsAt],
+      new Date(Date.now() + 3600 * 1000),
+    [appointment?.startsAt, defaultStartsAt],
   );
 
   return (
@@ -159,7 +176,7 @@ export function AppointmentForm({
         <Field label={t("type")} error={state.fieldErrors?.type} required>
           <Select
             name="type"
-            defaultValue={appointment?.type ?? "WELLNESS_CHECK"}
+            defaultValue={appointment?.type ?? defaultType ?? "WELLNESS_CHECK"}
             required
           >
             {VISIT_TYPES.map((v) => (
@@ -205,7 +222,10 @@ export function AppointmentForm({
       </Field>
 
       <Field label={t("reason")} error={state.fieldErrors?.reason}>
-        <Input name="reason" defaultValue={appointment?.reason ?? ""} />
+        <Input
+          name="reason"
+          defaultValue={appointment?.reason ?? defaultReason ?? ""}
+        />
       </Field>
       <Field label={t("notes")} error={state.fieldErrors?.notes}>
         <Textarea

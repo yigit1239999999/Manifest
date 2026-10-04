@@ -81,6 +81,8 @@ export type ReminderProblemGroup = "unreached" | "blocked";
 
 export interface BlockedReminder {
   id: string;
+  /** `ReminderType`: what a booking from this row is for. */
+  type: string;
   title: string;
   dueAt: Date;
   reason: BlockedReminderReason;
@@ -211,6 +213,7 @@ export async function blockedReminders(
 
     blocked.push({
       id: row.id,
+      type: row.type,
       title: row.title,
       dueAt: row.dueAt,
       reason,
