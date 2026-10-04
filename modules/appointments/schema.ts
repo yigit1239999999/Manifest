@@ -30,6 +30,9 @@ export const APPOINTMENT_STATUSES = [
   "NO_SHOW",
 ] as const;
 
+/** An appointment in one of these did not happen, so no visit answers it. */
+export const NO_VISIT_STATUSES = ["CANCELLED", "NO_SHOW"] as const;
+
 export const appointmentSchema = z.object({
   petId: requiredId("error.entity.pet"),
   vetId: optionalText(40),

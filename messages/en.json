@@ -333,7 +333,16 @@
     "archiveConfirm": "Archive this visit?",
     "createInvoice": "Create an invoice for this visit",
     "invoicedAs": "Invoiced as {number}",
-    "archivedBySubject": "Its animal or its client is archived, so this visit does not appear in the lists."
+    "archivedBySubject": "Its animal or its client is archived, so this visit does not appear in the lists.",
+    "weightUnusual": {
+      "CAT": "{weight, number} kg is unusual for a cat. Please check it.",
+      "DOG": "{weight, number} kg is unusual for a dog. Please check it.",
+      "RABBIT": "{weight, number} kg is unusual for a rabbit. Please check it.",
+      "BIRD": "{weight, number} kg is unusual for a bird. Please check it.",
+      "RODENT": "{weight, number} kg is unusual for a rodent. Please check it.",
+      "FERRET": "{weight, number} kg is unusual for a ferret. Please check it.",
+      "REPTILE": "{weight, number} kg is unusual for a reptile. Please check it."
+    }
   },
   "appointment": {
     "title": "Appointments",

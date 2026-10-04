@@ -47,6 +47,11 @@ export const createVisitIntakeAction = action(
     revalidatePath("/pets");
     revalidatePath("/clients");
     revalidatePath("/");
+    // Started from an appointment, which the save may have completed.
+    if (parsed.data.appointmentId) {
+      revalidatePath("/appointments");
+      revalidatePath(`/appointments/${parsed.data.appointmentId}`);
+    }
     // What was born with this visit, so its page can say so once.
     //
     // A flag and not the words: "Limon" and "Ayşe" are the page's own,

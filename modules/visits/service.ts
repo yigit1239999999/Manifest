@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { notFound, validationFailed } from "@/lib/errors";
+import { isUniqueViolation, notFound, validationFailed } from "@/lib/errors";
 import { redact, withAudited } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
@@ -8,6 +8,7 @@ import { resolveSpecies } from "@/modules/pets/service";
 import { writeAudit } from "@/lib/audit";
 import { isClinician } from "@/modules/staff/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
+import { NO_VISIT_STATUSES } from "@/modules/appointments/schema";
 
 async function resolvePetAndOwner(petId: string, clinicId: string) {
   const pet = await prisma.pet.findFirst({
@@ -177,7 +178,7 @@ export async function createVisitWithIntake(
   ctx: ActionContext,
 ) {
   requirePermission(ctx.userRole, "visits.write");
-  const { petId, newPet, vetId, total, ...rest } = input;
+  const { petId, newPet, vetId, total, appointmentId, ...rest } = input;
   if (newPet) requirePermission(ctx.userRole, "pets.write");
   if (newPet?.owner) requirePermission(ctx.userRole, "clients.write");
 
@@ -206,7 +207,10 @@ export async function createVisitWithIntake(
       throw validationFailed({ ownerId: ["error.validation.ownerNotInClinic"] });
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  // `linkTo` is the appointment this visit was started from, or null.
+  // A parameter because the transaction may have to run twice: see the
+  // retry below it.
+  const write = (linkTo: string | null) => prisma.$transaction(async (tx) => {
     // The owner, then the animal, then the visit that points at both.
     //
     // Two statements rather than one nested `visit.create`, and the
@@ -255,6 +259,27 @@ export async function createVisitWithIntake(
         })
       : existing!;
 
+    // The appointment it answers, when there is one to answer. Every
+    // condition is asked of the database rather than taken from the
+    // page that drew the form: this clinic's, this animal's (so an
+    // animal changed in the picker, or a new one, links nothing), not
+    // one that did not happen, and not one a visit already answers.
+    // Anything else is ignored rather than refused -- the vet came to
+    // record an examination, and that is saved either way.
+    const appointment =
+      linkTo && !newPet
+        ? await tx.appointment.findFirst({
+            where: {
+              id: linkTo,
+              clinicId: ctx.clinicId,
+              petId: pet.id,
+              status: { notIn: [...NO_VISIT_STATUSES] },
+              visit: { is: null },
+            },
+            select: { id: true, status: true },
+          })
+        : null;
+
     const visit = await tx.visit.create({
       data: {
         ...rest,
@@ -266,9 +291,31 @@ export async function createVisitWithIntake(
         // From the animal, never from the form: the owner of the
         // record is whoever owns the animal.
         clientId: pet.ownerId,
+        appointmentId: appointment?.id ?? null,
       },
       select: { id: true, petId: true, clientId: true },
     });
+
+    // The animal came, so the day's list and the dashboard stop saying
+    // it is still expected.
+    if (appointment && appointment.status !== "COMPLETED") {
+      await tx.appointment.update({
+        where: { id: appointment.id },
+        data: { status: "COMPLETED" },
+      });
+      await writeAudit(
+        {
+          clinicId: ctx.clinicId,
+          actorId: ctx.userId,
+          action: "UPDATE",
+          entityType: "Appointment",
+          entityId: appointment.id,
+          changes: { status: "COMPLETED" },
+          metadata: { via: "visit", visitId: visit.id },
+        },
+        tx,
+      );
+    }
 
     // One row per record that was born, because three records made in
     // one breath are still three records: an audit trail that mentions
@@ -308,11 +355,24 @@ export async function createVisitWithIntake(
         action: "CREATE",
         entityType: "Visit",
         entityId: visit.id,
-        changes: redact(input),
+        // What was linked, not what the form asked for.
+        changes: redact({ ...input, appointmentId: appointment?.id ?? null }),
       },
       tx,
     );
     return visit;
+  });
+
+  // Two saves from one appointment at once (a double tap, two screens)
+  // both find it unanswered, and the second insert meets the unique
+  // index on `Visit.appointmentId`. Postgres has aborted that
+  // transaction by then, so the visit is written again without the
+  // link: the other save already completed the appointment, and an
+  // examination typed here must not be lost to a race about
+  // bookkeeping.
+  const result = await write(appointmentId ?? null).catch((error: unknown) => {
+    if (appointmentId && isUniqueViolation(error)) return write(null);
+    throw error;
   });
 
   // What was actually born, named, so the screen can say it back: three
