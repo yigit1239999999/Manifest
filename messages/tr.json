@@ -301,6 +301,9 @@
     }
   },
   "visit": {
+    "openExisting": "Viziti aç",
+    "appointmentLink": "Randevu",
+    "alreadyStarted": "Bu randevu için vizit zaten açılmış.",
     "title": "Vizitler",
     "subtitle": "Hayvanların tüm muayene kayıtları.",
     "new": "Yeni vizit",
@@ -348,6 +351,7 @@
     }
   },
   "appointment": {
+    "openVisit": "Viziti aç",
     "title": "Randevular",
     "subtitle": "Planlı vizitler ve işlemler.",
     "new": "Yeni randevu",
@@ -395,7 +399,7 @@
     "previousDay": "Önceki gün",
     "nextDay": "Sonraki gün",
     "resultMissing": "sonuç girilmedi",
-    "stillOpen": "{total} randevudan {open}'ü hâlâ açık.",
+    "stillOpen": "{total} randevunun {open} tanesi hâlâ açık.",
     "allDates": "Tüm tarihler",
     "dayPlan": "Gün planı",
     "petClient": "Hayvan · Müşteri",
@@ -1234,6 +1238,7 @@
       "duplicateWindow": "Aynı mesaj bu numaraya son bir saat içinde gönderildi. Operatör tekrarı engeller; bir saat sonra yeniden deneyebilirsiniz."
     },
     "validation": {
+      "appointmentHasVisit": "Bu randevunun vizitı kaydedildi; durumu artık değiştirilemez.",
       "ownerNotInClinic": "Bu sahip bu klinikte bulunamadı.",
       "petNotInClinic": "Bu hayvan bu klinikte bulunamadı.",
       "clientRequired": "Müşteri bulunamadı.",

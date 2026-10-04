@@ -124,7 +124,8 @@ test.describe("Appointments day plan", () => {
       /^\/visits\/new\?petId=[\w-]+&type=WELLNESS_CHECK&appointmentId=[\w-]+$/,
     );
     const tableOverflow = await page
-      .locator("table")
+      // The named one: a hidden <table> can also be on the page.
+      .getByRole("table", { name: "Appointments" })
       .evaluate((t) => t.parentElement!.scrollWidth - t.parentElement!.clientWidth);
     expect(tableOverflow).toBeLessThanOrEqual(0);
   });

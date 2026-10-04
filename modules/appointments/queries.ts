@@ -123,6 +123,14 @@ export async function getAppointmentToStartVisit(clinicId: string, id: string) {
   });
 }
 
+/** The visit an appointment already became, if any, scoped to the clinic. */
+export async function getVisitForAppointment(clinicId: string, appointmentId: string) {
+  return prisma.visit.findFirst({
+    where: { clinicId, appointmentId },
+    select: { id: true },
+  });
+}
+
 export async function upcomingAppointments(clinicId: string, take = PAGE_SIZES.PREVIEW) {
   return prisma.appointment.findMany({
     where: {

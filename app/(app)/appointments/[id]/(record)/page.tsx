@@ -124,6 +124,17 @@ export default async function AppointmentPage({
             {t("startVisit")}
           </Link>
         )}
+        {/* The visit this appointment became, one click away (QA: neither
+            record pointed at the other). */}
+        {appointment.visit && (
+          <Link
+            href={`/visits/${appointment.visit.id}`}
+            className={buttonVariants()}
+          >
+            <Stethoscope />
+            {t("openVisit")}
+          </Link>
+        )}
         {canWrite && (
           <Link
             href={`/appointments/${appointment.id}/edit`}
@@ -133,8 +144,10 @@ export default async function AppointmentPage({
             {tCommon("edit")}
           </Link>
         )}
-        {/* A no-show has nothing left to cancel (QA). */}
+        {/* A no-show has nothing left to cancel, and neither has an
+            appointment its visit has answered (the server refuses it too). */}
         {canWrite &&
+          !appointment.visit &&
           appointment.status !== "CANCELLED" &&
           appointment.status !== "NO_SHOW" && (
           <DeleteButton

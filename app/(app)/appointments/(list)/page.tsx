@@ -379,12 +379,37 @@ export default async function AppointmentsPage({
                 key: "status",
                 header: t("status"),
                 stack: "end",
+                // The visit starts from the row, under the status it will
+                // change, rather than one page further in. In this cell and
+                // not a column of its own: a seventh column made the table
+                // 131px wider than its box at 900px, and its hidden header
+                // pushed the whole page sideways (QA). Not for an
+                // appointment that is over or never happened.
                 cell: (a) => (
-                  <StatusBadge
-                    kind="appointment"
-                    status={a.status}
-                    label={tStatus(a.status as never)}
-                  />
+                  <div className="flex flex-col items-start gap-1">
+                    <StatusBadge
+                      kind="appointment"
+                      status={a.status}
+                      label={tStatus(a.status as never)}
+                    />
+                    {canStartVisit && !VISIT_CLOSED_STATUSES.includes(a.status) && (
+                      <Link
+                        href={`/visits/new?${new URLSearchParams({
+                          petId: a.pet.id,
+                          type: a.type,
+                          appointmentId: a.id,
+                        })}`}
+                        aria-label={tCommon("actionFor", {
+                          action: t("startVisit"),
+                          subject: a.pet.name,
+                        })}
+                        className="inline-flex items-start gap-1 text-xs font-medium text-primary hover:underline"
+                      >
+                        <Stethoscope className="size-3.5 shrink-0" aria-hidden="true" />
+                        {t("startVisit")}
+                      </Link>
+                    )}
+                  </div>
                 ),
               },
               {
@@ -418,44 +443,6 @@ export default async function AppointmentsPage({
                   );
                 },
               },
-              // The day plan is where reception sees the animal arrive,
-              // so the visit starts from the row rather than one page
-              // further in. Not for an appointment that is over, and
-              // not for one that never happened: neither has a visit to
-              // start. Stacked, it takes the second line's end, across
-              // from the animal it is for.
-              ...(canStartVisit
-                ? [
-                    {
-                      key: "startVisit",
-                      header: t("startVisit"),
-                      headerHidden: true,
-                      align: "end" as const,
-                      stack: "meta-end" as const,
-                      cell: (a: (typeof result.items)[number]) =>
-                        VISIT_CLOSED_STATUSES.includes(a.status) ? null : (
-                          <Link
-                            href={`/visits/new?${new URLSearchParams({
-                              petId: a.pet.id,
-                              type: a.type,
-                              appointmentId: a.id,
-                            })}`}
-                            aria-label={tCommon("actionFor", {
-                              action: t("startVisit"),
-                              subject: a.pet.name,
-                            })}
-                            // Free to wrap in the table, the one column
-                            // added to a row that was already six wide;
-                            // stacked, `meta-end` keeps it on one line.
-                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                          >
-                            <Stethoscope className="size-3.5 shrink-0" aria-hidden="true" />
-                            {t("startVisit")}
-                          </Link>
-                        ),
-                    },
-                  ]
-                : []),
             ]}
           />
           {showAllDates && (

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { notFound, validationFailed } from "@/lib/errors";
+import { notFound, validationFailed, conflict } from "@/lib/errors";
 import { redact, withAudited, writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
@@ -204,9 +204,15 @@ export async function updateAppointment(
   requirePermission(ctx.userRole, "appointments.write");
   const existing = await prisma.appointment.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: { id: true, visit: { select: { id: true } } },
   });
   if (!existing) throw notFound("appointment", id);
+  // An appointment its visit has closed stays closed. Set back to
+  // "scheduled" it reappeared among upcoming appointments and offered a
+  // "Start visit" that could only make unlinked duplicates (QA).
+  if (existing.visit && input.status !== "COMPLETED") {
+    throw validationFailed({ status: ["error.validation.appointmentHasVisit"] });
+  }
 
   const pet = await resolvePet(input.petId, ctx.clinicId);
   const vet = await resolveVet(input.vetId, ctx.clinicId);
@@ -242,9 +248,11 @@ export async function cancelAppointment(id: string, ctx: ActionContext) {
   requirePermission(ctx.userRole, "appointments.write");
   const existing = await prisma.appointment.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true, petId: true },
+    select: { id: true, petId: true, visit: { select: { id: true } } },
   });
   if (!existing) throw notFound("appointment", id);
+  // Seen is seen: a visit records that the animal came.
+  if (existing.visit) throw conflict("error.validation.appointmentHasVisit");
 
   await withAudited(
     {

@@ -301,6 +301,9 @@
     }
   },
   "visit": {
+    "openExisting": "Open the visit",
+    "appointmentLink": "Appointment",
+    "alreadyStarted": "A visit has already been opened for this appointment.",
     "title": "Visits",
     "subtitle": "Every encounter recorded for your pets.",
     "new": "New visit",
@@ -348,6 +351,7 @@
     }
   },
   "appointment": {
+    "openVisit": "Open visit",
     "title": "Appointments",
     "subtitle": "Scheduled visits and procedures.",
     "new": "New appointment",
@@ -1234,6 +1238,7 @@
       "duplicateWindow": "The same message went to this number within the last hour. The operator blocks repeats; you can try again in an hour."
     },
     "validation": {
+      "appointmentHasVisit": "This appointment's visit has been recorded; its status can no longer be changed.",
       "ownerNotInClinic": "This owner isn't in your clinic.",
       "petNotInClinic": "This pet isn't in your clinic.",
       "clientRequired": "Client not found.",

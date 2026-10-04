@@ -353,6 +353,23 @@ export default async function VisitPage({
                 ),
               },
               { label: t("vet"), value: visit.vet?.name },
+              // The appointment this visit answered, when it was started
+              // from one; absent otherwise rather than a "-" row.
+              ...(visit.appointment
+                ? [
+                    {
+                      label: t("appointmentLink"),
+                      value: (
+                        <Link
+                          href={`/appointments/${visit.appointment.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {formatDateTime(fmt, visit.appointment.startsAt)}
+                        </Link>
+                      ),
+                    },
+                  ]
+                : []),
               {
                 label: t("followupAt"),
                 // A follow-up is a day, not a moment -- the field stopped

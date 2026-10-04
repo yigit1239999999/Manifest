@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { relativeTime } from "@/lib/format";
 import { getFormatContext } from "@/lib/format-context";
@@ -7,11 +8,15 @@ import { listClinicians } from "@/modules/staff/queries";
 import { defaultVetFor } from "@/modules/staff/default-vet";
 import { can } from "@/lib/permissions";
 import { getPetForVisit, listCustomSpecies, listPets } from "@/modules/pets/queries";
-import { getAppointmentToStartVisit } from "@/modules/appointments/queries";
+import {
+  getAppointmentToStartVisit,
+  getVisitForAppointment,
+} from "@/modules/appointments/queries";
 import { getEnabledSpecies } from "@/modules/species/queries";
 import { listClients } from "@/modules/clients/queries";
 import { hiddenBuiltInSpecies } from "@/modules/pets/species-names";
 import { SPECIES } from "@/modules/pets/schema";
+import { Callout } from "@/components/ui/callout";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { BackLink } from "@/components/back-link";
@@ -74,6 +79,13 @@ export default async function NewVisitPage({
   // names: the page then opens exactly as it would without it.
   const appointment =
     startable && (!petId || startable.petId === petId) ? startable : null;
+  // A start link used a second time (back button, a second tab) used to
+  // open a blank form and save an unlinked duplicate (QA). When the
+  // appointment already has its visit, say so and point at it.
+  const alreadyStarted =
+    !startable && typeof appointmentId === "string" && appointmentId
+      ? await getVisitForAppointment(session.user.clinicId, appointmentId)
+      : null;
   // The animal this visit is known to be about before the form opens.
   // The link always carries `petId`; an address with only the
   // appointment costs the one extra lookup.
@@ -115,6 +127,17 @@ export default async function NewVisitPage({
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <BackLink href="/visits" label={tCommon("back")} />
       <PageHeader title={t("new")} />
+      {alreadyStarted && (
+        <Callout variant="warning">
+          {t("alreadyStarted")}{" "}
+          <Link
+            href={`/visits/${alreadyStarted.id}`}
+            className="font-medium underline"
+          >
+            {t("openExisting")}
+          </Link>
+        </Callout>
+      )}
       {/* The form, on the first morning as on every other one. This is
           the screen the dashboard card sends an empty clinic to, having
           promised that the animal and its owner can be made on the way
