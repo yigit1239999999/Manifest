@@ -1,4 +1,4 @@
-import { pickOption, test, expect, assertFormKept } from "./helpers";
+import { pickOption, test, expect, assertFormKept, saveVaccination } from "./helpers";
 import type { Page } from "@playwright/test";
 
 /**
@@ -74,7 +74,7 @@ async function recordDose(
   if (options.nextDue) {
     await form.getByLabel(/next due|sonraki tarih/i).fill(options.nextDue);
   }
-  await form.getByRole("button", { name: /save vaccination|aşıyı kaydet/i }).click();
+  await saveVaccination(page, form);
   // The row itself, not the toast: a toast is gone in seconds and a
   // test that waits for one is waiting on a timer.
   await expect(page.getByText(vaccine).first()).toBeVisible();

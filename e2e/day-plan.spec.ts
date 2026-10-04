@@ -114,7 +114,10 @@ test.describe("Appointments day plan", () => {
     expect(overflow).toBeLessThanOrEqual(0);
 
     // The visit starts from the row, and the row still fits its card.
-    const start = page.getByRole("link", { name: /start visit: tarcin|vizite başla: tarcin/i });
+    // One leg: the accessible name is built at runtime ("{action}: {subject}"),
+    // so a Turkish leg would match no catalogue string (locator-legs.test).
+    // The suite runs in English.
+    const start = page.getByRole("link", { name: /start visit: tarcin/i });
     await expect(start).toBeVisible();
     await expect(start).toHaveAttribute(
       "href",

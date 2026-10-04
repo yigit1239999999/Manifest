@@ -108,11 +108,14 @@ export default async function AppointmentPage({
             it before using it. The appointment's own id goes too: its
             reason becomes the chief complaint, and saving the visit marks
             it as attended. */}
-        {/* Not for an appointment that did not happen: a no-show or a
-            cancellation has no visit to start. */}
+        {/* Not for an appointment that did not happen (a no-show or a
+            cancellation) or one already seen. */}
         {canStartVisit &&
           appointment.status !== "CANCELLED" &&
-          appointment.status !== "NO_SHOW" && (
+          appointment.status !== "NO_SHOW" &&
+          // Completed means its visit exists (starting one closes it), and
+          // the day plan hides the link for the same three statuses.
+          appointment.status !== "COMPLETED" && (
           <Link
             href={`/visits/new?petId=${appointment.pet.id}&type=${appointment.type}&appointmentId=${appointment.id}`}
             className={buttonVariants()}

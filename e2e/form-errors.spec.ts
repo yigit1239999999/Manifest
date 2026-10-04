@@ -1,4 +1,4 @@
-import { pickOption, test, expect, assertFormKept } from "./helpers";
+import { pickOption, test, expect, assertFormKept, saveVaccination } from "./helpers";
 
 // A failed validation must never cost the user their typing, and the
 // messages that come back must be in the language they are using.
@@ -121,7 +121,7 @@ test.describe("Medical records", () => {
     });
     await vaccination.getByLabel(/^vaccine$|^aşı$/i).fill("Rabies");
     await vaccination.getByLabel(/manufacturer|üretici/i).fill("Acme");
-    await page.getByRole("button", { name: /save vaccination|aşıyı kaydet/i }).click();
+    await saveVaccination(page, vaccination);
 
     await expect(page.getByText("Rabies").first()).toBeVisible();
     await page.reload();

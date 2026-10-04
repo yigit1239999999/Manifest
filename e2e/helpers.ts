@@ -161,3 +161,20 @@ export async function assertFormKept(page: Page) {
 }
 
 export { expect } from "@playwright/test";
+
+/**
+ * Saves the open vaccination form. A vaccine the clinic has a schedule
+ * for asks once when its next date is empty (use the suggestion, or save
+ * empty), so a spec that means "empty" says so by answering.
+ */
+export async function saveVaccination(page: Page, form: Locator) {
+  await form.getByRole("button", { name: /save vaccination|aşıyı kaydet/i }).click();
+  const saveEmpty = form.getByRole("button", {
+    name: /save without a date|boş kaydet/i,
+  });
+  // Either the question appears or the save goes through; wait for one.
+  await Promise.race([
+    saveEmpty.waitFor({ state: "visible", timeout: 5_000 }).then(() => saveEmpty.click()),
+    form.page().waitForTimeout(5_000),
+  ]).catch(() => {});
+}
