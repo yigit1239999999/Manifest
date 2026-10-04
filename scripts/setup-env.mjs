@@ -112,11 +112,28 @@ if (found) {
   if (found.values.ANTHROPIC_API_KEY) values.ANTHROPIC_API_KEY = found.values.ANTHROPIC_API_KEY;
 } else {
   const rl = createInterface({ input: stdin, output: stdout });
-  // An input that ends (a pipe, Ctrl-D) answers every later question with
-  // nothing, instead of leaving the script waiting on a closed stream.
+  // Answers are taken from a queue of lines rather than `rl.question`, so a
+  // piped input (every answer arriving at once, then end-of-file) is read in
+  // order, and an input that ends answers every later question with nothing
+  // instead of leaving the script waiting on a closed stream.
+  const lines = [];
+  const waiting = [];
   let closed = false;
-  const closing = new Promise((done) => rl.once("close", () => { closed = true; done(""); }));
-  const ask = (q) => (closed ? Promise.resolve("") : Promise.race([rl.question(q), closing]));
+  rl.on("line", (line) => {
+    const next = waiting.shift();
+    if (next) next(line);
+    else lines.push(line);
+  });
+  rl.on("close", () => {
+    closed = true;
+    for (const next of waiting.splice(0)) next("");
+  });
+  const ask = (question) => {
+    stdout.write(question);
+    if (lines.length > 0) return Promise.resolve(lines.shift());
+    if (closed) return Promise.resolve("");
+    return new Promise((resolve) => waiting.push(resolve));
+  };
   console.log(
     "Supabase PetTrack veritabanı şifresi gerekiyor (bir kez). Bilmiyorsanız:\n" +
       "Supabase → PetTrack → Project Settings → Database → Reset database password.",
