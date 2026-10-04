@@ -6,7 +6,8 @@ import { requireSession } from "@/lib/session";
 import { listClinicians } from "@/modules/staff/queries";
 import { defaultVetFor } from "@/modules/staff/default-vet";
 import { can } from "@/lib/permissions";
-import { getPetLabel, listCustomSpecies, listPets } from "@/modules/pets/queries";
+import { getPetForVisit, listCustomSpecies, listPets } from "@/modules/pets/queries";
+import { getAppointmentToStartVisit } from "@/modules/appointments/queries";
 import { getEnabledSpecies } from "@/modules/species/queries";
 import { listClients } from "@/modules/clients/queries";
 import { hiddenBuiltInSpecies } from "@/modules/pets/species-names";
@@ -21,11 +22,11 @@ import { VISIT_TYPES } from "@/modules/appointments/schema";
 export default async function NewVisitPage({
   searchParams,
 }: {
-  searchParams: Promise<{ petId?: string; type?: string }>;
+  searchParams: Promise<{ petId?: string; type?: string; appointmentId?: string }>;
 }) {
   const session = await requireSession();
   if (!can(session.user.role, "visits.write")) return <ForbiddenState />;
-  const { petId, type } = await searchParams;
+  const { petId, type, appointmentId } = await searchParams;
   // Set by an appointment's "Start visit". Anything that is not a visit
   // type is ignored, so the form keeps its own default rather than
   // drawing a select with nothing chosen.
@@ -40,12 +41,13 @@ export default async function NewVisitPage({
     tPet,
     pets,
     vets,
-    defaultPetLabel,
+    linkedPet,
     tSpecies,
     fmt,
     owners,
     customSpecies,
     enabledSpecies,
+    startable,
   ] = await Promise.all([
     getTranslations("visit"),
     getTranslations("common"),
@@ -54,13 +56,32 @@ export default async function NewVisitPage({
     listClinicians(session.user.clinicId),
     // Only when a link carried an animal: that animal may sit past
     // the picker's cap, and then the field renders empty (`getPetLabel`).
-    petId ? getPetLabel(session.user.clinicId, petId) : undefined,
+    // Its alerts and species come in the same lookup.
+    petId ? getPetForVisit(session.user.clinicId, petId) : undefined,
     getTranslations("enum.species"),
     getFormatContext(),
     listClients({ clinicId: session.user.clinicId }),
     listCustomSpecies(session.user.clinicId),
     getEnabledSpecies(session.user.clinicId),
+    // Set by an appointment's "Start visit", so the reason the owner
+    // gave on the phone is not typed a second time and the save can
+    // mark the appointment as attended.
+    typeof appointmentId === "string" && appointmentId
+      ? getAppointmentToStartVisit(session.user.clinicId, appointmentId)
+      : null,
   ]);
+  // Ignored, silently, when it is for some other animal than the link
+  // names: the page then opens exactly as it would without it.
+  const appointment =
+    startable && (!petId || startable.petId === petId) ? startable : null;
+  // The animal this visit is known to be about before the form opens.
+  // The link always carries `petId`; an address with only the
+  // appointment costs the one extra lookup.
+  const startPet =
+    linkedPet ??
+    (appointment && !petId
+      ? await getPetForVisit(session.user.clinicId, appointment.petId)
+      : undefined);
 
   // Assembled on the server for the reason `pets/new/page.tsx` gives:
   // the names come from both catalogues and the browser has only the
@@ -127,9 +148,13 @@ export default async function NewVisitPage({
           // Who performed it, answered before the form opens; the
           // reasoning and the receptionist case live in the helper.
           defaultVetId={defaultVetFor(vets, session.user.id)}
-          defaultPetId={petId}
-          defaultPetLabel={defaultPetLabel}
+          defaultPetId={petId ?? startPet?.id}
+          defaultPetLabel={startPet?.label}
+          defaultPetAlerts={startPet?.alerts}
+          defaultPetSpecies={startPet?.species}
           defaultType={defaultType}
+          appointmentId={appointment?.id}
+          defaultChiefComplaint={appointment?.reason ?? undefined}
           owners={owners.items.map((o) => ({
             id: o.id,
             firstName: o.firstName,

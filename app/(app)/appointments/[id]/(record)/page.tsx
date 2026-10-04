@@ -105,14 +105,16 @@ export default async function AppointmentPage({
             action here. The animal and the kind of visit travel with the
             link: appointments and visits share one `VisitType` enum, so
             the type carries over as it is, and `/visits/new` still checks
-            it before using it. */}
+            it before using it. The appointment's own id goes too: its
+            reason becomes the chief complaint, and saving the visit marks
+            it as attended. */}
         {/* Not for an appointment that did not happen: a no-show or a
             cancellation has no visit to start. */}
         {canStartVisit &&
           appointment.status !== "CANCELLED" &&
           appointment.status !== "NO_SHOW" && (
           <Link
-            href={`/visits/new?petId=${appointment.pet.id}&type=${appointment.type}`}
+            href={`/visits/new?petId=${appointment.pet.id}&type=${appointment.type}&appointmentId=${appointment.id}`}
             className={buttonVariants()}
           >
             <Stethoscope />

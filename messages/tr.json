@@ -331,7 +331,16 @@
     "archiveConfirm": "Bu vizit arşivlensin mi?",
     "createInvoice": "Bu vizit için fatura oluştur",
     "invoicedAs": "Faturası: {number}",
-    "archivedBySubject": "Hayvanı veya müşterisi arşivlendiği için bu vizit listelerde görünmüyor."
+    "archivedBySubject": "Hayvanı veya müşterisi arşivlendiği için bu vizit listelerde görünmüyor.",
+    "weightUnusual": {
+      "CAT": "Bir kedi için {weight, number} kg alışılmışın dışında. Lütfen kontrol edin.",
+      "DOG": "Bir köpek için {weight, number} kg alışılmışın dışında. Lütfen kontrol edin.",
+      "RABBIT": "Bir tavşan için {weight, number} kg alışılmışın dışında. Lütfen kontrol edin.",
+      "BIRD": "Bir kuş için {weight, number} kg alışılmışın dışında. Lütfen kontrol edin.",
+      "RODENT": "Bir kemirgen için {weight, number} kg alışılmışın dışında. Lütfen kontrol edin.",
+      "FERRET": "Bir gelincik için {weight, number} kg alışılmışın dışında. Lütfen kontrol edin.",
+      "REPTILE": "Bir sürüngen için {weight, number} kg alışılmışın dışında. Lütfen kontrol edin."
+    }
   },
   "appointment": {
     "title": "Randevular",

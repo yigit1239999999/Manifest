@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PAGE_SIZES } from "@/lib/pagination";
 import type { Prisma } from "@/generated/prisma/client";
+import { NO_VISIT_STATUSES } from "./schema";
 
 export interface ListAppointmentsArgs {
   clinicId: string;
@@ -100,6 +101,25 @@ export async function getAppointmentById(clinicId: string, id: string) {
       vet: { select: { id: true, name: true } },
       visit: { select: { id: true } },
     },
+  });
+}
+
+/**
+ * The appointment a new visit is being started from, when it can still
+ * become one: this clinic's, not cancelled or missed, and not already
+ * answered by a visit. Null otherwise, and the page then opens a plain
+ * new visit. A primary key lookup; "no visit" is answered by the unique
+ * index on `Visit.appointmentId`.
+ */
+export async function getAppointmentToStartVisit(clinicId: string, id: string) {
+  return prisma.appointment.findFirst({
+    where: {
+      id,
+      clinicId,
+      status: { notIn: [...NO_VISIT_STATUSES] },
+      visit: { is: null },
+    },
+    select: { id: true, petId: true, reason: true },
   });
 }
 

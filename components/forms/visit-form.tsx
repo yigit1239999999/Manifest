@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
 import type { Pet, User, Visit } from "@/generated/prisma/client";
 import { centsToInputValue } from "@/lib/money";
+import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/datetime-input";
@@ -26,6 +27,7 @@ import { petRowCaption, petRowLabel } from "@/lib/pet-label";
 import { matches } from "@/lib/search";
 import { NewPetBlock, type OpenedWith } from "@/components/forms/new-pet-block";
 import { readDraft } from "@/lib/form-draft";
+import { implausibleWeight } from "@/modules/pets/plausible-weight";
 import type { HiddenSpecies } from "@/components/species-picker";
 
 interface Props {
@@ -60,6 +62,24 @@ interface Props {
    * empty over a hidden input that is not.
    */
   defaultPetLabel?: string;
+  /**
+   * The preselected animal's medical alerts ("Penisilin alerjisi") and
+   * its species, when the page knew the animal before the form opened.
+   *
+   * Shown only while that animal is still the one picked: the page
+   * loaded them for one animal, and an allergy shown over a different
+   * animal is worse than none. An animal picked here in the browser gets
+   * neither; its own page and `PrescriptionForm` still carry the alerts.
+   */
+  defaultPetAlerts?: string | null;
+  defaultPetSpecies?: string;
+  /**
+   * The appointment this visit was started from, and the reason given
+   * when it was booked. The page has already checked it can still become
+   * a visit; the service checks again, inside the save.
+   */
+  appointmentId?: string;
+  defaultChiefComplaint?: string;
   /**
    * The kind of visit to open with, when a link carried one (an
    * appointment's "Start visit"). Checked against `VISIT_TYPES` by the
@@ -124,6 +144,10 @@ export function VisitForm({
   vets,
   defaultPetId,
   defaultPetLabel,
+  defaultPetAlerts,
+  defaultPetSpecies,
+  appointmentId,
+  defaultChiefComplaint,
   defaultType,
   defaultVetId,
   owners = [],
@@ -221,8 +245,18 @@ export function VisitForm({
   // Read during the first render, the way `ActionForm` reads the same
   // key, because a block that appeared one render later would arrive
   // after the restore and after the cursor had been placed.
+  //
+  // A visit started from an appointment keeps a draft of its own. The
+  // draft restores every named control, the hidden `appointmentId`
+  // included, so a shared key would carry one appointment's id (and its
+  // half-typed complaint) into the visit for the next.
+  const draftKey = visit
+    ? `visit:${visit.id}`
+    : appointmentId
+      ? `visit:new:appointment:${appointmentId}`
+      : "visit:new";
   const [restoredDraft] = useState<Record<string, string> | null>(() =>
-    visit || typeof window === "undefined" ? null : readDraft("visit:new"),
+    visit || typeof window === "undefined" ? null : readDraft(draftKey),
   );
   const [creating, setCreating] = useState<OpenedWith | null>(
     restoredDraft?.["newPet[intent]"] === "1" ? reopenedWith(restoredDraft) : null,
@@ -280,6 +314,20 @@ export function VisitForm({
   const teachPet = pets.length === 0 && !visit && canCreatePet && !creating;
   const picker = useRef<HTMLDivElement>(null);
 
+  // Which animal the picker holds, followed only to answer one question:
+  // is it still the one the page loaded alerts and a species for?
+  const startPetId = visit?.petId ?? defaultPetId ?? "";
+  const [pickedPetId, setPickedPetId] = useState(startPetId);
+  const knownPet = Boolean(startPetId) && !creating && pickedPetId === startPetId;
+  // Followed for the same reason: the warning under the box has to move
+  // as the number is typed, before anything is submitted.
+  const [weightText, setWeightText] = useState(
+    visit?.weightKg != null ? String(visit.weightKg) : "",
+  );
+  const unusualWeight = knownPet
+    ? implausibleWeight(defaultPetSpecies, weightText)
+    : null;
+
   // A rejected submit is a server response, not an event this form can
   // subscribe to, so it is read as it arrives rather than in an effect:
   // the block has to be in the SAME render as the values that refill
@@ -305,11 +353,25 @@ export function VisitForm({
       // on the way back. Keyed to the record rather than the route, so
       // a half-written new visit cannot pour itself into the edit form
       // of an old one.
-      draftKey={visit ? `visit:${visit.id}` : "visit:new"}
+      draftKey={draftKey}
       className="flex flex-col gap-6"
     >
       {/* Part-filled arrivals only: the chain a new clinic walks, or a
           deep link from a record's own page. See `focusFirstEmpty`. */}
+
+      {/* Above everything, because the examination starts as soon as
+          the form opens: the vet asked to see "Penisilin alerjisi" on
+          the first screen, not on the animal's page they did not visit
+          on the way here. Same box the animal's page and
+          `PrescriptionForm` use. */}
+      {knownPet && defaultPetAlerts && (
+        <Callout variant="warning" title={tPet("alerts")}>
+          {defaultPetAlerts}
+        </Callout>
+      )}
+      {appointmentId && !visit && (
+        <input type="hidden" name="appointmentId" value={appointmentId} />
+      )}
 
       {/* The ref is how "never mind" finds its way back to the box it
           was pressed from: the picker is remounted by that same state
@@ -345,6 +407,7 @@ export function VisitForm({
             // with neither an animal nor a new one.
             required={!creating}
             defaultValue={creating ? "" : (visit?.petId ?? defaultPetId ?? "")}
+            onValueChange={(value) => setPickedPetId(value)}
             defaultLabel={
               creating
                 ? creating.petName || creating.ownerQuery
@@ -432,7 +495,12 @@ export function VisitForm({
           // when the snapshot is taken, and a block somebody closed
           // would be waiting for them when they came back.
           onCancel={() => {
-            flushSync(() => setCreating(null));
+            flushSync(() => {
+              setCreating(null);
+              // The picker comes back holding the animal it opened
+              // with (its `defaultValue`), whatever was picked before.
+              setPickedPetId(startPetId);
+            });
             // Back where they were, which is the box they opened it
             // from. Without this the caret lands on `body` and a
             // keyboard user tabs in from the top of the document to
@@ -490,7 +558,9 @@ export function VisitForm({
         <Textarea
           name="chiefComplaint"
           rows={2}
-          defaultValue={visit?.chiefComplaint ?? ""}
+          // An appointment's reason, so what the owner said on the
+          // phone is not typed a second time.
+          defaultValue={visit?.chiefComplaint ?? defaultChiefComplaint ?? ""}
         />
       </Field>
 
@@ -532,13 +602,28 @@ export function VisitForm({
         <legend className="px-2 text-sm font-semibold text-foreground">
           {t("vitals")}
         </legend>
-        <Field label={t("weightKg")} error={state.fieldErrors?.weightKg}>
+        <Field
+          label={t("weightKg")}
+          error={state.fieldErrors?.weightKg}
+          // A question, not a refusal: the save goes through either way.
+          // It catches the slipped decimal ("42" for a 4,2 kg cat) while
+          // the vet is still at the scale.
+          hint={
+            unusualWeight
+              ? t(`weightUnusual.${unusualWeight.species}`, {
+                  weight: unusualWeight.kg,
+                })
+              : undefined
+          }
+          hintTone="warning"
+        >
           <Input
             // Text with a decimal keypad, not type="number": see
             // `parseDecimal` in lib/forms.ts for the 4,2 kg cat.
             inputMode="decimal"
             name="weightKg"
             defaultValue={visit?.weightKg ?? ""}
+            onChange={(event) => setWeightText(event.target.value)}
           />
         </Field>
         <Field

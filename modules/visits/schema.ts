@@ -128,6 +128,12 @@ export const visitIntakeSchema = (locale: string) =>
       // Relaxed, and the refinement below is what keeps it honest.
       petId: optionalText(40),
       newPet: newPetSchema.optional(),
+      // The appointment this visit was started from ("Start visit").
+      // Here and not in `visitSchema`: an edit spreads its input into
+      // the row, and must not be able to move a visit between
+      // appointments. Trusted for nothing -- the service links it only
+      // when it is this clinic's, this animal's, and still unanswered.
+      appointmentId: optionalText(40).optional(),
     })
     .superRefine((value, ctx) => {
       if (!value.petId && !value.newPet) {

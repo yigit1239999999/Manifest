@@ -252,6 +252,32 @@ export async function getPetLabel(clinicId: string, id: string) {
   return pet ? petLabel({ name: pet.name, ownerName: ownerLabel(pet.owner) }) : undefined;
 }
 
+/**
+ * `getPetLabel`, plus what the examination has to see before it starts:
+ * the animal's medical alerts ("Penisilin alerjisi") and its species,
+ * which decides what weight is plausible. The same primary key lookup,
+ * so a visit opened for a known animal costs no extra round.
+ */
+export async function getPetForVisit(clinicId: string, id: string) {
+  const pet = await prisma.pet.findFirst({
+    where: { id, clinicId },
+    select: {
+      id: true,
+      name: true,
+      alerts: true,
+      species: true,
+      owner: { select: { firstName: true, lastName: true } },
+    },
+  });
+  if (!pet) return undefined;
+  return {
+    id: pet.id,
+    label: petLabel({ name: pet.name, ownerName: ownerLabel(pet.owner) }),
+    alerts: pet.alerts,
+    species: pet.species,
+  };
+}
+
 /** Clinic-defined species, alphabetical — feeds the species combobox. */
 export async function listCustomSpecies(clinicId: string) {
   return prisma.customSpecies.findMany({

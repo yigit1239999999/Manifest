@@ -11,6 +11,7 @@ vi.mock("@/lib/prisma", () => {
     client: { findFirst: vi.fn(), create: vi.fn() },
     customSpecies: { findFirst: vi.fn(), create: vi.fn() },
     user: { findFirst: vi.fn() },
+    appointment: { findFirst: vi.fn(), update: vi.fn() },
     clinic: { findUnique: vi.fn() },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(),
@@ -151,6 +152,175 @@ describe("a visit against an animal already on file", () => {
       details: { fieldErrors: { vetId: ["error.validation.vetRequired"] } },
     });
     expect(prisma.visit.create).not.toHaveBeenCalled();
+  });
+});
+
+// "Start visit" on an appointment: the vet tested it and found the
+// appointment still reading "scheduled" after the visit was saved, so
+// the evening list showed an animal that came as one that did not.
+describe("a visit started from an appointment", () => {
+  beforeEach(() => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      ownerId: "owner-1",
+    } as never);
+    vi.mocked(prisma.visit.create).mockResolvedValue({
+      id: "v-1",
+      petId: "pet-1",
+      clientId: "owner-1",
+    } as never);
+  });
+
+  const auditedEntities = () =>
+    vi
+      .mocked(prisma.auditLog.create)
+      .mock.calls.map((c) => (c[0] as { data: { entityType: string } }).data);
+
+  it("links the visit and marks the appointment completed, in the same transaction", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue({
+      id: "appt-1",
+      status: "SCHEDULED",
+    } as never);
+
+    await onFile({ appointmentId: "appt-1" });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.appointment.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: "appt-1",
+          clinicId: "clinic-1",
+          petId: "pet-1",
+          status: { notIn: ["CANCELLED", "NO_SHOW"] },
+          visit: { is: null },
+        }),
+      }),
+    );
+    expect(prisma.visit.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ appointmentId: "appt-1" }),
+      }),
+    );
+    expect(prisma.appointment.update).toHaveBeenCalledWith({
+      where: { id: "appt-1" },
+      data: { status: "COMPLETED" },
+    });
+    expect(auditedEntities()).toEqual([
+      expect.objectContaining({
+        action: "UPDATE",
+        entityType: "Appointment",
+        entityId: "appt-1",
+        changes: { status: "COMPLETED" },
+      }),
+      expect.objectContaining({
+        action: "CREATE",
+        entityType: "Visit",
+        changes: expect.objectContaining({ appointmentId: "appt-1" }),
+      }),
+    ]);
+  });
+
+  it("links one already marked completed without writing the status again", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue({
+      id: "appt-1",
+      status: "COMPLETED",
+    } as never);
+
+    await onFile({ appointmentId: "appt-1" });
+
+    expect(prisma.visit.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ appointmentId: "appt-1" }),
+      }),
+    );
+    expect(prisma.appointment.update).not.toHaveBeenCalled();
+  });
+
+  // Another clinic's, another animal's, cancelled, missed, or already
+  // answered: the lookup finds nothing. The examination is still saved.
+  it("saves the visit unlinked when the appointment cannot take it", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null);
+
+    const made = await onFile({ appointmentId: "appt-elsewhere" });
+
+    expect(made.id).toBe("v-1");
+    expect(prisma.visit.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ appointmentId: null }),
+      }),
+    );
+    expect(prisma.appointment.update).not.toHaveBeenCalled();
+    expect(auditedEntities().map((d) => d.entityType)).toEqual(["Visit"]);
+  });
+
+  it("saves the visit unlinked when another save took the appointment first", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue({
+      id: "appt-1",
+      status: "SCHEDULED",
+    } as never);
+    vi.mocked(prisma.visit.create)
+      .mockRejectedValueOnce(
+        Object.assign(new Error("duplicate key"), { code: "P2002" }),
+      )
+      .mockResolvedValueOnce({
+        id: "v-2",
+        petId: "pet-1",
+        clientId: "owner-1",
+      } as never);
+
+    const made = await onFile({ appointmentId: "appt-1" });
+
+    expect(made.id).toBe("v-2");
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(prisma.visit.create).mock.calls[1][0]).toMatchObject({
+      data: { appointmentId: null },
+    });
+    // The retry does not ask about the appointment again.
+    expect(prisma.appointment.findFirst).toHaveBeenCalledTimes(1);
+    expect(prisma.appointment.update).not.toHaveBeenCalled();
+  });
+
+  it("does not swallow a unique conflict when no appointment was involved", async () => {
+    vi.mocked(prisma.visit.create).mockRejectedValueOnce(
+      Object.assign(new Error("duplicate key"), { code: "P2002" }),
+    );
+
+    await expect(onFile()).rejects.toThrow("duplicate key");
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not look for an appointment when none was given", async () => {
+    await onFile();
+
+    expect(prisma.appointment.findFirst).not.toHaveBeenCalled();
+    expect(prisma.visit.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ appointmentId: null }),
+      }),
+    );
+  });
+
+  // An appointment is always for an animal already on file, so a visit
+  // that is creating its animal cannot be its answer.
+  it("links nothing for an animal created with the visit", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "c-1" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({
+      id: "p-9",
+      ownerId: "c-1",
+    } as never);
+
+    await createVisitWithIntake(
+      {
+        ...validInput,
+        petId: null,
+        appointmentId: "appt-1",
+        newPet: { name: "Ceviz", species: "CAT", ownerId: "c-1" },
+      },
+      ctx,
+    );
+
+    expect(prisma.appointment.findFirst).not.toHaveBeenCalled();
+    expect(prisma.appointment.update).not.toHaveBeenCalled();
   });
 });
 
