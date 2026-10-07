@@ -247,7 +247,7 @@ describe("updatePet", () => {
 
     expect(prisma.pet.findFirst).toHaveBeenCalledWith({
       where: { id: "p-x", clinicId: "clinic-1" },
-      select: { id: true },
+      select: { id: true, weightKg: true },
     });
     expect(prisma.pet.update).not.toHaveBeenCalled();
   });
@@ -322,5 +322,28 @@ describe("restorePet", () => {
 
     await expect(restorePet("p-x", ctx)).rejects.toBeInstanceOf(AppError);
     expect(prisma.pet.update).not.toHaveBeenCalled();
+  });
+});
+
+// The pet form's weight is dated, so the newer of it and a visit's weight
+// is the animal's weight (`weight.ts`).
+describe("dating the pet form's weight", () => {
+  it("dates a weight entered with a new animal", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+    await createPet({ ...validInput, weightKg: 4.2 }, ctx);
+    expect(vi.mocked(prisma.pet.create).mock.calls[0][0].data.weightRecordedAt).toBeInstanceOf(Date);
+  });
+
+  it("re-dates it only when the number changed", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.pet.update).mockResolvedValue({ id: "p-1" } as never);
+
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "p-1", weightKg: 4.2 } as never);
+    await updatePet("p-1", { ...validInput, weightKg: 4.2 }, ctx);
+    expect(vi.mocked(prisma.pet.update).mock.calls[0][0].data).not.toHaveProperty("weightRecordedAt");
+
+    await updatePet("p-1", { ...validInput, weightKg: 4.5 }, ctx);
+    expect(vi.mocked(prisma.pet.update).mock.calls[1][0].data.weightRecordedAt).toBeInstanceOf(Date);
   });
 });

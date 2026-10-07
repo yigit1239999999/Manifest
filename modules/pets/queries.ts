@@ -3,6 +3,7 @@ import { PAGE_SIZES } from "@/lib/pagination";
 import { fold } from "@/lib/search";
 import { ownerLabel, petLabel } from "@/lib/pet-label";
 import type { Prisma } from "@/generated/prisma/client";
+import { currentWeight, type WeightReading } from "./weight";
 
 export interface ListPetsArgs {
   clinicId: string;
@@ -150,7 +151,57 @@ export async function listPetsPage({
   return { items, total, page, perPage };
 }
 
+/**
+ * The latest weighed visit of each of these animals.
+ *
+ * One query for any number of animals: `distinct` on the pet over rows
+ * ordered newest first, which `@@index([clinicId, petId, visitedAt])`
+ * serves. A `take: 1` per animal would be the N+1 this file avoids.
+ */
+export async function latestVisitWeights(
+  clinicId: string,
+  petIds: readonly string[],
+): Promise<Map<string, { weightKg: number | null; visitedAt: Date }>> {
+  if (petIds.length === 0) return new Map();
+  const rows = await prisma.visit.findMany({
+    where: {
+      clinicId,
+      petId: { in: [...petIds] },
+      archivedAt: null,
+      weightKg: { not: null },
+    },
+    orderBy: [{ petId: "asc" }, { visitedAt: "desc" }],
+    distinct: ["petId"],
+    select: { petId: true, weightKg: true, visitedAt: true },
+  });
+  return new Map(rows.map((r) => [r.petId, r]));
+}
+
+/** `currentWeight` for a list of animals, in one extra query. */
+export async function withCurrentWeight<
+  T extends { id: string; weightKg: number | null; weightRecordedAt: Date | null },
+>(clinicId: string, pets: T[]): Promise<(T & { currentWeight: WeightReading | null })[]> {
+  const latest = await latestVisitWeights(
+    clinicId,
+    pets.map((p) => p.id),
+  );
+  return pets.map((p) => ({ ...p, currentWeight: currentWeight(p, latest.get(p.id)) }));
+}
+
+/**
+ * One animal, with its weight derived from the pet form and its latest
+ * weighed visit (see `weight.ts`). The two reads run together.
+ */
 export async function getPetById(clinicId: string, id: string) {
+  const [pet, latest] = await Promise.all([
+    getPetRow(clinicId, id),
+    latestVisitWeights(clinicId, [id]),
+  ]);
+  if (!pet) return null;
+  return { ...pet, currentWeight: currentWeight(pet, latest.get(pet.id)) };
+}
+
+async function getPetRow(clinicId: string, id: string) {
   return prisma.pet.findFirst({
     where: { id, clinicId },
     include: {

@@ -4,7 +4,8 @@ import { surface } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { SpeciesIcon } from "@/components/species-icon";
-import { petAge } from "@/lib/format";
+import { formatDecimal, formatShortDate, petAge } from "@/lib/format";
+import type { WeightReading } from "@/modules/pets/weight";
 
 export async function PetCard({
   pet,
@@ -16,11 +17,21 @@ export async function PetCard({
     customSpecies?: { name: string } | null;
     breed: string | null;
     birthDate: Date | null;
+    /** See `modules/pets/weight.ts`. Absent where the caller did not ask. */
+    currentWeight?: WeightReading | null;
   };
 }) {
   const fmt = await getFormatContext();
   const t = await getTranslations("enum.species");
   const age = petAge(fmt, pet.birthDate);
+  const weight = pet.currentWeight
+    ? [
+        `${formatDecimal(fmt, pet.currentWeight.kg)} kg`,
+        pet.currentWeight.at && formatShortDate(fmt, pet.currentWeight.at),
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
   const meta = [
     pet.customSpecies?.name ?? t(pet.species as never),
     pet.breed,
@@ -42,6 +53,13 @@ export async function PetCard({
         <span className="truncate text-xs text-muted-foreground">
           {meta.join(" · ")}
         </span>
+        {/* Its own line: on a two-column grid at 390px the first line is
+            already truncating the breed. */}
+        {weight && (
+          <span className="truncate text-xs tabular-nums text-muted-foreground">
+            {weight}
+          </span>
+        )}
       </div>
     </Link>
   );

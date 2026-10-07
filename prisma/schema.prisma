@@ -302,6 +302,10 @@ model Pet {
   birthDate         DateTime?
   color             String?
   weightKg          Float?
+  /// When `weightKg` was typed into the pet form. A visit's weight is the
+  /// other reading; the newer of the two is the animal's weight (see
+  /// `modules/pets/weight.ts`). Null for weights from before this column.
+  weightRecordedAt  DateTime?
   microchipId       String?
   insuranceProvider String?
   insurancePolicy   String?

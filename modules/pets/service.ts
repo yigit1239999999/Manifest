@@ -135,7 +135,14 @@ export async function createPet(input: PetInput, ctx: ActionContext) {
     },
     (tx) =>
       tx.pet.create({
-        data: { ...rest, species, customSpeciesId, clinicId: ctx.clinicId },
+        data: {
+          ...rest,
+          species,
+          customSpeciesId,
+          clinicId: ctx.clinicId,
+          // Dated, so a later visit's weight can be compared with it.
+          weightRecordedAt: rest.weightKg != null ? new Date() : null,
+        },
       }),
   );
 }
@@ -144,11 +151,17 @@ export async function updatePet(id: string, input: PetInput, ctx: ActionContext)
   requirePermission(ctx.userRole, "pets.write");
   const existing = await prisma.pet.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: { id: true, weightKg: true },
   });
   if (!existing) throw notFound("pet", id);
 
   await assertOwnerInClinic(input.ownerId, ctx.clinicId);
+  // Re-dated only when the number changed: saving the form for a new
+  // phone number is not a weighing.
+  const weighed =
+    input.weightKg !== existing.weightKg
+      ? { weightRecordedAt: input.weightKg != null ? new Date() : null }
+      : {};
   const { species: rawSpecies, ...rest } = input;
   const { species, customSpeciesId } = await resolveSpecies(rawSpecies, ctx);
 
@@ -164,7 +177,7 @@ export async function updatePet(id: string, input: PetInput, ctx: ActionContext)
     (tx) =>
       tx.pet.update({
         where: { id },
-        data: { ...rest, species, customSpeciesId },
+        data: { ...rest, species, customSpeciesId, ...weighed },
       }),
   );
 }
