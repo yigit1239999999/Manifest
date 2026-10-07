@@ -251,7 +251,33 @@ export function clinicVaccineList(
 export function offerByName(offers: readonly VaccineOffer[], name: string): VaccineOffer | null {
   const wanted = fold(name.trim());
   if (wanted === "") return null;
-  return offers.find((offer) => offer.names.includes(wanted)) ?? null;
+  const exact = offers.find((offer) => offer.names.includes(wanted));
+  if (exact) return exact;
+  // Second, the name as people write it around the vaccine: "Karma aşı",
+  // "Kuduz aşısı", or the picker's own label "Karma (DHPPi)" written back
+  // by an import. Without this an adult dog with last year's "Karma aşı"
+  // had no prior dose and was offered the puppy series (pm, B8), and a
+  // new "Karma" did not answer the old row's due date (A1).
+  const loose = looseVaccineName(wanted);
+  if (loose === "") return null;
+  return (
+    offers.find((offer) =>
+      offer.names.some((n) => n === loose || looseVaccineName(n) === loose),
+    ) ?? null
+  );
+}
+
+/**
+ * A folded vaccine name without what is written around the vaccine: a
+ * parenthesised book name and the word for "vaccine". Only for matching;
+ * nothing is stored this way.
+ */
+export function looseVaccineName(folded: string): string {
+  return folded
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/(^|\s)(asi|asisi|asilari|asilar|vaccine|vaccination|vaksin)(?=\s|$)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 // ===========================================================================

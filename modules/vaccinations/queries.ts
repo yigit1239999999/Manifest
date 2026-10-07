@@ -48,6 +48,8 @@ export async function upcomingVaccinations(clinicId: string, take = 10) {
     where: {
       clinicId,
       nextDueAt: { not: null, gte: new Date() },
+      // A later dose of the same vaccine has answered this date.
+      supersededById: null,
       pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
     },
     orderBy: { nextDueAt: "asc" },
@@ -75,6 +77,10 @@ function overdueWhere(clinicId: string, now: Date) {
     // Closed rows are closed. The stamp is on the vaccination, not the
     // animal, so this hides one line from one card and nothing else.
     dueDismissedAt: null,
+    // Answered by a later dose of the same vaccine (catalogue aliases
+    // included): re-vaccinated is not overdue. Derived, not a close --
+    // see `supersede.ts`.
+    supersededById: null,
     // The same two layers as the upcoming card. An overdue booster for
     // a dead animal is the worst version of this card, not a milder
     // one: it is the most urgent-looking row on the screen.
@@ -139,6 +145,7 @@ export async function countOlderOverdueVaccinations(clinicId: string, now = new 
       clinicId,
       nextDueAt: { lt: since },
       dueDismissedAt: null,
+      supersededById: null,
       pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
     },
   });

@@ -7,6 +7,7 @@ import { refuseDuplicate, sameMinute } from "@/lib/duplicate-guard";
 import type { ActionContext } from "@/lib/action";
 import type { VaccinationInput } from "./schema";
 import { normalizeVaccineSettings, type VaccineSettings } from "./catalogue";
+import { recomputeSuperseded } from "./supersede";
 
 export async function createVaccination(
   input: VaccinationInput,
@@ -62,6 +63,9 @@ export async function createVaccination(
     entityId: vaccination.id,
     changes: { name: vaccination.name, petId: vaccination.petId },
   });
+  // A new dose answers the older one's due date, which then leaves the
+  // overdue and upcoming lists. Derived from the records, never a close.
+  await recomputeSuperseded(ctx.clinicId, [input.petId]);
   return vaccination;
 }
 
@@ -115,6 +119,7 @@ export async function deleteVaccination(id: string, ctx: ActionContext) {
   if (!existing) throw notFound("vaccination", id);
 
   await prisma.vaccination.delete({ where: { id } });
+  await recomputeSuperseded(ctx.clinicId, [existing.petId]);
   await writeAudit({
     clinicId: ctx.clinicId,
     actorId: ctx.userId,

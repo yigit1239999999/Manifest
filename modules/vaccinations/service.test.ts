@@ -2,8 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => {
   const prismaMock = {
-    vaccination: { create: vi.fn(), findFirst: vi.fn(), delete: vi.fn() },
-    pet: { findFirst: vi.fn() },
+    vaccination: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      delete: vi.fn(),
+      findMany: vi.fn(async () => []),
+      updateMany: vi.fn(),
+    },
+    pet: { findFirst: vi.fn(), findMany: vi.fn(async () => []) },
     clinic: { findUnique: vi.fn(), update: vi.fn() },
     auditLog: { create: vi.fn() },
   };

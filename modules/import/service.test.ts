@@ -63,11 +63,16 @@ function fakeTx(overrides: Record<string, unknown> = {}) {
       createManyAndReturn: petCreate,
       count: vi.fn().mockResolvedValue(0),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     vaccination: {
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      // `recomputeSuperseded` reads the animals' doses after a write.
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+    clinic: { findUnique: vi.fn().mockResolvedValue({ settings: {} }) },
     auditLog: { create: vi.fn().mockResolvedValue({}) },
     ...overrides,
   };

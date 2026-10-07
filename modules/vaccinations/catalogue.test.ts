@@ -305,3 +305,21 @@ describe("the pattern somebody outside the clinic asks about", () => {
     expect(pattern?.years[0]).toEqual({ year: 2024, given: true });
   });
 });
+
+// pm (B8): an adult dog with last year's "Karma aşı" was offered the puppy
+// series, because the name matched no offer and so counted as no dose.
+describe("offerByName, as people write a vaccine", () => {
+  const dog = clinicVaccineList("DOG", normalizeVaccineSettings(undefined));
+
+  it("finds the offer under 'aşı', 'aşısı' and the picker's own label", () => {
+    expect(offerByName(dog, "Karma aşı")?.key).toBe("dog.core");
+    expect(offerByName(dog, "KARMA AŞISI")?.key).toBe("dog.core");
+    expect(offerByName(dog, "Karma (DHPPi)")?.key).toBe("dog.core");
+    expect(offerByName(dog, "Kuduz aşısı")?.key).toBe("dog.rabies");
+  });
+
+  it("does not loosen a name into a different vaccine", () => {
+    expect(offerByName(dog, "Lyme aşısı")).toBeNull();
+    expect(offerByName(dog, "aşı")).toBeNull();
+  });
+});
