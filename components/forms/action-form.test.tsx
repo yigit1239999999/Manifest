@@ -168,15 +168,16 @@ describe("the last step of the chain, on the real forms", () => {
   });
 
   it("puts a bill on its first line rather than its number", () => {
-    // The number arrives filled (`defaultNumber`), which is the whole
-    // point of the rule: a form can be part-filled from more than one
-    // direction and the cursor still belongs on the first blank.
+    // The client arrives filled, which is the whole point of the rule: a
+    // form can be part-filled from more than one direction and the cursor
+    // still belongs on the first blank. (The number is no longer typed:
+    // the server gives the next one in sequence.)
     wrap(
       <InvoiceForm
         clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Yılmaz" }]}
         defaultClientId="c-1"
         defaultClientLabel="Ayşe Yılmaz"
-        defaultNumber="2026-0001"
+        currency="TRY"
       />,
     );
 

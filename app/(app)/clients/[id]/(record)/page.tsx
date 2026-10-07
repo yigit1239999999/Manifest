@@ -9,6 +9,8 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getClientById } from "@/modules/clients/queries";
+import { clientBalance } from "@/modules/invoices/queries";
+import { OwnerBalance } from "@/components/invoices/owner-balance";
 import { clientTimeline } from "@/modules/timeline/queries";
 import {
   archiveClientAction,
@@ -47,7 +49,7 @@ export default async function ClientPage({
   const { merged } = await searchParams;
   const session = await requireSession();
 
-  const [client, t, tCommon, tNav, tTimeline, timeline] =
+  const [client, t, tCommon, tNav, tTimeline, timeline, balance] =
     await Promise.all([
       getClientById(session.user.clinicId, id),
       getTranslations("client"),
@@ -55,6 +57,7 @@ export default async function ClientPage({
       getTranslations("nav"),
       getTranslations("timeline"),
       clientTimeline(session.user.clinicId, id),
+      clientBalance(session.user.clinicId, id),
     ]);
 
   if (!client) notFound();
@@ -118,6 +121,9 @@ export default async function ClientPage({
           {t("merge.done")}
         </Callout>
       )}
+      {/* What this owner still owes, and the way to those invoices (vet's
+          job #7: "sahibin borcu" had no answer on this page). */}
+      <OwnerBalance clientId={client.id} balance={balance} fmt={fmt} />
 
       {client.archivedAt && (
         <Callout variant="warning">

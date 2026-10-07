@@ -223,6 +223,15 @@ export default async function DashboardPage() {
   // how they stop agreeing.
   const revenueOtherCurrencies = insights.revenueOtherCurrencies;
 
+  const compactFormat = new Intl.NumberFormat(fmt.locale === "tr" ? "tr-TR" : "en-US", {
+    style: "currency",
+    currency,
+    notation: "compact",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  });
+  const compactMoney = (cents: number) => compactFormat.format(cents / 100);
+
   const revenueLast6MonthsData = insights.revenueLast6Months.map((m) => ({
     label: monthFmt.format(m.monthStart),
     value: m.cents,
@@ -571,7 +580,7 @@ export default async function DashboardPage() {
             appears. Above the upcoming card on purpose: a backlog is
             read before a plan. */}
         {(insights.overdueVaccinationCount > 0 || insights.overdueOlderVaccinationCount > 0) && (
-          <Card className="lg:col-span-2">
+          <Card id="overdue-vaccinations" className="scroll-mt-20 lg:col-span-2">
             <CardHeader>
               <CardTitle>{t("sections.overdueVaccinations")}</CardTitle>
               {/* The count, not the row count: the list shows five and
@@ -664,7 +673,7 @@ export default async function DashboardPage() {
           </Card>
         )}
 
-        <Card className="lg:col-span-2">
+        <Card id="upcoming-vaccinations" className="scroll-mt-20 lg:col-span-2">
           <CardHeader>
             <CardTitle>{t("sections.upcomingVaccinations")}</CardTitle>
             {/* The window, said: the card had none and listed a booster
@@ -765,6 +774,8 @@ export default async function DashboardPage() {
                   : t("empty.revenue")
               }
               formatValue={(v) => formatMoney(fmt, v, currency)}
+              // The amount on each bar, compact so six fit at 390px.
+              valueLabel={(v) => compactMoney(v)}
               partialLast={{
                 note: t("chart.partialPeriod"),
                 inProgress: t("chart.inProgress"),

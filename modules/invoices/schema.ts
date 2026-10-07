@@ -65,6 +65,30 @@ export const PAYMENT_METHODS = [
 //
 // The schemas are built per request because an amount cannot be read without
 // knowing the locale it was typed in (see lib/money.ts).
+export const INVOICE_LINE_KINDS = [
+  "VISIT",
+  "VACCINATION",
+  "TREATMENT",
+  "DIAGNOSTIC",
+  "PRESCRIPTION",
+] as const;
+
+/**
+ * VAT rates a Turkish invoice is written at, in percent. A select rather
+ * than a typed amount: the vet knows the rate, and the amount is
+ * arithmetic the screen should do (B9).
+ */
+export const VAT_RATES = [0, 1, 10, 20] as const;
+export type VatRate = (typeof VAT_RATES)[number];
+
+/** The rate a new invoice opens on when the clinic has not used one yet. */
+export const DEFAULT_VAT_RATE: VatRate = 20;
+
+/** Tax on a subtotal at a rate, rounded to the kuruş. */
+export function vatCents(subtotalCents: number, rate: number): number {
+  return Math.round((subtotalCents * rate) / 100);
+}
+
 const invoiceLineSchema = (locale: string) =>
   z.object({
     description: requiredText(1, 200, "invoice.description"),
@@ -72,15 +96,35 @@ const invoiceLineSchema = (locale: string) =>
     unitPrice: requiredMoney(locale, { maxCents: 10_000_000 }),
     petId: z.string().optional().transform((v) => v || null),
     visitId: z.string().optional().transform((v) => v || null),
+    kind: z
+      .string()
+      .optional()
+      .transform((v) =>
+        v && (INVOICE_LINE_KINDS as readonly string[]).includes(v)
+          ? (v as (typeof INVOICE_LINE_KINDS)[number])
+          : null,
+      ),
   });
 
 export const invoiceSchema = (locale: string) =>
   z.object({
     clientId: requiredId("error.entity.client"),
-    number: requiredText(1, 40, "invoice.number"),
+    /**
+     * Optional since numbering is sequential (B9): absent, the server gives
+     * the clinic's next number when it saves. Present only for a number
+     * typed on purpose, which is checked against the clinic's others.
+     */
+    number: optionalText(40),
     status: requiredEnum(INVOICE_STATUSES),
     dueAt: optionalDateTime,
+    /** A typed tax amount, for callers that still send one. */
     tax: optionalMoney(locale),
+    /** The VAT rate; the server works the amount out from the lines. */
+    taxRate: z
+      .string()
+      .optional()
+      .transform((v) => (v === undefined || v === "" ? null : Number(v)))
+      .refine((v) => v === null || (VAT_RATES as readonly number[]).includes(v), msg("error.form.invalidChoice")),
     notes: optionalText(2000),
     lines: z.array(invoiceLineSchema(locale)).min(1, msg("error.form.linesRequired")),
   });

@@ -8,7 +8,8 @@ import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
 import { countPets } from "@/modules/pets/queries";
-import { getInvoiceForVisit } from "@/modules/invoices/queries";
+import { clientBalance, getInvoiceForVisit } from "@/modules/invoices/queries";
+import { OwnerBalance } from "@/components/invoices/owner-balance";
 import { vaccineOffersForPet } from "@/modules/vaccinations/queries";
 import {
   archiveVisitAction,
@@ -126,7 +127,12 @@ export default async function VisitPage({
   // permission, so the condition could never be false and would read
   // as a rule that exists (`app/route-states.test.ts` refuses one, and
   // it caught this one being written).
-  const billedAs = await getInvoiceForVisit(clinicId, visit.id);
+  // The owner's open balance rides in the same round trip: they are at the
+  // counter, and "they still owe for March" is said now or not at all.
+  const [billedAs, ownerBalance] = await Promise.all([
+    getInvoiceForVisit(clinicId, visit.id),
+    clientBalance(clinicId, visit.client.id),
+  ]);
   const canAddPrescription = can(session.user.role, "prescriptions.write");
   const canAddTreatment = can(session.user.role, "treatments.write");
 
@@ -349,12 +355,15 @@ export default async function VisitPage({
               {
                 label: tPet("owner"),
                 value: (
-                  <Link
-                    href={`/clients/${visit.client.id}`}
-                    className="text-primary hover:underline"
-                  >
-                    {ownerLabel(visit.client)}
-                  </Link>
+                  <span className="flex flex-wrap items-baseline gap-x-2">
+                    <Link
+                      href={`/clients/${visit.client.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {ownerLabel(visit.client)}
+                    </Link>
+                    <OwnerBalance clientId={visit.client.id} balance={ownerBalance} fmt={fmt} compact />
+                  </span>
                 ),
               },
               { label: t("vet"), value: visit.vet?.name },
@@ -561,7 +570,14 @@ export default async function VisitPage({
               {visit.prescriptions.map((p) => (
                 <li key={p.id} className="text-sm">
                   • <strong>{p.medicationName}</strong> · {p.dosage} ·{" "}
-                  {p.frequency}
+                  {p.frequency}{" "}
+                  <Link
+                    href={`/print/prescriptions/${p.id}`}
+                    className="ms-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                    aria-label={`${tRx("print")}: ${p.medicationName}`}
+                  >
+                    {tRx("print")}
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -165,6 +165,7 @@ export async function updatePet(
       id: true,
       name: true,
       ownerId: true,
+      birthDate: true,
       owner: { select: { id: true, firstName: true, lastName: true } },
     },
   });
@@ -173,6 +174,10 @@ export async function updatePet(
   await assertOwnerInClinic(input.ownerId, ctx.clinicId);
   const { species: rawSpecies, ...rest } = input;
   const { species, customSpeciesId } = await resolveSpecies(rawSpecies, ctx);
+  // An estimated birth date (an import's "2021" read as 1 January) stops
+  // being an estimate the moment somebody types a different one.
+  const birthDateChanged =
+    (input.birthDate?.getTime() ?? null) !== (existing.birthDate?.getTime() ?? null);
 
   // A change of owner is asked about and leaves a trace (pm B12). Before
   // this it happened silently: the animal, its reminders and its history
@@ -212,7 +217,12 @@ export async function updatePet(
     async (tx) => {
       const pet = await tx.pet.update({
         where: { id },
-        data: { ...rest, species, customSpeciesId },
+        data: {
+          ...rest,
+          species,
+          customSpeciesId,
+          ...(birthDateChanged ? { birthDateEstimated: false } : {}),
+        },
       });
       if (ownerChanged) {
         // What is still to come follows the animal: the open reminders

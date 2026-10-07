@@ -111,6 +111,10 @@ for (const locale of ["tr", "en"] as const) {
     await page
       .getByRole("button", { name: /undo this import|bu aktarımı geri alın/i })
       .click();
+    // Asked first, with the server's own counts (A5).
+    const confirm = page.getByRole("dialog");
+    await expect(confirm.getByText(/will be deleted|silinecek/i)).toBeVisible();
+    await confirm.getByRole("button", { name: /yes, undo it|evet, geri alın/i }).click();
     await expect(page.getByText(/were taken back|geri alındı/i).first()).toBeVisible();
 
     await page.goto("/pets");

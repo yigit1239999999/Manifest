@@ -259,6 +259,9 @@ describe("updatePet", () => {
       id: "p-x",
       clinicId: "clinic-1",
     });
+    expect(vi.mocked(prisma.pet.findFirst).mock.calls[0][0]?.select).toMatchObject({
+      birthDate: true,
+    });
     expect(prisma.pet.update).not.toHaveBeenCalled();
   });
 
@@ -283,6 +286,19 @@ describe("updatePet", () => {
       where: { id: "p-1" },
       data: expect.objectContaining({ name: "Biscuit" }),
     });
+  });
+
+  it("stops calling a birth date an estimate once somebody types a different one", async () => {
+    const estimated = new Date("2021-01-01T00:00:00Z");
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.pet.update).mockResolvedValue({ id: "p-1" } as never);
+
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ ...storedPet, birthDate: estimated } as never);
+    await updatePet("p-1", { ...validInput, birthDate: new Date("2021-01-01T00:00:00Z") } as never, ctx);
+    expect(vi.mocked(prisma.pet.update).mock.calls[0][0].data).not.toHaveProperty("birthDateEstimated");
+
+    await updatePet("p-1", { ...validInput, birthDate: new Date("2021-06-15T00:00:00Z") } as never, ctx);
+    expect(vi.mocked(prisma.pet.update).mock.calls[1][0].data).toMatchObject({ birthDateEstimated: false });
   });
 });
 

@@ -44,3 +44,15 @@ export const countClinicInvoices = cache(
   async (clinicId: string): Promise<number> =>
     prisma.invoice.count({ where: { clinicId } }),
 );
+
+/**
+ * What a printed document carries at its head: the clinic's name and how
+ * to reach it. Read only by the print views, so the per-request settings
+ * read above stays as narrow as it is.
+ */
+export async function getClinicLetterhead(clinicId: string) {
+  return prisma.clinic.findUnique({
+    where: { id: clinicId },
+    select: { name: true, phone: true, email: true, address: true, city: true, postalCode: true },
+  });
+}

@@ -88,6 +88,7 @@ export function ColumnBars({
   formatValue,
   partialLast,
   footnote,
+  valueLabel,
 }: {
   data: BarDatum[];
   height?: number;
@@ -123,6 +124,13 @@ export function ColumnBars({
    * (TEAM.md #21).
    */
   footnote?: string;
+  /**
+   * A short figure printed on top of each non-zero bar ("₺12,5 B"), for a
+   * chart whose heights are read for their amounts -- money taken in a
+   * month is a number the vet wants, not a shape (QA C13). Optional: a
+   * count chart of twelve weeks reads fine as a shape.
+   */
+  valueLabel?: (value: number) => string;
 }) {
   // Two different kinds of "nothing", and the second is the one that actually
   // happens: the dashboard series are gap-filled to a fixed 12 weeks / 6
@@ -175,8 +183,8 @@ export function ColumnBars({
       <div
         role="img"
         aria-label={summary}
-        className="flex items-end gap-1 border-b border-border"
-        style={{ height }}
+        className={cn("flex items-end gap-1 border-b border-border", valueLabel && "pt-4")}
+        style={{ height: valueLabel ? height + 16 : height }}
       >
         {data.map((d, i) => {
           const pct = (d.value / max) * 100;
@@ -196,6 +204,18 @@ export function ColumnBars({
                   animal came in" the same height on a busy clinic's chart.
                   Non-zero values instead get a small pixel floor, so a value
                   that rounds to nearly nothing still reads as present. */}
+              {d.value > 0 && valueLabel && (
+                // Above the bar, in the room `pt-4` keeps for it. Hidden
+                // from assistive technology: the chart's summary already
+                // says every amount in full.
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 truncate text-center text-[10px] font-medium tabular-nums text-foreground"
+                  style={{ bottom: `calc(${pct}% + 2px)` }}
+                >
+                  {valueLabel(d.value)}
+                </span>
+              )}
               {d.value > 0 && (
                 <div
                   // `rounded-t-md` and not one of the four radius roles: the

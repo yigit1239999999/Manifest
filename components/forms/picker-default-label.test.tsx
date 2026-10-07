@@ -114,6 +114,7 @@ describe("a record the picker's list does not contain", () => {
         clientsCapped
         defaultClientId="c-87"
         defaultClientLabel="Zeynep Yıldız"
+        currency="TRY"
       />,
     );
 
@@ -189,7 +190,8 @@ describe("an invoice opened for a visit", () => {
       <InvoiceForm
         clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]}
         defaultClientId="c-1"
-        prefilledLine={prefilled}
+        prefilledLines={[prefilled]}
+        currency="TRY"
       />,
     );
 
@@ -210,7 +212,7 @@ describe("an invoice opened for a visit", () => {
     // would read as "this line is about nothing" rather than "nothing
     // was said". Absent is the only honest shape.
     const { container } = wrap(
-      <InvoiceForm clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]} />,
+      <InvoiceForm clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]} currency="TRY" />,
     );
 
     expect(hidden(container, "lines[0].visitId")).toBeUndefined();
@@ -221,6 +223,39 @@ describe("an invoice opened for a visit", () => {
   // outstanding total and the unpaid list both skip drafts. The visit
   // arrival opens on SENT (`app/(app)/invoices/new/page.tsx`); a plain
   // new invoice still opens on DRAFT.
+  it("lists each thing done at the visit as its own line, and adds them up live with VAT (B9)", () => {
+    const { container, getByText } = wrap(
+      <InvoiceForm
+        clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]}
+        defaultClientId="c-1"
+        currency="TRY"
+        defaultVatRate={20}
+        prefilledLines={[
+          { ...prefilled, kind: "VISIT" },
+          { description: "Kuduz", quantity: "1", unitPrice: "300,00", kind: "VACCINATION", petId: "p-1", visitId: "v-1" },
+        ]}
+      />,
+    );
+    expect(hidden(container, "lines[1].kind")).toBe("VACCINATION");
+    // Every line still points at the visit, so it cannot be billed twice.
+    expect(hidden(container, "lines[1].visitId")).toBe("v-1");
+    // 450 + 300 = 750, VAT 20% = 150, total 900.
+    expect(getByText(/750,00/)).toBeInTheDocument();
+    expect(getByText(/150,00/)).toBeInTheDocument();
+    expect(getByText(/900,00/)).toBeInTheDocument();
+    expect(container.querySelector<HTMLSelectElement>('select[name="taxRate"]')?.value).toBe("20");
+    // Fields are labelled, not just placeholdered.
+    expect(container.querySelectorAll('label[for="invoice-line-1-unitPrice"]')).toHaveLength(1);
+  });
+
+  it("offers only draft and issued when saving a new invoice: paid is what payments do", () => {
+    const { container } = wrap(
+      <InvoiceForm clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]} currency="TRY" />,
+    );
+    const values = [...container.querySelectorAll<HTMLOptionElement>('select[name="status"] option')].map((o) => o.value);
+    expect(values).toEqual(["DRAFT", "SENT"]);
+  });
+
   it("opens on the status it is given, and on draft otherwise", () => {
     const status = (container: HTMLElement) =>
       container.querySelector<HTMLSelectElement>('select[name="status"]')?.value;
@@ -229,7 +264,8 @@ describe("an invoice opened for a visit", () => {
       <InvoiceForm
         clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]}
         defaultClientId="c-1"
-        prefilledLine={prefilled}
+        prefilledLines={[prefilled]}
+        currency="TRY"
         defaultStatus="SENT"
       />,
     );
@@ -237,7 +273,7 @@ describe("an invoice opened for a visit", () => {
     fromVisit.unmount();
 
     const plain = wrap(
-      <InvoiceForm clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]} />,
+      <InvoiceForm clients={[{ id: "c-1", firstName: "Ayşe", lastName: "Demir" }]} currency="TRY" />,
     );
     expect(status(plain.container)).toBe("DRAFT");
   });

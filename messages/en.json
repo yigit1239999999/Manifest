@@ -126,7 +126,7 @@
       "petsBySpecies": "Pets by species",
       "visitsByType": "Visits by type",
       "visitsLast12Weeks": "Visits (last 12 weeks)",
-      "revenueLast6Months": "Paid invoices (last 6 months)",
+      "revenueLast6Months": "Money received (last 6 months)",
       "overdueVaccinations": "Overdue vaccinations"
     },
     "chart": {
@@ -138,8 +138,8 @@
     "empty": {
       "appointments": "No upcoming appointments.",
       "pets": "No animals yet.",
-      "revenue": "No paid invoices in this period.",
-      "revenueCurrency": "No invoices paid in {currency} in this period.",
+      "revenue": "No money received in this period.",
+      "revenueCurrency": "No money received in {currency} in this period.",
       "visits": "No visits yet.",
       "vaccinations": "No vaccinations due soon."
     },
@@ -378,7 +378,8 @@
       "body": "{pet} will be registered to {to} instead of {from}. Its open reminders and upcoming appointments move to the new owner; past visits and invoices stay with {from}. Both clients' histories get a note.",
       "confirm": "Yes, change the owner",
       "note": "Owner changed ({pet}): {from} → {to}"
-    }
+    },
+    "birthDateEstimated": "estimated"
   },
   "visit": {
     "openExisting": "Open the visit",
@@ -667,7 +668,8 @@
     "complete": "Mark completed",
     "cancel": "Cancel",
     "durationShort": "{count} days",
-    "emptyHint": "A prescription is written from inside a visit or a pet's page; the ones you write appear here, the newest first."
+    "emptyHint": "A prescription is written from inside a visit or a pet's page; the ones you write appear here, the newest first.",
+    "print": "Print"
   },
   "treatment": {
     "title": "Treatments and procedures",
@@ -820,7 +822,7 @@
     "remaining": "Remaining",
     "recordPayment": "Record payment",
     "void": "Void invoice",
-    "markSent": "Mark as sent",
+    "markSent": "Issue invoice",
     "payment": {
       "title": "Payments",
       "amount": "Amount",
@@ -835,8 +837,68 @@
       "method": "Method",
       "reference": "Reference",
       "notes": "Notes",
-      "submit": "Record"
-    }
+      "submit": "Record payment"
+    },
+    "ownerBalance": "Owes {amount} · {count, plural, one {# invoice} other {# invoices}}",
+    "ownerBalanceOpen": "Show the invoices",
+    "filteredClient": "Invoices for {name}",
+    "filteredClientClear": "All clients",
+    "numberAssigned": "The next number in sequence is given when you save.",
+    "vatRate": "VAT rate",
+    "vatOption": "{rate}%",
+    "taxAt": "VAT ({rate}%)",
+    "print": {
+      "button": "Print",
+      "back": "Go back",
+      "title": "Invoice",
+      "prescriptionTitle": "Prescription",
+      "number": "No. {number}",
+      "issued": "Issued: {date}",
+      "due": "Due: {date}",
+      "billedTo": "Billed to",
+      "animal": "Animal",
+      "vet": "Veterinarian",
+      "payments": "Payments received",
+      "signature": "Signature / Stamp",
+      "printedAt": "Printed: {date}"
+    },
+    "paidTotal": "Paid",
+    "filterFrom": "From",
+    "filterTo": "To",
+    "filterClient": "Client (name or phone)",
+    "filterApply": "Filter",
+    "rangeThisMonth": "This month",
+    "rangeLastMonth": "Last month",
+    "exportInvoices": "Download invoices (CSV)",
+    "exportPayments": "Download payments (CSV)",
+    "totalsIssued": "Billed",
+    "totalsCollected": "Collected",
+    "totalsRemaining": "Remaining",
+    "cashTitle": "Money taken on these dates",
+    "cashNone": "No payments on these dates.",
+    "cashCount": "{count, plural, one {# payment} other {# payments}}",
+    "csv": {
+      "date": "Date",
+      "time": "Time",
+      "number": "Invoice no.",
+      "client": "Client",
+      "method": "Method",
+      "amount": "Amount",
+      "currency": "Currency",
+      "reference": "Reference",
+      "status": "Status",
+      "subtotal": "Subtotal",
+      "vatRate": "VAT rate (%)",
+      "vat": "VAT",
+      "total": "Total",
+      "paid": "Paid",
+      "remaining": "Remaining",
+      "fileInvoices": "invoices",
+      "filePayments": "payments"
+    },
+    "settledTitle": "Paid in full",
+    "settledOn": "Settled on {date}.",
+    "settled": "Nothing is left to pay on this invoice."
   },
   "timeline": {
     "openVisit": "Open visit",
@@ -863,7 +925,40 @@
     "action": "Action",
     "entity": "Entity",
     "when": "When",
-    "emptyHint": "Everything staff change — records created, edited or archived — is listed here."
+    "emptyHint": "Everything staff change — records created, edited or archived — is listed here.",
+    "what": "What happened",
+    "filterFrom": "From",
+    "filterTo": "To",
+    "filterType": "Record type",
+    "filterApply": "Filter",
+    "sentence": {
+      "paymentRecorded": "Payment received {amount}",
+      "paymentVoided": "Payment voided {amount}",
+      "invoiceCreated": "Invoice created {amount}",
+      "invoiceIssued": "Invoice issued",
+      "invoiceVoided": "Invoice voided",
+      "importCreated": "Imported from a spreadsheet: {clients} owners, {pets} animals, {vaccinations} vaccinations",
+      "importUndone": "Import undone: {clients} owners, {pets} animals, {vaccinations} vaccinations deleted",
+      "generic": "{entity} · {action}"
+    },
+    "entityType": {
+      "Client": "Client",
+      "Pet": "Animal",
+      "Visit": "Visit",
+      "Appointment": "Appointment",
+      "Vaccination": "Vaccination",
+      "Prescription": "Prescription",
+      "Treatment": "Treatment",
+      "Diagnostic": "Test",
+      "Note": "Note",
+      "Reminder": "Reminder",
+      "Invoice": "Invoice and payment",
+      "ImportBatch": "Spreadsheet import",
+      "User": "Team",
+      "Clinic": "Clinic settings",
+      "CustomSpecies": "Species",
+      "MessageLog": "Message"
+    }
   },
   "import": {
     "title": "Import from Excel",
@@ -1068,7 +1163,7 @@
     "undoButton": "Undo this import",
     "undoing": "Undoing…",
     "undoDone": "{clients} owners, {pets} animals and {vaccinations} vaccinations were taken back.",
-    "undoKept": "{clients} owners and {pets} animals stayed, because records were added to them after the import.",
+    "undoKept": "{clients, plural, one {# owner} other {# owners}}, {pets, plural, one {# animal} other {# animals}} and {vaccinations, plural, one {# vaccination} other {# vaccinations}} stayed, because they were worked on or edited after the import.",
     "undoFailed": "This import could not be undone.",
     "batchesTitle": "Earlier imports",
     "batchesHint": "You can undo an import later as well.",
@@ -1106,7 +1201,49 @@
         "date": "Vaccination date",
         "nextDue": "Next dose date"
       }
-    }
+    },
+    "petQuestionsTitle": "Which animal?",
+    "petQuestionsHint": "These owners already have animals with the same name, and the file does not say for certain which one each row is. Choose, so vaccinations are not written to the wrong animal; we never match them for you.",
+    "petQuestionLegend": "{owner} · {pet} (row {row})",
+    "petQuestionFile": "In the file: {facts}",
+    "petQuestionSame": "Registered {name}: {facts}",
+    "petQuestionNew": "A different animal; add {name} as a new animal",
+    "petQuestionsMore": "{count, plural, one {# more question} other {# more questions}}; they appear as you answer the ones above.",
+    "petFactBorn": "born {date}",
+    "petFactChip": "chip {chip}",
+    "petFactNone": "nothing to tell them apart",
+    "decisionPetWhat": "Answer the \"Which animal?\" question above.",
+    "commitBlockedPets": "Answer the \"Which animal?\" questions first.",
+    "undoConfirmTitle": "Undo this import?",
+    "undoConfirmRemove": "{clients, plural, one {# owner} other {# owners}}, {pets, plural, one {# animal} other {# animals}} and {vaccinations, plural, one {# vaccination} other {# vaccinations}} will be deleted.",
+    "undoConfirmKeep": "{clients, plural, one {# owner} other {# owners}}, {pets, plural, one {# animal} other {# animals}} and {vaccinations, plural, one {# vaccination} other {# vaccinations}} will stay, because they were worked on or edited after the import.",
+    "undoConfirmEdited": "Kept because they were edited since: {names}.",
+    "undoConfirmFinal": "What is deleted cannot be brought back; you can import the file again.",
+    "undoConfirmButton": "Yes, undo it",
+    "undoConfirmCancel": "Cancel",
+    "undoCounting": "Counting…",
+    "undoAdminOnly": "Only a clinic admin can undo an import.",
+    "batchesHintNoUndo": "If an import needs undoing, ask your clinic admin.",
+    "noteNext": "next",
+    "futureTitle": "Vaccinations dated in the future",
+    "futureQuestion": "The file has {count, plural, one {# vaccination date} other {# vaccination dates}} after today. They may be planned doses; take them as the next dose?",
+    "futureYes": "Yes, take them as the next dose",
+    "futureNo": "No, keep them in the notes",
+    "futureYesEffect": "{count, plural, one {# date is} other {# dates are}} added as the next dose of the earlier dose of the same vaccine in the file, and will show under upcoming vaccinations.",
+    "futureNoEffect": "The dates stay in the animal's notes with the vaccine name, e.g. \"Rabies: 26.10.2026\".",
+    "futureUnanchored": "{count, plural, one {# date has} other {# dates have}} no earlier dose in the file; kept in the animal's notes with the vaccine name and date.",
+    "futureOnlyNotes": "The file has {count, plural, one {# vaccination date} other {# vaccination dates}} after today. With no earlier dose in the file, they are written to the animal's notes with the vaccine name and date rather than as vaccinations.",
+    "birthYearTitle": "Birth dates written as a year",
+    "birthYearQuestion": "{count, plural, one {# animal has} other {# animals have}} a birth date written as a year alone (e.g. 2021). Take it as 1 January, marked \"estimated\"?",
+    "birthYearYes": "Yes, take it as estimated",
+    "birthYearNo": "No, keep it in the notes",
+    "birthYearYesEffect": "The age is worked out; the animal's page says \"estimated\" next to the birth date.",
+    "birthYearNoEffect": "The birth date stays empty; the year goes into the animal's notes.",
+    "resultHeadlinePets": "{pets, plural, one {# animal is} other {# animals are}} now in your clinic.",
+    "resultHeadlineClients": "{clients, plural, one {# owner is} other {# owners are}} now in your clinic.",
+    "resultHeadlineVaccinationsOnly": "No new animals or owners; {count, plural, one {# vaccination was} other {# vaccinations were}} added to animals you already have.",
+    "resultHeadlineNothing": "Nothing new came in from this file; it is all already in your clinic.",
+    "resultVaccinationsHint": "Each on its animal's page, under vaccinations."
   },
   "enum": {
     "species": {
@@ -1200,7 +1337,7 @@
     },
     "invoiceStatus": {
       "DRAFT": "Draft",
-      "SENT": "Sent",
+      "SENT": "Issued",
       "PARTIAL": "Partial",
       "PAID": "Paid",
       "VOID": "Void"
@@ -1254,6 +1391,13 @@
       "SIGNIN": "Signed in",
       "SIGNOUT": "Signed out",
       "SIGNUP": "Signed up"
+    },
+    "invoiceLineKind": {
+      "VISIT": "Visit",
+      "VACCINATION": "Vaccination",
+      "TREATMENT": "Treatment",
+      "DIAGNOSTIC": "Test",
+      "PRESCRIPTION": "Prescription"
     }
   },
   "error": {
@@ -1338,7 +1482,8 @@
       "recallOutcome": "Unknown call outcome.",
       "mergeSameClient": "A record cannot be merged with itself.",
       "mergeIntoArchived": "Cannot merge into an archived record. Restore it first.",
-      "ownerChangeUnconfirmed": "Confirm the change of owner: tick the box under the owner field."
+      "ownerChangeUnconfirmed": "Confirm the change of owner: tick the box under the owner field.",
+      "importPetsUnanswered": "The import cannot finish while rows that may be one of several animals are unanswered."
     },
     "form": {
       "required": "{field} is required.",

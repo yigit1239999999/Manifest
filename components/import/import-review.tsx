@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, CalendarClock, CircleAlert, History } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
@@ -12,6 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
+import { formatPlainDate } from "@/lib/format";
 import { SPECIES } from "@/modules/pets/schema";
 import { MAX_REQUEST_MB } from "@/modules/import/limits";
 import type { ImportField } from "@/modules/import/fields";
@@ -19,12 +21,14 @@ import type { DuplicateAnswer } from "@/modules/import/plan";
 import type { SpeciesFallback, SpeciesTarget } from "@/modules/import/enum-map";
 import type {
   CommitResult,
+  PetQuestion,
   PlanRowView,
   PlanSummary,
   UndoResult,
 } from "@/modules/import/service";
 import type { Sex, Species } from "@/generated/prisma/enums";
 import { postImport, TooLargeError } from "@/components/import/transport";
+import { UndoImportButton, undoDoneText } from "@/components/import/undo-import";
 
 /**
  * The check before anything is written, and the result after.
@@ -76,17 +80,29 @@ type Phase =
   | { kind: "saveFailed"; summary: PlanSummary; tooLarge: boolean }
   | { kind: "saved"; result: CommitResult; skipped: number };
 
-export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: () => void }) {
+export function ImportReview({
+  input,
+  onBack,
+  canUndo = false,
+}: {
+  input: ReviewInput;
+  onBack: () => void;
+  canUndo?: boolean;
+}) {
   const t = useTranslations("import");
   const tSpecies = useTranslations("enum.species");
   const tSex = useTranslations("enum.sex");
+  const router = useRouter();
 
   const [phase, setPhase] = React.useState<Phase>({ kind: "planning", summary: null });
   const [duplicates, setDuplicates] = React.useState<Record<string, DuplicateAnswer>>({});
+  const [petAnswers, setPetAnswers] = React.useState<Record<string, string>>({});
   const [species, setSpecies] = React.useState<Record<string, SpeciesAnswer>>({});
   const [sex, setSex] = React.useState<Record<string, Sex>>({});
   const [speciesFallback, setSpeciesFallback] = React.useState<SpeciesFallback | null>(null);
   const [nextDueFromList, setNextDueFromList] = React.useState<boolean | null>(null);
+  const [futureAsNextDue, setFutureAsNextDue] = React.useState<boolean | null>(null);
+  const [estimateBirthYear, setEstimateBirthYear] = React.useState<boolean | null>(null);
   const [patches, setPatches] = React.useState<Record<string, string>>({});
   const [excluded, setExcluded] = React.useState<Set<number>>(new Set());
   const [askedWithQuestions, setAskedWithQuestions] = React.useState(false);
@@ -131,9 +147,25 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
         sex,
         ...(speciesFallback ? { speciesFallback } : {}),
         ...(nextDueFromList ? { nextDueFromList: true } : {}),
+        ...(Object.keys(petAnswers).length > 0 ? { pets: petAnswers } : {}),
+        ...(futureAsNextDue ? { futureAsNextDue: true } : {}),
+        ...(estimateBirthYear ? { estimateBirthYear: true } : {}),
       },
     };
-  }, [input, used, patches, excluded, duplicates, species, sex, speciesFallback, nextDueFromList]);
+  }, [
+    input,
+    used,
+    patches,
+    excluded,
+    duplicates,
+    species,
+    sex,
+    speciesFallback,
+    nextDueFromList,
+    petAnswers,
+    futureAsNextDue,
+    estimateBirthYear,
+  ]);
 
   const plan = React.useCallback(async () => {
     setPhase((previous) => ({
@@ -157,7 +189,7 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void plan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duplicates, patches, excluded, nextDueFromList, speciesFallback]);
+  }, [duplicates, patches, excluded, nextDueFromList, speciesFallback, petAnswers, futureAsNextDue, estimateBirthYear]);
 
   const saved = phase.kind === "saved";
   React.useEffect(() => {
@@ -167,7 +199,7 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
   }, [saved]);
 
   async function save(summary: PlanSummary) {
-    if (summary.questions.some((q) => !duplicates[q.key])) {
+    if (summary.questions.some((q) => !duplicates[q.key]) || summary.petQuestions.some((q) => !q.answer)) {
       setAskedWithQuestions(true);
       return;
     }
@@ -180,13 +212,18 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
         skipped: summary.noOwnerRows + excluded.size,
       });
       window.scrollTo({ top: 0 });
+      // The list of earlier imports under this screen is server-drawn; it
+      // gains this run now rather than on the next visit (C3).
+      router.refresh();
     } catch (error) {
       setPhase({ kind: "saveFailed", summary, tooLarge: error instanceof TooLargeError });
     }
   }
 
   if (phase.kind === "saved") {
-    return <ImportResult result={phase.result} skipped={phase.skipped} headingRef={headingRef} />;
+    return (
+      <ImportResult result={phase.result} skipped={phase.skipped} headingRef={headingRef} canUndo={canUndo} />
+    );
   }
 
   const summary =
@@ -195,7 +232,9 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
       : phase.kind === "planning"
         ? phase.summary
         : null;
-  const openQuestions = summary ? summary.questions.filter((q) => !duplicates[q.key]).length : 0;
+  const openOwnerQuestions = summary ? summary.questions.filter((q) => !duplicates[q.key]).length : 0;
+  const openPetQuestions = summary ? summary.petQuestions.filter((q) => !(petAnswers[String(q.row)] ?? q.answer)).length : 0;
+  const openQuestions = openOwnerQuestions + openPetQuestions;
   const nothingNew =
     summary && summary.petCount === 0 && summary.createCount === 0 && summary.vaccinationCount === 0;
 
@@ -273,6 +312,46 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
             </CardContent>
           </Card>
 
+          {summary.futureDates && summary.futureDates.anchored > 0 && (
+            <YesNoQuestion
+              name="import-future"
+              title={t("futureTitle")}
+              question={t("futureQuestion", {
+                count: summary.futureDates.anchored + summary.futureDates.unanchored,
+              })}
+              yes={t("futureYes")}
+              no={t("futureNo")}
+              value={futureAsNextDue}
+              onChange={setFutureAsNextDue}
+              effect={[
+                futureAsNextDue
+                  ? t("futureYesEffect", { count: summary.futureDates.anchored })
+                  : t("futureNoEffect"),
+                summary.futureDates.unanchored > 0
+                  ? t("futureUnanchored", { count: summary.futureDates.unanchored })
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            />
+          )}
+          {summary.futureDates && summary.futureDates.anchored === 0 && (
+            <Callout variant="info">{t("futureOnlyNotes", { count: summary.futureDates.unanchored })}</Callout>
+          )}
+
+          {summary.birthYearOnly > 0 && (
+            <YesNoQuestion
+              name="import-birth-year"
+              title={t("birthYearTitle")}
+              question={t("birthYearQuestion", { count: summary.birthYearOnly })}
+              yes={t("birthYearYes")}
+              no={t("birthYearNo")}
+              value={estimateBirthYear}
+              onChange={setEstimateBirthYear}
+              effect={estimateBirthYear ? t("birthYearYesEffect") : t("birthYearNoEffect")}
+            />
+          )}
+
           {summary.nextDue && (
             <section className="flex flex-col gap-3 rounded-surface border border-border bg-card p-4">
               <h3 className="text-sm font-semibold text-foreground">{t("nextDueTitle")}</h3>
@@ -324,7 +403,7 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
                   product handing its own question back one row at a time.
                   It answers "different people" -- the answer that never
                   merges anybody -- and every line stays changeable. */}
-              {openQuestions > 1 && (
+              {openOwnerQuestions > 1 && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -338,7 +417,7 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
                     })
                   }
                 >
-                  {t("questionsAllSeparate")} ({t("questionsCount", { count: openQuestions })})
+                  {t("questionsAllSeparate")} ({t("questionsCount", { count: openOwnerQuestions })})
                 </Button>
               )}
               {summary.questions.slice(0, QUESTION_LIMIT).map((question) => (
@@ -406,6 +485,16 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
             <p className="-mt-3 text-sm text-muted-foreground">
               {t("questionsMore", { count: summary.questions.length - QUESTION_LIMIT })}
             </p>
+          )}
+
+          {summary.petQuestions.length > 0 && (
+            <PetQuestions
+              questions={summary.petQuestions}
+              answers={petAnswers}
+              highlight={askedWithQuestions}
+              firstRowNumber={input.firstRowNumber}
+              onAnswer={(row, value) => setPetAnswers((prev) => ({ ...prev, [String(row)]: value }))}
+            />
           )}
 
           <RowsToLookAt
@@ -601,9 +690,14 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
               </Button>
               )}
             </div>
-            {askedWithQuestions && openQuestions > 0 && (
+            {askedWithQuestions && openOwnerQuestions > 0 && (
               <p className="mt-2 text-sm text-warning" role="alert">
                 {t("commitBlocked")}
+              </p>
+            )}
+            {askedWithQuestions && openPetQuestions > 0 && (
+              <p className="mt-2 text-sm text-warning" role="alert">
+                {t("commitBlockedPets")}
               </p>
             )}
             {phase.kind === "saveFailed" && (
@@ -615,6 +709,167 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
         </>
       )}
     </div>
+  );
+}
+
+/** One file-level yes-or-no, in the shape of the next-dose question. */
+function YesNoQuestion({
+  name,
+  title,
+  question,
+  yes,
+  no,
+  value,
+  onChange,
+  effect,
+}: {
+  name: string;
+  title: string;
+  question: string;
+  yes: string;
+  no: string;
+  value: boolean | null;
+  onChange: (value: boolean) => void;
+  effect: string;
+}) {
+  return (
+    <section className="flex flex-col gap-3 rounded-surface border border-border bg-card p-4">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <p className="text-sm text-foreground">{question}</p>
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={title}>
+        {([true, false] as const).map((choice) => (
+          <label
+            key={String(choice)}
+            className={cn(
+              "flex cursor-pointer items-center gap-2 rounded-control border px-3 py-2 text-sm text-foreground",
+              value === choice ? "border-primary bg-accent/40" : "border-border",
+            )}
+          >
+            <input
+              type="radio"
+              name={name}
+              checked={value === choice}
+              onChange={() => onChange(choice)}
+              className="size-4"
+            />
+            {choice ? yes : no}
+          </label>
+        ))}
+      </div>
+      <p className="text-sm text-muted-foreground">{effect}</p>
+    </section>
+  );
+}
+
+/**
+ * "Which Boncuk is this?" -- the rows `pet-match.ts` would not place.
+ *
+ * Each candidate is drawn with what tells two same-named animals apart
+ * (species, sex, birth date, chip), next to what the file says, because
+ * that comparison is the whole question. The unanswered ones come first
+ * and at most `QUESTION_LIMIT` of them are drawn; answered ones stay so an
+ * answer can be changed.
+ */
+function PetQuestions({
+  questions,
+  answers,
+  highlight,
+  firstRowNumber,
+  onAnswer,
+}: {
+  questions: PetQuestion[];
+  answers: Record<string, string>;
+  highlight: boolean;
+  firstRowNumber: number;
+  onAnswer: (row: number, value: string) => void;
+}) {
+  const t = useTranslations("import");
+  const tSpecies = useTranslations("enum.species");
+  const tSex = useTranslations("enum.sex");
+  const locale = useLocale();
+  const answerOf = (q: PetQuestion) => answers[String(q.row)] ?? q.answer ?? null;
+  const open = questions.filter((q) => !answerOf(q));
+  const shown = [...questions.filter((q) => answerOf(q)), ...open.slice(0, QUESTION_LIMIT)].sort((x, y) => x.row - y.row);
+
+  const facts = (parts: {
+    species: string | null;
+    sex: Sex | null;
+    birthDate: string | null;
+    microchipId: string | null;
+    breed?: string | null;
+  }) => {
+    const out = [
+      parts.species,
+      parts.breed,
+      parts.sex && parts.sex !== "UNKNOWN" ? tSex(parts.sex) : null,
+      parts.birthDate ? t("petFactBorn", { date: formatPlainDate(locale, parts.birthDate) }) : null,
+      parts.microchipId ? t("petFactChip", { chip: parts.microchipId }) : null,
+    ].filter((x): x is string => Boolean(x));
+    return out.length > 0 ? out.join(" · ") : t("petFactNone");
+  };
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h3 className="text-base font-semibold text-foreground">{t("petQuestionsTitle")}</h3>
+      <p className="text-sm text-muted-foreground">{t("petQuestionsHint")}</p>
+      {shown.map((q) => {
+        const answer = answerOf(q);
+        return (
+          <fieldset
+            key={q.row}
+            className={cn(
+              "flex min-w-0 flex-col gap-2 rounded-control border bg-card p-3",
+              highlight && !answer ? "border-warning" : "border-border",
+            )}
+          >
+            <legend className="max-w-full break-words px-1 text-sm font-medium text-foreground">
+              {t("petQuestionLegend", { owner: q.owner, pet: q.pet.name, row: q.row + firstRowNumber - 1 })}
+            </legend>
+            <p className="break-words text-sm text-muted-foreground">
+              {t("petQuestionFile", { facts: facts(q.pet) })}
+            </p>
+            {q.candidates.map((c) => (
+              <label key={c.id} className="flex items-start gap-2 text-sm text-foreground">
+                <input
+                  type="radio"
+                  name={`pet-${q.row}`}
+                  className="mt-0.5 size-4 shrink-0"
+                  checked={answer === c.id}
+                  onChange={() => onAnswer(q.row, c.id)}
+                />
+                <span className="min-w-0 break-words">
+                  {t("petQuestionSame", {
+                    name: c.name,
+                    facts: facts({
+                      species: c.customSpecies ?? tSpecies(c.species),
+                      breed: c.breed,
+                      sex: c.sex,
+                      birthDate: c.birthDate,
+                      microchipId: c.microchipId,
+                    }),
+                  })}
+                </span>
+              </label>
+            ))}
+            <label className="flex items-start gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name={`pet-${q.row}`}
+                className="mt-0.5 size-4 shrink-0"
+                checked={answer === "new"}
+                onChange={() => onAnswer(q.row, "new")}
+              />
+              <span className="min-w-0 break-words">{t("petQuestionNew", { name: q.pet.name })}</span>
+            </label>
+          </fieldset>
+        );
+      })}
+      {open.length > QUESTION_LIMIT && (
+        <p className="text-sm text-muted-foreground">
+          {t("petQuestionsMore", { count: open.length - QUESTION_LIMIT })}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -742,7 +997,7 @@ function RowWhat({
   const lines: string[] = [];
   if (isExcluded) lines.push(t("excludedWhat"));
   else {
-    if (row.status === "decision") lines.push(t("decisionWhat"));
+    if (row.status === "decision") lines.push(row.question === "pet" ? t("decisionPetWhat") : t("decisionWhat"));
     if (row.status === "existing") lines.push(t("existingWhat"));
     if (row.issue === "noOwnerName" || row.issue === "noPetName") lines.push(t(`issue.${row.issue}`));
     for (const w of row.warnings) {
@@ -828,33 +1083,15 @@ function ImportResult({
   result,
   skipped,
   headingRef,
+  canUndo,
 }: {
   result: CommitResult;
   skipped: number;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
+  canUndo: boolean;
 }) {
   const t = useTranslations("import");
   const [undone, setUndone] = React.useState<UndoResult | null>(null);
-  const [undoFailed, setUndoFailed] = React.useState(false);
-  const [undoing, startUndo] = React.useTransition();
-
-  function undo() {
-    setUndoFailed(false);
-    startUndo(async () => {
-      try {
-        const res = await fetch("/api/import/undo", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ batchId: result.batchId }),
-        });
-        if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as { result: UndoResult };
-        setUndone(data.result);
-      } catch {
-        setUndoFailed(true);
-      }
-    });
-  }
 
   const due = result.due;
   const anyDue = due.overdue + due.overdueOlder + due.dueSoon > 0;
@@ -869,9 +1106,7 @@ function ImportResult({
         >
           {t("resultTitle")}
         </h2>
-        <p className="text-base text-foreground">
-          {t("resultHeadline", { pets: result.petCount, clients: result.clientCount })}
-        </p>
+        <p className="text-base text-foreground">{resultHeadline(result, t)}</p>
         <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
           {result.vaccinationCount > 0 && <li>{t("resultVaccinations", { count: result.vaccinationCount })}</li>}
           {result.mergedCount > 0 && <li>{t("resultMerged", { count: result.mergedCount })}</li>}
@@ -880,24 +1115,50 @@ function ImportResult({
         </ul>
       </div>
 
+      {/* What came in, each a way into its list (C3). A count the vet can
+          tap is the shortest route from "47 animals" to seeing them. */}
+      {(result.petCount > 0 || result.clientCount > 0 || result.vaccinationCount > 0) && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          {result.petCount > 0 && (
+            <ValueCard href="/pets" title={t("statPets", { count: result.petCount })} hint={t("resultGoPets")} tone="neutral" />
+          )}
+          {result.clientCount > 0 && (
+            <ValueCard
+              href="/clients"
+              title={t("statClients", { count: result.clientCount })}
+              hint={t("resultGoClients")}
+              tone="neutral"
+            />
+          )}
+          {result.vaccinationCount > 0 && (
+            <ValueCard
+              href="/pets"
+              title={t("statVaccinations", { count: result.vaccinationCount })}
+              hint={t("resultVaccinationsHint")}
+              tone="neutral"
+            />
+          )}
+        </div>
+      )}
+
       {result.vaccinationCount > 0 && (
         <section className="flex flex-col gap-3">
           <h3 className="text-base font-semibold text-foreground">{t("resultNowTitle")}</h3>
           {anyDue ? (
             <div className="grid gap-3 sm:grid-cols-3">
               {due.overdue > 0 && (
-                <ValueCard href="/" title={t("resultOverdue", { count: due.overdue })} hint={t("resultOverdueHint")} tone="attention" />
+                <ValueCard href="/#overdue-vaccinations" title={t("resultOverdue", { count: due.overdue })} hint={t("resultOverdueHint")} tone="attention" />
               )}
               {due.overdueOlder > 0 && (
                 <ValueCard
-                  href="/"
+                  href="/#overdue-vaccinations"
                   title={t("resultOverdueOlder", { count: due.overdueOlder })}
                   hint={t("resultOverdueOlderHint")}
                   tone="attention"
                 />
               )}
               {due.dueSoon > 0 && (
-                <ValueCard href="/" title={t("resultDueSoon", { count: due.dueSoon })} hint={t("resultDueSoonHint")} tone="neutral" />
+                <ValueCard href="/#upcoming-vaccinations" title={t("resultDueSoon", { count: due.dueSoon })} hint={t("resultDueSoonHint")} tone="neutral" />
               )}
             </div>
           ) : (
@@ -920,25 +1181,29 @@ function ImportResult({
 
       <div className="flex flex-col items-start gap-2 border-t border-border pt-4">
         {undone ? (
-          <Callout variant="info">
-            {t("undoDone", {
-              clients: undone.clientCount,
-              pets: undone.petCount,
-              vaccinations: undone.vaccinationCount,
-            })}
-            {undone.keptClients + undone.keptPets > 0
-              ? ` ${t("undoKept", { clients: undone.keptClients, pets: undone.keptPets })}`
-              : ""}
-          </Callout>
+          <Callout variant="info">{undoDoneText(undone, t)}</Callout>
+        ) : canUndo ? (
+          <UndoImportButton batchId={result.batchId} onDone={setUndone} variant="ghost" />
         ) : (
-          <Button type="button" variant="ghost" size="sm" disabled={undoing} onClick={undo}>
-            {undoing ? t("undoing") : t("undoButton")}
-          </Button>
+          <p className="text-sm text-muted-foreground">{t("undoAdminOnly")}</p>
         )}
-        {undoFailed && <Callout variant="danger">{t("undoFailed")}</Callout>}
       </div>
     </div>
   );
+}
+
+/**
+ * The first sentence after an import, without "0 hayvan ve 0 sahip": a
+ * part that is zero is left out, and a run that made nobody says what it
+ * did do instead (C3).
+ */
+function resultHeadline(result: CommitResult, t: ReturnType<typeof useTranslations<"import">>): string {
+  const { petCount: pets, clientCount: clients, vaccinationCount: vaccinations } = result;
+  if (pets > 0 && clients > 0) return t("resultHeadline", { pets, clients });
+  if (pets > 0) return t("resultHeadlinePets", { pets });
+  if (clients > 0) return t("resultHeadlineClients", { clients });
+  if (vaccinations > 0) return t("resultHeadlineVaccinationsOnly", { count: vaccinations });
+  return t("resultHeadlineNothing");
 }
 
 function ValueCard({

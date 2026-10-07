@@ -40,10 +40,10 @@ const row = (over: Partial<ImportBatchRow> = {}): ImportBatchRow => ({
   ...over,
 });
 
-function mount(batches: ImportBatchRow[]) {
+function mount(batches: ImportBatchRow[], canUndo = true) {
   return render(
     <NextIntlClientProvider locale="tr" messages={tr}>
-      <ImportBatches batches={batches} />
+      <ImportBatches batches={batches} canUndo={canUndo} />
     </NextIntlClientProvider>,
   );
 }
@@ -68,5 +68,40 @@ describe("the list of earlier imports", () => {
     // taken back again, and the row says so in words instead.
     expect(screen.getAllByRole("button", { name: tr.import.undoButton })).toHaveLength(1);
     expect(screen.getByText(tr.import.batchUndone)).toBeInTheDocument();
+  });
+
+  it("offers no way back to someone who may not take an import back (A5)", () => {
+    mount([row()], false);
+    expect(screen.queryByRole("button", { name: tr.import.undoButton })).toBeNull();
+    expect(screen.getByText(tr.import.batchesHintNoUndo)).toBeInTheDocument();
+  });
+
+  it("asks with the server's counts before deleting anything", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        preview: {
+          clientCount: 12,
+          petCount: 30,
+          vaccinationCount: 45,
+          keptClients: 1,
+          keptPets: 2,
+          keptVaccinations: 0,
+          editedPets: ["Boncuk"],
+          editedClients: [],
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    // jsdom has no modal dialog; the call is what matters here.
+    HTMLDialogElement.prototype.showModal = vi.fn();
+    mount([row()]);
+    screen.getByRole("button", { name: tr.import.undoButton }).click();
+    await screen.findByText(/12 sahip, 30 hayvan ve 45 aşı kaydı silinecek/);
+    expect(screen.getByText(/Boncuk/)).toBeInTheDocument();
+    // Only the preview went out: nothing is deleted before the answer.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ batchId: "b1", preview: true });
+    vi.unstubAllGlobals();
   });
 });

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import { undoImport } from "@/modules/import/service";
+import { previewUndoImport, undoImport } from "@/modules/import/service";
 import { errorResponse, importContext } from "@/modules/import/request";
 
 /**
@@ -15,7 +15,15 @@ import { errorResponse, importContext } from "@/modules/import/request";
  * sentence the vet needs behind a reload of a list that no longer mentions
  * the rows it is about.
  */
-const schema = z.object({ batchId: z.string().min(1) });
+const schema = z.object({
+  batchId: z.string().min(1),
+  /**
+   * Count instead of delete: the numbers the confirmation states. The same
+   * filters as the delete (`undoFilters`), so what the dialog says is what
+   * the button does.
+   */
+  preview: z.boolean().optional(),
+});
 
 export async function POST(req: Request) {
   const context = await importContext();
@@ -28,6 +36,9 @@ export async function POST(req: Request) {
   }
 
   try {
+    if (parsed.data.preview) {
+      return NextResponse.json({ preview: await previewUndoImport(parsed.data.batchId, context.ctx) });
+    }
     const result = await undoImport(parsed.data.batchId, context.ctx);
     logger.info("import.undone", {
       clinicId: context.ctx.clinicId,

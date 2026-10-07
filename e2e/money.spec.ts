@@ -51,9 +51,15 @@ test.describe("Money is stored as the amount that was typed", () => {
     // An invoice of 2 × 500 = 1000.
     await page.goto("/invoices/new");
     await pickOption(page, page.getByLabel(/^client$|^müşteri$/i));
-    await page.getByPlaceholder(/description|açıklama/i).fill("Muayene");
-    await page.getByPlaceholder(/^qty$|^adet$/i).fill("2");
-    await page.getByPlaceholder(/unit price|birim fiyat/i).fill("500");
+    // Labelled fields, not placeholders (B9).
+    await page.getByLabel(/^description|^açıklama/i).fill("Muayene");
+    await page.getByLabel(/^qty$|^adet$/i).fill("2");
+    await page.getByLabel(/^unit price$|^birim fiyat$/i).fill("500");
+    // The totals add up as the vet types, VAT worked out from a rate:
+    // 1000 + 20% opens as 1.200, and 0% takes it back to 1.000.
+    await expect(page.getByText(/1[.,]200[.,]00/).first()).toBeVisible();
+    await page.getByLabel(/^vat rate$|^kdv oranı$/i).selectOption("0");
+    await expect(page.getByText(/1[.,]200[.,]00/)).toHaveCount(0);
     await page.getByRole("button", { name: /save invoice|faturayı kaydet/i }).click();
     // Same trap as the client redirect above, and the same fix: the
     // bill's own page, not the form it was raised from.
@@ -61,6 +67,8 @@ test.describe("Money is stored as the amount that was typed", () => {
 
     // 500 is five hundred, not five: the total is 1000, not 10.
     await expect(page.getByText(/1[.,]000[.,]00/).first()).toBeVisible();
+    // Numbered in sequence: the clinic's first invoice of the year.
+    await expect(page.getByRole("heading", { name: /#\d{4}-0001/ })).toBeVisible();
 
     // Pay 500 of it.
     // The form that owns the amount field, rather than "the last div that
@@ -70,13 +78,14 @@ test.describe("Money is stored as the amount that was typed", () => {
       has: page.locator('input[name="amount"]'),
     });
     await paymentCard.getByLabel(/^amount$|^tutar$/i).fill("500");
-    await paymentCard.getByRole("button", { name: /^record$|^kaydet$/i }).click();
+    await paymentCard.getByRole("button", { name: /^record payment$|^ödemeyi kaydet$/i }).click();
 
     // The outstanding card must read 500,00 — with the old bug the payment
-    // landed as 5,00 and 995,00 stayed owed.
+    // landed as 5,00 and 995,00 stayed owed. Once something is paid it is
+    // titled "Kalan" rather than "Ödenmemiş" (C7).
     const outstanding = page
       .locator("div")
-      .filter({ hasText: /^(outstanding|ödenmemiş)$/i })
+      .filter({ hasText: /^(outstanding|ödenmemiş|remaining|kalan)$/i })
       .locator("xpath=../..");
     await expect(outstanding.getByText(/(^|[^\d.,])500[.,]00/).first()).toBeVisible();
 
@@ -87,7 +96,7 @@ test.describe("Money is stored as the amount that was typed", () => {
     // it has three decimals, in English a thousands group that starts with
     // a zero. ("10,999" is a valid ten thousand in English.)
     await paymentCard.getByLabel(/^amount$|^tutar$/i).fill("0,001");
-    await paymentCard.getByRole("button", { name: /^record$|^kaydet$/i }).click();
+    await paymentCard.getByRole("button", { name: /^record payment$|^ödemeyi kaydet$/i }).click();
     await expect(
       page.getByText(/enter a valid amount|geçerli bir tutar/i).first(),
     ).toBeVisible();
@@ -95,12 +104,19 @@ test.describe("Money is stored as the amount that was typed", () => {
     // One digit too many is refused with what is actually left, not stored:
     // "5000" on the 500 still owed once closed the invoice as PAID.
     await paymentCard.getByLabel(/^amount$|^tutar$/i).fill("5000");
-    await paymentCard.getByRole("button", { name: /^record$|^kaydet$/i }).click();
+    await paymentCard.getByRole("button", { name: /^record payment$|^ödemeyi kaydet$/i }).click();
     await expect(
       page.getByText(/left to pay on this invoice|kalan borç .*500[.,]00\./i).first(),
     ).toBeVisible();
     await expect(outstanding.getByText(/(^|[^\d.,])500[.,]00/).first()).toBeVisible();
     const invoiceUrl = page.url();
+
+    // A clean printed copy, with the payment on it as the receipt.
+    await page.getByRole("link", { name: /^print$|^yazdır$/i }).click();
+    await expect(page).toHaveURL(/\/print\/invoices\//);
+    await expect(page.getByText(/payments received|tahsilat/i).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /^print$|^yazdır$/i })).toBeVisible();
+    await page.goto(invoiceUrl);
 
     // The dashboard owes the same number: payments are subtracted from what
     // was billed, so the card shows 500,00 and not the invoice's 1.000,00.
@@ -121,5 +137,18 @@ test.describe("Money is stored as the amount that was typed", () => {
     // list, so assert on the paid line rather than on the bare amount.
     await expect(outstanding).toContainText(/(paid|ödendi):\s*\D*0[.,]00\s*\//i);
     await expect(page.getByText(/^voided |^İptal edildi: /i).first()).toBeVisible();
+
+    // Paid in full: no "unpaid 0,00" box, and no payment form (C7).
+    await paymentCard.getByRole("button", { name: /pay in full|tamamını öde/i }).click();
+    await paymentCard.getByRole("button", { name: /^record payment$|^ödemeyi kaydet$/i }).click();
+    await expect(page.getByText(/^(paid in full|tamamı ödendi)$/i)).toBeVisible();
+    await expect(page.locator("div").filter({ hasText: /^(outstanding|ödenmemiş|remaining|kalan)$/i })).toHaveCount(0);
+    await expect(page.locator('input[name="amount"]')).toHaveCount(0);
+
+    // Month-end: the list's totals and the till by method for this month.
+    await page.goto("/invoices");
+    await page.getByRole("link", { name: /^this month$|^bu ay$/i }).click();
+    await expect(page.getByText(/^(billed|kesilen)$/i)).toBeVisible();
+    await expect(page.getByText(/^(money taken on these dates|bu tarihlerde kasaya giren)$/i)).toBeVisible();
   });
 });

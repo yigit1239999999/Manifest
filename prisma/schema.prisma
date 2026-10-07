@@ -75,6 +75,7 @@ model Clinic {
   messages      MessageLog[]
   importBatches ImportBatch[]
   recalls       RecallContact[]
+  invoiceSeqs   InvoiceCounter[]
 
   @@map("clinics")
 }
@@ -296,43 +297,47 @@ enum Sex {
 }
 
 model Pet {
-  id                String         @id @default(cuid())
-  clinicId          String
-  clinic            Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  ownerId           String
-  owner             Client         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  name              String
-  species           Species
+  id                 String         @id @default(cuid())
+  clinicId           String
+  clinic             Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  ownerId            String
+  owner              Client         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name               String
+  species            Species
   /// Clinic-defined species ("her kliniğin kendi dünyası"). When set, the
   /// enum column holds OTHER and this row's name is the display species.
-  customSpeciesId   String?
-  customSpecies     CustomSpecies? @relation(fields: [customSpeciesId], references: [id], onDelete: SetNull)
-  breed             String?
-  sex               Sex            @default(UNKNOWN)
-  neutered          Boolean        @default(false)
-  birthDate         DateTime?
-  color             String?
-  weightKg          Float?
-  microchipId       String?
-  insuranceProvider String?
-  insurancePolicy   String?
-  photoUrl          String?
-  alerts            String?
-  deceased          Boolean        @default(false)
-  deceasedAt        DateTime?
-  archivedAt        DateTime?
-  notes             String?
+  customSpeciesId    String?
+  customSpecies      CustomSpecies? @relation(fields: [customSpeciesId], references: [id], onDelete: SetNull)
+  breed              String?
+  sex                Sex            @default(UNKNOWN)
+  neutered           Boolean        @default(false)
+  birthDate          DateTime?
+  /// The birth date is an estimate (an import read a year alone as
+  /// 1 January of it), so screens say "tahmini" beside it. Cleared when
+  /// somebody types a different date.
+  birthDateEstimated Boolean        @default(false)
+  color              String?
+  weightKg           Float?
+  microchipId        String?
+  insuranceProvider  String?
+  insurancePolicy    String?
+  photoUrl           String?
+  alerts             String?
+  deceased           Boolean        @default(false)
+  deceasedAt         DateTime?
+  archivedAt         DateTime?
+  notes              String?
   /// Accent-folded name, breed and microchip id. See `Client.searchKey`
   /// -- same generated column, same migration. The owner's name is not
   /// in here: a generated column cannot read another table, so a search
   /// for an owner goes through `owner.searchKey`.
-  searchKey         String?
+  searchKey          String?
   /// The spreadsheet import that created this animal. See
   /// `Client.importBatchId` -- same column, same promise, same undo.
-  importBatchId     String?
-  importBatch       ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  importBatchId      String?
+  importBatch        ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   visits        Visit[]
   appointments  Appointment[]
@@ -392,6 +397,12 @@ model ImportBatch {
   /// Vaccination records the run wrote, read off the file's vaccine
   /// columns. Counted at commit time like the two above.
   vaccinationCount Int       @default(0)
+  /// When the run's last row was written. A row of this batch whose
+  /// `updatedAt` is later than this was changed by somebody after the
+  /// import, and undo keeps it rather than deleting their work. Null on
+  /// batches written before the column; undo then reads the latest moment
+  /// the import transaction could still have been writing.
+  completedAt      DateTime?
   undoneAt         DateTime?
   createdAt        DateTime  @default(now())
 
@@ -929,6 +940,10 @@ model Invoice {
   paidAt        DateTime?
   subtotalCents Int           @default(0)
   taxCents      Int           @default(0)
+  /// The VAT rate the tax was worked out at, in percent (0, 1, 10, 20).
+  /// Null on invoices written before the rate was asked for, whose tax
+  /// was typed as an amount: printing a rate for those would be guessing.
+  taxRate       Int?
   totalCents    Int           @default(0)
   notes         String?
   createdAt     DateTime      @default(now())
@@ -940,22 +955,32 @@ model Invoice {
   @@unique([clinicId, number])
   @@index([clinicId, status])
   @@index([clinicId, clientId])
+  /// The list's date range and the month-end export read invoices by
+  /// issue date within a clinic; without this both are a scan of every
+  /// invoice the clinic has ever written.
+  @@index([clinicId, issuedAt])
   @@map("invoices")
 }
 
 model InvoiceLine {
-  id             String   @id @default(cuid())
+  id             String           @id @default(cuid())
   invoiceId      String
-  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice        Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   petId          String?
-  pet            Pet?     @relation(fields: [petId], references: [id], onDelete: SetNull)
+  pet            Pet?             @relation(fields: [petId], references: [id], onDelete: SetNull)
   visitId        String?
-  visit          Visit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  visit          Visit?           @relation(fields: [visitId], references: [id], onDelete: SetNull)
   description    String
-  quantity       Int      @default(1)
+  /// What the line bills, when it came from a visit's record. The screens
+  /// name the kind in the reader's language ("Aşı · Kuduz", "Vaccination
+  /// · Kuduz") rather than in whoever raised the invoice's, and a VISIT
+  /// line whose description nobody edited is drawn as the visit's type and
+  /// date, translated. Null for a line typed by hand.
+  kind           InvoiceLineKind?
+  quantity       Int              @default(1)
   unitPriceCents Int
   totalCents     Int
-  createdAt      DateTime @default(now())
+  createdAt      DateTime         @default(now())
 
   @@index([invoiceId])
   /// Both foreign keys, both unindexed until now, and the second one is
@@ -965,6 +990,29 @@ model InvoiceLine {
   @@index([visitId])
   @@index([petId])
   @@map("invoice_lines")
+}
+
+enum InvoiceLineKind {
+  VISIT
+  VACCINATION
+  TREATMENT
+  DIAGNOSTIC
+  PRESCRIPTION
+}
+
+/// The last invoice number a clinic issued in a year, for sequential
+/// numbering ("2026-0001", "2026-0002", ...). Advanced with one atomic
+/// `INSERT ... ON CONFLICT DO UPDATE ... RETURNING` inside the invoice's
+/// own transaction, so two invoices saved at the same moment cannot take
+/// the same number and a rolled-back save gives its number back.
+model InvoiceCounter {
+  clinicId String
+  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  year     Int
+  last     Int    @default(0)
+
+  @@id([clinicId, year])
+  @@map("invoice_counters")
 }
 
 enum PaymentMethod {

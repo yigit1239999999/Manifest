@@ -206,21 +206,44 @@ export async function dashboardInsights(
     ORDER BY week_start
   `);
 
-  // 3) Paid-invoice revenue per month, same idea — but grouped by currency
-  //    as well, because a month is not one number when the invoices in it
-  //    were issued in different ones. The split into "the chart" and "what
-  //    the chart left out" happens below, from these same rows, so it costs
-  //    no extra roundtrip.
+  // 3) Money taken per month: the PAYMENTS, by the day they were taken,
+  //    not the invoices that happen to be fully paid (vet, month-end: a
+  //    partly paid invoice's ₺500 was money in the till and the chart did
+  //    not have it). Voided payments are money given back and do not
+  //    count; nor does anything on a voided invoice.
+  //
+  //    The second half keeps invoices that were marked paid in the form
+  //    with no payment ever recorded against them -- the old way to say
+  //    "settled" -- at their total on the day they were marked, so the
+  //    history the chart already showed does not vanish.
+  //
+  //    Grouped by currency as well, because a month is not one number
+  //    when the money came in different ones. The split into "the chart"
+  //    and "what the chart left out" happens below, from these same rows.
   const monthsPromise = prisma.$queryRaw<MonthRow[]>(Prisma.sql`
-    SELECT
-      date_trunc('month', "paidAt") AS month_start,
-      currency,
-      COALESCE(SUM("totalCents"), 0)::int AS cents,
-      COUNT(*)::int AS invoices
-    FROM "invoices"
-    WHERE "clinicId" = ${clinicId}
-      AND status = 'PAID'
-      AND "paidAt" >= ${since6Months}
+    SELECT month_start, currency,
+      COALESCE(SUM(cents), 0)::int AS cents,
+      COUNT(DISTINCT invoice_id)::int AS invoices
+    FROM (
+      SELECT date_trunc('month', p."paidAt") AS month_start, i.currency,
+        p."amountCents" AS cents, i.id AS invoice_id
+      FROM "payments" p
+      JOIN "invoices" i ON i.id = p."invoiceId"
+      WHERE i."clinicId" = ${clinicId}
+        AND i.status <> 'VOID'
+        AND p."voidedAt" IS NULL
+        AND p."paidAt" >= ${since6Months}
+      UNION ALL
+      SELECT date_trunc('month', i."paidAt"), i.currency, i."totalCents", i.id
+      FROM "invoices" i
+      WHERE i."clinicId" = ${clinicId}
+        AND i.status = 'PAID'
+        AND i."paidAt" >= ${since6Months}
+        AND NOT EXISTS (
+          SELECT 1 FROM "payments" p2
+          WHERE p2."invoiceId" = i.id AND p2."voidedAt" IS NULL
+        )
+    ) taken
     GROUP BY month_start, currency
     ORDER BY month_start
   `);
