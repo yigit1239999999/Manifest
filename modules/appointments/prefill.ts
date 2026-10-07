@@ -77,13 +77,25 @@ export function defaultAppointmentStart({
   const today = dayKey(now, timeZone);
   if (isRealDay(date) && date > today) return clinicTime(date, DAY_OPENS, timeZone);
 
-  const inAnHour = new Date(now.getTime() + 3600 * 1000);
+  // Rounded up to the quarter hour (pm B4): nobody books 10:37, and a
+  // field that opens on it has to be corrected every time. On the
+  // instant rather than the wall clock, which is the same thing for
+  // every zone whose offset is a whole number of quarter hours -- all
+  // of them in use.
+  const inAnHour = roundUpToQuarter(new Date(now.getTime() + 3600 * 1000));
   const day = dayKey(inAnHour, timeZone);
   const opens = clinicTime(day, DAY_OPENS, timeZone);
   if (inAnHour < opens) return opens;
   if (inAnHour >= clinicTime(day, DAY_CLOSES, timeZone))
     return clinicTime(shiftDayKey(day, 1), DAY_OPENS, timeZone);
   return inAnHour;
+}
+
+const QUARTER_MS = 15 * 60 * 1000;
+
+/** The next quarter-hour mark at or after `date`, seconds dropped. */
+export function roundUpToQuarter(date: Date): Date {
+  return new Date(Math.ceil(date.getTime() / QUARTER_MS) * QUARTER_MS);
 }
 
 function clinicTime(day: string, time: string, timeZone?: string): Date {

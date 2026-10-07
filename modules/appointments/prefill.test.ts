@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   defaultAppointmentStart,
+  roundUpToQuarter,
   newAppointmentHref,
   parseAppointmentPrefill,
   reminderBookingHref,
@@ -10,10 +11,19 @@ const IST = "Europe/Istanbul"; // UTC+3 all year
 
 describe("defaultAppointmentStart", () => {
   it("is an hour from now inside opening hours, on the clinic's clock", () => {
-    // 14:20 in Istanbul.
-    const now = new Date("2026-10-04T11:20:00Z");
+    // 14:30 in Istanbul: already on a quarter.
+    const now = new Date("2026-10-04T11:30:00Z");
     expect(defaultAppointmentStart({ now, timeZone: IST }).toISOString()).toBe(
-      "2026-10-04T12:20:00.000Z",
+      "2026-10-04T12:30:00.000Z",
+    );
+  });
+
+  // pm B4: the field opened on 15:37 and had to be corrected every time.
+  it("rounds up to the next quarter hour", () => {
+    // 14:20:41 in Istanbul -> 15:20:41 -> 15:30.
+    const now = new Date("2026-10-04T11:20:41Z");
+    expect(defaultAppointmentStart({ now, timeZone: IST }).toISOString()).toBe(
+      "2026-10-04T12:30:00.000Z",
     );
   });
 
@@ -189,5 +199,16 @@ describe("reminderBookingHref", () => {
       reason: "Mama siparişi",
       date: "2026-10-21",
     });
+  });
+});
+
+describe("roundUpToQuarter", () => {
+  it("keeps a quarter as it is and drops seconds otherwise", () => {
+    expect(roundUpToQuarter(new Date("2026-10-04T12:45:00Z")).toISOString()).toBe(
+      "2026-10-04T12:45:00.000Z",
+    );
+    expect(roundUpToQuarter(new Date("2026-10-04T12:45:01Z")).toISOString()).toBe(
+      "2026-10-04T13:00:00.000Z",
+    );
   });
 });

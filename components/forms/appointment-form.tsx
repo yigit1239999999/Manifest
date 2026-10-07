@@ -5,7 +5,9 @@ import { useTranslations } from "next-intl";
 import type { Appointment, Pet, User } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { DateTimeInput } from "@/components/ui/datetime-input";
+import { roundUpToQuarter } from "@/modules/appointments/prefill";
 import { Select } from "@/components/ui/select";
 import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
@@ -118,7 +120,7 @@ export function AppointmentForm({
       appointment?.startsAt ??
       defaultStartsAt ??
       // eslint-disable-next-line react-hooks/purity -- one-shot initial value, never recomputed
-      new Date(Date.now() + 3600 * 1000),
+      roundUpToQuarter(new Date(Date.now() + 3600 * 1000)),
     [appointment?.startsAt, defaultStartsAt],
   );
 
@@ -160,7 +162,7 @@ export function AppointmentForm({
         </Field>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className={cn("grid gap-4", appointment ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
         <Field
           label={t("durationMinutes")}
           error={state.fieldErrors?.durationMinutes}
@@ -186,19 +188,28 @@ export function AppointmentForm({
             ))}
           </Select>
         </Field>
-        <Field label={t("status")} error={state.fieldErrors?.status} required>
-          <Select
-            name="status"
-            defaultValue={appointment?.status ?? "SCHEDULED"}
-            required
-          >
-            {APPOINTMENT_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {tStatus(s)}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        {/* Only when editing (pm B4). A new appointment is planned, and
+            the seven-way choice asked the counter a question with one
+            sensible answer every time; arrived, no-show and done are
+            things that happen to an appointment later, from the day
+            plan's one-tap buttons or this same form. */}
+        {appointment ? (
+          <Field label={t("status")} error={state.fieldErrors?.status} required>
+            <Select
+              name="status"
+              defaultValue={appointment.status}
+              required
+            >
+              {APPOINTMENT_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {tStatus(s)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : (
+          <input type="hidden" name="status" value="SCHEDULED" />
+        )}
       </div>
 
       <Field label={t("vet")} error={state.fieldErrors?.vetId}>
