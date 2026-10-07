@@ -1,0 +1,740 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { CalendarClock, Edit3, Plus, Stethoscope } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
+import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
+import { getPetById } from "@/modules/pets/queries";
+import { petTimeline } from "@/modules/timeline/queries";
+import {
+  archivePetAction,
+  markDeceasedAction,
+  restorePetAction,
+  unmarkDeceasedAction,
+} from "@/modules/pets/actions";
+import {
+  MarkDeceasedButton,
+  UnmarkDeceasedButton,
+} from "@/components/pet-deceased-buttons";
+import {
+  listVaccinationsForPet,
+  vaccineOffersForPet,
+} from "@/modules/vaccinations/queries";
+import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
+import { dueState } from "@/modules/vaccinations/due-state";
+import { listPrescriptionsForPet } from "@/modules/prescriptions/queries";
+import { listTreatmentsForPet } from "@/modules/treatments/queries";
+import { listDiagnosticsForPet } from "@/modules/diagnostics/queries";
+import { markDiagnosticReadAction } from "@/modules/diagnostics/actions";
+import { DiagnosticReadButton } from "@/components/diagnostic-read-button";
+import { PageHeader } from "@/components/page-header";
+import { BackLink } from "@/components/back-link";
+import { DeleteButton } from "@/components/delete-button";
+import { RestoreButton } from "@/components/restore-button";
+import { SpeciesIcon } from "@/components/species-icon";
+import { Timeline } from "@/components/timeline";
+import { NoteForm } from "@/components/forms/note-form";
+import { VaccinationForm } from "@/components/forms/vaccination-form";
+import { VaccineHistory } from "@/components/vaccine-history";
+import { PrescriptionForm } from "@/components/forms/prescription-form";
+import { TreatmentForm } from "@/components/forms/treatment-form";
+import { DiagnosticForm } from "@/components/forms/diagnostic-form";
+import { listClinicians } from "@/modules/staff/queries";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { DescriptionList } from "@/components/ui/description-list";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Callout } from "@/components/ui/callout";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  formatDate,
+  formatDateOnly,
+  formatDateTime,
+  formatDecimal,
+  formatShortDate,
+  petAge,
+  toDateInput,
+} from "@/lib/format";
+import { ownerLabel, ownerPhone } from "@/lib/pet-label";
+
+export default async function PetPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const fmt = await getFormatContext();
+  const { id } = await params;
+  const session = await requireSession();
+  const clinicId = session.user.clinicId;
+
+  const [
+    pet,
+    t,
+    tCommon,
+    tSpecies,
+    tSex,
+    tTimeline,
+    tStatus,
+    tVacc,
+    tRx,
+    tTreatment,
+    tDiag,
+    tDiagType,
+    tClient,
+    tCheck,
+    timeline,
+    vaccinations,
+    prescriptions,
+    treatments,
+    diagnostics,
+    vets,
+  ] = await Promise.all([
+    getPetById(clinicId, id),
+    getTranslations("pet"),
+    getTranslations("common"),
+    getTranslations("enum.species"),
+    getTranslations("enum.sex"),
+    getTranslations("timeline"),
+    getTranslations("enum.prescriptionStatus"),
+    getTranslations("vaccination"),
+    getTranslations("prescription"),
+    getTranslations("treatment"),
+    getTranslations("diagnostic"),
+    getTranslations("enum.diagnosticType"),
+    getTranslations("client"),
+    getTranslations("allergyCheck"),
+    petTimeline(clinicId, id),
+    listVaccinationsForPet(clinicId, id, 20),
+    listPrescriptionsForPet(clinicId, id, 20),
+    listTreatmentsForPet(clinicId, id, 20),
+    listDiagnosticsForPet(clinicId, id, 20),
+    listClinicians(clinicId),
+  ]);
+
+  if (!pet) notFound();
+
+  // Needs the species, so it cannot join the batch above. One indexed read
+  // of this clinic's own vaccination history; the form shows nothing at all
+  // when it comes back empty (backlog 20).
+  const { offers: vaccineOffers, priorDoses, doses, openSeries } = await vaccineOffersForPet(
+    clinicId,
+    pet.id,
+    pet.species,
+  );
+
+  // See the clients page: a button that only produces a refusal is hidden.
+  // Three actions, three different permissions, and the vet techs hold
+  // none of them: the service refuses each one, so offering the button
+  // only turns a refusal into a click that looks like nothing happened.
+  const canEdit = can(session.user.role, "pets.write");
+  // A deceased animal is not booked, seen or vaccinated again: the buttons
+  // go, and each service refuses the same thing (`isAfterDeath`), so a
+  // link typed by hand meets the same answer.
+  const alive = !pet.deceased;
+  const canStartVisit = alive && can(session.user.role, "visits.write");
+  const canBook = alive && can(session.user.role, "appointments.write");
+  const canArchive = can(session.user.role, "pets.archive");
+  // And the same again for the forms inside the cards, each with the
+  // permission its own service checks — they differ per record type, which
+  // is the whole reason one flag would not do: a vet tech may record a
+  // vaccination but not a prescription, and a receptionist neither. Before
+  // this, either of them could write a prescription out in full and lose it
+  // on submit. The records already listed stay visible: reading them is
+  // allowed, and a row that vanishes reads as data loss (TEAM.md #16c).
+  const canAddVaccination = can(session.user.role, "vaccinations.write");
+  // The same permission the service demands, so the screen cannot
+  // offer a press the server will refuse.
+  const canInterpret = can(session.user.role, "diagnostics.interpret");
+  const canAddPrescription = can(session.user.role, "prescriptions.write");
+  const canAddTreatment = can(session.user.role, "treatments.write");
+  // No `canAddNote`. Every role holds `notes.write`, so the guard I wrote
+  // here could never have refused anyone — it only told the next reader
+  // that some role is turned away, which is not true (TEAM.md #30).
+
+  return (
+    <div className="flex flex-col gap-6">
+      <BackLink href="/pets" label={tCommon("back")} />
+
+      <PageHeader
+        title={pet.name}
+        // Parts that are not known are left out rather than shown as a
+        // lone "-" at the end of the line.
+        description={[
+          pet.customSpecies?.name ?? tSpecies(pet.species as never),
+          pet.breed,
+          tSex(pet.sex as never),
+          pet.birthDateEstimated && pet.birthDate
+            ? `${petAge(fmt, pet.birthDate)} (${t("birthDateEstimated")})`
+            : petAge(fmt, pet.birthDate),
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      >
+        {canStartVisit && (
+          <Link
+            href={`/visits/new?petId=${pet.id}`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Stethoscope />
+            {(await getTranslations("visit"))("new")}
+          </Link>
+        )}
+        {canBook && (
+          <Link
+            href={`/appointments/new?petId=${pet.id}`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <CalendarClock />
+            {(await getTranslations("appointment"))("new")}
+          </Link>
+        )}
+        {canEdit && (
+          <Link
+            href={`/pets/${pet.id}/edit`}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Edit3 />
+            {tCommon("edit")}
+          </Link>
+        )}
+        {canEdit && alive && (
+          <MarkDeceasedButton
+            action={markDeceasedAction.bind(null, pet.id)}
+            petName={pet.name}
+          />
+        )}
+        {canArchive && !pet.archivedAt && (
+          <DeleteButton
+            // Archived, not deleted: reversible, so it is neither red nor
+            // marked with a bin (TEAM.md #25). The notice this puts on the
+            // page carries the way back.
+            action={archivePetAction.bind(null, pet.id)}
+            label={tCommon("archive")}
+            tone="default"
+            mark="archive"
+            confirmText={t("archiveConfirm")}
+            description={tCommon("archiveUndoHint")}
+          />
+        )}
+      </PageHeader>
+
+      {pet.archivedAt ? (
+        <Callout variant="warning">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>
+              {tCommon("archivedOn", { date: formatDate(fmt, pet.archivedAt) })}
+            </span>
+            {canArchive && (
+              <RestoreButton
+                action={restorePetAction.bind(null, pet.id)}
+                label={tCommon("restore")}
+              />
+            )}
+          </div>
+        </Callout>
+      ) : (
+        // Archived by its owner rather than in its own right. No restore
+        // button here on purpose: restoring this animal would change nothing
+        // visible while the owner is still archived, and a button that
+        // appears to do nothing is worse than none (TEAM.md #33). The way
+        // back is the owner's record, so that is what the notice points at.
+        pet.owner.archivedAt && (
+          <Callout variant="warning">
+            {t("archivedByOwner")}{" "}
+            <Link
+              href={`/clients/${pet.owner.id}`}
+              className="font-medium underline"
+            >
+              {ownerLabel(pet.owner)}
+            </Link>
+          </Callout>
+        )
+      )}
+
+      {pet.alerts && (
+        <Callout variant="warning" title={t("alerts")}>
+          {pet.alerts}
+        </Callout>
+      )}
+
+      {pet.deceased && (
+        // Calm, not red: nothing here is anybody's fault or anybody's
+        // task. `info` is the neutral notice; it says the day, the
+        // clinic's own line, what the product now does differently, and
+        // the way back for a mark made by mistake.
+        <Callout variant="info" title={t("deceasedOn", { date: formatDate(fmt, pet.deceasedAt) })}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              {pet.deceasedNote && (
+                <p className="whitespace-pre-wrap text-foreground">{pet.deceasedNote}</p>
+              )}
+              <p>{t("deceasedEffect")}</p>
+            </div>
+            {canEdit && (
+              <UnmarkDeceasedButton action={unmarkDeceasedAction.bind(null, pet.id)} />
+            )}
+          </div>
+        </Callout>
+      )}
+
+      {/* See `/invoices/[id]`: a grid item will not shrink below its own
+          content, and these four pages share this line. */}
+      <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
+        {/* `self-start`: as tall as its own contents, not as tall as the
+            four cards in the next column (it used to run ~1100px empty). */}
+        <Card className="lg:col-span-1 lg:self-start">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <span className="flex size-9 items-center justify-center rounded-tile bg-accent text-accent-foreground">
+                <SpeciesIcon species={pet.species} className="size-5" />
+              </span>
+              {tCommon("details")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <DescriptionList
+              items={[
+                {
+                  label: t("owner"),
+                  value: (
+                    <Link
+                      href={`/clients/${pet.owner.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {ownerLabel(pet.owner)}
+                    </Link>
+                  ),
+                },
+                {
+                  // The owner's number, on the screen the vet is looking
+                  // at while the animal is on the table.
+                  //
+                  // It is read from the client record and shown, not
+                  // asked for: `DescriptionList` prints "-" for an empty
+                  // value and keeps the row, so an owner with no number
+                  // reads as a fact rather than as a request repeated
+                  // every visit. A surface may show an ABSENCE; it may
+                  // not repeat a question that has already been answered
+                  // once (ux).
+                  //
+                  // Not a link and not a field. This card is a reading
+                  // surface, and making one row of it interactive is the
+                  // "two classes of row in one shape" that `/pets` was
+                  // corrected for; the owner's name above is already the
+                  // way through to the record where a number is edited.
+                  label: tClient("phone"),
+                  // Both lines, because the row is read as "can I reach
+                  // this owner" and a client can be reached on the
+                  // second. Showing only the first told a vet "no
+                  // number" about somebody whose number was on file --
+                  // a wrong fact rather than a missing one, and worse
+                  // than the gap this row was added to close, since a
+                  // dash they trust is a question they do not ask.
+                  value: ownerPhone(pet.owner),
+                },
+                { label: t("breed"), value: pet.breed },
+                { label: t("color"), value: pet.color },
+                {
+                  label: t("birthDate"),
+                  // An import's "2021" taken as 1 January says so (B13).
+                  value:
+                    pet.birthDate && pet.birthDateEstimated
+                      ? `${formatDateOnly(fmt, pet.birthDate)} (${t("birthDateEstimated")})`
+                      : formatDateOnly(fmt, pet.birthDate),
+                },
+                {
+                  label: t("weightKg"),
+                  // The unit belongs to the reading, so it is only written
+                  // when there is one; the list supplies the "-". The
+                  // newer of the pet form's weight and the last weighed
+                  // visit's, with the day it was taken: the vet weighs on
+                  // the visit and reads it here, typing it once.
+                  value: pet.currentWeight
+                    ? [
+                        `${formatDecimal(fmt, pet.currentWeight.kg)} kg`,
+                        pet.currentWeight.at && formatShortDate(fmt, pet.currentWeight.at),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")
+                    : null,
+                },
+                { label: t("microchipId"), value: pet.microchipId },
+                {
+                  label: t("insuranceProvider"),
+                  value: pet.insuranceProvider,
+                },
+                {
+                  label: t("neutered"),
+                  value: pet.neutered ? tCommon("yes") : tCommon("no"),
+                },
+              ]}
+            />
+            {pet.notes && (
+              <div className="mt-2 rounded-control bg-muted/40 p-3 text-sm">
+                {pet.notes}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <Card>
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle>{t("tabs.vaccinations")}</CardTitle>
+              <Badge>{vaccinations.length}</Badge>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              {/* Above the rows, because it answers the question the rows
+                  are being read FOR. The vet does not scan a date-sorted
+                  list for pleasure; they are looking for which dose they
+                  were on, and for whether the rabies record has holes in
+                  it (#45). Both are silent when the animal's record
+                  cannot answer them. */}
+              <VaccineHistory offers={vaccineOffers} doses={doses} />
+
+              {vaccinations.length === 0 ? (
+                <EmptyState size="inline" title={tVacc("empty")} />
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {vaccinations.map((v) => {
+                    const due = dueState(v);
+                    return (
+                    <li
+                      key={v.id}
+                      className={
+                        // An overdue row looks overdue: the dashboard's
+                        // card says it in red, and the animal's own page
+                        // used to list the same row like any other.
+                        due.kind === "overdue"
+                          ? "flex flex-wrap items-center justify-between gap-2 rounded-control border border-destructive/40 px-3 py-2 text-sm"
+                          : "flex flex-wrap items-center justify-between gap-2 rounded-control border border-border px-3 py-2 text-sm"
+                      }
+                    >
+                      <div className="min-w-0">
+                        <p className="flex flex-wrap items-center gap-2 font-medium">
+                          {v.name}
+                          {due.kind === "overdue" && (
+                            <Badge variant="destructive">
+                              {tVacc("overdueBadge", { count: due.days })}
+                            </Badge>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {v.administeredDateOnly
+                            ? formatDateOnly(fmt, v.administeredAt)
+                            : formatDateTime(fmt, v.administeredAt)}
+                          {v.nextDueAt && ` · → ${formatDate(fmt, v.nextDueAt)}`}
+                          {/* Not overdue, and saying why: a later dose of
+                              the same vaccine answered this date. */}
+                          {due.kind === "superseded" && ` · ${tVacc("supersededNote")}`}
+                        </p>
+                      </div>
+                      {/* Closing an overdue vaccination on the dashboard
+                          hides it there, and the toast that offers the undo
+                          is gone in a few seconds -- pm ran one query to
+                          check the result and came back to nothing. The
+                          other half of closing something is being able to
+                          see what was closed, which this repo already
+                          decided for reminders; a reminder's home is the
+                          list, and a vaccination's home is the animal.
+
+                          The row was already here and simply said nothing
+                          about it: `listVaccinationsForPet` filters
+                          nothing out. No new surface and no new query. */}
+                      {v.dueDismissedAt && (
+                        <span className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {tVacc("dueDismissed")}
+                          </span>
+                          {canAddVaccination && (
+                            <RestoreButton
+                              action={setVaccinationDueDismissedAction.bind(
+                                null,
+                                v.id,
+                                false,
+                              )}
+                              mark="undo"
+                              label={tVacc("dueDismissedUndo")}
+                              name={tCommon("actionFor", {
+                                action: tVacc("dueDismissedUndo"),
+                                subject: v.name,
+                              })}
+                            />
+                          )}
+                        </span>
+                      )}
+                    </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {canAddVaccination && alive && (
+                <details className="rounded-control border border-dashed border-border p-3 text-sm">
+                  <summary className="cursor-pointer font-medium">
+                    <Plus className="me-1 inline size-3.5" />
+                    {tVacc("new")}
+                  </summary>
+                  <div className="mt-3">
+                    <VaccinationForm
+                      petId={pet.id}
+                      offers={vaccineOffers}
+                      priorDoses={priorDoses}
+                      openSeries={openSeries}
+                      birthDate={pet.birthDate ? toDateInput(pet.birthDate) : null}
+                    />
+                  </div>
+                </details>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle>{t("tabs.prescriptions")}</CardTitle>
+              <Badge>{prescriptions.length}</Badge>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              {prescriptions.length === 0 ? (
+                <EmptyState size="inline" title={tRx("empty")} />
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {prescriptions.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between rounded-control border border-border px-3 py-2 text-sm"
+                    >
+                      <div>
+                        <p className="font-medium">{p.medicationName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {p.dosage} · {p.frequency}
+                          {p.durationDays ? ` · ${tRx("durationShort", { count: p.durationDays })}` : ""}
+                        </p>
+                        {/* Kept on the record it excuses: whoever reads
+                            this later sees that the allergy was known. */}
+                        {p.overrideReason && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {tCheck("overridden", { reason: p.overrideReason })}
+                          </p>
+                        )}
+                      </div>
+                      <StatusBadge
+                        kind="prescription"
+                        status={p.status}
+                        label={tStatus(p.status as never)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {canAddPrescription && (
+                <details className="rounded-control border border-dashed border-border p-3 text-sm">
+                  <summary className="cursor-pointer font-medium">
+                    <Plus className="me-1 inline size-3.5" />
+                    {tRx("new")}
+                  </summary>
+                  <div className="mt-3">
+                    <PrescriptionForm petId={pet.id} alerts={pet.alerts} />
+                  </div>
+                </details>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle>{tTreatment("title")}</CardTitle>
+              <Badge>{treatments.length}</Badge>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              {treatments.length === 0 ? (
+                <EmptyState size="inline" title={tTreatment("empty")} />
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {treatments.map((tr) => (
+                    <li
+                      key={tr.id}
+                      className="flex items-start justify-between gap-3 rounded-control border border-border px-3 py-2 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium">{tr.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDateTime(fmt, tr.performedAt)}
+                          {tr.performedBy?.name && ` · ${tr.performedBy.name}`}
+                          {tr.durationMinutes != null && ` · ${tr.durationMinutes} dk`}
+                        </p>
+                        {tr.overrideReason && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {tCheck("overridden", { reason: tr.overrideReason })}
+                          </p>
+                        )}
+                        {tr.notes && (
+                          <p className="mt-1 max-w-prose whitespace-pre-wrap text-xs text-muted-foreground">
+                            {tr.notes}
+                          </p>
+                        )}
+                      </div>
+                      {tr.code && <Badge>{tr.code}</Badge>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {canAddTreatment && (
+                <details className="rounded-control border border-dashed border-border p-3 text-sm">
+                  <summary className="cursor-pointer font-medium">
+                    <Plus className="me-1 inline size-3.5" />
+                    {tTreatment("new")}
+                  </summary>
+                  <div className="mt-3">
+                    <TreatmentForm
+                      petId={pet.id}
+                      vets={vets}
+                      defaultVetId={session.user.id}
+                      alerts={pet.alerts}
+                    />
+                  </div>
+                </details>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle>{tDiag("title")}</CardTitle>
+              <Badge>{diagnostics.length}</Badge>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              {diagnostics.length === 0 ? (
+                <EmptyState size="inline" title={tDiag("empty")} />
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {diagnostics.map((d) => (
+                    <li
+                      key={d.id}
+                      className="rounded-control border border-border px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium">{d.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDateTime(fmt, d.performedAt)}
+                          </p>
+                        </div>
+                        {/* Both uncoloured: one is a label (which test) and
+                            the other is an ordinary wait for the lab, and
+                            neither asks the clinic to do anything. The words
+                            already tell them apart; a colour here would be
+                            spent on nothing (see status-badge.tsx). */}
+                        <Badge>
+                          {d.result ? tDiagType(d.type as never) : tDiag("resultPending")}
+                        </Badge>
+                      </div>
+                      {d.result && (
+                        <p className="mt-2 max-w-prose whitespace-pre-wrap text-xs">
+                          {d.result}
+                        </p>
+                      )}
+                      {d.interpretation && (
+                        <p className="mt-1 max-w-prose whitespace-pre-wrap text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">
+                            {tDiag("interpretation")}:{" "}
+                          </span>
+                          {d.interpretation}
+                        </p>
+                      )}
+                      {/* The button sits beside the words it is about,
+                          because that was the condition attached to it:
+                          results are read on a phone between patients,
+                          and a confirmation on another page does not get
+                          pressed. The dashboard line brings somebody
+                          here; the job ends here.
+
+                          Only where there is something to read, and only
+                          for a result that entered the loop -- an
+                          in-house one was never waiting on anybody.
+                          Afterwards the row says who read it and when,
+                          so the state is visible rather than merely
+                          gone from a list. */}
+                      {/* `mt-3`, not `mt-2`: results are read
+                          one-handed on a phone between patients, and a
+                          control immediately under the text a thumb is
+                          dragging is one the drag can press. The gap is
+                          the guard, not the target size -- and the read
+                          state keeps the same place so the row does not
+                          move when it changes. */}
+                      {d.externalLab && d.result && (
+                        <div className="mt-3">
+                          {d.readAt ? (
+                            <p className="text-xs text-muted-foreground">
+                              {d.readBy?.name
+                                ? tDiag("readOn", {
+                                    name: d.readBy.name,
+                                    at: formatDateTime(fmt, d.readAt),
+                                  })
+                                : tDiag("readOnAnon", {
+                                    at: formatDateTime(fmt, d.readAt),
+                                  })}
+                            </p>
+                          ) : (
+                            canInterpret && (
+                              <DiagnosticReadButton
+                                action={markDiagnosticReadAction.bind(null, d.id)}
+                                label={tDiag("markRead")}
+                                name={tDiag("markReadName", {
+                                  subject: d.name ?? tDiagType(d.type as never),
+                                })}
+                              />
+                            )
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {/* No permission check: every role may enter a result
+                  now that reception can transcribe a laboratory
+                  report, so a guard here would refuse nobody. The
+                  half that is restricted is a different key --
+                  `diagnostics.interpret` keeps the written opinion
+                  and the read marker with the person who decides. */}
+              <details className="rounded-control border border-dashed border-border p-3 text-sm">
+                <summary className="cursor-pointer font-medium">
+                  <Plus className="me-1 inline size-3.5" />
+                  {tDiag("new")}
+                </summary>
+                <div className="mt-3">
+                  <DiagnosticForm petId={pet.id} />
+                </div>
+              </details>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {(await getTranslations("note"))("new")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <NoteForm petId={pet.id} />
+        </CardContent>
+      </Card>
+
+      <div>
+        <h2 className="mb-3 text-base font-semibold text-foreground">
+          {tTimeline("title")}
+        </h2>
+        <Timeline events={timeline} />
+      </div>
+    </div>
+  );
+}

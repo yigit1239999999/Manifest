@@ -11,7 +11,16 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { recentVisits } from "@/modules/visits/queries";
 import { upcomingAppointments } from "@/modules/appointments/queries";
-import { upcomingVaccinations } from "@/modules/vaccinations/queries";
+import {
+  countOlderOverdueVaccinations,
+  countOverdueVaccinations,
+  countUpcomingVaccinations,
+  upcomingVaccinations,
+} from "@/modules/vaccinations/queries";
+import { listRecalls, type RecallRow } from "@/modules/vaccinations/recall";
+import { OPEN_REMINDER_STATUSES } from "@/modules/reminders/queries";
+import { getClinicCurrency } from "@/modules/clinics/queries";
+import { parseNotificationSettings } from "@/modules/notifications/settings";
 
 interface CountsRow {
   clients: number;
@@ -21,7 +30,9 @@ interface CountsRow {
   active_prescriptions: number;
   outstanding_invoices: number;
   outstanding_total_cents: number;
-  pending_reminders: number;
+  outstanding_other_currencies: string[];
+  draft_invoices: number;
+  open_reminders: number;
 }
 
 interface WeekRow {
@@ -31,7 +42,25 @@ interface WeekRow {
 
 interface MonthRow {
   month_start: Date;
+  currency: string;
   cents: number;
+  invoices: number;
+}
+
+/**
+ * Money the clinic has that its own currency cannot express.
+ *
+ * Reported rather than converted, and the reason belongs in the code
+ * because it will be argued with: a rate we picked would be a number the
+ * clinic never agreed to, applied to their books. Inventing one is the same
+ * class of act as inventing a vaccination interval (TEAM.md #14) — it looks
+ * helpful, it is unfalsifiable on screen, and it is wrong in a way nobody
+ * can see. So the total stays in its own currency and says so.
+ */
+export interface MoneyLeftOut {
+  currency: string;
+  cents: number;
+  invoices: number;
 }
 
 export interface DashboardInsights {
@@ -42,24 +71,51 @@ export interface DashboardInsights {
     upcomingAppointments: number;
     activePrescriptions: number;
     outstandingInvoices: number;
-    pendingReminders: number;
+    openReminders: number;
   };
+  /** In the clinic's own currency only. See `MoneyLeftOut`. */
   outstandingInvoiceCents: number;
+  /** Other currencies present among outstanding invoices, if any. */
+  outstandingOtherCurrencies: string[];
+  /** Invoices saved as drafts and never sent: not owed yet, not asked for. */
+  draftInvoiceCount: number;
   upcomingAppointments: Awaited<ReturnType<typeof upcomingAppointments>>;
   upcomingVaccinations: Awaited<ReturnType<typeof upcomingVaccinations>>;
+  /**
+   * The animals whose date has gone by, longest overdue first, and how
+   * many there are in total.
+   *
+   * A separate question from the list above, not a longer version of
+   * it: "upcoming" is a plan and this is a backlog. The count is
+   * carried beside the rows because the card shows five and the
+   * heading has to say how many there really are -- five of five and
+   * five of forty are different mornings.
+   */
+  overdueVaccinations: RecallRow[];
+  overdueVaccinationCount: number;
+  /** Inside the upcoming window: the "see all" count under that card. */
+  upcomingVaccinationCount: number;
+  /** Overdue before the card's window: counted beside it, not listed. */
+  overdueOlderVaccinationCount: number;
   recentVisits: Awaited<ReturnType<typeof recentVisits>>;
   visitsByType: { type: string; count: number }[];
   petsBySpecies: { species: string; count: number }[];
   visitsLast12Weeks: { weekStart: Date; count: number }[];
+  /** In the clinic's own currency only. See `MoneyLeftOut`. */
   revenueLast6Months: { monthStart: Date; cents: number }[];
+  /** What the chart above had to leave out, per currency. */
+  revenueOtherCurrencies: MoneyLeftOut[];
 }
 
 export async function dashboardInsights(
   clinicId: string,
 ): Promise<DashboardInsights> {
+  // The clinic's own currency, and the only one any total here is allowed to
+  // be expressed in. Deduplicated per request by `cache()`, so asking for it
+  // here costs nothing the page was not already paying.
+  const currency = await getClinicCurrency(clinicId);
   const now = new Date();
-  const since12Weeks = new Date(now);
-  since12Weeks.setDate(since12Weeks.getDate() - 84);
+  const since12Weeks = firstWeekBucketStart(now, 12);
   const since6Months = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
   // 1) Eight counts + the outstanding-balance aggregate in a single
@@ -93,13 +149,47 @@ export async function dashboardInsights(
           AND i.status IN ('SENT','PARTIAL')
           AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
       )::int AS outstanding_invoices,
-      (SELECT COALESCE(SUM(i."totalCents"), 0) FROM "invoices" i
+      -- What is still owed, not what was billed: a partly paid invoice owes
+      -- its remainder. GREATEST keeps an overpaid invoice from cancelling
+      -- another client's debt, the same way the invoice page floors at zero.
+      -- The currency is part of the filter, not an afterthought: adding up
+      -- dollars and lira and printing the answer with one symbol is not a
+      -- rounding error, it is a made-up number.
+      (SELECT COALESCE(SUM(GREATEST(i."totalCents" - COALESCE(paid.cents, 0), 0)), 0) FROM "invoices" i
+        LEFT JOIN LATERAL (
+          SELECT SUM(p."amountCents") AS cents FROM "payments" p
+          WHERE p."invoiceId" = i.id AND p."voidedAt" IS NULL
+        ) paid ON TRUE
         WHERE i."clinicId" = ${clinicId}
           AND i.status IN ('SENT','PARTIAL')
+          AND i.currency = ${currency}
           AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
       )::int AS outstanding_total_cents,
+      -- Which other currencies are owed in, so the card can say that the
+      -- figure above is not the whole of it. The amounts are not summed
+      -- here: the metric card has room for the fact, not the size of it.
+      (SELECT COALESCE(ARRAY_AGG(DISTINCT i.currency), ARRAY[]::text[]) FROM "invoices" i
+        WHERE i."clinicId" = ${clinicId}
+          AND i.status IN ('SENT','PARTIAL')
+          AND i.currency <> ${currency}
+          AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
+      ) AS outstanding_other_currencies,
+      -- Drafts are not owed yet, so they stay out of the figure above; but a
+      -- draft nobody sent is money that never gets asked for. The vet: "Elif
+      -- taslağı gönderilmiş yapmayı unutursa akşam o para gözümden kaçar."
+      (SELECT COUNT(*) FROM "invoices" i
+        WHERE i."clinicId" = ${clinicId}
+          AND i.status = 'DRAFT'
+          AND EXISTS (SELECT 1 FROM "clients" c WHERE c.id = i."clientId" AND c."archivedAt" IS NULL)
+      )::int AS draft_invoices,
+      -- The same set the reminders list shows, taken from the same constant:
+      -- the card used to count only PENDING while the list showed PENDING and
+      -- SENT, so the number on the card and the number of rows behind it
+      -- disagreed.
       (SELECT COUNT(*) FROM "reminders"
-        WHERE "clinicId" = ${clinicId} AND status = 'PENDING')::int AS pending_reminders
+        WHERE "clinicId" = ${clinicId}
+          AND status::text IN (${Prisma.join([...OPEN_REMINDER_STATUSES])})
+      )::int AS open_reminders
   `);
 
   // 2) Visits per week — date_trunc('week', …) on the database side so
@@ -116,16 +206,45 @@ export async function dashboardInsights(
     ORDER BY week_start
   `);
 
-  // 3) Paid-invoice revenue per month, same idea.
+  // 3) Money taken per month: the PAYMENTS, by the day they were taken,
+  //    not the invoices that happen to be fully paid (vet, month-end: a
+  //    partly paid invoice's ₺500 was money in the till and the chart did
+  //    not have it). Voided payments are money given back and do not
+  //    count; nor does anything on a voided invoice.
+  //
+  //    The second half keeps invoices that were marked paid in the form
+  //    with no payment ever recorded against them -- the old way to say
+  //    "settled" -- at their total on the day they were marked, so the
+  //    history the chart already showed does not vanish.
+  //
+  //    Grouped by currency as well, because a month is not one number
+  //    when the money came in different ones. The split into "the chart"
+  //    and "what the chart left out" happens below, from these same rows.
   const monthsPromise = prisma.$queryRaw<MonthRow[]>(Prisma.sql`
-    SELECT
-      date_trunc('month', "paidAt") AS month_start,
-      COALESCE(SUM("totalCents"), 0)::int AS cents
-    FROM "invoices"
-    WHERE "clinicId" = ${clinicId}
-      AND status = 'PAID'
-      AND "paidAt" >= ${since6Months}
-    GROUP BY month_start
+    SELECT month_start, currency,
+      COALESCE(SUM(cents), 0)::int AS cents,
+      COUNT(DISTINCT invoice_id)::int AS invoices
+    FROM (
+      SELECT date_trunc('month', p."paidAt") AS month_start, i.currency,
+        p."amountCents" AS cents, i.id AS invoice_id
+      FROM "payments" p
+      JOIN "invoices" i ON i.id = p."invoiceId"
+      WHERE i."clinicId" = ${clinicId}
+        AND i.status <> 'VOID'
+        AND p."voidedAt" IS NULL
+        AND p."paidAt" >= ${since6Months}
+      UNION ALL
+      SELECT date_trunc('month', i."paidAt"), i.currency, i."totalCents", i.id
+      FROM "invoices" i
+      WHERE i."clinicId" = ${clinicId}
+        AND i.status = 'PAID'
+        AND i."paidAt" >= ${since6Months}
+        AND NOT EXISTS (
+          SELECT 1 FROM "payments" p2
+          WHERE p2."invoiceId" = i.id AND p2."voidedAt" IS NULL
+        )
+    ) taken
+    GROUP BY month_start, currency
     ORDER BY month_start
   `);
 
@@ -135,6 +254,10 @@ export async function dashboardInsights(
     monthRows,
     upcomingApptsList,
     upcomingVaccsList,
+    overdueVaccsList,
+    overdueVaccsCount,
+    upcomingVaccsCount,
+    overdueOlderCount,
     recentVisitsList,
     visitTypeGroups,
     petSpeciesGroups,
@@ -144,6 +267,12 @@ export async function dashboardInsights(
     monthsPromise,
     upcomingAppointments(clinicId, 5),
     upcomingVaccinations(clinicId, 5),
+    // The recall list's first five, read the same way the list reads
+    // them: an animal already booked shows it and sorts below (pm B2).
+    listRecalls({ clinicId, view: "overdue", perPage: 5, now }).then((r) => r.items),
+    countOverdueVaccinations(clinicId, now),
+    countUpcomingVaccinations(clinicId, now),
+    countOlderOverdueVaccinations(clinicId),
     recentVisits(clinicId, 5),
     prisma.visit.groupBy({
       by: ["type"],
@@ -174,7 +303,9 @@ export async function dashboardInsights(
     active_prescriptions: 0,
     outstanding_invoices: 0,
     outstanding_total_cents: 0,
-    pending_reminders: 0,
+    outstanding_other_currencies: [],
+    draft_invoices: 0,
+    open_reminders: 0,
   };
 
   const visitsLast12Weeks = fillBucketSeries(
@@ -185,11 +316,30 @@ export async function dashboardInsights(
   );
 
   const revenueLast6Months = fillBucketSeries(
-    monthRows.map((r) => ({ start: r.month_start, value: r.cents })),
+    monthRows
+      .filter((r) => r.currency === currency)
+      .map((r) => ({ start: r.month_start, value: r.cents })),
     new Date(now.getFullYear(), now.getMonth() - 5, 1),
     6,
     "month",
   );
+
+  // Everything the chart could not show, kept per currency and reported as
+  // an amount rather than a count: "4 invoices elsewhere" does not say
+  // whether the chart is missing pocket change or all of it. In the case
+  // that found this, the figure left out was the entire total.
+  const leftOut = new Map<string, MoneyLeftOut>();
+  for (const row of monthRows) {
+    if (row.currency === currency) continue;
+    const seen = leftOut.get(row.currency) ?? {
+      currency: row.currency,
+      cents: 0,
+      invoices: 0,
+    };
+    seen.cents += row.cents;
+    seen.invoices += row.invoices;
+    leftOut.set(row.currency, seen);
+  }
 
   return {
     counts: {
@@ -199,11 +349,17 @@ export async function dashboardInsights(
       upcomingAppointments: c.upcoming_appointments,
       activePrescriptions: c.active_prescriptions,
       outstandingInvoices: c.outstanding_invoices,
-      pendingReminders: c.pending_reminders,
+      openReminders: c.open_reminders,
     },
     outstandingInvoiceCents: c.outstanding_total_cents,
+    outstandingOtherCurrencies: c.outstanding_other_currencies ?? [],
+    draftInvoiceCount: c.draft_invoices ?? 0,
     upcomingAppointments: upcomingApptsList,
     upcomingVaccinations: upcomingVaccsList,
+    overdueVaccinations: overdueVaccsList,
+    overdueVaccinationCount: overdueVaccsCount,
+    upcomingVaccinationCount: upcomingVaccsCount,
+    overdueOlderVaccinationCount: overdueOlderCount,
     recentVisits: recentVisitsList,
     visitsByType: visitTypeGroups.map((g) => ({
       type: g.type,
@@ -221,7 +377,43 @@ export async function dashboardInsights(
       monthStart: start,
       cents: value,
     })),
+    revenueOtherCurrencies: [...leftOut.values()].sort(
+      (a, b) => b.cents - a.cents,
+    ),
   };
+}
+
+/**
+ * Where a series of `count` weekly buckets has to start for the last of
+ * them to be the week we are in.
+ *
+ * This was `now - 84 days`, which is exactly twelve weeks and is the
+ * reading that feels right: twelve weeks of history. It is off by one
+ * bucket. Snapped to the start of its week it lands on the Sunday twelve
+ * weeks back, and counting twelve forward from there ends on the week
+ * that finished yesterday -- the range is -12..-1, and the week we are
+ * actually in never appears.
+ *
+ * On a busy clinic that reads as a chart that is merely a few days
+ * stale. On a new one it reads as the product being broken, and that is
+ * how it was found: a vet records their first visit, the counter says
+ * one, the recent-visits list shows it, the panel next to them says
+ * "no visits yet". Three answers to one question on one screen.
+ *
+ * The monthly series never had the bug, because it was written the other
+ * way round -- `now.getMonth() - 5` counts back `count - 1` and keeps the
+ * current month. The two sat side by side under the same footnote, one
+ * of them saying "the last column is the period in progress" about a
+ * period that had ended.
+ *
+ * So: back `count - 1` weeks, not `count`. Exported and tested rather
+ * than inlined, because the wrong version was also the plausible one and
+ * nothing on screen distinguishes them except the label on one column.
+ */
+export function firstWeekBucketStart(now: Date, count: number): Date {
+  const start = startOfBucket(now, "week");
+  start.setDate(start.getDate() - 7 * (count - 1));
+  return start;
 }
 
 /** Build a contiguous series so empty buckets render as zero bars. */
@@ -260,4 +452,79 @@ function advanceBucket(date: Date, unit: "week" | "month"): Date {
   const next = new Date(date);
   next.setDate(next.getDate() + 7);
   return next;
+}
+
+/**
+ * Every appointment of the clinic's day, whatever its status.
+ *
+ * Deliberately not `upcomingAppointments`: that one is a plan and drops a
+ * row the moment its hour passes or the animal walks in, so the patient
+ * standing in the waiting room was the one the dashboard stopped showing
+ * (pm B3). The day's list keeps arrived, in-progress and finished rows in
+ * their place and lets their status say where they are.
+ *
+ * Cancelled ones are left out: they are not part of the day any more, and
+ * the appointments page still has them under its own filter. An animal
+ * that has died since it was booked keeps its row, so reception sees the
+ * booking to cancel, but the strip offers it no outcome and no visit. Capped well
+ * above any one clinic's day so a bad import cannot draw a thousand rows.
+ */
+export async function todayAppointments(
+  clinicId: string,
+  range: { from: Date; to: Date },
+  take = 60,
+) {
+  return prisma.appointment.findMany({
+    where: {
+      clinicId,
+      pet: { archivedAt: null },
+      client: { archivedAt: null },
+      startsAt: { gte: range.from, lte: range.to },
+      status: { not: "CANCELLED" },
+    },
+    orderBy: { startsAt: "asc" },
+    take,
+    select: {
+      id: true,
+      startsAt: true,
+      status: true,
+      type: true,
+      reason: true,
+      pet: { select: { id: true, name: true, species: true, alerts: true, deceased: true } },
+      client: {
+        select: { id: true, firstName: true, lastName: true, phone: true },
+      },
+      visit: { select: { id: true } },
+    },
+  });
+}
+
+export type TodayAppointment = Awaited<ReturnType<typeof todayAppointments>>[number];
+
+/**
+ * What a clinic that has records still has not set up: messaging, and a
+ * second person. Read only for the people who can do either.
+ *
+ * Messaging counts as done once somebody has decided -- on or off --
+ * because "we do not send messages" is an answer, and nagging a clinic
+ * that gave it is the card spending its meaning. A team counts as done
+ * at two active people.
+ */
+export async function setupProgress(clinicId: string) {
+  const clinic = await prisma.clinic.findUnique({
+    where: { id: clinicId },
+    select: {
+      settings: true,
+      firstStepHiddenAt: true,
+      _count: { select: { users: { where: { active: true } } } },
+    },
+  });
+  const notifications = parseNotificationSettings(
+    (clinic?.settings as { notifications?: unknown } | null)?.notifications,
+  );
+  return {
+    hidden: Boolean(clinic?.firstStepHiddenAt),
+    messagingDecided: notifications.whatsapp.enabled !== null,
+    hasTeam: (clinic?._count.users ?? 0) > 1,
+  };
 }

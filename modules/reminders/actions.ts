@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { action, parse, type FormState } from "@/lib/action";
 import { reminderSchema } from "./schema";
 import { createReminder, markReminderStatus } from "./service";
@@ -11,11 +10,12 @@ export const createReminderAction = action(
     const parsed = parse(reminderSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
+    // The id travels back so the list can point at the row it just
+    // made. `listReminders` orders by due date, so a new reminder can
+    // land anywhere -- in the middle of a hundred rows -- and position
+    // says nothing about which one is new.
     const reminder = await createReminder(parsed.data, ctx);
-    revalidatePath("/reminders");
-    revalidatePath(`/clients/${reminder.clientId}`);
-    if (reminder.petId) revalidatePath(`/pets/${reminder.petId}`);
-    return { success: true };
+    return { success: true, createdId: reminder.id };
   },
 );
 
@@ -23,8 +23,6 @@ export const acknowledgeReminderAction = action(
   "reminder.acknowledge",
   async (ctx, id: string): Promise<void> => {
     await markReminderStatus(id, "ACKNOWLEDGED", ctx);
-    revalidatePath("/reminders");
-    revalidatePath("/");
   },
 );
 
@@ -32,7 +30,12 @@ export const dismissReminderAction = action(
   "reminder.dismiss",
   async (ctx, id: string): Promise<void> => {
     await markReminderStatus(id, "DISMISSED", ctx);
-    revalidatePath("/reminders");
-    revalidatePath("/");
+  },
+);
+
+export const reopenReminderAction = action(
+  "reminder.reopen",
+  async (ctx, id: string): Promise<void> => {
+    await markReminderStatus(id, "PENDING", ctx);
   },
 );

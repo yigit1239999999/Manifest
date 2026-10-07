@@ -1,64 +1,488 @@
 "use client";
 
-import { useActionState } from "react";
-import { useTranslations } from "next-intl";
+import { useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
+
+import { useLocale, useTranslations } from "next-intl";
+import { decimalInputValue } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/card";
 import type { Pet, User, Visit } from "@/generated/prisma/client";
+import { centsToInputValue } from "@/lib/money";
+import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { VISIT_TYPES } from "@/modules/appointments/schema";
 import {
-  createVisitAction,
+  createVisitIntakeAction,
   updateVisitAction,
 } from "@/modules/visits/actions";
-import { toDateTimeInput } from "@/lib/format";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { searchPetsAction } from "@/modules/pets/actions";
+import { petRowCaption, petRowLabel } from "@/lib/pet-label";
+import { matches } from "@/lib/search";
+import { NewPetBlock, type OpenedWith } from "@/components/forms/new-pet-block";
+import { readDraft } from "@/lib/form-draft";
+import { implausibleWeight } from "@/modules/pets/plausible-weight";
+import type { HiddenSpecies } from "@/components/species-picker";
 
 interface Props {
   visit?: Visit;
-  pets: Pick<Pet, "id" | "name">[];
+  /** The owner travels with the animal: see `lib/pet-label.ts`. */
+  pets: (Pick<Pet, "id" | "name" | "ownerId"> & {
+    ownerName: string;
+    /**
+     * What this animal is, in the reader's language, and when it was
+     * last seen -- both already put into words by the page, because
+     * only the server has the catalogues and the clinic's time zone.
+     *
+     * The picker row shows them beside the name and under it: the vet
+     * is looking at the animal while they choose, so the species is
+     * what eliminates at a glance (`petRowLabel`).
+     */
+    speciesLabel?: string | null;
+    lastSeen?: string | null;
+  })[];
+  /** See `InvoiceForm`: true when the list was cut off at its cap. */
+  petsCapped?: boolean;
   vets: Pick<User, "id" | "name">[];
   defaultPetId?: string;
+  /**
+   * The label for the selected animal (`visit.petId` or `defaultPetId`)
+   * when that record is not in `pets`.
+   *
+   * The list is capped (`lib/pagination.ts`), so an id that comes from
+   * the record being edited, or from a link that carried one, can sit
+   * outside it. Passed unconditionally: a label that matches an option
+   * changes nothing, and a missing one leaves a required field looking
+   * empty over a hidden input that is not.
+   */
+  defaultPetLabel?: string;
+  /**
+   * The preselected animal's medical alerts ("Penisilin alerjisi") and
+   * its species, when the page knew the animal before the form opened.
+   *
+   * Shown only while that animal is still the one picked: the page
+   * loaded them for one animal, and an allergy shown over a different
+   * animal is worse than none. An animal picked here in the browser gets
+   * neither; its own page and `PrescriptionForm` still carry the alerts.
+   */
+  defaultPetAlerts?: string | null;
+  defaultPetSpecies?: string;
+  /**
+   * The appointment this visit was started from, and the reason given
+   * when it was booked. The page has already checked it can still become
+   * a visit; the service checks again, inside the save.
+   */
+  appointmentId?: string;
+  defaultChiefComplaint?: string;
+  /**
+   * The kind of visit to open with, when a link carried one (an
+   * appointment's "Start visit"). Checked against `VISIT_TYPES` by the
+   * page; an edit keeps the visit's own.
+   */
+  defaultType?: (typeof VISIT_TYPES)[number];
+  /**
+   * The signed-in user, when they are somebody a visit may be recorded
+   * against. Absent for everyone else, and absent is not a fallback:
+   * "not recorded" is a better answer than a name nobody chose.
+   *
+   * Decided on the server (`visits/new/page.tsx`) rather than here,
+   * because the browser cannot tell a clinician from a receptionist,
+   * and the same question used to be answered in the service -- where
+   * it was a guess nobody could see.
+   */
+  defaultVetId?: string;
+  /**
+   * Everything the block inside this form needs to open an animal and
+   * its owner, assembled by the page from the same queries
+   * `pets/new/page.tsx` runs.
+   *
+   * Absent on an edit, where there is no such block: a visit being
+   * corrected cannot grow a new animal, and the schema that would
+   * write one is deliberately a different schema.
+   */
+  owners?: { id: string; firstName: string; lastName: string | null }[];
+  ownersCapped?: boolean;
+  speciesChoices?: { value: string; label: string; icon?: string }[];
+  hiddenBuiltIns?: HiddenSpecies[];
+  hiddenQualifier?: string;
+  manageHref?: string;
+  /**
+   * What the reader is allowed to write, decided where the service
+   * decides it (`lib/permissions.ts`).
+   *
+   * Not decoration: `createVisitWithIntake` requires `pets.write` for
+   * the animal and `clients.write` for the owner, so an offer this
+   * reader cannot take is a server error rather than a message under a
+   * field. A receptionist who may record visits but not open records
+   * gets the picker without the offer, which is the honest screen.
+   */
+  canCreatePet?: boolean;
+  canCreateOwner?: boolean;
 }
 
-export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
+/**
+ * What a block being put back opens with.
+ *
+ * The name matters: it is what the animal picker above shows while the
+ * block is open, and a picker that comes back blank over a hidden id
+ * reads as a selection that was lost.
+ */
+function reopenedWith(values: Record<string, string>): OpenedWith {
+  return { petName: values["newPet[name]"] ?? "", ownerQuery: "" };
+}
+
+export function VisitForm({
+  visit,
+  pets,
+  petsCapped,
+  vets,
+  defaultPetId,
+  defaultPetLabel,
+  defaultPetAlerts,
+  defaultPetSpecies,
+  appointmentId,
+  defaultChiefComplaint,
+  defaultType,
+  defaultVetId,
+  owners = [],
+  ownersCapped,
+  speciesChoices = [],
+  hiddenBuiltIns,
+  hiddenQualifier,
+  manageHref,
+  canCreatePet = false,
+  canCreateOwner = false,
+}: Props) {
+  const locale = useLocale();
+  const petOptions = useMemo(
+    () =>
+      pets.map((p) => ({
+        value: p.id,
+        label: petRowLabel(p.name, p.speciesLabel),
+        caption: petRowCaption(p.ownerName, p.lastSeen),
+      })),
+    [pets],
+  );
+  // What the "create" row offers, decided here rather than in the
+  // picker -- and the reason is what a caption is. The animal rows read
+  // "Ayşe Yılmaz · 7 ay önce" (`petRowCaption`), so a picker that knew
+  // only that "the caption matched" could not tell an owner's name from
+  // a date, and "7 ay" typed into the box would have offered to make an
+  // animal for somebody. This form has the two fields separately.
+  //
+  // The rule, in the order it is asked:
+  //   - anything at all called that already? then the vet is naming an
+  //     ANIMAL, whether or not one of them is the one they mean. Two
+  //     Limons is the ordinary case here.
+  //   - nothing called that, and exactly one owner does? then they were
+  //     naming a PERSON, and the offer is an animal OF that person with
+  //     the name still to be typed.
+  //   - anything else -- no match at all, or two different owners --
+  //     is an animal called whatever they typed. Guessing between two
+  //     Ayşes is how the wrong record gets the visit.
+  //
+  // The words on the row and what the row does share this one
+  // calculation, so they cannot say different things.
+  const offerFor = useMemo(() => {
+    const named = pets.map((p) => p.name);
+    const owners = pets.map((p) => ({ id: p.ownerId, name: p.ownerName }));
+    return (query: string): OpenedWith => {
+      const typed = query.trim();
+      const asAnimal = { petName: typed, ownerQuery: "" };
+      if (!typed || named.some((name) => matches(name, typed))) return asAnimal;
+      const hits = owners.filter((owner) => matches(owner.name, typed));
+      // Counted by WHO, not by what they are called. Two clients with
+      // one name is the case this had wrong: the names deduplicated to
+      // a single entry, so a typed "Ayşe Çelik" that reached two
+      // different people looked like it had reached one, and the block
+      // would have opened with the wrong one's record under it -- the
+      // thing this whole round is most afraid of, arriving through the
+      // convenience that was meant to save a click.
+      const who = new Set(hits.map((owner) => owner.id));
+      const [only] = who;
+      return who.size === 1
+        ? { petName: "", ownerQuery: hits[0].name, ownerId: only }
+        : asAnimal;
+    };
+  }, [pets]);
   const t = useTranslations("visit");
+  const tCommon = useTranslations("common");
   const tType = useTranslations("enum.visitType");
+  const tPet = useTranslations("pet");
+  const tStaff = useTranslations("staff");
+  // One action for a new visit, whether or not the block is open.
+  // `visitIntakeSchema` is `visitSchema` with the two extra branches,
+  // and `intakeFrom` hands a plain submission straight through -- so a
+  // visit recorded against an animal already on file takes exactly the
+  // path it always did, and there is no second code path to keep in
+  // step with this one.
   const action = visit
     ? updateVisitAction.bind(null, visit.id)
-    : createVisitAction;
-  const [state, formAction] = useActionState(action, {});
+    : createVisitIntakeAction;
+  const form = useActionForm(action, {});
+  const { state } = form;
+
+  // The block, and the four ways it comes to be open.
+  //
+  // Opened by hand from the picker's "create" row; reopened by a
+  // rejected submit, which echoes the submission back with the intent
+  // in it; reopened by a draft, for the vet who left this form and came
+  // back to it; and closed by "never mind", which drops the intent so
+  // the animal box goes back to being a choice.
+  //
+  // The submission and the draft are read HERE rather than left to
+  // `ActionForm`. It restores by writing into controls that already
+  // exist, and the block is precisely the controls that do not: by the
+  // time it is on screen that pass has run. So whatever reopens it also
+  // hands it its values.
+  //
+  // Read during the first render, the way `ActionForm` reads the same
+  // key, because a block that appeared one render later would arrive
+  // after the restore and after the cursor had been placed.
+  //
+  // A visit started from an appointment keeps a draft of its own. The
+  // draft restores every named control, the hidden `appointmentId`
+  // included, so a shared key would carry one appointment's id (and its
+  // half-typed complaint) into the visit for the next.
+  const draftKey = visit
+    ? `visit:${visit.id}`
+    : appointmentId
+      ? `visit:new:appointment:${appointmentId}`
+      : "visit:new";
+  const [restoredDraft] = useState<Record<string, string> | null>(() =>
+    visit || typeof window === "undefined" ? null : readDraft(draftKey),
+  );
+  const [creating, setCreating] = useState<OpenedWith | null>(
+    restoredDraft?.["newPet[intent]"] === "1" ? reopenedWith(restoredDraft) : null,
+  );
+  // What was typed into the animal box, kept across a cancel.
+  //
+  // The picker is remounted as the block opens and again as it closes,
+  // which is what empties the id -- and it took the typed text with it,
+  // so "never mind" charged the vet for a keystroke they had already
+  // made. pm measured the box going from "PMTEST Findik" to empty.
+  // Held here rather than read back off the DOM, because by the time
+  // the cancel has run the input carrying it is gone.
+  const [typedPet, setTypedPet] = useState("");
+  // Everything a clinic with nothing on file is told, from one
+  // condition, because the three places it reaches are one moment: the
+  // box names what to type, the line under the label and the list's
+  // body carry the SAME sentence.
+  //
+  // The same sentence twice is usually the defect. Here it is the fix,
+  // and a screenshot is why -- `.playwright-mcp/onboarding-2026-09-22/
+  // desktop-A-picker-empty.png`, taken on a clinic with nothing on
+  // file. The hint is in the flow and makes room for itself; what
+  // hides it is the list, drawn `absolute top-full` (`combobox.tsx`),
+  // which lands on top of it the instant the box takes focus. So the
+  // vet can read one of them at a time, and the one they read after
+  // the likeliest move -- clicking the box -- is the list's.
+  //
+  // WHICH IS WHY THE SENTENCE CANNOT BE SPLIT AGAIN. The tempting exit,
+  // when it is too long, is "short one in the body, long one in the
+  // hint"; that exit is closed. The body has to stand on its own, and
+  // split, the vet who clicked the box is left holding "no records" --
+  // a line that reports a lack and shows no next move, which is the
+  // complaint this whole thing was opened for.
+  //
+  // If it does have to get shorter, ONE string gets shorter, in this
+  // order: (a) "Bu klinikte" goes -- the clinic is the only context on
+  // screen anyway; (b) "yazdığınız adla" goes -- the placeholder is up
+  // in both states and already says to type the name. "aynı formda"
+  // is NOT touched: the promise lives there, and it is the reason
+  // `/pets/new` carries a string of its own (`noneYetTypeToOpenForm`)
+  // rather than this one -- that picker changes the address, so the
+  // same promise would be a lie.
+  //
+  // And the imperative stays in the placeholder alone. It is the only
+  // text visible in BOTH states, so the order belongs to it; the hint
+  // and the body carry what it cannot say, the state and what follows
+  // from typing. That rule is not advice here: the last two words of
+  // the placeholder may not appear in the sentence beside it, held in
+  // TR and EN separately by `empty-picker-teaching.test.tsx`.
+  //
+  // `!creating` because the block below is the thing this sentence
+  // asks for: left up, it tells the vet to do what they have just
+  // done. `canCreatePet` because without it the server refuses, and
+  // an instruction the server refuses is worse than silence.
+  const teachPet = pets.length === 0 && !visit && canCreatePet && !creating;
+  const picker = useRef<HTMLDivElement>(null);
+
+  // Which animal the picker holds, followed only to answer one question:
+  // is it still the one the page loaded alerts and a species for?
+  const startPetId = visit?.petId ?? defaultPetId ?? "";
+  const [pickedPetId, setPickedPetId] = useState(startPetId);
+  const knownPet = Boolean(startPetId) && !creating && pickedPetId === startPetId;
+  // Followed for the same reason: the warning under the box has to move
+  // as the number is typed, before anything is submitted.
+  const [weightText, setWeightText] = useState(
+    visit?.weightKg != null ? String(visit.weightKg) : "",
+  );
+  const unusualWeight = knownPet
+    ? implausibleWeight(defaultPetSpecies, weightText)
+    : null;
+  // Asked once on save, the way an empty vaccine date is: the warning under
+  // the box can be read past, and the vet who did saved 42 kg for a cat
+  // without a word. The second press saves as typed.
+  const [weightConfirmedFor, setWeightConfirmedFor] = useState<string | null>(null);
+  const weightNeedsConfirm =
+    unusualWeight !== null && weightConfirmedFor !== weightText;
+
+  // A rejected submit is a server response, not an event this form can
+  // subscribe to, so it is read as it arrives rather than in an effect:
+  // the block has to be in the SAME render as the values that refill
+  // it. Same shape as the response bookkeeping in `useActionForm`.
+  const echoed = state.values;
+  const [seenValues, setSeenValues] = useState(echoed);
+  if (seenValues !== echoed) {
+    setSeenValues(echoed);
+    if (echoed?.["newPet[intent]"] === "1" && !creating) {
+      setCreating(reopenedWith(echoed));
+    }
+  }
+
+  const blockValues =
+    echoed?.["newPet[intent]"] === "1" ? echoed : (restoredDraft ?? undefined);
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
-      {state.error && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
-        </p>
+    <ActionForm
+      form={form}
+      focusFirstEmpty={Boolean(defaultPetId)}
+      // The form the measured loss happened on: a chief complaint and
+      // a history typed in, a walk to the client list, and both gone
+      // on the way back. Keyed to the record rather than the route, so
+      // a half-written new visit cannot pour itself into the edit form
+      // of an old one.
+      draftKey={draftKey}
+      className="flex flex-col gap-6"
+      onSubmit={(event) => {
+        if (weightNeedsConfirm) {
+          event.preventDefault();
+          setWeightConfirmedFor(weightText);
+          // Back to the field the question is about.
+          event.currentTarget
+            .querySelector<HTMLInputElement>('input[name="weightKg"]')
+            ?.focus();
+        }
+      }}
+    >
+      {/* Part-filled arrivals only: the chain a new clinic walks, or a
+          deep link from a record's own page. See `focusFirstEmpty`. */}
+
+      {/* Above everything, because the examination starts as soon as
+          the form opens: the vet asked to see "Penisilin alerjisi" on
+          the first screen, not on the animal's page they did not visit
+          on the way here. Same box the animal's page and
+          `PrescriptionForm` use. */}
+      {knownPet && defaultPetAlerts && (
+        <Callout variant="warning" title={tPet("alerts")}>
+          {defaultPetAlerts}
+        </Callout>
+      )}
+      {appointmentId && !visit && (
+        <input type="hidden" name="appointmentId" value={appointmentId} />
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={t("type")} error={state.fieldErrors?.petId} required>
-          <Select
+      {/* The ref is how "never mind" finds its way back to the box it
+          was pressed from: the picker is remounted by that same state
+          change, so a ref to the control itself would point at a node
+          that no longer exists. The row is stable; the control inside
+          it is the only explicit `role="combobox"` here -- the visit
+          type beside it is a native `select`. */}
+      <div ref={picker} className="grid gap-4 sm:grid-cols-2">
+        <Field
+          label={tPet("one")}
+          error={state.fieldErrors?.petId}
+          hint={teachPet ? tPet("noneYetTypeToOpen") : undefined}
+          required
+        >
+          {/* See `InvoiceForm`: searchable only once the list is short
+              of the whole clinic. */}
+          <Combobox
+            // Remounted when the block opens or closes, and that is
+            // what empties the hidden id: the vet had picked Zeytin,
+            // changed their mind and asked for a new animal, and the
+            // id left behind would otherwise be what the visit was
+            // written against. The typed text survives as the label,
+            // so the box still shows what they asked for.
+            key={creating ? "creating" : "picking"}
             name="petId"
-            defaultValue={visit?.petId ?? defaultPetId ?? ""}
-            required
-          >
-            <option value="" disabled>
-              —
-            </option>
-            {pets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
+            options={petOptions}
+            // Dropped while the block is open, and this is the same
+            // rule the owner picker follows one level in: the animal
+            // is being typed below, the id is empty on purpose, and a
+            // native `required` over an empty picker refuses the
+            // submit with nothing on screen to say why. The asterisk
+            // stays, and `visitIntakeSchema` still refuses a visit
+            // with neither an animal nor a new one.
+            required={!creating}
+            defaultValue={creating ? "" : (visit?.petId ?? defaultPetId ?? "")}
+            onValueChange={(value) => setPickedPetId(value)}
+            defaultLabel={
+              creating
+                ? creating.petName || creating.ownerQuery
+                : typedPet || defaultPetLabel
+            }
+            // "Search or type" is written for a clinic that has
+            // records. With none, "search" is a dead word: it invites
+            // the vet to look for something that cannot be there.
+            placeholder={
+              teachPet ? tPet("typeNamePlaceholder") : tCommon("searchOrType")
+            }
+            noResultsLabel={tCommon("noResults")}
+            // Deliberately the same string as the hint above: see
+            // `teachPet`.
+            emptyCatalogueLabel={teachPet ? tPet("noneYetTypeToOpen") : undefined}
+            onSearch={petsCapped ? searchPetsAction : undefined}
+            hasMore={petsCapped}
+            searchHintLabel={tCommon("searchMinChars")}
+            searchingLabel={tCommon("searching")}
+            searchFailedLabel={tCommon("searchFailed")}
+            hasMoreLabel={tCommon("searchMore")}
+            // The door that used to stand in front of this whole form
+            // when the clinic had no animals, moved inside the field
+            // that asks for one: "the dog is on the table, the owner is
+            // crying, and what I got was not a blank page but a door".
+            //
+            // It used to walk to `/pets/new` and back with `?next=`,
+            // which kept the errand but not the minute: a visit half
+            // typed had to survive two screens and a return. Now the
+            // form grows the block instead and the address never
+            // changes.
+            //
+            // Only on a new visit: an edit cannot create an animal, and
+            // the schema that would is deliberately a different one.
+            onCreate={
+              visit || !canCreatePet
+                ? undefined
+                : (typed) => {
+                    setTypedPet(typed);
+                    // Asked for by hand, so the caret comes with it --
+                    // unlike a block put back by a draft or a
+                    // rejection, where the reader has their own idea of
+                    // where to carry on.
+                    setCreating({ ...offerFor(typed), takeFocus: true });
+                  }
+            }
+            createLabel={(typed) => {
+              const offer = offerFor(typed);
+              return offer.ownerQuery
+                ? tPet("createForOwner", { owner: offer.ownerQuery })
+                : tPet("createNamed", { name: offer.petName });
+            }}
+          />
         </Field>
         <Field label={t("type")} error={state.fieldErrors?.type} required>
           <Select
             name="type"
-            defaultValue={visit?.type ?? "WELLNESS_CHECK"}
+            defaultValue={visit?.type ?? defaultType ?? "WELLNESS_CHECK"}
             required
           >
             {VISIT_TYPES.map((v) => (
@@ -70,21 +494,74 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
         </Field>
       </div>
 
+      {creating && (
+        <NewPetBlock
+          // Spread, and the reason is a defect that has now happened
+          // twice: `OpenedWith` is exactly what the block needs to know
+          // about how it was opened, and listing its fields here by
+          // hand means a field added to the type reaches the STATE and
+          // not the component. Both times the symptom was silence --
+          // the block simply behaved as though nothing had been
+          // decided, and only a test said otherwise.
+          {...creating}
+          values={blockValues}
+          errors={state.fieldErrors}
+          // Flushed, because the draft is written by the form's own
+          // click handler as this click bubbles past it: without the
+          // synchronous commit the hidden intent is still in the DOM
+          // when the snapshot is taken, and a block somebody closed
+          // would be waiting for them when they came back.
+          onCancel={() => {
+            flushSync(() => {
+              setCreating(null);
+              // The picker comes back holding the animal it opened
+              // with (its `defaultValue`), whatever was picked before.
+              setPickedPetId(startPetId);
+            });
+            // Back where they were, which is the box they opened it
+            // from. Without this the caret lands on `body` and a
+            // keyboard user tabs in from the top of the document to
+            // reach a field they were standing in a moment ago -- the
+            // same 22-keystroke walk `ActionForm`'s error summary was
+            // written for. After the flush, because the picker this
+            // looks for is remounted by that state change.
+            picker.current
+              ?.querySelector<HTMLElement>('[role="combobox"]')
+              ?.focus();
+          }}
+          owners={owners}
+          ownersCapped={ownersCapped}
+          canCreateOwner={canCreateOwner}
+          speciesChoices={speciesChoices}
+          hiddenBuiltIns={hiddenBuiltIns}
+          hiddenQualifier={hiddenQualifier}
+          manageHref={manageHref}
+        />
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("visitedAt")} error={state.fieldErrors?.visitedAt} required>
-          <Input
-            type="datetime-local"
+          <DateTimeInput
             name="visitedAt"
-            defaultValue={toDateTimeInput(visit?.visitedAt ?? new Date())}
+            defaultValue={visit?.visitedAt ?? new Date()}
             required
           />
         </Field>
         <Field label={t("vet")} error={state.fieldErrors?.vetId}>
-          <Select name="vetId" defaultValue={visit?.vetId ?? ""}>
-            <option value="">—</option>
+          {/* Only a new visit takes the default: on an edit the field
+              already says who was recorded, and a blank there is a
+              decision somebody made rather than a question nobody
+              reached. */}
+          <Select name="vetId" defaultValue={visit?.vetId ?? defaultVetId ?? ""}>
+            <option value="">{tCommon("none")}</option>
             {vets.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.name}
+                {/* The reader is in this list, and saying so is what
+                    makes a pre-chosen name readable as their own
+                    rather than as a name the form picked at random. */}
+                {v.id === defaultVetId
+                  ? `${v.name} ${tStaff("you")}`
+                  : v.name}
               </option>
             ))}
           </Select>
@@ -98,11 +575,13 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
         <Textarea
           name="chiefComplaint"
           rows={2}
-          defaultValue={visit?.chiefComplaint ?? ""}
+          // An appointment's reason, so what the owner said on the
+          // phone is not typed a second time.
+          defaultValue={visit?.chiefComplaint ?? defaultChiefComplaint ?? ""}
         />
       </Field>
 
-      <fieldset className="grid gap-4 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2">
+      <fieldset className={cn(surface, "grid gap-4 p-4 sm:grid-cols-2")}>
         <legend className="px-2 text-sm font-semibold text-foreground">
           {t("soap")}
         </legend>
@@ -136,16 +615,35 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
         </Field>
       </fieldset>
 
-      <fieldset className="grid gap-4 rounded-2xl border border-border bg-card p-4 sm:grid-cols-4">
+      <fieldset className={cn(surface, "grid gap-4 p-4 sm:grid-cols-4")}>
         <legend className="px-2 text-sm font-semibold text-foreground">
           {t("vitals")}
         </legend>
-        <Field label={t("weightKg")} error={state.fieldErrors?.weightKg}>
+        <Field
+          label={t("weightKg")}
+          error={state.fieldErrors?.weightKg}
+          // A question, not a refusal: the save goes through either way.
+          // It catches the slipped decimal ("42" for a 4,2 kg cat) while
+          // the vet is still at the scale.
+          hint={
+            unusualWeight
+              ? t(`weightUnusual.${unusualWeight.species}`, {
+                  weight: unusualWeight.kg,
+                }) +
+                (weightConfirmedFor === weightText
+                  ? ` ${t("weightConfirmAgain")}`
+                  : "")
+              : undefined
+          }
+          hintTone="warning"
+        >
           <Input
-            type="number"
-            step="0.01"
+            // Text with a decimal keypad, not type="number": see
+            // `parseDecimal` in lib/forms.ts for the 4,2 kg cat.
+            inputMode="decimal"
             name="weightKg"
-            defaultValue={visit?.weightKg ?? ""}
+            defaultValue={decimalInputValue(locale, visit?.weightKg)}
+            onChange={(event) => setWeightText(event.target.value)}
           />
         </Field>
         <Field
@@ -153,10 +651,11 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
           error={state.fieldErrors?.temperatureC}
         >
           <Input
-            type="number"
-            step="0.1"
+            // Text with a decimal keypad, not type="number": see
+            // `parseDecimal` in lib/forms.ts for the 4,2 kg cat.
+            inputMode="decimal"
             name="temperatureC"
-            defaultValue={visit?.temperatureC ?? ""}
+            defaultValue={decimalInputValue(locale, visit?.temperatureC)}
           />
         </Field>
         <Field
@@ -183,24 +682,27 @@ export function VisitForm({ visit, pets, vets, defaultPetId }: Props) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("followupAt")} error={state.fieldErrors?.followupAt}>
-          <Input
-            type="datetime-local"
+          <DateTimeInput
             name="followupAt"
-            defaultValue={toDateTimeInput(visit?.followupAt)}
+            defaultValue={visit?.followupAt}
+            granularity="day"
           />
         </Field>
-        <Field label={t("totalCost")} error={state.fieldErrors?.totalCents}>
+        <Field label={t("totalCost")} error={state.fieldErrors?.total}>
           <Input
-            name="totalCents"
-            placeholder="0.00"
+            name="total"
+            inputMode="decimal"
+            placeholder={centsToInputValue(locale, 0)}
             defaultValue={
-              visit?.totalCents != null ? (visit.totalCents / 100).toFixed(2) : ""
+              visit?.totalCents != null
+                ? centsToInputValue(locale, visit.totalCents)
+                : ""
             }
           />
         </Field>
       </div>
 
       <SubmitButton>{visit ? t("update") : t("create")}</SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

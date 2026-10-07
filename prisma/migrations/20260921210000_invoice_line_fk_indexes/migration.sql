@@ -1,0 +1,24 @@
+-- Index the two foreign keys on invoice_lines.
+--
+-- Postgres indexes a primary key and a unique constraint; it does not
+-- index a foreign key. Both of these were declared as relations and
+-- neither had one, which cost nothing while the only question asked of
+-- this table was "the lines of this invoice" — that one goes through
+-- invoiceId, which was indexed.
+--
+-- `visitId` is about to be read on every visit page: "does this visit
+-- already have an invoice", the question that stops a second invoice
+-- being raised for the same visit. Without an index that is a
+-- sequential scan over every line in the database, on a page a vet
+-- opens all day.
+--
+-- `petId` comes along because it is the same omission and the same
+-- cost, and because the next reader should not have to wonder why one
+-- foreign key is indexed and the identical one beside it is not.
+--
+-- CONCURRENTLY is deliberately not used: it cannot run inside the
+-- transaction Prisma wraps a migration in, and this table is small
+-- enough that the lock is measured in milliseconds. If it ever is not,
+-- that is a different migration written on purpose.
+CREATE INDEX IF NOT EXISTS "invoice_lines_visitId_idx" ON "invoice_lines" ("visitId");
+CREATE INDEX IF NOT EXISTS "invoice_lines_petId_idx" ON "invoice_lines" ("petId");

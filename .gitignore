@@ -46,3 +46,30 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright MCP test screenshots
+.playwright-mcp/
+
+# Production build lives in its own directory so `next dev` and
+# `next start` cannot overwrite each other. See next.config.ts.
+/.next-prod/
+
+# Ground stamp: written by scripts/serve-prod.sh, never by hand.
+SERVED_COMMIT.txt
+
+# Set by whoever is measuring; scripts/serve-prod.sh refuses to rebuild while it exists.
+MEASURING
+
+# Agent scratch scripts: screenshots, one-off probes. Never part of the product.
+*-tmp.mjs
+
+# Tek koşucu kilidi: scripts/e2e.sh koşarken var olur, bitince silinir.
+E2E_RUNNING
+
+# Derleme kilidi: scripts/serve-prod.sh derlerken var olur, bitince silinir.
+# İkinci bir derleme, birincisinin sunduğu .next-prod'u söküyordu.
+BUILDING
+
+# Built by scripts/make-import-fixtures.mjs (definitions in e2e/import-fixtures.ts): spreadsheets to try the import
+# screen with. Generated, never collected, and never committed.
+/tmp/

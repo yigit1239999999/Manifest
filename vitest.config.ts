@@ -14,6 +14,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["**/*.test.{ts,tsx}"],
-    exclude: ["node_modules", ".next", "generated"],
+    // `.claude/worktrees` holds other agents' checkouts, node_modules and all;
+    // without this a run here tests their copies too and fails on them.
+    exclude: ["**/node_modules/**", ".next", "generated", ".claude/**"],
   },
 });

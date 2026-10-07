@@ -20,13 +20,49 @@ const envSchema = z.object({
     .string()
     .min(32, "AUTH_SECRET must be at least 32 characters long"),
   SENTRY_DSN: z.string().url().optional(),
+  // WhatsApp Cloud API (Meta). Both must be set for automatic sending;
+  // otherwise staff get a one-click "open in WhatsApp" fallback.
+  WHATSAPP_ACCESS_TOKEN: z.string().min(1).optional(),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
+  // Shared secret the reminder cron must present (Vercel Cron sends it as
+  // "Authorization: Bearer <CRON_SECRET>" automatically).
+  CRON_SECRET: z.string().min(16).optional(),
+  // SMS transport. "netgsm" needs the three NETGSM_* values; "log" prints
+  // messages instead of sending (local development).
+  SMS_PROVIDER: z.enum(["netgsm", "log"]).optional(),
+  NETGSM_USERCODE: z.string().min(1).optional(),
+  NETGSM_PASSWORD: z.string().min(1).optional(),
+  NETGSM_MSGHEADER: z.string().min(1).max(11).optional(),
+  // Optional. With it, the spreadsheet import asks a model about the columns
+  // it cannot name itself (masked samples only, `modules/import/ai-match.ts`);
+  // without it, the import uses its own reading and nothing else.
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+}).superRefine((v, ctx) => {
+  if (v.SMS_PROVIDER === "netgsm") {
+    for (const key of ["NETGSM_USERCODE", "NETGSM_PASSWORD", "NETGSM_MSGHEADER"] as const) {
+      if (!v[key]) {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: `${key} is required when SMS_PROVIDER=netgsm`,
+        });
+      }
+    }
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;
 
 function loadEnv(): Env {
-  const result = envSchema.safeParse(process.env);
+  // An empty value is an absent one. `.env.example` ships optional keys as
+  // `KEY=""` so their names are in front of whoever copies it, and copying
+  // it verbatim must not refuse to start the app with "ANTHROPIC_API_KEY:
+  // too small", which is exactly what happened on the first local run.
+  const present = Object.fromEntries(
+    Object.entries(process.env).filter(([, value]) => value !== ""),
+  );
+  const result = envSchema.safeParse(present);
   if (result.success) return result.data;
 
   const issues = result.error.issues
@@ -36,7 +72,3 @@ function loadEnv(): Env {
 }
 
 export const env: Env = loadEnv();
-
-export const isProduction = env.NODE_ENV === "production";
-export const isDevelopment = env.NODE_ENV === "development";
-export const isTest = env.NODE_ENV === "test";

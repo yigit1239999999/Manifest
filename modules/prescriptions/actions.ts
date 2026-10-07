@@ -11,10 +11,7 @@ export const createPrescriptionAction = action(
     const parsed = parse(prescriptionSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
-    const prescription = await createPrescription(parsed.data, ctx);
-    revalidatePath(`/pets/${prescription.petId}`);
-    revalidatePath("/prescriptions");
-    if (prescription.visitId) revalidatePath(`/visits/${prescription.visitId}`);
+    await createPrescription(parsed.data, ctx);
     return { success: true };
   },
 );

@@ -1,54 +1,108 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { Callout } from "@/components/ui/callout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/datetime-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { PRESCRIPTION_STATUSES } from "@/modules/prescriptions/schema";
 import { createPrescriptionAction } from "@/modules/prescriptions/actions";
-import { toDateTimeInput } from "@/lib/format";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { AllergyOverride } from "@/components/forms/allergy-override";
+import { findAllergyConflict } from "@/lib/allergy-check";
 
 export function PrescriptionForm({
   petId,
   visitId,
+  alerts,
 }: {
   petId: string;
   visitId?: string;
+  /**
+   * The animal's medical alerts (allergies, "bites"). Repeated here, next
+   * to the drug name, because the page's own warning is a screen higher by
+   * the time anyone writes a prescription: a vet entered amoxicillin for a
+   * cat whose penicillin allergy was out of sight above.
+   */
+  alerts?: string | null;
 }) {
+  const tPet = useTranslations("pet");
   const t = useTranslations("prescription");
   const tStatus = useTranslations("enum.prescriptionStatus");
   const tCommon = useTranslations("common");
-  const [state, formAction] = useActionState(createPrescriptionAction, {});
-  const formRef = useRef<HTMLFormElement>(null);
+  const form = useActionForm(createPrescriptionAction, {});
+  const { state, reset } = form;
 
+  const savedMessage = tCommon("saved");
+  const tCheck = useTranslations("allergyCheck");
+
+  // Checked as the name is typed, so the warning arrives before the save
+  // rather than as its refusal. The server repeats the check and is the
+  // one that blocks; its answer is the fallback here for a page whose
+  // script had not run yet.
+  // Tagged with the form's reset count, so a saved form forgets the name
+  // with everything else instead of a state update in the save effect.
+  const [typed, setTyped] = useState({ token: 0, value: "" });
+  const drug = typed.token === form.resetToken ? typed.value : "";
+  const refused = state.allergyConflict;
+  const conflict =
+    findAllergyConflict(alerts, drug) ??
+    (refused && (!drug || drug.trim() === refused.drug) ? refused : null);
+
+  // The message is resolved BEFORE the effect and the effect depends on
+  // the string, not on the translator. `useTranslations` hands back a
+  // new function identity on a re-render, so a dependency array holding
+  // it re-runs the effect for a render that changed nothing -- and the
+  // user gets a second toast for one save. A string is equal to itself.
   useEffect(() => {
     if (state.success) {
-      formRef.current?.reset();
-      toast.success(tCommon("saved"));
+      reset();
+      toast.success(savedMessage);
     }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+  }, [state.success, savedMessage, reset]);
 
   return (
-    <form
-      action={formAction}
-      ref={formRef}
+    <ActionForm
+      form={form}
       className="grid gap-3 sm:grid-cols-2"
     >
+
       <input type="hidden" name="petId" value={petId} />
       {visitId && <input type="hidden" name="visitId" value={visitId} />}
+      {alerts && (
+        <Callout
+          variant="warning"
+          title={tPet("alerts")}
+          className="col-span-full"
+        >
+          {alerts}
+        </Callout>
+      )}
 
       <Field
         label={t("medicationName")}
         error={state.fieldErrors?.medicationName}
         required
       >
-        <Input name="medicationName" required />
+        <Input
+          name="medicationName"
+          required
+          onChange={(e) => setTyped({ token: form.resetToken, value: e.currentTarget.value })}
+        />
       </Field>
+      {/* Directly under the drug, where the eye is as it is typed, not
+          at the foot of the form after nine more fields. */}
+      {conflict && (
+        <AllergyOverride
+          conflict={conflict}
+          fieldErrors={state.fieldErrors?.overrideReason}
+        />
+      )}
       <Field label={t("status")} error={state.fieldErrors?.status} required>
         <Select name="status" defaultValue="ACTIVE" required>
           {PRESCRIPTION_STATUSES.map((s) => (
@@ -81,10 +135,9 @@ export function PrescriptionForm({
         <Input type="number" min="0" name="refills" defaultValue="0" />
       </Field>
       <Field label={t("startedAt")} error={state.fieldErrors?.startedAt} required>
-        <Input
-          type="datetime-local"
+        <DateTimeInput
           name="startedAt"
-          defaultValue={toDateTimeInput(new Date())}
+          defaultValue={new Date()}
           required
         />
       </Field>
@@ -93,9 +146,13 @@ export function PrescriptionForm({
           <Textarea name="instructions" rows={2} />
         </Field>
       </div>
-      <SubmitButton size="sm" className="sm:col-span-2 w-fit">
-        {t("create")}
+      <SubmitButton
+        size="sm"
+        variant={conflict ? "destructive" : undefined}
+        className="sm:col-span-2 w-fit"
+      >
+        {conflict ? tCheck("submitAnyway") : t("create")}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

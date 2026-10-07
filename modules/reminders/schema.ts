@@ -3,6 +3,7 @@ import {
   optionalText,
   requiredDateTime,
   requiredEnum,
+  requiredId,
   requiredText,
 } from "@/lib/forms";
 
@@ -22,10 +23,10 @@ export const REMINDER_STATUSES = [
 ] as const;
 
 export const reminderSchema = z.object({
-  clientId: z.string().min(1, "Müşteri seç."),
+  clientId: requiredId("error.entity.client"),
   petId: optionalText(40),
   type: requiredEnum(REMINDER_TYPES),
-  title: requiredText(1, 120, "Başlık"),
+  title: requiredText(1, 120, "reminder.name"),
   body: optionalText(1000),
   dueAt: requiredDateTime,
 });

@@ -24,8 +24,29 @@ export async function activePrescriptions(clinicId: string, take = 20) {
   });
 }
 
-export async function countActivePrescriptions(clinicId: string) {
-  return prisma.prescription.count({
-    where: { clinicId, status: "ACTIVE" },
+/**
+ * One prescription with everything its printed copy names: the animal and
+ * its owner, the prescriber, the visit it was written at. Clinic-scoped.
+ */
+export async function getPrescriptionForPrint(clinicId: string, id: string) {
+  return prisma.prescription.findFirst({
+    where: { id, clinicId },
+    include: {
+      prescribedBy: { select: { name: true, role: true } },
+      pet: {
+        select: {
+          name: true,
+          species: true,
+          breed: true,
+          sex: true,
+          birthDate: true,
+          weightKg: true,
+          microchipId: true,
+          customSpecies: { select: { name: true } },
+          owner: { select: { firstName: true, lastName: true, phone: true } },
+        },
+      },
+      visit: { select: { visitedAt: true, weightKg: true } },
+    },
   });
 }

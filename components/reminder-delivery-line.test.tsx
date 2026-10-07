@@ -1,0 +1,513 @@
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { createTranslator } from "next-intl";
+import tr from "@/messages/tr.json";
+import en from "@/messages/en.json";
+
+// The component is a server component: it reads its own translations and the
+// clinic's clock rather than taking ten strings as props. Both of those are
+// request-scoped lookups, so the test supplies them and then renders the
+// resolved element.
+vi.mock("next-intl/server", () => ({
+  getTranslations: async (namespace: never) =>
+    createTranslator({ locale: "tr", messages: tr, namespace }),
+}));
+vi.mock("@/lib/format-context", () => ({
+  getFormatContext: async () => ({ locale: "tr", timeZone: "Europe/Istanbul" }),
+}));
+
+import {
+  MARK,
+  REMINDER_DELIVERY_STATES,
+  WEIGHT,
+  ReminderDeliveryLine,
+  type ReminderDeliveryLineProps,
+  type ReminderDeliveryStateName,
+} from "@/components/reminder-delivery-line";
+
+const AT = new Date("2026-09-30T06:00:00Z");
+
+// One sample per state, and the compiler is the thing that keeps this
+// complete: `Record` over the state names means a new state added to the
+// component leaves this map failing to typecheck rather than leaving a
+// branch untested.
+const SAMPLE: Record<ReminderDeliveryStateName, ReminderDeliveryLineProps> = {
+  scheduled: { state: "scheduled", sendAt: AT, channel: "SMS" },
+  dueNow: { state: "dueNow", channel: "SMS" },
+  sent: { state: "sent", at: AT, channel: "SMS" },
+  delivered: { state: "delivered", at: AT, channel: "SMS" },
+  awaitingReport: { state: "awaitingReport", at: AT, channel: "SMS" },
+  undelivered: { state: "undelivered", at: AT, channel: "SMS" },
+  reportExpired: { state: "reportExpired", at: AT, channel: "SMS" },
+  failedRetrying: { state: "failedRetrying", at: AT, attempts: 1 },
+  failedExhausted: { state: "failedExhausted", attempts: 3 },
+  failedClinic: { state: "failedClinic", at: AT },
+  optedOut: { state: "optedOut" },
+  neverAsked: { state: "neverAsked" },
+  noPhone: { state: "noPhone" },
+  notConfigured: { state: "notConfigured", channel: "SMS" },
+  petSilenced: { state: "petSilenced" },
+  duplicateSuppressed: {
+    state: "duplicateSuppressed",
+    at: AT,
+    channel: "SMS",
+  },
+};
+
+const props = (state: ReminderDeliveryStateName) => SAMPLE[state];
+
+/**
+ * Every state says something, and no two of them say the same thing.
+ *
+ * This is the whole point of the row: `PENDING` used to mean both "goes out
+ * tomorrow morning" and "will never go out, because the clinic's
+ * notification switch is off". If two states here collapse into one
+ * sentence, that ambiguity is back and nothing else in the suite notices —
+ * the page still renders, the types still check, and a vet still cannot
+ * tell the two apart.
+ *
+ * Walking `REMINDER_DELIVERY_STATES` rather than listing the ten is what
+ * makes it hold for the eleventh: a state added without a sentence renders
+ * an empty line, and an empty line is the failure this catches.
+ */
+describe("the delivery sentence", () => {
+  it("gives every state its own non-empty sentence", async () => {
+    const seen = new Map<string, string>();
+    for (const state of REMINDER_DELIVERY_STATES) {
+      const { container, unmount } = render(
+        await ReminderDeliveryLine(props(state)),
+      );
+      const text = container.textContent?.trim() ?? "";
+      expect(text, `${state} renders nothing`).not.toBe("");
+      const twin = [...seen.entries()].find(([, t]) => t === text);
+      expect(twin?.[0], `${state} reads the same as ${twin?.[0]}`).toBeUndefined();
+      seen.set(state, text);
+      unmount();
+    }
+  });
+});
+
+/**
+ * `null` and `false` are not the same answer and must not become the same
+ * sentence. The column's own comment says so — "nobody has asked yet" /
+ * "agreed" / "refused", and both sides of it have to keep them apart — and
+ * until now every reader of the column collapsed them.
+ *
+ * The vet's job differs, which is the whole reason it matters: a client who
+ * refused is a client to leave alone, and a client nobody asked is a phone
+ * call. "If I knew, I would pick up the phone."
+ */
+describe("consent has three values, not two", () => {
+  it("tells a refusal apart from a question never asked", async () => {
+    const refused = render(await ReminderDeliveryLine(props("optedOut")));
+    expect(refused.container.textContent).toMatch(/onayı vermemiş/);
+    refused.unmount();
+
+    render(await ReminderDeliveryLine(props("neverAsked")));
+    expect(screen.getByText(/hiç sorulmamış/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * The row never prints what the provider said.
+ *
+ * `MessageLog.error` holds raw transport text, and Netgsm's catalogue reads
+ * like "30 - Hatalı kullanıcı adı". The reviewing vet's rule was "long is
+ * fine, riddles are not", which also rules out our own first attempt at a
+ * short phrase: "given up on" only raises the question of who gave up.
+ */
+describe("a failure explains itself in plain words", () => {
+  it("says what was tried and what happens next while attempts remain", async () => {
+    render(await ReminderDeliveryLine(props("failedRetrying")));
+    expect(screen.getByText(/Tekrar denenecek/)).toBeInTheDocument();
+  });
+
+  // A row that had only counted its tries looked the same as one still
+  // waiting, with a different number on it -- pm found exactly that on the
+  // served build. Saying the automatic sending has stopped is the part
+  // that distinguishes them.
+  it("says the attempts are spent, and that a person can still send it", async () => {
+    render(await ReminderDeliveryLine(props("failedExhausted")));
+    const text = screen.getByText(/otomatik gönderim durdu/);
+    expect(text).toBeInTheDocument();
+    expect(text.textContent).toMatch(/Elle gönderebilirsiniz/);
+  });
+
+  // A wrong sender title fails every message the clinic sends. Printing its
+  // reason on each row turns one setting into forty rows of the same riddle
+  // and sends the vet off to phone forty owners about something no owner
+  // did. The row reports the fact; the banner above carries the reason once.
+  it("keeps a clinic-wide reason off the row", async () => {
+    render(await ReminderDeliveryLine(props("failedClinic")));
+    expect(screen.getByText(/Gönderilemedi/)).toBeInTheDocument();
+    expect(screen.queryByText(/otomatik gönderim durdu/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * `SENT` means the provider accepted the message. It does not mean the owner
+ * received it, and we have no delivery report that could say so.
+ *
+ * Written as a test and not only as a comment because the breach will not be
+ * in the sentence anyone writes deliberately — it will be in somebody
+ * changing a string six months from now because it "reads better". When
+ * `deliveredAt` exists, "Ulaştı" is born as a second and separate word and
+ * this test is amended on purpose rather than tripped over.
+ *
+ * A word list cannot tell a claim from its denial, and this fired on
+ * "it reached nobody" — a sentence that says the opposite of what the
+ * rule forbids. The test was kept and the sentence reworded, not the
+ * other way round: a narrow guard that occasionally asks you to pick a
+ * different word is worth keeping, and one widened until it accepts
+ * negations is a guard nobody can reason about (TEAM.md #30e). The rule
+ * it enforces is therefore the strict one — these words do not appear
+ * here at all, in any grammatical direction.
+ *
+ * WHAT IT DOES NOT CHECK (#30c): only `reminder.delivery`. The same claim
+ * written into a badge label, a banner or the appointment history would
+ * pass.
+ */
+describe("sent is not delivered, and silence is not failure", () => {
+  const delivery = (m: typeof tr | typeof en) =>
+    m.reminder.delivery as unknown as Record<string, string>;
+
+  /**
+   * "Arrived" may be said in exactly one state, and only now that there
+   * is a report behind it. This word was deliberately withheld for
+   * months so that it would mean something on the day it appeared.
+   */
+  it.each([
+    ["tr", tr, /ulaştı/i],
+    ["en", en, /\bdelivered\b/i],
+  ] as const)("claims arrival in %s only where a report says so", (loc, m, word) => {
+    for (const [key, value] of Object.entries(delivery(m))) {
+      if (key === "delivered") continue;
+      expect(value, `${loc}.${key} claims an arrival it cannot show`).not.toMatch(word);
+    }
+    expect(delivery(m).delivered).toMatch(word);
+  });
+
+  /**
+   * And the rule runs backwards too, which is the half that is easy to
+   * lose. `reportExpired` means we stopped hearing, not that it failed;
+   * borrowing "did not arrive" there would claim a failure we cannot
+   * demonstrate, which is the same sin as claiming a success we cannot
+   * demonstrate. Without this the two states fold back together through
+   * the wording while the code still has them apart.
+   */
+  it.each([
+    ["tr", tr, /ulaşmadı/i],
+    ["en", en, /not received|undelivered/i],
+  ] as const)("claims failure in %s only where a report says so", (loc, m, word) => {
+    for (const [key, value] of Object.entries(delivery(m))) {
+      if (key === "undelivered") continue;
+      expect(value, `${loc}.${key} claims a failure it cannot show`).not.toMatch(word);
+    }
+    expect(delivery(m).undelivered).toMatch(word);
+  });
+
+  // Banned outright, in both languages and every state: these read as
+  // either "we sent it" or "they got it", and a word that can mean both
+  // is the one word this distinction cannot afford.
+  //
+  // This fired once on "the number could not be reached" -- a phrase
+  // about the NUMBER, not about delivery, and unambiguous to any
+  // reader. The sentence was reworded to "unreachable" and the guard
+  // kept, the same call as the last time one of these tripped on a
+  // sentence of ours: a narrow guard that occasionally asks for a
+  // different word is worth keeping, and one widened until it can tell
+  // context is a guard nobody can reason about.
+  it.each([
+    ["tr", tr, /iletildi|bildirildi/i],
+    ["en", en, /\breceived by\b|\breached\b/i],
+  ] as const)("never uses a word that reads both ways in %s", (loc, m, word) => {
+    for (const [key, value] of Object.entries(delivery(m))) {
+      expect(value, `${loc}.${key} is ambiguous between sent and arrived`).not.toMatch(word);
+    }
+  });
+});
+
+/**
+ * Every sentence fits two rendered lines in the row, and the bound is 80
+ * characters because that is what was MEASURED — not what was calculated.
+ *
+ * This replaces a derivation of mine that was wrong in both of its inputs.
+ * I had reasoned: 390px viewport, minus the row's `p-4`, leaves 358px, and
+ * at `text-xs` that is about 59 characters, so two lines is 118. pm put
+ * real Turkish strings into the real element at 390px and measured the
+ * container at 260px — the action cluster beside it takes the rest — with
+ * 41 characters the widest that stays on one line, 80 the widest that
+ * stays on two, and 82 already spilling onto a third. My own
+ * `failedRetrying` sentence was 96 characters and rendered on three lines
+ * on the served build.
+ *
+ * So the number here is pm's, arrived at by resizing a browser, and the
+ * arithmetic that produced 118 is not repeated anywhere. A bound derived
+ * from an unverified premise is a guess wearing a calculation's clothes:
+ * it looked rigorous, it passed its own test, and it was wrong by 38
+ * characters in the permissive direction.
+ *
+ * Measured on the *rendered* sentence rather than the stored string — the
+ * stored one counts ICU syntax nobody ever sees. The two link labels are
+ * excluded: they are appended to a sentence, not sentences themselves.
+ *
+ * THE NUMBER BELONGS TO ONE CONTAINER AND DOES NOT TRAVEL. 80 is the
+ * delivery line inside a reminder row, which is 260px wide at 390px.
+ * pm's own check of the same threshold elsewhere: 80 characters in the
+ * form's 194px field column runs to FIVE lines. Carrying this number to
+ * another surface would repeat, in a new place, exactly the mistake that
+ * produced 118 here.
+ */
+describe("longest translation, measured", () => {
+  const rendered = (locale: "tr" | "en", messages: typeof tr | typeof en) => {
+    const t = createTranslator({
+      locale,
+      messages,
+      namespace: "reminder.delivery",
+    }) as unknown as (key: string, values: Record<string, unknown>) => string;
+    const values = { at: "30 Eyl 2026 09:00", channel: "WhatsApp", attempts: 3 };
+    return Object.keys(messages.reminder.delivery)
+      .filter((k) => k !== "openSettings" && k !== "askAdmin")
+      .map((k) => t(k, values).length);
+  };
+
+  /**
+   * Test mode gets a THIRD line, and a bound of its own rather than an
+   * exemption.
+   *
+   * The 80 is the vet's row at 390px. A test-mode row is a diagnostic
+   * surface: it exists on a ground with no provider account, it is read
+   * by whoever is checking the five delivery states, and no clinic sees
+   * it. Truncating an honest qualifier to fit a constraint that does
+   * not apply would be trading correctness for a budget borrowed from
+   * somewhere else — which is the mistake that produced 118 in the
+   * first place, run the other way.
+   *
+   * So the note may spill to a third line and no further. Written down
+   * so a three-line row in test mode is not reported as overflow.
+   */
+  it("allows the test-mode note a third line, and no more", () => {
+    const withNote = (locale: "tr" | "en", m: typeof tr | typeof en) => {
+      const note = m.reminder.delivery.testModeNote;
+      return Math.max(...rendered(locale, m)) + 1 + note.length;
+    };
+    expect(withNote("tr", tr)).toBeLessThanOrEqual(118);
+    expect(withNote("en", en)).toBeLessThanOrEqual(118);
+  });
+
+  it("keeps both languages inside two rendered lines at 390px", () => {
+    expect(Math.max(...rendered("tr", tr))).toBeLessThanOrEqual(80);
+    expect(Math.max(...rendered("en", en))).toBeLessThanOrEqual(80);
+  });
+
+  // Which language runs longer is measured per surface, not assumed
+  // (TEAM.md #32b), and asserted rather than written in a comment and left
+  // to rot (#30g). English is still the longer one here, now by four
+  // characters rather than twelve; whoever overtakes it in Turkish fails
+  // this and updates the claim in the same commit.
+  it("finds English the longer language on this surface", () => {
+    expect(Math.max(...rendered("en", en))).toBeGreaterThan(
+      Math.max(...rendered("tr", tr)),
+    );
+  });
+});
+
+/**
+ * Which tier a state sits in is a product decision, not a style choice,
+ * so it is asserted rather than left to a lookup table nothing reads.
+ *
+ * Both of these were argued before they were settled, and both were
+ * settled against an earlier position of mine — which is exactly why
+ * they need holding down. A comment recording a decision survives until
+ * somebody disagrees with it in six months; a test makes them say so.
+ */
+describe("which states the list shouts about", () => {
+  // A message that went and did not arrive is the same job as a client
+  // with no number: pick up the phone. So it reads at the same weight,
+  // whatever its history.
+  it("puts a message that did not arrive with the ones nobody can reach", () => {
+    expect(WEIGHT.undelivered).toBe(WEIGHT.noPhone);
+    expect(WEIGHT.undelivered).not.toBe(WEIGHT.delivered);
+  });
+
+  /**
+   * Not knowing is neither success nor fault, and the warning tier is
+   * how this list says "somebody could not be reached" — a claim this
+   * state cannot support, for the same reason its sentence may not
+   * borrow the word. I had it in the warning tier; value overruled it
+   * with that argument on the table.
+   *
+   * THE TRIGGER THAT WOULD CHANGE THIS, and which way it points,
+   * because the answer is not symmetric and the measurement has not
+   * been taken yet. Measure what share of messages on a reporting
+   * channel end in `EXPIRED`:
+   *
+   *   RARE  → raise it to the warning tier. A rare "we do not know" is
+   *           a genuine anomaly and worth a look, which was the
+   *           argument that lost here only because nobody could say
+   *           whether it is rare.
+   *   OFTEN → leave it neutral. A frequent "we do not know" is
+   *           background noise, and a warning on it turns the list
+   *           into a wall.
+   *
+   * Neutral is the right place to stand while waiting, because an
+   * unwarranted warning breaks the instrument permanently and a
+   * missing one costs a single uncertain row.
+   *
+   * The threshold is behavioural, not a percentage nobody has earned:
+   * with `EXPIRED` in the warning tier, is the morning list still
+   * something one vet could phone through one by one?
+   *
+   * And frequency is a PROXY. What we actually want to know is how
+   * often `EXPIRED` really means it did not arrive, and only somebody
+   * ringing the owners can tell us that. We are measuring frequency
+   * because it is what we can reach (value).
+   */
+  // The mark names the CLASS of outcome, so two classes may not share
+  // one. A suppressed row said "already sent" while wearing the mark
+  // that means "nothing will reach this owner" -- the picture and the
+  // sentence pulling in opposite directions, which pm saw before
+  // either of us did.
+  it("does not mark a result as an obstacle", () => {
+    expect(MARK.duplicateSuppressed).not.toBe(MARK.noPhone);
+    expect(MARK.duplicateSuppressed).not.toBe(MARK.optedOut);
+  });
+
+  it("keeps unknowing out of the warning tier", () => {
+    expect(WEIGHT.reportExpired).not.toBe(WEIGHT.undelivered);
+    expect(WEIGHT.reportExpired).toBe(WEIGHT.sent);
+  });
+});
+
+/**
+ * The five accepted states, drawn, with the words a vet will read.
+ *
+ * value asked for this by name and gave the reason: the whole promise of
+ * the package is that the day a real account is connected, nothing has
+ * to change. If the "arrived" row is first seen in production, every
+ * wording or alignment problem in it is found on a real customer's
+ * screen — and test mode deliberately cannot show these five, because
+ * showing them there would be a lie (`logTransport` answers with a
+ * synthetic report).
+ *
+ * So the screen does not lie and the test rig does, which is the right
+ * way round. Synthetic props, real sentences.
+ */
+describe("the five things that can have happened to an accepted message", () => {
+  const drawn = async (state: ReminderDeliveryStateName) => {
+    const { container, unmount } = render(await ReminderDeliveryLine(props(state)));
+    const text = container.textContent ?? "";
+    unmount();
+    return text;
+  };
+
+  // Criterion 1: it says arrived, AND it carries the time it arrived.
+  // The date half is the part a wording test would miss.
+  it("says a message arrived, and when", async () => {
+    const text = await drawn("delivered");
+    expect(text).toMatch(/Ulaştı/);
+    expect(text).toMatch(/30 Eyl 2026/);
+  });
+
+  it("says a wait is a wait, and does not call it an arrival", async () => {
+    const text = await drawn("awaitingReport");
+    expect(text).toMatch(/bekleniyor/);
+    expect(text).not.toMatch(/Ulaştı/);
+  });
+
+  /**
+   * It says the message did not arrive and stops there.
+   *
+   * It used to add "the number is unreachable", which is a claim about
+   * a CAUSE and is true for one of the codes that land in this bucket.
+   * pm read the provider's table: `3` really is a bad number, but `13`
+   * is our own duplicate filter catching us, `14` is spent credit,
+   * `15` is a blacklist, `16`/`17` are consent registry rules -- and in
+   * every one of those the number is fine. A vet reading that sentence
+   * phones an owner to check a number that was never the problem, and
+   * a list that sends you to the wrong job once does not get believed
+   * again.
+   *
+   * Naming the real cause is worth doing and needs the code mapped to
+   * words; two of the codes are still unclassified. Until then the row
+   * says what is known.
+   */
+  it("says a message did not arrive, and invents no reason for it", async () => {
+    const text = await drawn("undelivered");
+    expect(text).toMatch(/Ulaşmadı/);
+    expect(text).not.toMatch(/numara|erişil/i);
+  });
+
+  // Neither outcome: we stopped hearing. Both words are refused here,
+  // which is the pair this state exists to keep apart.
+  it("reports the silence without calling it either outcome", async () => {
+    const text = await drawn("reportExpired");
+    expect(text).toMatch(/Teslim raporu gelmedi/);
+    expect(text).not.toMatch(/Ulaştı|Ulaşmadı/);
+  });
+
+  // Criterion 5: on a channel with no report source this is everything
+  // we will ever know, so it promises no wait. A WhatsApp clinic would
+  // otherwise read "awaiting the report" every day, forever.
+  it("stops at 'sent' where no report is ever coming", async () => {
+    const text = await drawn("sent");
+    expect(text).toMatch(/Gönderildi/);
+    expect(text).not.toMatch(/bekleniyor/);
+  });
+});
+
+/**
+ * In test mode the row still says which of the five happened, and says
+ * what kind of provider answered.
+ *
+ * My first answer collapsed all five into one test-mode sentence,
+ * because `logTransport` replies with a synthetic delivery report and a
+ * row could reach "arrived" with nothing having left the app. dev
+ * pointed out what that cost: development is the only place these five
+ * sentences can be seen, since there is no provider account in
+ * production, so the fix removed the only measurement of the thing it
+ * was protecting. Silence is not cheaper than a lie.
+ *
+ * Both facts, then. The note comes FIRST and that is the load-bearing
+ * part: it cannot wrap away from the claim it qualifies, and nobody
+ * reading left to right meets "arrived" before meeting the thing that
+ * makes it true.
+ */
+describe("test mode qualifies the claim instead of replacing it", () => {
+  const ACCEPTED = [
+    "delivered",
+    "awaitingReport",
+    "undelivered",
+    "reportExpired",
+    "sent",
+  ] as const;
+
+  it("keeps each of the five distinguishable, and marks all of them", async () => {
+    const seen = new Set<string>();
+    for (const state of ACCEPTED) {
+      const { container, unmount } = render(
+        await ReminderDeliveryLine({ ...SAMPLE[state], testMode: true } as ReminderDeliveryLineProps),
+      );
+      const text = container.textContent ?? "";
+      expect(text, `${state} loses its test-mode note`).toMatch(
+        new RegExp(tr.reminder.delivery.testModeNote),
+      );
+      seen.add(text);
+      unmount();
+    }
+    expect(seen.size, "two states read alike in test mode").toBe(ACCEPTED.length);
+  });
+
+  // The whole point of the ordering. A qualifier that follows the claim
+  // can end up on the next line, or be read after it.
+  it("puts the note before the claim it qualifies", async () => {
+    const { container } = render(
+      await ReminderDeliveryLine({ ...SAMPLE.delivered, testMode: true } as ReminderDeliveryLineProps),
+    );
+    const text = container.textContent ?? "";
+    expect(text.indexOf(tr.reminder.delivery.testModeNote)).toBeLessThan(
+      text.indexOf("Ulaştı"),
+    );
+  });
+});

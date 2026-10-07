@@ -4,6 +4,7 @@ import {
   optionalText,
   requiredDateTime,
   requiredEnum,
+  requiredId,
 } from "@/lib/forms";
 
 export const VISIT_TYPES = [
@@ -29,8 +30,11 @@ export const APPOINTMENT_STATUSES = [
   "NO_SHOW",
 ] as const;
 
+/** An appointment in one of these did not happen, so no visit answers it. */
+export const NO_VISIT_STATUSES = ["CANCELLED", "NO_SHOW"] as const;
+
 export const appointmentSchema = z.object({
-  petId: z.string().min(1, "Hasta seç."),
+  petId: requiredId("error.entity.pet"),
   vetId: optionalText(40),
   startsAt: requiredDateTime,
   durationMinutes: optionalInt({ min: 5, max: 480 }),

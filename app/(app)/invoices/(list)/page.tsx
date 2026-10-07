@@ -1,0 +1,380 @@
+import * as React from "react";
+import Link from "next/link";
+import { Plus, Receipt } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { getFormatContext } from "@/lib/format-context";
+import { requireSession } from "@/lib/session";
+import { can } from "@/lib/permissions";
+import { cashByMethod, invoiceTotals, listInvoicesPage } from "@/modules/invoices/queries";
+import {
+  INVOICE_STATUSES,
+  UNPAID_FILTER,
+  invoiceStatusesForFilter,
+} from "@/modules/invoices/schema";
+import { countClients, getClientLabel } from "@/modules/clients/queries";
+import { MissingLink } from "@/components/missing-link";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Pagination } from "@/components/pagination";
+import { FilterTabs } from "@/components/filter-tabs";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { DataTable } from "@/components/ui/data-table";
+import { buttonVariants } from "@/components/ui/button";
+import { dayKey, dayRange, formatDate, formatMoney, isDayKey, shiftDayKey } from "@/lib/format";
+import { RangeFilterForm } from "@/components/filters/range-filter-form";
+import { ownerLabel } from "@/lib/pet-label";
+
+export default async function InvoicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    page?: string;
+    status?: string;
+    clientId?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+  }>;
+}) {
+  const fmt = await getFormatContext();
+  const session = await requireSession();
+
+  // A button the server will refuse is worse than no button: the click
+  // looks like it did nothing. The permission is the same one the service
+  // enforces, read from one place (`lib/permissions.ts`).
+  const canCreate = can(session.user.role, "invoices.write");
+  const {
+    page: pageParam,
+    status: statusParam,
+    clientId,
+    q: qParam,
+    from: fromParam,
+    to: toParam,
+  } = await searchParams;
+  const q = qParam?.trim() || undefined;
+  // The clinic's days, not UTC's: "1 Ekim" starts at 00:00 in Istanbul.
+  const fromKey = isDayKey(fromParam) ? fromParam : undefined;
+  const toKey = isDayKey(toParam) ? toParam : undefined;
+  const from = fromKey ? (dayRange(fromKey, fmt.timeZone)?.from ?? null) : null;
+  const toEnd = toKey ? dayRange(toKey, fmt.timeZone) : null;
+  const to = toEnd ? new Date(toEnd.to.getTime() + 1) : null;
+  const filterArgs = {
+    clinicId: session.user.clinicId,
+    clientId: clientId || null,
+    q: q ?? null,
+    from,
+    to,
+  };
+  const page = Math.max(1, Number(pageParam) || 1);
+  // `unpaid` is two statuses, SENT and PARTIAL: the dashboard's
+  // outstanding tile links here with it. A value that names nothing is
+  // dropped, so it neither selects a tab nor claims the list is filtered.
+  const statuses = invoiceStatusesForFilter(statusParam);
+  const status = statuses ? statusParam : undefined;
+  const [t, tCommon, tStatus, tClient, tMethod, result, clientName, totals, cash] = await Promise.all([
+    getTranslations("invoice"),
+    getTranslations("common"),
+    getTranslations("enum.invoiceStatus"),
+    getTranslations("client"),
+    getTranslations("enum.paymentMethod"),
+    listInvoicesPage({ ...filterArgs, statuses, page }),
+    // Arrived from an owner's "Toplam borç" line: their name, so the list
+    // says whose invoices these are and how to see everyone's again.
+    clientId ? getClientLabel(session.user.clinicId, clientId) : undefined,
+    // The figures for the whole filter, not the page on screen (B10).
+    invoiceTotals({ ...filterArgs, statuses }),
+    // The till for the chosen days, by method: asked only with a range,
+    // because "all the cash ever taken" answers no month-end question.
+    from || to ? cashByMethod(session.user.clinicId, from, to) : Promise.resolve(null),
+  ]);
+  const clientFilter = clientName ? clientId : undefined;
+  const filterParams = { status, clientId: clientFilter, q, from: fromKey, to: toKey };
+  const exportHref = (kind: "invoices" | "payments") => {
+    const qs = new URLSearchParams({ kind });
+    for (const [key, value] of Object.entries(filterParams)) if (value) qs.set(key, value);
+    return `/api/invoices/export?${qs.toString()}`;
+  };
+  // "Bu ay" and "Geçen ay", in the clinic's calendar: the two ranges a
+  // month-end is about.
+  const todayKey = dayKey(new Date(), fmt.timeZone);
+  const monthStart = `${todayKey.slice(0, 7)}-01`;
+  const lastMonthEnd = shiftDayKey(monthStart, -1);
+  const lastMonthStart = `${lastMonthEnd.slice(0, 7)}-01`;
+  const hrefWith = (over: Partial<typeof filterParams>) => {
+    const qs = new URLSearchParams();
+    for (const [key, value] of Object.entries({ ...filterParams, ...over })) if (value) qs.set(key, value);
+    const query = qs.toString();
+    return query ? `/invoices?${query}` : "/invoices";
+  };
+  const rangeHref = (a: string, b: string) => hrefWith({ from: a, to: b });
+  const filtered = Boolean(status || clientFilter || q || fromKey || toKey);
+
+  // An invoice is raised against a client and nothing more: the line
+  // items may name an animal, but only when the bill came from a visit,
+  // and the field is optional (`components/forms/invoice-form.tsx`). So
+  // this screen's precondition is one link, not two -- sending a vet to
+  // `/pets/new` here would be a detour on the way to a form that never
+  // asked for an animal. Asked only on an unfiltered empty list.
+  const needsClient =
+    result.items.length === 0 &&
+    !status &&
+    (await countClients(session.user.clinicId)) === 0;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title={t("title")} description={t("subtitle")}>
+        {/* And not while the body is saying the link above this one is
+            missing. The header's button survived the first pass and put
+            two primary buttons on one screen, one of them the dead end
+            the other was put there to replace. */}
+        {canCreate && !needsClient && (
+          <Link href="/invoices/new" className={buttonVariants()}>
+            <Plus />
+            {t("new")}
+          </Link>
+        )}
+      </PageHeader>
+
+      <FilterTabs
+        basePath="/invoices"
+        param="status"
+        label={t("status")}
+        active={status}
+        params={{ clientId: clientFilter, q, from: fromKey, to: toKey }}
+        allLabel={tCommon("all")}
+        // First after "all": "who has not paid?" is the question this
+        // list is opened with at the end of the day.
+        options={[
+          { value: UNPAID_FILTER, label: t("unpaid") },
+          ...INVOICE_STATUSES.map((s) => ({
+            value: s,
+            label: tStatus(s),
+          })),
+        ]}
+      />
+
+      <div className="flex flex-col gap-3">
+        <RangeFilterForm
+          action="/invoices"
+          labels={{ from: t("filterFrom"), to: t("filterTo"), apply: t("filterApply"), clear: tCommon("clearFilter") }}
+          from={fromKey}
+          to={toKey}
+          search={{ name: "q", label: t("filterClient"), value: q }}
+          hidden={{ status, clientId: clientFilter }}
+          clearHref="/invoices"
+          showClear={Boolean(q || fromKey || toKey)}
+        />
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <Link href={rangeHref(monthStart, todayKey)} className="font-medium text-primary underline-offset-2 hover:underline">
+            {t("rangeThisMonth")}
+          </Link>
+          <Link
+            href={rangeHref(lastMonthStart, lastMonthEnd)}
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
+            {t("rangeLastMonth")}
+          </Link>
+          <span className="text-muted-foreground" aria-hidden="true">
+            ·
+          </span>
+          <a href={exportHref("invoices")} className="font-medium text-primary underline-offset-2 hover:underline">
+            {t("exportInvoices")}
+          </a>
+          <a href={exportHref("payments")} className="font-medium text-primary underline-offset-2 hover:underline">
+            {t("exportPayments")}
+          </a>
+        </p>
+      </div>
+
+      {/* Kesilen / tahsil edilen / kalan, for exactly what the list shows. */}
+      {totals.length > 0 && (
+        <dl className="grid gap-3 sm:grid-cols-3">
+          {totals.map((row) => (
+            <React.Fragment key={row.currency}>
+              <div className="rounded-surface border border-border bg-card p-4">
+                <dt className="text-sm text-muted-foreground">{t("totalsIssued")}</dt>
+                <dd className="text-xl font-semibold tabular-nums">{formatMoney(fmt, row.issuedCents, row.currency)}</dd>
+              </div>
+              <div className="rounded-surface border border-border bg-card p-4">
+                <dt className="text-sm text-muted-foreground">{t("totalsCollected")}</dt>
+                <dd className="text-xl font-semibold tabular-nums">{formatMoney(fmt, row.collectedCents, row.currency)}</dd>
+              </div>
+              <div className="rounded-surface border border-border bg-card p-4">
+                <dt className="text-sm text-muted-foreground">{t("totalsRemaining")}</dt>
+                <dd className="text-xl font-semibold tabular-nums">{formatMoney(fmt, row.remainingCents, row.currency)}</dd>
+              </div>
+            </React.Fragment>
+          ))}
+        </dl>
+      )}
+
+      {/* The till for the chosen days, by method (job #16). By payment
+          date, so a March invoice paid in April is April's cash. */}
+      {cash && (
+        <section className="flex flex-col gap-2 rounded-surface border border-border bg-card p-4">
+          <h2 className="text-sm font-semibold text-foreground">{t("cashTitle")}</h2>
+          {cash.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("cashNone")}</p>
+          ) : (
+            <ul className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+              {cash.map((c) => (
+                <li key={`${c.currency}-${c.method}`} className="tabular-nums">
+                  <span className="text-muted-foreground">{tMethod(c.method as never)}</span>{" "}
+                  <span className="font-medium">{formatMoney(fmt, c.cents, c.currency)}</span>{" "}
+                  <span className="text-xs text-muted-foreground">({t("cashCount", { count: c.count })})</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {clientName && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-foreground">
+          <span>{t("filteredClient", { name: clientName })}</span>
+          <Link
+            href={hrefWith({ clientId: undefined })}
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
+            {t("filteredClientClear")}
+          </Link>
+        </p>
+      )}
+
+      {result.items.length === 0 ? (
+        // See the same branch in /visits: "no unpaid invoices" and "no
+        // invoices at all" are opposite pieces of news (TEAM.md #19).
+        filtered ? (
+          <EmptyState
+            icon={Receipt}
+            title={tCommon("emptyFiltered")}
+            description={tCommon("emptyFilteredHint")}
+            action={
+              <Link
+                href="/invoices"
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                {tCommon("clearFilter")}
+              </Link>
+            }
+          />
+        ) : needsClient ? (
+          <MissingLink
+            need="client"
+            next="/invoices"
+            title={t("empty")}
+            description={t("emptyHint")}
+          />
+        ) : (
+          <EmptyState
+            icon={Receipt}
+            title={t("empty")}
+            // The same sentence the gated version above shows, because
+            // it is one fact about the screen and not two: an invoice
+            // is issued to a client, and this is where they collect.
+            description={t("emptyHint")}
+            action={
+              canCreate ? (
+                <Link href="/invoices/new" className={buttonVariants()}>
+                  <Plus />
+                  {t("new")}
+                </Link>
+              ) : undefined
+            }
+          />
+        )
+      ) : (
+        <>
+          <DataTable
+            rows={result.items}
+            rowKey={(inv) => inv.id}
+            caption={t("title")}
+            // On a phone the total and the status were the two columns
+            // past the edge of the screen. Stacked, the total shares the
+            // first line with the number and the status closes the
+            // second, both at the end edge.
+            narrow="stack"
+            columns={[
+              {
+                key: "number",
+                header: t("number"),
+                cellClassName: "font-medium",
+                cell: (inv) => (
+                  <Link href={`/invoices/${inv.id}`} className="hover:underline">
+                    #{inv.number}
+                  </Link>
+                ),
+              },
+              {
+                key: "client",
+                // Was the hardcoded English string "Client".
+                header: tClient("one"),
+                cellClassName: "text-muted-foreground",
+                cell: (inv) => ownerLabel(inv.client),
+              },
+              {
+                key: "issuedAt",
+                header: t("issuedAt"),
+                cellClassName: "text-muted-foreground",
+                cell: (inv) => formatDate(fmt, inv.issuedAt),
+              },
+              {
+                key: "total",
+                header: t("total"),
+                numeric: true,
+                cellClassName: "font-medium",
+                cell: (inv) => formatMoney(fmt, inv.totalCents, inv.currency),
+              },
+              {
+                key: "remaining",
+                header: t("remaining"),
+                numeric: true,
+                // Stacked, the total already holds the first line's end
+                // and the headers are off-screen, so a second bare amount
+                // could be either. It names itself there, and only when
+                // something is owed: a paid row's zero is noise on a phone.
+                stack: "meta",
+                cell: (inv) =>
+                  inv.remainingCents ? (
+                    <span className="font-medium">
+                      <span className="hidden @max-lg:inline">
+                        {t("remaining")}{" "}
+                      </span>
+                      {formatMoney(fmt, inv.remainingCents, inv.currency)}
+                    </span>
+                  ) : (
+                    // Null is a voided invoice: it owes nothing, but it
+                    // was never settled either, so it is not a zero.
+                    <span className="text-muted-foreground @max-lg:hidden">
+                      {inv.remainingCents === null
+                        ? "-"
+                        : formatMoney(fmt, 0, inv.currency)}
+                    </span>
+                  ),
+              },
+              {
+                key: "status",
+                header: t("status"),
+                stack: "meta-end",
+                cell: (inv) => (
+                  <StatusBadge
+                    kind="invoice"
+                    status={inv.status}
+                    label={tStatus(inv.status as never)}
+                  />
+                ),
+              },
+            ]}
+          />
+          <Pagination
+            basePath="/invoices"
+            total={result.total}
+            page={result.page}
+            perPage={result.perPage}
+            params={filterParams}
+          />
+        </>
+      )}
+    </div>
+  );
+}

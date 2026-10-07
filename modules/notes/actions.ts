@@ -11,9 +11,7 @@ export const createNoteAction = action(
     const parsed = parse(noteSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
-    const note = await createNote(parsed.data, ctx);
-    if (note.petId) revalidatePath(`/pets/${note.petId}`);
-    if (note.clientId) revalidatePath(`/clients/${note.clientId}`);
+    await createNote(parsed.data, ctx);
     return { success: true };
   },
 );

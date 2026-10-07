@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { NOTE_KINDS } from "@/modules/notes/schema";
 import { createNoteAction } from "@/modules/notes/actions";
+import { ActionForm, useActionForm } from "@/components/forms/action-form";
 
 interface Props {
   petId?: string | null;
@@ -19,19 +20,26 @@ export function NoteForm({ petId, clientId }: Props) {
   const t = useTranslations("note");
   const tKind = useTranslations("enum.noteKind");
   const tCommon = useTranslations("common");
-  const [state, formAction] = useActionState(createNoteAction, {});
-  const formRef = useRef<HTMLFormElement>(null);
+  const form = useActionForm(createNoteAction, {});
+  const { state, reset } = form;
 
+  const savedMessage = tCommon("saved");
+
+  // The message is resolved BEFORE the effect and the effect depends on
+  // the string, not on the translator. `useTranslations` hands back a
+  // new function identity on a re-render, so a dependency array holding
+  // it re-runs the effect for a render that changed nothing -- and the
+  // user gets a second toast for one save. A string is equal to itself.
   useEffect(() => {
     if (state.success) {
-      formRef.current?.reset();
-      toast.success(tCommon("saved"));
+      reset();
+      toast.success(savedMessage);
     }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, tCommon]);
+  }, [state.success, savedMessage, reset]);
 
   return (
-    <form action={formAction} ref={formRef} className="flex flex-col gap-3">
+    <ActionForm form={form} className="flex flex-col gap-3">
+
       {petId && <input type="hidden" name="petId" value={petId} />}
       {clientId && <input type="hidden" name="clientId" value={clientId} />}
 
@@ -54,6 +62,6 @@ export function NoteForm({ petId, clientId }: Props) {
       <SubmitButton size="sm" className="w-fit">
         {t("create")}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

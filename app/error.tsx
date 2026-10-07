@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import * as Sentry from "@sentry/nextjs";
-import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/error-state";
 
+// The outermost boundary below the root layout. Everything inside `(app)` is
+// caught one level down by `app/(app)/error.tsx`, which keeps the navigation
+// shell; this one is what is left: the auth pages and the root layout's own
+// children.
 export default function AppError({
   error,
   reset,
@@ -12,22 +13,5 @@ export default function AppError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const t = useTranslations("error");
-
-  useEffect(() => {
-    Sentry.captureException(error, { tags: { boundary: "app.error" } });
-    console.error("app.error", { message: error.message, digest: error.digest });
-  }, [error]);
-
-  return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("generic")}</h1>
-      {error.digest && (
-        <p className="text-xs text-muted-foreground">ref: {error.digest}</p>
-      )}
-      <div className="flex gap-2">
-        <Button onClick={reset}>{t("tryAgain")}</Button>
-      </div>
-    </div>
-  );
+  return <ErrorState error={error} reset={reset} boundary="app.error" />;
 }

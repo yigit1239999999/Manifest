@@ -1,23 +1,26 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { action, type FormState } from "@/lib/action";
 import { invoiceSchema, paymentSchema } from "./schema";
-import { createInvoice, recordPayment, voidInvoice } from "./service";
+import { createInvoice, recordPayment, markInvoiceSent,
+  voidInvoice, voidPayment } from "./service";
 
 // Invoices use a custom parse because lines come in as repeated form fields.
-function parseInvoiceFormData(formData: FormData) {
+function parseInvoiceFormData(formData: FormData, locale: string) {
   const raw = {
     clientId: String(formData.get("clientId") ?? ""),
     number: String(formData.get("number") ?? ""),
     status: String(formData.get("status") ?? "DRAFT"),
     dueAt: String(formData.get("dueAt") ?? ""),
-    taxCents: String(formData.get("taxCents") ?? ""),
+    tax: String(formData.get("tax") ?? ""),
+    taxRate: formData.get("taxRate") == null ? undefined : String(formData.get("taxRate")),
     notes: String(formData.get("notes") ?? ""),
     lines: extractLines(formData),
   };
-  return invoiceSchema.safeParse(raw);
+  return invoiceSchema(locale).safeParse(raw);
 }
 
 function extractLines(formData: FormData) {
@@ -25,12 +28,21 @@ function extractLines(formData: FormData) {
   for (let i = 0; ; i++) {
     const description = formData.get(`lines[${i}].description`);
     if (description == null) break;
+    // A row left completely empty is a row nobody filled in, not an item
+    // to refuse the whole invoice over.
+    if (
+      String(description).trim() === "" &&
+      String(formData.get(`lines[${i}].unitPrice`) ?? "").trim() === ""
+    ) {
+      continue;
+    }
     lines.push({
       description: String(description),
       quantity: String(formData.get(`lines[${i}].quantity`) ?? "1"),
-      unitPriceCents: String(formData.get(`lines[${i}].unitPriceCents`) ?? "0"),
+      unitPrice: String(formData.get(`lines[${i}].unitPrice`) ?? ""),
       petId: String(formData.get(`lines[${i}].petId`) ?? ""),
       visitId: String(formData.get(`lines[${i}].visitId`) ?? ""),
+      kind: String(formData.get(`lines[${i}].kind`) ?? ""),
     });
   }
   return lines;
@@ -39,7 +51,7 @@ function extractLines(formData: FormData) {
 export const createInvoiceAction = action(
   "invoice.create",
   async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
-    const parsed = parseInvoiceFormData(formData);
+    const parsed = parseInvoiceFormData(formData, await getLocale());
     if (!parsed.success) {
       const fieldErrors: Record<string, string[]> = {};
       for (const issue of parsed.error.issues) {
@@ -60,9 +72,10 @@ export const createInvoiceAction = action(
 export const recordPaymentAction = action(
   "invoice.record_payment",
   async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
-    const parsed = paymentSchema.safeParse({
+    const locale = await getLocale();
+    const parsed = paymentSchema(locale).safeParse({
       invoiceId: String(formData.get("invoiceId") ?? ""),
-      amountCents: String(formData.get("amountCents") ?? ""),
+      amount: String(formData.get("amount") ?? ""),
       method: String(formData.get("method") ?? ""),
       reference: String(formData.get("reference") ?? ""),
       notes: String(formData.get("notes") ?? ""),
@@ -76,21 +89,31 @@ export const recordPaymentAction = action(
       return { fieldErrors };
     }
 
-    await recordPayment(parsed.data, ctx);
-    revalidatePath("/invoices");
-    revalidatePath(`/invoices/${parsed.data.invoiceId}`);
-    revalidatePath("/");
+    await recordPayment(parsed.data, ctx, locale);
     return { success: true };
+  },
+);
+
+export const markInvoiceSentAction = action(
+  "invoice.mark_sent",
+  async (ctx, id: string): Promise<void> => {
+    await markInvoiceSent(id, ctx);
   },
 );
 
 export const voidInvoiceAction = action(
   "invoice.void",
   async (ctx, id: string): Promise<void> => {
-    const { clientId } = await voidInvoice(id, ctx);
-    revalidatePath("/invoices");
-    revalidatePath(`/invoices/${id}`);
-    revalidatePath(`/clients/${clientId}`);
-    revalidatePath("/");
+    await voidInvoice(id, ctx);
+  },
+);
+
+// Returns its state instead of redirecting: the button that calls it
+// reports a refusal itself and loads the invoice again on success.
+export const voidPaymentAction = action(
+  "invoice.void_payment",
+  async (ctx, paymentId: string): Promise<FormState> => {
+    await voidPayment(paymentId, ctx);
+    return { success: true };
   },
 );

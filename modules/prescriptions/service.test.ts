@@ -35,6 +35,7 @@ const validInput = {
   status: "ACTIVE" as const,
   instructions: null,
   notes: null,
+  overrideReason: null,
 };
 
 beforeEach(() => {
@@ -69,6 +70,95 @@ describe("createPrescription", () => {
         refills: 0,
         prescribedById: "user-1",
       }),
+    });
+  });
+});
+
+describe("createPrescription: allergy check", () => {
+  const allergic = { id: "pet-1", alerts: "AMOKSİSİLİN ALERJİSİ" };
+  const augmentin = { ...validInput, medicationName: "Amoksisilin + Klavulanik asit" };
+
+  it("refuses a drug that matches the recorded allergy, naming both", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue(allergic as never);
+
+    const err = await createPrescription(augmentin, ctx).catch((e) => e);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.messageKey).toBe("error.allergyConflict");
+    expect(err.messageVars).toMatchObject({
+      allergy: "AMOKSİSİLİN ALERJİSİ",
+      drug: "Amoksisilin + Klavulanik asit",
+    });
+    expect(err.details.allergyConflict).toBeDefined();
+    expect(prisma.prescription.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses through the family, whatever the case", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      alerts: "penisilin alerjisi",
+    } as never);
+
+    const err = await createPrescription(
+      { ...validInput, medicationName: "AMPİSİLİN" },
+      ctx,
+    ).catch((e) => e);
+    expect(err.messageVars).toMatchObject({ family: "penicillin" });
+    expect(prisma.prescription.create).not.toHaveBeenCalled();
+  });
+
+  it("does not take a one-letter reason", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue(allergic as never);
+    await expect(
+      createPrescription({ ...augmentin, overrideReason: "  x " }, ctx),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.prescription.create).not.toHaveBeenCalled();
+  });
+
+  it("saves with a reason, keeps it on the row and audits it", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue(allergic as never);
+    vi.mocked(prisma.prescription.create).mockResolvedValue({
+      id: "rx-1",
+      medicationName: augmentin.medicationName,
+    } as never);
+
+    await createPrescription(
+      { ...augmentin, overrideReason: "Sahiple doğrulandı, eski kayıt hatalı" },
+      ctx,
+    );
+
+    expect(prisma.prescription.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        overrideReason: "Sahiple doğrulandı, eski kayıt hatalı",
+      }),
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        entityType: "Prescription",
+        metadata: {
+          allergyOverride: {
+            allergy: "AMOKSİSİLİN ALERJİSİ",
+            family: null,
+            reason: "Sahiple doğrulandı, eski kayıt hatalı",
+          },
+        },
+      }),
+    });
+  });
+
+  it("saves an unrelated drug without asking, and stores no reason", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue(allergic as never);
+    vi.mocked(prisma.prescription.create).mockResolvedValue({ id: "rx-2" } as never);
+
+    await createPrescription(
+      { ...validInput, medicationName: "Meloksikam", overrideReason: "gereksiz" },
+      ctx,
+    );
+
+    expect(prisma.prescription.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ overrideReason: null }),
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.not.objectContaining({ metadata: expect.anything() }),
     });
   });
 });

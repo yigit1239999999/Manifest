@@ -14,7 +14,7 @@ export const noteSchema = z.object({
   petId: optionalText(40),
   clientId: optionalText(40),
   kind: requiredEnum(NOTE_KINDS),
-  body: requiredText(1, 5000, "İçerik"),
+  body: requiredText(1, 5000, "note.body"),
   pinned: checkbox,
 });
 

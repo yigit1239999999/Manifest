@@ -103,7 +103,7 @@ function PageLink({
   ariaLabel?: string;
 }) {
   const className = cn(
-    "inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-xs font-medium transition-colors",
+    "inline-flex h-8 min-w-8 items-center justify-center rounded-control border px-2 text-xs font-medium transition-colors",
     active
       ? "border-primary bg-primary text-primary-foreground"
       : "border-border bg-card text-foreground hover:bg-muted",

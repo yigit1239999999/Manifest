@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PAGE_SIZES } from "@/lib/pagination";
 import type { Prisma } from "@/generated/prisma/client";
+import { NO_VISIT_STATUSES } from "./schema";
 
 export interface ListAppointmentsArgs {
   clinicId: string;
@@ -74,8 +75,15 @@ export async function listAppointmentsPage({
       skip: (page - 1) * perPage,
       take: perPage,
       include: {
-        pet: { select: { id: true, name: true, species: true } },
-        client: { select: { id: true, firstName: true, lastName: true } },
+        // `alerts` on the row: the day plan is where reception decides who
+        // goes into which room, and "bites" has to be readable before that
+        // decision, not after opening the animal (TEAM.md #20).
+        pet: { select: { id: true, name: true, species: true, alerts: true } },
+        client: {
+          // The phone is on the row so reception can call without
+          // leaving the day plan.
+          select: { id: true, firstName: true, lastName: true, phone: true },
+        },
         vet: { select: { id: true, name: true } },
       },
     }),
@@ -96,6 +104,33 @@ export async function getAppointmentById(clinicId: string, id: string) {
   });
 }
 
+/**
+ * The appointment a new visit is being started from, when it can still
+ * become one: this clinic's, not cancelled or missed, and not already
+ * answered by a visit. Null otherwise, and the page then opens a plain
+ * new visit. A primary key lookup; "no visit" is answered by the unique
+ * index on `Visit.appointmentId`.
+ */
+export async function getAppointmentToStartVisit(clinicId: string, id: string) {
+  return prisma.appointment.findFirst({
+    where: {
+      id,
+      clinicId,
+      status: { notIn: [...NO_VISIT_STATUSES] },
+      visit: { is: null },
+    },
+    select: { id: true, petId: true, reason: true },
+  });
+}
+
+/** The visit an appointment already became, if any, scoped to the clinic. */
+export async function getVisitForAppointment(clinicId: string, appointmentId: string) {
+  return prisma.visit.findFirst({
+    where: { clinicId, appointmentId },
+    select: { id: true },
+  });
+}
+
 export async function upcomingAppointments(clinicId: string, take = PAGE_SIZES.PREVIEW) {
   return prisma.appointment.findMany({
     where: {
@@ -110,18 +145,6 @@ export async function upcomingAppointments(clinicId: string, take = PAGE_SIZES.P
     include: {
       pet: { select: { id: true, name: true } },
       client: { select: { id: true, firstName: true, lastName: true } },
-    },
-  });
-}
-
-export async function countUpcomingAppointments(clinicId: string) {
-  return prisma.appointment.count({
-    where: {
-      clinicId,
-      pet: { archivedAt: null },
-      client: { archivedAt: null },
-      startsAt: { gte: new Date() },
-      status: { in: ["SCHEDULED", "CONFIRMED"] },
     },
   });
 }

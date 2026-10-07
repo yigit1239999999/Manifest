@@ -70,6 +70,60 @@ and Tailwind CSS v4.
 - `npm test` — Vitest unit + integration tests
 - `npm run test:e2e` — Playwright E2E (needs a running app + DB)
 - `npm run lint` — ESLint
+- `npm run hooks` — install the repo's git hooks (`core.hooksPath`)
+
+  One command, and it is not optional equipment: `scripts/hooks/pre-commit`
+  stops a commit landing in the middle of somebody's e2e run, which invalidates
+  that run. Hooks do not travel with a clone, so an uninstalled hook is a
+  mechanism that exists on one machine while everyone assumes it exists
+  everywhere. It is a reminder, not a lock: `git commit --no-verify` passes it.
+
+## Deployment
+
+The app is a standard Next.js 16 build and runs anywhere with Node.js 20+
+(Vercel, Fly, a container, etc.).
+
+1. **Environment variables** (same as Setup):
+   - `DATABASE_URL` (pooled) and `DIRECT_URL` (direct)
+   - `AUTH_SECRET` (≥ 32 chars — `openssl rand -base64 32`)
+   - Optional: `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`
+
+2. **Apply migrations** against the production database:
+
+   ```bash
+   npm run db:migrate:deploy
+   ```
+
+   This also runs `CREATE EXTENSION IF NOT EXISTS pg_trgm` and creates the
+   GIN trigram search indexes (see `prisma/migrations/*_pg_trgm_search`).
+   The database user must be allowed to create extensions — on Supabase and
+   most managed Postgres providers this works out of the box.
+
+   > **Note:** these trigram indexes live only in the migrations (raw SQL),
+   > because GIN `gin_trgm_ops` indexes can't be expressed in the Prisma
+   > schema. That's expected — don't try to "fix" it by adding them to
+   > `schema.prisma`, and don't add a `prisma migrate diff` drift check (it
+   > would always report them as drift). CI deliberately omits that check.
+
+3. **Build and start:**
+
+   ```bash
+   npm run build
+   npm start
+   ```
+
+4. Point your platform's uptime/health check at `GET /api/health`.
+
+The first account to **sign up** becomes the clinic **ADMIN**. Admins can add
+and manage veterinarians and other staff under **Team** (`/staff`); those
+users then show up in the veterinarian picker on visits and appointments.
+
+### Local troubleshooting
+
+- **"Next.js inferred your workspace root… multiple lockfiles"** — you have a
+  stray `package-lock.json` in a parent directory (e.g. your home folder).
+  Delete it (`rm ~/package-lock.json`) so the project's own lockfile is the
+  only one, or set `turbopack.root` in `next.config.ts`.
 
 ## Operations
 

@@ -10,6 +10,7 @@ import {
   Turtle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, LucideIcon> = {
   DOG: Dog,
@@ -23,6 +24,17 @@ const ICONS: Record<string, LucideIcon> = {
   OTHER: PawPrint,
 };
 
+// Lucide has no glyphs for these; an emoji reads instantly and scales with
+// the same `size-*` class the icon would get.
+const EMOJI: Record<string, string> = {
+  FERRET: "🦦",
+  AMPHIBIAN: "🐸",
+  HORSE: "🐴",
+  CATTLE: "🐄",
+  SHEEP: "🐑",
+  GOAT: "🐐",
+};
+
 export function SpeciesIcon({
   species,
   className,
@@ -30,6 +42,21 @@ export function SpeciesIcon({
   species: string;
   className?: string;
 }) {
+  const emoji = EMOJI[species];
+  if (emoji) {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn(
+          "inline-flex items-center justify-center leading-none",
+          className,
+        )}
+        style={{ fontSize: "0.95em" }}
+      >
+        {emoji}
+      </span>
+    );
+  }
   const Icon = ICONS[species] ?? PawPrint;
   return <Icon className={className} />;
 }
