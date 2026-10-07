@@ -127,12 +127,22 @@ export default async function AuditPage({
               cell: (e) => {
                 const name = names.get(`${e.entityType}:${e.entityId}`);
                 const href = name || e.entityType === "ImportBatch" ? auditHref(e.entityType, e.entityId) : null;
+                // The generic sentence already names the record's kind, so
+                // the second line carries only its name, when it has one.
+                const generic = describeAudit(e).key === "generic";
+                const kind = isAuditEntityType(e.entityType) ? t(`entityType.${e.entityType}`) : e.entityType;
                 return (
                   <span className="flex min-w-0 flex-col">
                     <span className="break-words font-medium text-foreground">{sentence(e)}</span>
                     <span className="break-words text-xs text-muted-foreground">
-                      {isAuditEntityType(e.entityType) ? t(`entityType.${e.entityType}`) : e.entityType}
-                      {name ? " · " : ""}
+                      {generic ? null : href && !name ? (
+                        <Link href={href} className="text-primary underline-offset-2 hover:underline">
+                          {kind}
+                        </Link>
+                      ) : (
+                        kind
+                      )}
+                      {name && !generic ? " · " : ""}
                       {name &&
                         (href ? (
                           <Link href={href} className="text-primary underline-offset-2 hover:underline">

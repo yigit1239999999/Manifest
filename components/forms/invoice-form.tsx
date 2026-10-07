@@ -231,12 +231,12 @@ export function InvoiceForm({
           return (
             <div
               key={i}
-              className="grid gap-3 rounded-control border border-border p-3 sm:grid-cols-[minmax(0,1fr)_5rem_8rem_7rem_auto] sm:items-end"
+              className="grid grid-cols-2 gap-3 rounded-control border border-border p-3 sm:grid-cols-[minmax(0,1fr)_5rem_8rem_7rem_auto] sm:items-end"
             >
               {/* Labelled fields on every line: a placeholder disappears
                   the moment the field is filled, and a column of bare
                   boxes is a form only its author can read (B9). */}
-              <div className="flex min-w-0 flex-col gap-1.5">
+              <div className="col-span-2 flex min-w-0 flex-col gap-1.5 sm:col-span-1">
                 <label htmlFor={id("description")} className="flex flex-wrap items-center gap-2 text-sm font-medium">
                   {t("description")}
                   {line.kind && line.kind !== "VISIT" && (
@@ -311,7 +311,7 @@ export function InvoiceForm({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="justify-self-start"
+                  className="self-end justify-self-end sm:justify-self-start"
                   aria-label={`${t("removeLine")}: ${line.description || t("description")}`}
                   onClick={() => removeLine(i)}
                 >

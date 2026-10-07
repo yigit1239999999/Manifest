@@ -205,6 +205,7 @@ export default async function DashboardPage() {
     style: "currency",
     currency,
     notation: "compact",
+    minimumFractionDigits: 0,
     maximumFractionDigits: 1,
   });
   const compactMoney = (cents: number) => compactFormat.format(cents / 100);
