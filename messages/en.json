@@ -757,7 +757,7 @@
       "method": "Method",
       "reference": "Reference",
       "notes": "Notes",
-      "submit": "Record"
+      "submit": "Record payment"
     },
     "ownerBalance": "Owes {amount} · {count, plural, one {# invoice} other {# invoices}}",
     "ownerBalanceOpen": "Show the invoices",
@@ -815,7 +815,10 @@
       "remaining": "Remaining",
       "fileInvoices": "invoices",
       "filePayments": "payments"
-    }
+    },
+    "settledTitle": "Paid in full",
+    "settledOn": "Settled on {date}.",
+    "settled": "Nothing is left to pay on this invoice."
   },
   "timeline": {
     "openVisit": "Open visit",

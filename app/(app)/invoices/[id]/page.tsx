@@ -262,22 +262,45 @@ export default async function InvoicePage({
         </Card>
 
         <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("outstanding")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold tabular-nums">
-                {formatMoney(fmt, Math.max(0, remaining), currency)}
-              </p>
-              <p className="mt-1 text-xs tabular-nums text-muted-foreground">
-                {t("paidAt")}: {formatMoney(fmt, paidSoFar, currency)} /{" "}
-                {formatMoney(fmt, invoice.totalCents, currency)}
-              </p>
-            </CardContent>
-          </Card>
+          {/* What the money stands at, in the words that fit it (C7):
+              "Ödenmemiş" only while nothing is paid, "Kalan" once some
+              is, and no "₺0,00 unpaid" box on a settled invoice -- that
+              said "unpaid" about an invoice that was paid. A draft is not
+              owed yet and a void one never will be. */}
+          {invoice.status === "PAID" || (invoice.status !== "VOID" && invoice.status !== "DRAFT" && remaining <= 0) ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("settledTitle")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {formatMoney(fmt, invoice.totalCents, currency)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {invoice.paidAt
+                    ? t("settledOn", { date: formatDate(fmt, invoice.paidAt) })
+                    : t("settled")}
+                </p>
+              </CardContent>
+            </Card>
+          ) : invoice.status === "VOID" || invoice.status === "DRAFT" ? null : (
+            <Card>
+              <CardHeader>
+                <CardTitle>{paidSoFar > 0 ? t("remaining") : t("outstanding")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {formatMoney(fmt, Math.max(0, remaining), currency)}
+                </p>
+                <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+                  {t("paidAt")}: {formatMoney(fmt, paidSoFar, currency)} /{" "}
+                  {formatMoney(fmt, invoice.totalCents, currency)}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-          {canRecordPayment && invoice.status !== "PAID" && invoice.status !== "VOID" && (
+          {canRecordPayment && invoice.status !== "PAID" && invoice.status !== "VOID" && remaining > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>{t("recordPayment")}</CardTitle>

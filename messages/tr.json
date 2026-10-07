@@ -757,7 +757,7 @@
       "method": "Yöntem",
       "reference": "Referans",
       "notes": "Notlar",
-      "submit": "Kaydet"
+      "submit": "Ödemeyi kaydet"
     },
     "ownerBalance": "Toplam borç {amount} · {count} fatura",
     "ownerBalanceOpen": "Faturaları gösterin",
@@ -815,7 +815,10 @@
       "remaining": "Kalan",
       "fileInvoices": "faturalar",
       "filePayments": "tahsilatlar"
-    }
+    },
+    "settledTitle": "Tamamı ödendi",
+    "settledOn": "{date} tarihinde kapandı.",
+    "settled": "Bu faturada borç kalmadı."
   },
   "timeline": {
     "openVisit": "Viziti aç",
