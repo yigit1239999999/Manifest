@@ -50,6 +50,13 @@ export type Permission =
   | "invoices.void"
   | "payments.write"
   | "audit.read"
+  /**
+   * Taking a spreadsheet import back. It deletes, in one press, every
+   * record the run made that nobody has used since -- the clinic's whole
+   * client list on a first import -- so it sits with the people who
+   * manage the clinic rather than with everyone who may run one.
+   */
+  | "imports.undo"
   | "users.manage"
   | "settings.manage";
 
@@ -77,6 +84,7 @@ const PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     "invoices.void",
     "payments.write",
     "audit.read",
+    "imports.undo",
     "users.manage",
     "settings.manage",
   ]),

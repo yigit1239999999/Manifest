@@ -988,7 +988,7 @@
     "undoButton": "Undo this import",
     "undoing": "Undoing…",
     "undoDone": "{clients} owners, {pets} animals and {vaccinations} vaccinations were taken back.",
-    "undoKept": "{clients} owners and {pets} animals stayed, because records were added to them after the import.",
+    "undoKept": "{clients, plural, one {# owner} other {# owners}}, {pets, plural, one {# animal} other {# animals}} and {vaccinations, plural, one {# vaccination} other {# vaccinations}} stayed, because they were worked on or edited after the import.",
     "undoFailed": "This import could not be undone.",
     "batchesTitle": "Earlier imports",
     "batchesHint": "You can undo an import later as well.",
@@ -1038,7 +1038,17 @@
     "petFactChip": "chip {chip}",
     "petFactNone": "nothing to tell them apart",
     "decisionPetWhat": "Answer the \"Which animal?\" question above.",
-    "commitBlockedPets": "Answer the \"Which animal?\" questions first."
+    "commitBlockedPets": "Answer the \"Which animal?\" questions first.",
+    "undoConfirmTitle": "Undo this import?",
+    "undoConfirmRemove": "{clients, plural, one {# owner} other {# owners}}, {pets, plural, one {# animal} other {# animals}} and {vaccinations, plural, one {# vaccination} other {# vaccinations}} will be deleted.",
+    "undoConfirmKeep": "{clients, plural, one {# owner} other {# owners}}, {pets, plural, one {# animal} other {# animals}} and {vaccinations, plural, one {# vaccination} other {# vaccinations}} will stay, because they were worked on or edited after the import.",
+    "undoConfirmEdited": "Kept because they were edited since: {names}.",
+    "undoConfirmFinal": "What is deleted cannot be brought back; you can import the file again.",
+    "undoConfirmButton": "Yes, undo it",
+    "undoConfirmCancel": "Cancel",
+    "undoCounting": "Counting…",
+    "undoAdminOnly": "Only a clinic admin can undo an import.",
+    "batchesHintNoUndo": "If an import needs undoing, ask your clinic admin."
   },
   "enum": {
     "species": {

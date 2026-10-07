@@ -381,6 +381,12 @@ model ImportBatch {
   /// Vaccination records the run wrote, read off the file's vaccine
   /// columns. Counted at commit time like the two above.
   vaccinationCount Int       @default(0)
+  /// When the run's last row was written. A row of this batch whose
+  /// `updatedAt` is later than this was changed by somebody after the
+  /// import, and undo keeps it rather than deleting their work. Null on
+  /// batches written before the column; undo then reads the latest moment
+  /// the import transaction could still have been writing.
+  completedAt      DateTime?
   undoneAt         DateTime?
   createdAt        DateTime  @default(now())
 

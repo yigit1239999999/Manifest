@@ -27,6 +27,7 @@ import type {
 } from "@/modules/import/service";
 import type { Sex, Species } from "@/generated/prisma/enums";
 import { postImport, TooLargeError } from "@/components/import/transport";
+import { UndoImportButton, undoDoneText } from "@/components/import/undo-import";
 
 /**
  * The check before anything is written, and the result after.
@@ -78,7 +79,15 @@ type Phase =
   | { kind: "saveFailed"; summary: PlanSummary; tooLarge: boolean }
   | { kind: "saved"; result: CommitResult; skipped: number };
 
-export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: () => void }) {
+export function ImportReview({
+  input,
+  onBack,
+  canUndo = false,
+}: {
+  input: ReviewInput;
+  onBack: () => void;
+  canUndo?: boolean;
+}) {
   const t = useTranslations("import");
   const tSpecies = useTranslations("enum.species");
   const tSex = useTranslations("enum.sex");
@@ -190,7 +199,9 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
   }
 
   if (phase.kind === "saved") {
-    return <ImportResult result={phase.result} skipped={phase.skipped} headingRef={headingRef} />;
+    return (
+      <ImportResult result={phase.result} skipped={phase.skipped} headingRef={headingRef} canUndo={canUndo} />
+    );
   }
 
   const summary =
@@ -961,33 +972,15 @@ function ImportResult({
   result,
   skipped,
   headingRef,
+  canUndo,
 }: {
   result: CommitResult;
   skipped: number;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
+  canUndo: boolean;
 }) {
   const t = useTranslations("import");
   const [undone, setUndone] = React.useState<UndoResult | null>(null);
-  const [undoFailed, setUndoFailed] = React.useState(false);
-  const [undoing, startUndo] = React.useTransition();
-
-  function undo() {
-    setUndoFailed(false);
-    startUndo(async () => {
-      try {
-        const res = await fetch("/api/import/undo", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ batchId: result.batchId }),
-        });
-        if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as { result: UndoResult };
-        setUndone(data.result);
-      } catch {
-        setUndoFailed(true);
-      }
-    });
-  }
 
   const due = result.due;
   const anyDue = due.overdue + due.overdueOlder + due.dueSoon > 0;
@@ -1053,22 +1046,12 @@ function ImportResult({
 
       <div className="flex flex-col items-start gap-2 border-t border-border pt-4">
         {undone ? (
-          <Callout variant="info">
-            {t("undoDone", {
-              clients: undone.clientCount,
-              pets: undone.petCount,
-              vaccinations: undone.vaccinationCount,
-            })}
-            {undone.keptClients + undone.keptPets > 0
-              ? ` ${t("undoKept", { clients: undone.keptClients, pets: undone.keptPets })}`
-              : ""}
-          </Callout>
+          <Callout variant="info">{undoDoneText(undone, t)}</Callout>
+        ) : canUndo ? (
+          <UndoImportButton batchId={result.batchId} onDone={setUndone} variant="ghost" />
         ) : (
-          <Button type="button" variant="ghost" size="sm" disabled={undoing} onClick={undo}>
-            {undoing ? t("undoing") : t("undoButton")}
-          </Button>
+          <p className="text-sm text-muted-foreground">{t("undoAdminOnly")}</p>
         )}
-        {undoFailed && <Callout variant="danger">{t("undoFailed")}</Callout>}
       </div>
     </div>
   );

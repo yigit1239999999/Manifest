@@ -972,6 +972,9 @@ export async function commitImport(
           petCount: result.petCount,
           mergedCount: result.mergedCount,
           vaccinationCount: result.vaccinationCount,
+          // After every row above: anything of this batch changed later
+          // than this was changed by a person (see `undoImport`).
+          completedAt: new Date(),
         },
       });
 
@@ -1051,77 +1054,174 @@ export type UndoResult = {
   /** Rows it left behind because the clinic has since worked on them. */
   keptClients: number;
   keptPets: number;
+  /** Imported vaccinations left behind because somebody changed them. */
+  keptVaccinations: number;
 };
+
+/** What undo would do, said before it does it. */
+export type UndoPreview = UndoResult & {
+  /**
+   * Names of records kept because they were EDITED after the import --
+   * the case a vet would not guess, unlike "it has a visit now". At most
+   * `EDITED_NAMES` of each; the counts above cover the rest.
+   */
+  editedPets: string[];
+  editedClients: string[];
+};
+
+const EDITED_NAMES = 8;
+/**
+ * The import transaction's own ceiling (`commitImport`'s timeout plus its
+ * wait), plus a margin. For a batch written before `completedAt` existed,
+ * no row the run itself wrote can carry an `updatedAt` later than this.
+ */
+const LEGACY_COMMIT_WINDOW_MS = 135_000;
+
+/**
+ * Which rows of a batch undo may delete. One builder for the preview and
+ * for the delete, so the dialog's numbers are the numbers that happen.
+ *
+ * "Unused" is two things: nothing has been recorded against the row since
+ * (a visit, an invoice, a note), and nobody has edited the row itself
+ * since the import finished. The second is the one a vet would not
+ * expect undo to know about, and the one whose loss they would not notice
+ * until they looked for the phone number they corrected.
+ *
+ * Written with `every` rather than `none` for the relations the undo
+ * itself empties: before the vaccinations are deleted "every one of this
+ * pet's vaccinations is an unedited one of this batch" is the same set as
+ * "none left" is after, so the preview can count the same rows.
+ */
+function undoFilters(clinicId: string, batchId: string, cutoff: Date) {
+  const vaccination = {
+    clinicId,
+    importBatchId: batchId,
+    updatedAt: { lte: cutoff },
+  } satisfies Prisma.VaccinationWhereInput;
+  const pet = {
+    clinicId,
+    importBatchId: batchId,
+    updatedAt: { lte: cutoff },
+    visits: { none: {} },
+    appointments: { none: {} },
+    vaccinations: { every: { importBatchId: batchId, updatedAt: { lte: cutoff } } },
+    prescriptions: { none: {} },
+    treatments: { none: {} },
+    diagnostics: { none: {} },
+    invoiceLines: { none: {} },
+    documents: { none: {} },
+    reminders: { none: {} },
+    notes_rel: { none: {} },
+  } satisfies Prisma.PetWhereInput;
+  const client = {
+    clinicId,
+    importBatchId: batchId,
+    updatedAt: { lte: cutoff },
+    // An animal that survives keeps its owner: a client with no record left
+    // is what the import created and nothing more.
+    pets: { every: pet },
+    visits: { none: {} },
+    appointments: { none: {} },
+    invoices: { none: {} },
+    documents: { none: {} },
+    reminders: { none: {} },
+    messages: { none: {} },
+    notes_rel: { none: {} },
+  } satisfies Prisma.ClientWhereInput;
+  return { vaccination, pet, client };
+}
+
+async function batchForUndo(batchId: string, ctx: ActionContext) {
+  // Admins only (`imports.undo`): one press deletes a clinic's whole first
+  // import. Running an import stays with everyone who can write clients
+  // and animals; taking one back does not.
+  requirePermission(ctx.userRole, "clients.write");
+  requirePermission(ctx.userRole, "pets.write");
+  requirePermission(ctx.userRole, "imports.undo");
+
+  const batch = await prisma.importBatch.findFirst({
+    where: { id: batchId, clinicId: ctx.clinicId },
+    select: { id: true, undoneAt: true, createdAt: true, completedAt: true, fileName: true },
+  });
+  if (!batch) throw notFound("importBatch", batchId);
+  if (batch.undoneAt) throw validationFailed({ batch: ["error.validation.importAlreadyUndone"] });
+  const cutoff = batch.completedAt ?? new Date(batch.createdAt.getTime() + LEGACY_COMMIT_WINDOW_MS);
+  return { batch, cutoff };
+}
+
+/**
+ * The numbers for the confirmation: what goes, what stays, and the names
+ * of what stays because somebody edited it. Read-only.
+ */
+export async function previewUndoImport(batchId: string, ctx: ActionContext): Promise<UndoPreview> {
+  const { cutoff } = await batchForUndo(batchId, ctx);
+  const where = undoFilters(ctx.clinicId, batchId, cutoff);
+  const mine = { clinicId: ctx.clinicId, importBatchId: batchId };
+  const edited = { ...mine, updatedAt: { gt: cutoff } };
+  const [
+    vaccinationsAll,
+    vaccinationsGoing,
+    petsAll,
+    petsGoing,
+    clientsAll,
+    clientsGoing,
+    editedPets,
+    editedClients,
+  ] = await Promise.all([
+    prisma.vaccination.count({ where: mine }),
+    prisma.vaccination.count({ where: where.vaccination }),
+    prisma.pet.count({ where: mine }),
+    prisma.pet.count({ where: where.pet }),
+    prisma.client.count({ where: mine }),
+    prisma.client.count({ where: where.client }),
+    prisma.pet.findMany({ where: edited, select: { name: true }, orderBy: { updatedAt: "desc" }, take: EDITED_NAMES }),
+    prisma.client.findMany({
+      where: edited,
+      select: { firstName: true, lastName: true },
+      orderBy: { updatedAt: "desc" },
+      take: EDITED_NAMES,
+    }),
+  ]);
+  return {
+    vaccinationCount: vaccinationsGoing,
+    petCount: petsGoing,
+    clientCount: clientsGoing,
+    keptVaccinations: vaccinationsAll - vaccinationsGoing,
+    keptPets: petsAll - petsGoing,
+    keptClients: clientsAll - clientsGoing,
+    editedPets: editedPets.map((p) => p.name),
+    editedClients: editedClients.map((c) => [c.firstName, c.lastName ?? ""].join(" ").trim()),
+  };
+}
 
 /**
  * Take the import back.
  *
- * Both deletes are one statement with relation filters, so an animal that
+ * Every delete is one statement with relation filters, so an animal that
  * has been seen, vaccinated, billed or written about survives its own
- * batch, and a client survives while anything at all still points at them.
- * There is no query per row and no list of ids in the statement: an import
- * of five thousand animals is undone by the same two statements as an
- * import of five.
+ * batch, a record somebody edited after the import survives too, and a
+ * client survives while anything at all still points at them. There is
+ * no query per row and no list of ids in the statement: an import of five
+ * thousand animals is undone by the same statements as an import of five.
  */
 export async function undoImport(batchId: string, ctx: ActionContext): Promise<UndoResult> {
-  requirePermission(ctx.userRole, "clients.write");
-  requirePermission(ctx.userRole, "pets.write");
-
-  const batch = await prisma.importBatch.findFirst({
-    where: { id: batchId, clinicId: ctx.clinicId },
-    select: { id: true, undoneAt: true },
-  });
-  if (!batch) throw notFound("importBatch", batchId);
-  if (batch.undoneAt) throw validationFailed({ batch: ["error.validation.importAlreadyUndone"] });
+  const { batch, cutoff } = await batchForUndo(batchId, ctx);
+  const where = undoFilters(ctx.clinicId, batchId, cutoff);
+  const mine = { clinicId: ctx.clinicId, importBatchId: batchId };
 
   return prisma.$transaction(
     async (tx) => {
       // The run's vaccinations first: they are what it wrote onto animals,
       // including animals the clinic already had, and the animals below
       // are only "unused" once these are gone.
-      const vaccinationsDeleted = await tx.vaccination.deleteMany({
-        where: { clinicId: ctx.clinicId, importBatchId: batchId },
-      });
+      const vaccinationsBefore = await tx.vaccination.count({ where: mine });
+      const vaccinationsDeleted = await tx.vaccination.deleteMany({ where: where.vaccination });
 
-      const petsBefore = await tx.pet.count({
-        where: { clinicId: ctx.clinicId, importBatchId: batchId },
-      });
-      const petsDeleted = await tx.pet.deleteMany({
-        where: {
-          clinicId: ctx.clinicId,
-          importBatchId: batchId,
-          visits: { none: {} },
-          appointments: { none: {} },
-          vaccinations: { none: {} },
-          prescriptions: { none: {} },
-          treatments: { none: {} },
-          diagnostics: { none: {} },
-          invoiceLines: { none: {} },
-          documents: { none: {} },
-          reminders: { none: {} },
-          notes_rel: { none: {} },
-        },
-      });
+      const petsBefore = await tx.pet.count({ where: mine });
+      const petsDeleted = await tx.pet.deleteMany({ where: where.pet });
 
-      const clientsBefore = await tx.client.count({
-        where: { clinicId: ctx.clinicId, importBatchId: batchId },
-      });
-      const clientsDeleted = await tx.client.deleteMany({
-        where: {
-          clinicId: ctx.clinicId,
-          importBatchId: batchId,
-          // An animal that survived above keeps its owner: a client with no
-          // record left is what the import created and nothing more.
-          pets: { none: {} },
-          visits: { none: {} },
-          appointments: { none: {} },
-          invoices: { none: {} },
-          documents: { none: {} },
-          reminders: { none: {} },
-          messages: { none: {} },
-          notes_rel: { none: {} },
-        },
-      });
+      const clientsBefore = await tx.client.count({ where: mine });
+      const clientsDeleted = await tx.client.deleteMany({ where: where.client });
 
       await tx.importBatch.update({
         where: { id: batchId },
@@ -1134,6 +1234,7 @@ export async function undoImport(batchId: string, ctx: ActionContext): Promise<U
         petCount: petsDeleted.count,
         keptClients: clientsBefore - clientsDeleted.count,
         keptPets: petsBefore - petsDeleted.count,
+        keptVaccinations: vaccinationsBefore - vaccinationsDeleted.count,
       };
 
       await writeAudit(
@@ -1143,7 +1244,7 @@ export async function undoImport(batchId: string, ctx: ActionContext): Promise<U
           action: "DELETE",
           entityType: "ImportBatch",
           entityId: batchId,
-          metadata: { ...result },
+          metadata: { fileName: batch.fileName, undo: true, ...result },
         },
         tx,
       );

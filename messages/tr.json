@@ -988,7 +988,7 @@
     "undoButton": "Bu aktarımı geri alın",
     "undoing": "Geri alınıyor…",
     "undoDone": "{clients} sahip, {pets} hayvan ve {vaccinations} aşı kaydı geri alındı.",
-    "undoKept": "{clients} sahip ve {pets} hayvan kaldı, çünkü aktarımdan sonra bu kayıtlara işlem eklenmiş.",
+    "undoKept": "{clients} sahip, {pets} hayvan ve {vaccinations} aşı kaydı kaldı, çünkü aktarımdan sonra üzerlerinde çalışıldı ya da düzenlendiler.",
     "undoFailed": "Geri alınamadı.",
     "batchesTitle": "Önceki aktarımlar",
     "batchesHint": "Bir aktarımı sonradan da geri alabilirsiniz.",
@@ -1038,7 +1038,17 @@
     "petFactChip": "çip {chip}",
     "petFactNone": "ayırt edici bilgi yok",
     "decisionPetWhat": "Yukarıdaki \"Hangi hayvan?\" sorusunu yanıtlayın.",
-    "commitBlockedPets": "Önce \"Hangi hayvan?\" sorularını yanıtlayın."
+    "commitBlockedPets": "Önce \"Hangi hayvan?\" sorularını yanıtlayın.",
+    "undoConfirmTitle": "Bu aktarımı geri alalım mı?",
+    "undoConfirmRemove": "{clients} sahip, {pets} hayvan ve {vaccinations} aşı kaydı silinecek.",
+    "undoConfirmKeep": "{clients} sahip, {pets} hayvan ve {vaccinations} aşı kaydı kalacak, çünkü aktarımdan sonra üzerlerinde çalışıldı ya da düzenlendiler.",
+    "undoConfirmEdited": "Sonradan düzenlendiği için korunanlar: {names}.",
+    "undoConfirmFinal": "Silinenler geri getirilemez; dosyayı yeniden aktarabilirsiniz.",
+    "undoConfirmButton": "Evet, geri alın",
+    "undoConfirmCancel": "Vazgeçin",
+    "undoCounting": "Sayılıyor…",
+    "undoAdminOnly": "Bir aktarımı yalnız klinik yöneticisi geri alabilir.",
+    "batchesHintNoUndo": "Bir aktarımı geri almak gerekirse klinik yöneticinize söyleyin."
   },
   "enum": {
     "species": {

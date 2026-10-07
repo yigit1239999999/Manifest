@@ -68,7 +68,14 @@ type Column = {
   admitted: ImportField[];
 };
 
-export function ImportMapper({ aiAvailable = false }: { aiAvailable?: boolean }) {
+export function ImportMapper({
+  aiAvailable = false,
+  canUndo = false,
+}: {
+  aiAvailable?: boolean;
+  /** Whether this person may take an import back (`imports.undo`). */
+  canUndo?: boolean;
+}) {
   const t = useTranslations("import");
   const locale = useLocale();
   const [phase, setPhase] = React.useState<Phase>({ kind: "idle" });
@@ -355,7 +362,7 @@ export function ImportMapper({ aiAvailable = false }: { aiAvailable?: boolean })
     return (
       <div className="flex flex-col gap-6">
         {fileInput}
-        <ImportReview input={reviewInput} onBack={() => setStage("map")} />
+        <ImportReview input={reviewInput} onBack={() => setStage("map")} canUndo={canUndo} />
       </div>
     );
   }

@@ -38,6 +38,7 @@ export default async function ImportPage() {
     return <ForbiddenState />;
   }
 
+  const canUndo = can(session.user.role, "imports.undo");
   const t = await getTranslations("import");
   const locale = await getLocale();
   const batches = await listImportBatches(session.user.clinicId);
@@ -45,8 +46,9 @@ export default async function ImportPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("title")} description={t("subtitle")} />
-      <ImportMapper aiAvailable={aiMatchAvailable()} />
+      <ImportMapper aiAvailable={aiMatchAvailable()} canUndo={canUndo} />
       <ImportBatches
+        canUndo={canUndo}
         batches={batches.map((batch) => ({
           id: batch.id,
           fileName: batch.fileName,
