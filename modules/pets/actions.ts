@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { action, parse, type FormState } from "@/lib/action";
-import { petSchema } from "./schema";
+import { deceasedSchema, petSchema } from "./schema";
 import { quickSearchPets } from "./queries";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { ownerLabel, petRowCaption, petRowLabel } from "@/lib/pet-label";
@@ -18,6 +18,7 @@ import {
   createPet,
   markPetDeceased,
   restorePet,
+  unmarkPetDeceased,
   updatePet,
 } from "./service";
 
@@ -85,9 +86,21 @@ export const restorePetAction = action(
 
 export const markDeceasedAction = action(
   "pet.mark_deceased",
-  async (ctx, id: string, deceasedAt: Date): Promise<void> => {
-    await markPetDeceased(id, deceasedAt, ctx);
-    revalidatePath(`/pets/${id}`);
+  async (ctx, id: string, formData: FormData): Promise<FormState> => {
+    const parsed = parse(deceasedSchema, formData);
+    if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
+    await markPetDeceased(id, parsed.data, ctx);
+    // No revalidatePath: the dialog reloads the page (see ConfirmDialog's
+    // `reloadAfter`), and a value-returning action must not race it.
+    return { success: true };
+  },
+);
+
+export const unmarkDeceasedAction = action(
+  "pet.unmark_deceased",
+  async (ctx, id: string): Promise<FormState> => {
+    await unmarkPetDeceased(id, ctx);
+    return { success: true };
   },
 );
 
@@ -126,6 +139,19 @@ export async function searchPetsAction(
   }[];
   hasMore: boolean;
 }> {
+  return searchPets(term, ownerId, false);
+}
+
+/**
+ * `searchPetsAction` without the animals that have died, for the booking
+ * form: its server refuses them (`createAppointment`), so offering one
+ * walks reception into a dead end (pm booked Fındık).
+ */
+export async function searchBookablePetsAction(term: string, ownerId?: string) {
+  return searchPets(term, ownerId, true);
+}
+
+async function searchPets(term: string, ownerId: string | undefined, excludeDeceased: boolean) {
   const session = await requireSession();
   requirePermission(session.user.role ?? "", "pets.read");
   const [{ items, hasMore }, fmt, tSpecies] = await Promise.all([
@@ -134,6 +160,7 @@ export async function searchPetsAction(
       term,
       PAGE_SIZES.SEARCH_RESULTS,
       ownerId,
+      excludeDeceased,
     ),
     getFormatContext(),
     getTranslations("enum.species"),

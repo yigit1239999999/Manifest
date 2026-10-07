@@ -63,10 +63,13 @@ test.describe("The vaccine list the product ships with", () => {
     await expect(
       page.getByText(/from the list|listeden geldi/i),
     ).toBeVisible();
-    // Three doses, and which one this animal is on.
-    await expect(page.getByText(/starting series of|dozluk başlangıç serisi/i)).toBeVisible();
+    // Filled in already, and saying so: the date is the list's proposal
+    // until the vet types another.
+    await expect(page.getByText(/suggested date filled in|önerilen tarih yazıldı/i)).toBeVisible();
+    // No birth date, so no puppy series is assumed: an adult's booster
+    // must not read as the first dose of three.
+    await expect(page.getByText(/starting series of|dozluk başlangıç serisi/i)).toHaveCount(0);
 
-    await page.getByRole("button", { name: /later ·|sonra ·/i }).click();
     await vacc.getByRole("button", { name: /save vaccination|aşıyı kaydet/i }).click();
     await expect(page.getByText("Karma").first()).toBeVisible();
   });

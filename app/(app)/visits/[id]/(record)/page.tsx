@@ -44,6 +44,7 @@ import {
   formatDateTime,
   formatDecimal,
   formatMoney,
+  toDateInput,
 } from "@/lib/format";
 import { ownerLabel } from "@/lib/pet-label";
 
@@ -70,6 +71,7 @@ export default async function VisitPage({
     tDiag,
     tPet,
     tInvoiceStatus,
+    tCheck,
     currency,
   ] = await Promise.all([
     getVisitById(clinicId, id),
@@ -82,6 +84,7 @@ export default async function VisitPage({
     getTranslations("diagnostic"),
     getTranslations("pet"),
     getTranslations("enum.invoiceStatus"),
+    getTranslations("allergyCheck"),
     getClinicCurrency(clinicId),
   ]);
 
@@ -138,7 +141,7 @@ export default async function VisitPage({
 
   // Needs the animal's species, so it follows the load rather than joining
   // it. See `/pets/[id]`, which renders the same form.
-  const { offers: vaccineOffers, priorDoses } = await vaccineOffersForPet(
+  const { offers: vaccineOffers, priorDoses, openSeries } = await vaccineOffersForPet(
     clinicId,
     visit.petId,
     visit.pet.species,
@@ -551,6 +554,8 @@ export default async function VisitPage({
                   visitId={visit.id}
                   offers={vaccineOffers}
                   priorDoses={priorDoses}
+                  openSeries={openSeries}
+                  birthDate={visit.pet.birthDate ? toDateInput(visit.pet.birthDate) : null}
                 />
               </div>
             </details>
@@ -578,6 +583,11 @@ export default async function VisitPage({
                   >
                     {tRx("print")}
                   </Link>
+                  {p.overrideReason && (
+                    <p className="ms-3 text-xs text-destructive">
+                      {tCheck("overridden", { reason: p.overrideReason })}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>
@@ -615,6 +625,11 @@ export default async function VisitPage({
                   {t.code && (
                     <span className="text-muted-foreground"> · {t.code}</span>
                   )}
+                  {t.overrideReason && (
+                    <p className="ms-3 text-xs text-destructive">
+                      {tCheck("overridden", { reason: t.overrideReason })}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>
@@ -626,7 +641,11 @@ export default async function VisitPage({
                 {tTreatment("new")}
               </summary>
               <div className="mt-3">
-                <TreatmentForm petId={visit.petId} visitId={visit.id} />
+                <TreatmentForm
+                  petId={visit.petId}
+                  visitId={visit.id}
+                  alerts={visit.pet.alerts}
+                />
               </div>
             </details>
           )}

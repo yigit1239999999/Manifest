@@ -26,6 +26,8 @@ export const prescriptionSchema = z.object({
   status: requiredEnum(PRESCRIPTION_STATUSES),
   instructions: optionalText(2000),
   notes: optionalText(2000),
+  /** "Yine de yaz: gerekçe". See `requireAllergyOverride`. */
+  overrideReason: optionalText(500),
 });
 
 export type PrescriptionInput = z.infer<typeof prescriptionSchema>;

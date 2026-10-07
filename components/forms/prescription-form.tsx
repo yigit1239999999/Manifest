@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Callout } from "@/components/ui/callout";
@@ -13,6 +13,8 @@ import { SubmitButton } from "@/components/submit-button";
 import { PRESCRIPTION_STATUSES } from "@/modules/prescriptions/schema";
 import { createPrescriptionAction } from "@/modules/prescriptions/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { AllergyOverride } from "@/components/forms/allergy-override";
+import { findAllergyConflict } from "@/lib/allergy-check";
 
 export function PrescriptionForm({
   petId,
@@ -37,6 +39,20 @@ export function PrescriptionForm({
   const { state, reset } = form;
 
   const savedMessage = tCommon("saved");
+  const tCheck = useTranslations("allergyCheck");
+
+  // Checked as the name is typed, so the warning arrives before the save
+  // rather than as its refusal. The server repeats the check and is the
+  // one that blocks; its answer is the fallback here for a page whose
+  // script had not run yet.
+  // Tagged with the form's reset count, so a saved form forgets the name
+  // with everything else instead of a state update in the save effect.
+  const [typed, setTyped] = useState({ token: 0, value: "" });
+  const drug = typed.token === form.resetToken ? typed.value : "";
+  const refused = state.allergyConflict;
+  const conflict =
+    findAllergyConflict(alerts, drug) ??
+    (refused && (!drug || drug.trim() === refused.drug) ? refused : null);
 
   // The message is resolved BEFORE the effect and the effect depends on
   // the string, not on the translator. `useTranslations` hands back a
@@ -73,8 +89,20 @@ export function PrescriptionForm({
         error={state.fieldErrors?.medicationName}
         required
       >
-        <Input name="medicationName" required />
+        <Input
+          name="medicationName"
+          required
+          onChange={(e) => setTyped({ token: form.resetToken, value: e.currentTarget.value })}
+        />
       </Field>
+      {/* Directly under the drug, where the eye is as it is typed, not
+          at the foot of the form after nine more fields. */}
+      {conflict && (
+        <AllergyOverride
+          conflict={conflict}
+          fieldErrors={state.fieldErrors?.overrideReason}
+        />
+      )}
       <Field label={t("status")} error={state.fieldErrors?.status} required>
         <Select name="status" defaultValue="ACTIVE" required>
           {PRESCRIPTION_STATUSES.map((s) => (
@@ -118,8 +146,12 @@ export function PrescriptionForm({
           <Textarea name="instructions" rows={2} />
         </Field>
       </div>
-      <SubmitButton size="sm" className="sm:col-span-2 w-fit">
-        {t("create")}
+      <SubmitButton
+        size="sm"
+        variant={conflict ? "destructive" : undefined}
+        className="sm:col-span-2 w-fit"
+      >
+        {conflict ? tCheck("submitAnyway") : t("create")}
       </SubmitButton>
     </ActionForm>
   );

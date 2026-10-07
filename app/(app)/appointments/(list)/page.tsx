@@ -6,6 +6,8 @@ import { requireSession } from "@/lib/session";
 import { formatPhone, telHref } from "@/lib/phone";
 import { can } from "@/lib/permissions";
 import { listAppointmentsPage } from "@/modules/appointments/queries";
+import { setAppointmentOutcomeAction } from "@/modules/appointments/actions";
+import { AppointmentOutcomeButtons } from "@/components/appointment-outcome-buttons";
 import { APPOINTMENT_STATUSES } from "@/modules/appointments/schema";
 import { countPets } from "@/modules/pets/queries";
 import { MissingLink } from "@/components/missing-link";
@@ -47,8 +49,16 @@ const PER_DAY = 100;
  */
 const OPEN_STATUSES = ["SCHEDULED", "CONFIRMED", "ARRIVED", "IN_PROGRESS"];
 
+/** Still waiting to hear whether the animal came. */
+const AWAITING_STATUSES = ["SCHEDULED", "CONFIRMED"];
+
 /** Over, or never happened: no visit left to start from the row. */
 const VISIT_CLOSED_STATUSES = ["CANCELLED", "NO_SHOW", "COMPLETED"];
+
+/** Its hour has begun: only then can anybody say the animal did not come. */
+function hasStarted(a: { startsAt: Date }) {
+  return a.startsAt.getTime() <= Date.now();
+}
 
 function isOpenAndPast(a: { startsAt: Date; status: string }) {
   return OPEN_STATUSES.includes(a.status) && a.startsAt.getTime() < Date.now();
@@ -78,6 +88,8 @@ export default async function AppointmentsPage({
   const showAllDates = dateParam === "all";
   const date = isDayKey(dateParam) ? dateParam : today;
   const range = showAllDates ? null : dayRange(date, fmt.timeZone);
+  // The one-tap outcome is for the day being worked, not for a day browsed.
+  const isToday = !showAllDates && date === today;
 
   const [t, tCommon, tPet, tType, tStatus, result] = await Promise.all([
     getTranslations("appointment"),
@@ -392,6 +404,28 @@ export default async function AppointmentsPage({
                       status={a.status}
                       label={tStatus(a.status as never)}
                     />
+                    {/* Today only: "geldi" about next week is not a thing
+                        anyone knows yet. */}
+                    {canCreate && isToday && AWAITING_STATUSES.includes(a.status) && (
+                      <AppointmentOutcomeButtons
+                        arrived={setAppointmentOutcomeAction.bind(null, a.id, "ARRIVED")}
+                        noShow={
+                          hasStarted(a)
+                            ? setAppointmentOutcomeAction.bind(null, a.id, "NO_SHOW")
+                            : undefined
+                        }
+                        arrivedLabel={t("outcomeArrived")}
+                        noShowLabel={t("outcomeNoShow")}
+                        arrivedName={tCommon("actionFor", {
+                          action: t("outcomeArrived"),
+                          subject: a.pet.name,
+                        })}
+                        noShowName={tCommon("actionFor", {
+                          action: t("outcomeNoShow"),
+                          subject: a.pet.name,
+                        })}
+                      />
+                    )}
                     {canStartVisit && !VISIT_CLOSED_STATUSES.includes(a.status) && (
                       <Link
                         href={`/visits/new?${new URLSearchParams({

@@ -20,3 +20,24 @@ export function isPetSilenced(
 ): boolean {
   return pet != null && (pet.deceased || pet.archivedAt != null);
 }
+
+const DAY_MS = 86_400_000;
+
+/**
+ * True when `at` falls after the day the animal died.
+ *
+ * The day itself is allowed: a visit is routinely written up for an animal
+ * that died during it, and the vaccination given that morning happened.
+ * `deceasedAt` is the clinic's midnight of that day (the form sends a day),
+ * so "after the day" is a day past it. A deceased animal with no date
+ * recorded refuses everything new: nobody can say which records it still
+ * had ahead of it.
+ */
+export function isAfterDeath(
+  pet: { deceased: boolean; deceasedAt: Date | null } | null | undefined,
+  at: Date,
+): boolean {
+  if (!pet?.deceased) return false;
+  if (!pet.deceasedAt) return true;
+  return at.getTime() >= pet.deceasedAt.getTime() + DAY_MS;
+}

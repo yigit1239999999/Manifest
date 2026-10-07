@@ -298,3 +298,51 @@ describe("confirming an action", () => {
     release();
   });
 });
+
+// "Vefat etti olarak işaretle" asks for the day with the confirmation.
+describe("a confirmation that asks for an answer", () => {
+  function mountWithFields(action: (fd: FormData) => Promise<unknown>) {
+    withIntl(
+      <ConfirmDialog
+        title="İşaretlensin mi?"
+        confirmLabel="İşaretle"
+        cancelLabel="Vazgeç"
+        tone="default"
+        action={action}
+        fields={
+          <>
+            <input aria-label="Tarih" name="deceasedAt" required />
+            <textarea aria-label="Not" name="deceasedNote" />
+          </>
+        }
+      >
+        {(open) => (
+          <button type="button" onClick={open}>
+            Aç
+          </button>
+        )}
+      </ConfirmDialog>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Aç" }));
+  }
+
+  it("hands the fields to the action", async () => {
+    const action = vi.fn(async () => undefined);
+    mountWithFields(action);
+    fireEvent.change(screen.getByLabelText("Tarih"), { target: { value: "2026-10-07" } });
+    fireEvent.change(screen.getByLabelText("Not"), { target: { value: "evde" } });
+    fireEvent.click(screen.getByRole("button", { name: "İşaretle", hidden: true }));
+    await vi.waitFor(() => expect(action).toHaveBeenCalled());
+    const data = (action.mock.calls[0] as unknown as [FormData])[0];
+    expect(data.get("deceasedAt")).toBe("2026-10-07");
+    expect(data.get("deceasedNote")).toBe("evde");
+  });
+
+  it("does not confirm with a required answer missing", async () => {
+    const action = vi.fn(async () => undefined);
+    mountWithFields(action);
+    fireEvent.click(screen.getByRole("button", { name: "İşaretle", hidden: true }));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(action).not.toHaveBeenCalled();
+  });
+});

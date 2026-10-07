@@ -5,6 +5,7 @@ import {
   clinicVaccineList,
   normalizeVaccineSettings,
   offerByName,
+  seriesFrom,
   type DoseRow,
   type VaccineOffer,
 } from "./catalogue";
@@ -66,6 +67,8 @@ export async function upcomingVaccinations(clinicId: string, take = 10, now = ne
       },
       // Taken off the recall list: off this card too.
       dueDismissedAt: null,
+      // A later dose of the same vaccine has answered this date.
+      supersededById: null,
       pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
     },
     orderBy: { nextDueAt: "asc" },
@@ -93,6 +96,10 @@ function overdueWhere(clinicId: string, now: Date) {
     // Closed rows are closed. The stamp is on the vaccination, not the
     // animal, so this hides one line from one card and nothing else.
     dueDismissedAt: null,
+    // Answered by a later dose of the same vaccine (catalogue aliases
+    // included): re-vaccinated is not overdue. Derived, not a close --
+    // see `supersede.ts`.
+    supersededById: null,
     // The same two layers as the upcoming card. An overdue booster for
     // a dead animal is the worst version of this card, not a milder
     // one: it is the most urgent-looking row on the screen.
@@ -172,6 +179,7 @@ export async function countOlderOverdueVaccinations(clinicId: string, now = new 
       clinicId,
       nextDueAt: { lt: since },
       dueDismissedAt: null,
+      supersededById: null,
       pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
     },
   });
@@ -308,6 +316,12 @@ export async function vaccineOffersForPet(
    * for data already in hand.
    */
   doses: DoseRow[];
+  /**
+   * Series this animal is part-way through, as its records state them.
+   * The form offers the series only here, or for a young animal; see
+   * `VaccinationForm`.
+   */
+  openSeries: Record<string, { dose: number; of: number }>;
 }> {
   const [clinic, history, given] = await Promise.all([
     prisma.clinic.findUnique({ where: { id: clinicId }, select: { settings: true } }),
@@ -338,7 +352,11 @@ export async function vaccineOffersForPet(
     if (!offer) continue;
     priorDoses[offer.key] = (priorDoses[offer.key] ?? 0) + 1;
   }
-  return { offers, priorDoses, doses: given };
+  const openSeries: Record<string, { dose: number; of: number }> = {};
+  for (const progress of seriesFrom(offers, given)) {
+    openSeries[progress.key] = { dose: progress.dose, of: progress.of };
+  }
+  return { offers, priorDoses, doses: given, openSeries };
 }
 
 /**

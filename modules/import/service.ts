@@ -31,6 +31,7 @@ import { matchOwnerPets, type RowFacts } from "./pet-match";
 import { addInterval } from "@/lib/vaccination-interval";
 import { clinicVaccineList, normalizeVaccineSettings, offerByName, type VaccineOffer } from "@/modules/vaccinations/catalogue";
 import { OVERDUE_WINDOW_MONTHS, vaccinationIntervalSuggestions } from "@/modules/vaccinations/queries";
+import { recomputeSuperseded } from "@/modules/vaccinations/supersede";
 
 /**
  * Writing the file, and being able to take it back.
@@ -982,7 +983,16 @@ export async function commitImport(
           nextDueSource: item.nextDueAt ? item.nextDueSource : null,
         });
       }
-      if (vaccinations.length > 0) await tx.vaccination.createMany({ data: vaccinations });
+      if (vaccinations.length > 0) {
+        await tx.vaccination.createMany({ data: vaccinations });
+        // An imported dose can answer one already on file, or be answered
+        // by it: last year's Kuduz is not overdue once this year's is in.
+        await recomputeSuperseded(
+          ctx.clinicId,
+          vaccinations.map((v) => v.petId),
+          tx,
+        );
+      }
 
       const result: CommitResult = {
         batchId: batch.id,
@@ -1247,7 +1257,20 @@ export async function undoImport(batchId: string, ctx: ActionContext): Promise<U
       // including animals the clinic already had, and the animals below
       // are only "unused" once these are gone.
       const vaccinationsBefore = await tx.vaccination.count({ where: mine });
+      const touched = await tx.vaccination.findMany({
+        where: where.vaccination,
+        select: { petId: true },
+        distinct: ["petId"],
+      });
       const vaccinationsDeleted = await tx.vaccination.deleteMany({ where: where.vaccination });
+      // The doses the run answered are open again. The foreign key does
+      // most of it; this covers a dose the run slotted between two the
+      // clinic already had.
+      await recomputeSuperseded(
+        ctx.clinicId,
+        touched.map((v) => v.petId),
+        tx,
+      );
 
       const petsBefore = await tx.pet.count({ where: mine });
       const petsDeleted = await tx.pet.deleteMany({ where: where.pet });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Field } from "@/components/ui/field";
@@ -13,6 +13,8 @@ import { SubmitButton } from "@/components/submit-button";
 import { createTreatmentAction } from "@/modules/treatments/actions";
 import { TREATMENTS } from "@/lib/procedures";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
+import { AllergyOverride } from "@/components/forms/allergy-override";
+import { findAllergyConflict } from "@/lib/allergy-check";
 
 const TREATMENT_OPTIONS = TREATMENTS.map((name) => ({ value: name, label: name }));
 
@@ -21,11 +23,14 @@ export function TreatmentForm({
   visitId,
   vets = [],
   defaultVetId,
+  alerts,
 }: {
   petId: string;
   visitId?: string;
   vets?: { id: string; name: string }[];
   defaultVetId?: string;
+  /** The animal's medical alerts; see `PrescriptionForm`. */
+  alerts?: string | null;
 }) {
   const t = useTranslations("treatment");
   const tCommon = useTranslations("common");
@@ -33,6 +38,18 @@ export function TreatmentForm({
   const { state, reset } = form;
 
   const savedMessage = tCommon("saved");
+  const tCheck = useTranslations("allergyCheck");
+
+  // A treatment is often a drug given here ("Amoksisilin enjeksiyonu"),
+  // so it gets the prescription form's check. See there.
+  // Tagged with the form's reset count, so a saved form forgets the name
+  // with everything else instead of a state update in the save effect.
+  const [typed, setTyped] = useState({ token: 0, value: "" });
+  const name = typed.token === form.resetToken ? typed.value : "";
+  const refused = state.allergyConflict;
+  const conflict =
+    findAllergyConflict(alerts, name) ??
+    (refused && (!name || name.trim() === refused.drug) ? refused : null);
 
   // The message is resolved BEFORE the effect and the effect depends on
   // the string, not on the translator. `useTranslations` hands back a
@@ -61,9 +78,16 @@ export function TreatmentForm({
             options={TREATMENT_OPTIONS}
             placeholder={t("namePlaceholder")}
             noResultsLabel={tCommon("noResults")}
+            onValueChange={(value) => setTyped({ token: form.resetToken, value })}
           />
         </Field>
       </div>
+      {conflict && (
+        <AllergyOverride
+          conflict={conflict}
+          fieldErrors={state.fieldErrors?.overrideReason}
+        />
+      )}
 
       <Field label={t("performedAt")} error={state.fieldErrors?.performedAt} required>
         <DateTimeInput
@@ -95,8 +119,12 @@ export function TreatmentForm({
           <Textarea name="notes" rows={2} placeholder={t("notesPlaceholder")} />
         </Field>
       </div>
-      <SubmitButton size="sm" className="w-fit sm:col-span-2">
-        {t("create")}
+      <SubmitButton
+        size="sm"
+        variant={conflict ? "destructive" : undefined}
+        className="w-fit sm:col-span-2"
+      >
+        {conflict ? tCheck("submitAnyway") : t("create")}
       </SubmitButton>
     </ActionForm>
   );

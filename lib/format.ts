@@ -83,6 +83,25 @@ export function formatDate(
 }
 
 /**
+ * Day and short month, e.g. "7 Eki" / "7 Oct", with the year only when it
+ * is not this year's: for a reading's date beside its value, where the
+ * full date would be longer than the reading.
+ */
+export function formatShortDate(
+  target: FormatTarget,
+  date: Date | null | undefined,
+  now: Date = new Date(),
+): string {
+  if (!date) return EMPTY;
+  const year = (d: Date) => dateFormat(target, { year: "numeric" }).format(d);
+  return dateFormat(target, {
+    day: "numeric",
+    month: "short",
+    ...(year(date) === year(now) ? {} : { year: "numeric" }),
+  }).format(date);
+}
+
+/**
  * A calendar day that is already the clinic's day, e.g. "2027-03-14".
  *
  * Not the same job as `formatDate`, which takes an instant and works out

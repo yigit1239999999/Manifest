@@ -29,6 +29,7 @@ const validInput = {
   performedAt: new Date("2026-05-22T10:00:00.000Z"),
   durationMinutes: null,
   notes: null,
+  overrideReason: null,
 };
 
 beforeEach(() => {
@@ -85,5 +86,62 @@ describe("deleteTreatment", () => {
     expect(prisma.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: "DELETE", entityType: "Treatment" }),
     });
+  });
+});
+
+describe("createTreatment: allergy check", () => {
+  it("refuses a drug given in the clinic that matches the allergy", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      alerts: "Penisilin alerjisi",
+    } as never);
+
+    const err = await createTreatment(
+      { ...validInput, name: "Amoksisilin enjeksiyonu" },
+      ctx,
+    ).catch((e) => e);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.messageKey).toBe("error.allergyConflict");
+    expect(prisma.treatment.create).not.toHaveBeenCalled();
+  });
+
+  it("saves it with a reason and audits the override", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      alerts: "Penisilin alerjisi",
+    } as never);
+    vi.mocked(prisma.treatment.create).mockResolvedValue({
+      id: "tr-1",
+      name: "Amoksisilin enjeksiyonu",
+    } as never);
+
+    await createTreatment(
+      {
+        ...validInput,
+        name: "Amoksisilin enjeksiyonu",
+        overrideReason: "Test dozu, gözlem altında",
+      },
+      ctx,
+    );
+    expect(prisma.treatment.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ overrideReason: "Test dozu, gözlem altında" }),
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        metadata: {
+          allergyOverride: expect.objectContaining({ family: "penicillin" }),
+        },
+      }),
+    });
+  });
+
+  it("leaves a procedure that matches nothing alone", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      alerts: "Penisilin alerjisi",
+    } as never);
+    vi.mocked(prisma.treatment.create).mockResolvedValue({ id: "tr-2" } as never);
+    await createTreatment(validInput, ctx);
+    expect(prisma.treatment.create).toHaveBeenCalled();
   });
 });

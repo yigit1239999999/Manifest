@@ -23,7 +23,14 @@ vi.mock("@/lib/prisma", () => {
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
-import { archivePet, createPet, restorePet, updatePet } from "./service";
+import {
+  archivePet,
+  createPet,
+  markPetDeceased,
+  restorePet,
+  unmarkPetDeceased,
+  updatePet,
+} from "./service";
 
 const ctx = {
   clinicId: "clinic-1",
@@ -261,6 +268,7 @@ describe("updatePet", () => {
     });
     expect(vi.mocked(prisma.pet.findFirst).mock.calls[0][0]?.select).toMatchObject({
       birthDate: true,
+      weightKg: true,
     });
     expect(prisma.pet.update).not.toHaveBeenCalled();
   });
@@ -430,5 +438,94 @@ describe("restorePet", () => {
 
     await expect(restorePet("p-x", ctx)).rejects.toBeInstanceOf(AppError);
     expect(prisma.pet.update).not.toHaveBeenCalled();
+  });
+});
+
+// The pet form's weight is dated, so the newer of it and a visit's weight
+// is the animal's weight (`weight.ts`).
+describe("dating the pet form's weight", () => {
+  it("dates a weight entered with a new animal", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.pet.create).mockResolvedValue({ id: "p-1" } as never);
+    await createPet({ ...validInput, weightKg: 4.2 }, ctx);
+    expect(vi.mocked(prisma.pet.create).mock.calls[0][0].data.weightRecordedAt).toBeInstanceOf(Date);
+  });
+
+  it("re-dates it only when the number changed", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    vi.mocked(prisma.pet.update).mockResolvedValue({ id: "p-1" } as never);
+
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ ...storedPet, weightKg: 4.2 } as never);
+    await updatePet("p-1", { ...validInput, weightKg: 4.2 }, ctx);
+    expect(vi.mocked(prisma.pet.update).mock.calls[0][0].data).not.toHaveProperty("weightRecordedAt");
+
+    await updatePet("p-1", { ...validInput, weightKg: 4.5 }, ctx);
+    expect(vi.mocked(prisma.pet.update).mock.calls[1][0].data.weightRecordedAt).toBeInstanceOf(Date);
+  });
+});
+
+describe("marking an animal as deceased", () => {
+  const now = new Date("2026-10-07T09:00:00.000Z");
+  const day = new Date("2026-10-06T21:00:00.000Z"); // 7 Oct, Istanbul midnight
+
+  it("records the day and the note, and audits both", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "p-1", birthDate: null } as never);
+    vi.mocked(prisma.pet.update).mockResolvedValue({ id: "p-1" } as never);
+
+    await markPetDeceased("p-1", { deceasedAt: day, deceasedNote: "Evde, yaşlılık" }, ctx, now);
+
+    expect(prisma.pet.update).toHaveBeenCalledWith({
+      where: { id: "p-1" },
+      data: { deceased: true, deceasedAt: day, deceasedNote: "Evde, yaşlılık" },
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "UPDATE",
+        entityType: "Pet",
+        changes: expect.objectContaining({ deceased: true, deceasedNote: "Evde, yaşlılık" }),
+      }),
+    });
+  });
+
+  it("refuses a day in the future, or before the animal was born", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "p-1",
+      birthDate: new Date("2026-01-01"),
+    } as never);
+    await expect(
+      markPetDeceased("p-1", { deceasedAt: new Date("2026-10-20"), deceasedNote: null }, ctx, now),
+    ).rejects.toBeInstanceOf(AppError);
+    await expect(
+      markPetDeceased("p-1", { deceasedAt: new Date("2025-12-01"), deceasedNote: null }, ctx, now),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.pet.update).not.toHaveBeenCalled();
+  });
+
+  it("takes a mistaken mark back, keeping what it said in the audit", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "p-1",
+      deceasedAt: day,
+      deceasedNote: "yanlış hayvan",
+    } as never);
+    vi.mocked(prisma.pet.update).mockResolvedValue({ id: "p-1" } as never);
+
+    await unmarkPetDeceased("p-1", ctx);
+
+    expect(prisma.pet.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "p-1", clinicId: "clinic-1", deceased: true } }),
+    );
+    expect(prisma.pet.update).toHaveBeenCalledWith({
+      where: { id: "p-1" },
+      data: { deceased: false, deceasedAt: null, deceasedNote: null },
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "RESTORE",
+        metadata: {
+          reason: "markedByMistake",
+          was: { deceasedAt: day.toISOString(), deceasedNote: "yanlış hayvan" },
+        },
+      }),
+    });
   });
 });

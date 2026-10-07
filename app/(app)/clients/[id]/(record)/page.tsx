@@ -11,6 +11,7 @@ import { can } from "@/lib/permissions";
 import { getClientById } from "@/modules/clients/queries";
 import { clientBalance } from "@/modules/invoices/queries";
 import { OwnerBalance } from "@/components/invoices/owner-balance";
+import { withCurrentWeight } from "@/modules/pets/queries";
 import { clientTimeline } from "@/modules/timeline/queries";
 import {
   archiveClientAction,
@@ -61,6 +62,9 @@ export default async function ClientPage({
     ]);
 
   if (!client) notFound();
+  // The card shows each animal's weight, and a visit's weight is newer
+  // than the form's more often than not. One query for all of them.
+  const pets = await withCurrentWeight(session.user.clinicId, client.pets);
 
   // The service refuses either way; hiding the button keeps the refusal
   // from arriving as a click that silently does nothing (lib/permissions.ts).
@@ -234,7 +238,7 @@ export default async function ClientPage({
                 />
               ) : (
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {client.pets.map((p) => (
+                  {pets.map((p) => (
                     <PetCard key={p.id} pet={p} />
                   ))}
                 </div>

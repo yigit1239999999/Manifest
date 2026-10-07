@@ -52,6 +52,8 @@ describe("createDiagnostic", () => {
 
   it("persists with clinicId and the structured fields", async () => {
     vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    // No earlier record in this minute: the duplicate guard reads first.
+    vi.mocked(prisma.diagnostic.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.diagnostic.create).mockResolvedValue({ id: "d-1", petId: "pet-1" } as never);
 
     await createDiagnostic(validInput, ctx);
@@ -119,6 +121,8 @@ describe("who may say a result has been read", () => {
     ).rejects.toBeInstanceOf(AppError);
 
     vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    // No earlier record in this minute: the duplicate guard reads first.
+    vi.mocked(prisma.diagnostic.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.diagnostic.create).mockResolvedValue({ id: "d-9", name: "CBC", type: "BLOOD" } as never);
 
     await expect(createDiagnostic(validInput, reception)).resolves.toBeDefined();
@@ -163,6 +167,8 @@ describe("who may say a result has been read", () => {
     ).rejects.toBeInstanceOf(AppError);
 
     vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    // No earlier record in this minute: the duplicate guard reads first.
+    vi.mocked(prisma.diagnostic.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.diagnostic.create).mockResolvedValue({ id: "d-2", name: "CBC", type: "BLOOD" } as never);
 
     await createDiagnostic({ ...validInput, interpretation: "Grade II" }, vet);
@@ -179,6 +185,8 @@ describe("who may say a result has been read", () => {
     // "Read" means seen, not interpreted. Requiring a comment would
     // leave every result that needs none unread for ever.
     vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    // No earlier record in this minute: the duplicate guard reads first.
+    vi.mocked(prisma.diagnostic.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.diagnostic.create).mockResolvedValue({ id: "d-3", name: "CBC", type: "BLOOD" } as never);
 
     await createDiagnostic(validInput, vet);
@@ -187,5 +195,29 @@ describe("who may say a result has been read", () => {
       readAt: Date | null;
     };
     expect(data.readAt).toBeNull();
+  });
+});
+
+describe("createDiagnostic: a second press of save", () => {
+  it("refuses the same test for the same animal in the same minute", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    vi.mocked(prisma.diagnostic.findFirst).mockResolvedValue({ id: "d-1" } as never);
+
+    const err = await createDiagnostic(validInput, ctx).catch((e) => e);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.messageKey).toBe("error.conflict.duplicateRecord");
+    expect(prisma.diagnostic.findFirst).toHaveBeenCalledWith({
+      where: {
+        clinicId: "clinic-1",
+        petId: "pet-1",
+        name: { equals: "CBC", mode: "insensitive" },
+        performedAt: {
+          gte: new Date("2026-05-22T10:00:00.000Z"),
+          lt: new Date("2026-05-22T10:01:00.000Z"),
+        },
+      },
+      select: { id: true },
+    });
+    expect(prisma.diagnostic.create).not.toHaveBeenCalled();
   });
 });

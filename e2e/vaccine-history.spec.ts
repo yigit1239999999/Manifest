@@ -26,7 +26,7 @@ async function signUp(page: Page, stamp: number) {
   await expect(page).toHaveURL("/");
 }
 
-async function createDog(page: Page) {
+async function createDog(page: Page, birthDate?: string) {
   await page.goto("/clients/new");
   await page.getByLabel(/first name|^ad$/i).fill("Ece");
   await page.getByLabel(/last name|soyad/i).fill("Kaya");
@@ -38,6 +38,12 @@ async function createDog(page: Page) {
   await pickOption(page, page.getByLabel(/^owner$|^sahibi$/i));
   await page.getByLabel(/^name$|^[İi]sim$/i).fill("Zeytin");
   await page.getByRole("button", { name: /^dog$|^köpek$/i }).click();
+  if (birthDate) {
+    // A puppy: the form offers the starting series only to an animal young
+    // enough to be in one, or one whose record says it is part-way through.
+    await page.getByText(/optional details|[İi]steğe bağlı detaylar/i).first().click();
+    await page.getByLabel(/date of birth|birth date|doğum tarihi/i).fill(birthDate);
+  }
   await page.getByRole("button", { name: /create pet|hayvan ekle/i }).click();
   await expect(page).toHaveURL(/\/pets\/(?!new)[\w-]+$/);
   return page.url();
@@ -83,7 +89,7 @@ async function recordDose(
 test.describe("What the animal's own record says", () => {
   test("says which dose we were on, and that the next one is late", async ({ page }) => {
     await signUp(page, Date.now());
-    await createDog(page);
+    await createDog(page, "2026-04-01");
 
     // The vet's scenario: two doses of three are in, and the third was
     // due while the owner was away. The next date is typed by hand and

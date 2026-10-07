@@ -5,7 +5,7 @@ import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { Species } from "@/generated/prisma/enums";
 import { fold } from "@/lib/search";
-import { SPECIES, type PetInput } from "./schema";
+import { SPECIES, type DeceasedInput, type PetInput } from "./schema";
 import { builtInSpeciesNamed } from "./species-names";
 import { ownerLabel } from "@/lib/pet-label";
 import { OPEN_REMINDER_STATUSES } from "@/modules/reminders/queries";
@@ -137,7 +137,14 @@ export async function createPet(input: PetInput, ctx: ActionContext) {
     },
     (tx) =>
       tx.pet.create({
-        data: { ...rest, species, customSpeciesId, clinicId: ctx.clinicId },
+        data: {
+          ...rest,
+          species,
+          customSpeciesId,
+          clinicId: ctx.clinicId,
+          // Dated, so a later visit's weight can be compared with it.
+          weightRecordedAt: rest.weightKg != null ? new Date() : null,
+        },
       }),
   );
 }
@@ -166,12 +173,19 @@ export async function updatePet(
       name: true,
       ownerId: true,
       birthDate: true,
+      weightKg: true,
       owner: { select: { id: true, firstName: true, lastName: true } },
     },
   });
   if (!existing) throw notFound("pet", id);
 
   await assertOwnerInClinic(input.ownerId, ctx.clinicId);
+  // Re-dated only when the number changed: saving the form for a new
+  // phone number is not a weighing.
+  const weighed =
+    input.weightKg !== existing.weightKg
+      ? { weightRecordedAt: input.weightKg != null ? new Date() : null }
+      : {};
   const { species: rawSpecies, ...rest } = input;
   const { species, customSpeciesId } = await resolveSpecies(rawSpecies, ctx);
   // An estimated birth date (an import's "2021" read as 1 January) stops
@@ -222,6 +236,7 @@ export async function updatePet(
           species,
           customSpeciesId,
           ...(birthDateChanged ? { birthDateEstimated: false } : {}),
+          ...weighed,
         },
       });
       if (ownerChanged) {
@@ -317,17 +332,33 @@ export async function restorePet(id: string, ctx: ActionContext) {
   return existing;
 }
 
+/**
+ * "Vefat etti olarak işaretle".
+ *
+ * What follows from it lives where each thing is decided, not here: every
+ * message path already refuses a deceased animal (`isPetSilenced`), the
+ * dashboard's vaccination cards and the reminder picker leave it out, and
+ * appointments, visits and vaccinations after the day are refused by their
+ * own services (`isAfterDeath`). This only records the fact.
+ */
 export async function markPetDeceased(
   id: string,
-  deceasedAt: Date,
+  input: DeceasedInput,
   ctx: ActionContext,
+  now: Date = new Date(),
 ) {
   requirePermission(ctx.userRole, "pets.write");
   const existing = await prisma.pet.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: { id: true, birthDate: true },
   });
   if (!existing) throw notFound("pet", id);
+  // A day ahead of now is allowed, because the form sends the clinic's
+  // midnight and the server's "now" may be on the other side of it.
+  if (input.deceasedAt.getTime() > now.getTime() + 86_400_000)
+    throw validationFailed({ deceasedAt: ["error.validation.deceasedInFuture"] });
+  if (existing.birthDate && input.deceasedAt < existing.birthDate)
+    throw validationFailed({ deceasedAt: ["error.validation.deceasedBeforeBirth"] });
 
   await withAudited(
     {
@@ -336,9 +367,59 @@ export async function markPetDeceased(
       action: "UPDATE",
       entityType: "Pet",
       entityId: id,
-      changes: { deceased: true, deceasedAt: deceasedAt.toISOString() },
+      changes: {
+        deceased: true,
+        deceasedAt: input.deceasedAt.toISOString(),
+        deceasedNote: input.deceasedNote,
+      },
     },
     (tx) =>
-      tx.pet.update({ where: { id }, data: { deceased: true, deceasedAt } }),
+      tx.pet.update({
+        where: { id },
+        data: {
+          deceased: true,
+          deceasedAt: input.deceasedAt,
+          deceasedNote: input.deceasedNote,
+        },
+      }),
   );
+  return existing;
+}
+
+/**
+ * "Yanlışlıkla işaretlendi": takes the mark back. The audit entry keeps
+ * the date and the note it removes, so the correction is visible and the
+ * mistake is not erased.
+ */
+export async function unmarkPetDeceased(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "pets.write");
+  const existing = await prisma.pet.findFirst({
+    where: { id, clinicId: ctx.clinicId, deceased: true },
+    select: { id: true, deceasedAt: true, deceasedNote: true },
+  });
+  if (!existing) throw notFound("pet", id);
+
+  await withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "RESTORE",
+      entityType: "Pet",
+      entityId: id,
+      changes: { deceased: false },
+      metadata: {
+        reason: "markedByMistake",
+        was: {
+          deceasedAt: existing.deceasedAt?.toISOString() ?? null,
+          deceasedNote: existing.deceasedNote,
+        },
+      },
+    },
+    (tx) =>
+      tx.pet.update({
+        where: { id },
+        data: { deceased: false, deceasedAt: null, deceasedNote: null },
+      }),
+  );
+  return existing;
 }

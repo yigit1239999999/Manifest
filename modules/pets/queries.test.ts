@@ -5,12 +5,12 @@ vi.mock("@/lib/prisma", () => ({
     pet: { findMany: vi.fn(), count: vi.fn() },
     // The picker row carries "last seen", which is one grouped query
     // over the ids just fetched rather than one query per row.
-    visit: { groupBy: vi.fn() },
+    visit: { groupBy: vi.fn(), findMany: vi.fn() },
   },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { listPets, listPetsPage, quickSearchPets } from "./queries";
+import { listPets, listPetsPage, quickSearchPets, withCurrentWeight } from "./queries";
 
 // See `modules/visits/queries.test.ts`: an archive nobody can list is an
 // archive nobody can undo (backlog 39).
@@ -154,5 +154,27 @@ describe("animals a picker may offer", () => {
     await listPets({ clinicId: "clinic-1" });
 
     expect(whereOf()).not.toHaveProperty("deceased");
+  });
+});
+
+describe("withCurrentWeight", () => {
+  it("reads every animal's latest weighed visit in one query", async () => {
+    const oct7 = new Date("2026-10-07T08:00:00.000Z");
+    vi.mocked(prisma.visit.findMany).mockResolvedValue([
+      { petId: "a", weightKg: 4.2, visitedAt: oct7 },
+    ] as never);
+
+    const out = await withCurrentWeight("clinic-1", [
+      { id: "a", weightKg: null, weightRecordedAt: null },
+      { id: "b", weightKg: 30, weightRecordedAt: null },
+    ]);
+
+    expect(prisma.visit.findMany).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(prisma.visit.findMany).mock.calls[0][0]).toMatchObject({
+      where: { clinicId: "clinic-1", petId: { in: ["a", "b"] }, archivedAt: null },
+      distinct: ["petId"],
+    });
+    expect(out[0].currentWeight).toEqual({ kg: 4.2, at: oct7, source: "visit" });
+    expect(out[1].currentWeight).toEqual({ kg: 30, at: null, source: "pet" });
   });
 });

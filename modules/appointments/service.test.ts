@@ -21,7 +21,8 @@ vi.mock("@/modules/notifications/service", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { createAppointment } from "./service";
+import { AppError } from "@/lib/errors";
+import { createAppointment, setAppointmentOutcome } from "./service";
 
 const ctx = {
   clinicId: "clinic-1",
@@ -288,5 +289,91 @@ describe("createAppointment, asked twice for the same slot", () => {
     expect(prisma.appointment.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ vetId: "vet-1" }),
     });
+  });
+});
+
+// pm (A6): the deceased Fındık was booked from an unmarked picker row.
+describe("an animal that has died", () => {
+  it("cannot be booked", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      ownerId: "owner-1",
+      deceased: true,
+    } as never);
+    const err = await createAppointment(validInput, ctx).catch((e) => e);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.details.fieldErrors).toEqual({ petId: ["error.validation.petDeceased"] });
+    expect(prisma.appointment.create).not.toHaveBeenCalled();
+  });
+});
+
+// The vet: "haftaya olan randevu bugünden 'gelmedi' yapılabildi", and
+// marking an outcome took Edit, a select and Save.
+describe("the outcome of an appointment", () => {
+  const now = new Date("2026-10-07T09:00:00.000Z");
+  const row = (over: Record<string, unknown> = {}) =>
+    ({
+      id: "a-1",
+      status: "SCHEDULED",
+      startsAt: new Date("2026-10-07T08:30:00.000Z"),
+      petId: "pet-1",
+      visit: null,
+      ...over,
+    }) as never;
+
+  it("cannot be 'no-show' before the appointment has started", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      row({ startsAt: new Date("2026-10-14T08:30:00.000Z") }),
+    );
+    const err = await setAppointmentOutcome("a-1", "NO_SHOW", ctx, now).catch((e) => e);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.details.fieldErrors).toEqual({ status: ["error.validation.noShowBeforeStart"] });
+    expect(prisma.appointment.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses the same through the edit form and on creation", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null);
+    const future = new Date(Date.now() + 7 * 86_400_000);
+    await expect(
+      createAppointment({ ...validInput, startsAt: future, status: "NO_SHOW" }, ctx),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.appointment.create).not.toHaveBeenCalled();
+  });
+
+  it("marks a started appointment as a no-show in one call, audited", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(row());
+    vi.mocked(prisma.appointment.update).mockResolvedValue({ id: "a-1" } as never);
+    await setAppointmentOutcome("a-1", "NO_SHOW", ctx, now);
+    expect(prisma.appointment.update).toHaveBeenCalledWith({
+      where: { id: "a-1" },
+      data: { status: "NO_SHOW" },
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ changes: { status: "NO_SHOW", from: "SCHEDULED" } }),
+    });
+  });
+
+  it("lets an owner arrive early, and corrects a no-show who came late", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(
+      row({ startsAt: new Date("2026-10-07T10:00:00.000Z") }),
+    );
+    vi.mocked(prisma.appointment.update).mockResolvedValue({ id: "a-1" } as never);
+    await setAppointmentOutcome("a-1", "ARRIVED", ctx, now);
+    expect(prisma.appointment.update).toHaveBeenLastCalledWith({
+      where: { id: "a-1" },
+      data: { status: "ARRIVED" },
+    });
+
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(row({ status: "NO_SHOW" }));
+    await setAppointmentOutcome("a-1", "ARRIVED", ctx, now);
+    expect(prisma.appointment.update).toHaveBeenCalledTimes(2);
+  });
+
+  it("never sets 'no-show' over an arrival or a visit", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(row({ status: "ARRIVED" }));
+    await expect(setAppointmentOutcome("a-1", "NO_SHOW", ctx, now)).rejects.toBeInstanceOf(AppError);
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(row({ visit: { id: "v-1" } }));
+    await expect(setAppointmentOutcome("a-1", "NO_SHOW", ctx, now)).rejects.toBeInstanceOf(AppError);
+    expect(prisma.appointment.update).not.toHaveBeenCalled();
   });
 });

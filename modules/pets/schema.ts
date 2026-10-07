@@ -4,6 +4,7 @@ import {
   optionalDate,
   optionalFloat,
   optionalText,
+  requiredDateTime,
   requiredEnum,
   requiredId,
   requiredText,
@@ -48,5 +49,13 @@ export const petSchema = z.object({
   alerts: optionalText(500),
   notes: optionalText(2000),
 });
+
+/** "Vefat etti olarak işaretle": the day, and an optional line. */
+export const deceasedSchema = z.object({
+  deceasedAt: requiredDateTime,
+  deceasedNote: optionalText(500),
+});
+
+export type DeceasedInput = z.infer<typeof deceasedSchema>;
 
 export type PetInput = z.infer<typeof petSchema>;

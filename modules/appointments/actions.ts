@@ -7,6 +7,7 @@ import { appointmentSchema } from "./schema";
 import {
   cancelAppointment,
   createAppointment,
+  setAppointmentOutcome,
   updateAppointment,
 } from "./service";
 
@@ -53,6 +54,16 @@ export const updateAppointmentAction = action(
     revalidatePath(`/pets/${appointment.petId}`);
     revalidatePath(`/clients/${appointment.clientId}`);
     redirect(`/appointments/${id}`);
+  },
+);
+
+export const setAppointmentOutcomeAction = action(
+  "appointment.outcome",
+  async (ctx, id: string, outcome: "ARRIVED" | "NO_SHOW"): Promise<FormState> => {
+    if (outcome !== "ARRIVED" && outcome !== "NO_SHOW") return { error: "error.generic" };
+    await setAppointmentOutcome(id, outcome, ctx);
+    // No revalidatePath: the buttons reload the page (`useRefreshAction`).
+    return { success: true };
   },
 );
 

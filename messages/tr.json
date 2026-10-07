@@ -340,6 +340,8 @@
     "insuranceProvider": "Sigorta",
     "insurancePolicy": "Poliçe no",
     "alerts": "Tıbbi uyarılar",
+    "alertsHint": "Alerjiler ve dikkat edilecekler. Yazılan her reçete ve tedavi bununla karşılaştırılır.",
+    "alertsPlaceholder": "Örn. Penisilin alerjisi; ısırır",
     "owner": "Sahibi",
     "notes": "Notlar",
     "sections": {
@@ -348,11 +350,26 @@
       "physical": "Fiziksel",
       "physicalHint": "Görünür özellikler ve giriş anındaki vital bulgular.",
       "medical": "Tıbbi",
-      "medicalHint": "Her vizitte görünmesi gereken tanımlayıcılar, sigorta ve uyarılar.",
+      "medicalHint": "Her vizitte görünmesi gereken tanımlayıcılar ve sigorta.",
       "notes": "Notlar",
       "notesHint": "Klinik ekibinin bilmesi gereken her şey."
     },
     "deceased": "Vefat etti",
+    "deceasedOn": "Vefat etti · {date}",
+    "deceasedEffect": "Bu hayvan için hatırlatma, aşı çağrısı veya mesaj gönderilmez; yeni randevu, vizit ve aşı açılmaz. Kayıtları burada kalır.",
+    "deceasedMark": {
+      "button": "Vefat etti olarak işaretle",
+      "title": "{name} vefat etti olarak işaretlensin mi?",
+      "description": "Sahibine bu hayvan için hiçbir mesaj gitmez, aşı listelerinden çıkar ve yeni randevu verilemez. Geçmiş kayıtları silinmez. Yanlışlıkla işaretlenirse geri alabilirsiniz.",
+      "confirm": "Vefat etti olarak işaretle",
+      "date": "Vefat tarihi",
+      "note": "Not",
+      "noteHint": "İsteğe bağlı. Örn. evde, yaşlılık; ötanazi, sahibin onayıyla.",
+      "undo": "Yanlışlıkla işaretlendi",
+      "undoTitle": "Vefat kaydı geri alınsın mı?",
+      "undoDescription": "Hayvan yeniden aktif görünür; hatırlatma ve mesajlar yeniden gönderilebilir. Geri alma işlem geçmişine yazılır.",
+      "undoConfirm": "Geri al"
+    },
     "deceasedAt": "Vefat tarihi",
     "markDeceased": "Vefat etti olarak işaretle",
     "archiveConfirm": "Bu hayvan arşivlensin mi?",
@@ -474,7 +491,8 @@
       "completedNotice": "Bu randevu tamamlandığı için onay ve hatırlatma mesajları artık sunulmuyor.",
       "pastNotice": "Randevu saati geçtiği için onay ve hatırlatma mesajları artık sunulmuyor. Bu randevunun sonucu henüz kaydedilmedi.",
       "recordOutcome": "Sonucu kaydedin",
-      "petSilencedNotice": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için mesaj gönderilmiyor."
+      "petSilencedNotice": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için mesaj gönderilmiyor.",
+      "noShowNotice": "Hayvan bu randevuya gelmediği için onay ve hatırlatma mesajları artık sunulmuyor."
     },
     "today": "Bugün",
     "previousDay": "Önceki gün",
@@ -489,7 +507,9 @@
     "emptyDayHint": "Başka bir güne bakmak için okları kullanabilir veya yeni randevu oluşturabilirsiniz.",
     "emptyHint": "Randevu, kayıtlı bir hayvan için verilir; oluşturduğunuz randevular en yakın tarihli olan başta olmak üzere burada görünür.",
     "cancelConfirm": "Bu randevu iptal edilsin mi?",
-    "cancelUndoHint": "Randevu listede kalır, durumu iptal edildi olur. İsterseniz düzenleme ekranından yeniden planlayabilirsiniz."
+    "cancelUndoHint": "Randevu listede kalır, durumu iptal edildi olur. İsterseniz düzenleme ekranından yeniden planlayabilirsiniz.",
+    "outcomeArrived": "Geldi",
+    "outcomeNoShow": "Gelmedi"
   },
   "staff": {
     "title": "Ekip",
@@ -626,6 +646,8 @@
       "year": "{count, plural, one {1 yıl} other {# yıl}}"
     },
     "sourceList": "{interval}, listeden geldi.",
+    "sourceSeries": "Serinin {number}. dozu için {interval}, listeden geldi.",
+    "proposalFilled": "Önerilen tarih yazıldı; değiştirebilirsiniz.",
     "sourceClinic": "{interval}, kliniğinizin ayarından geldi.",
     "sourceAsk": "Bu aşı için tekrar tarihi önerilmiyor: aralık hekimden hekime değişiyor. Siz belirleyin.",
     "seriesLine": "{doses} dozluk başlangıç serisi, dozlar arası {min}-{max} hafta.",
@@ -646,7 +668,9 @@
     "startAtFrom": "İlk doz {min}. haftadan sonra yapılır.",
     "noteInsideCombination": "Karma aşının içinde geliyor.",
     "noteTestFirst": "Önce test yapılır; şema yalnız sonuç negatifse geçerlidir.",
-    "noteByAgreement": "Her hayvana yapılmaz; sahibiyle konuşarak karar verilir."
+    "noteByAgreement": "Her hayvana yapılmaz; sahibiyle konuşarak karar verilir.",
+    "overdueBadge": "{count, plural, =0 {Gecikti · bugün} one {Gecikti · 1 gün} other {Gecikti · # gün}}",
+    "supersededNote": "sonraki doz yapıldı"
   },
   "prescription": {
     "title": "Reçeteler",
@@ -685,6 +709,15 @@
     "durationMinutes": "Süre (dk)",
     "notes": "Uygulama notları",
     "notesPlaceholder": "Anestezi protokolü, kullanılan malzeme, komplikasyon, sahip bilgilendirmesi…"
+  },
+  "allergyCheck": {
+    "title": "Bu ilaç hayvanın kayıtlı uyarısıyla eşleşiyor",
+    "body": "Kayıtlı uyarı: \"{allergy}\". Yazılan: \"{drug}\"{family, select, penicillin { (ikisi de penisilin grubu)} sulfonamide { (ikisi de sülfonamid grubu)} nsaid { (ikisi de NSAİİ grubu)} other {}}. Gerekçe yazılmadan kaydedilmez.",
+    "reason": "Yine de yaz: gerekçe",
+    "reasonHint": "Gerekçe kayıtla birlikte saklanır ve denetim kaydına yazılır.",
+    "reasonPlaceholder": "Örn. alerji öyküsü sahiple doğrulandı, reaksiyon yok; test dozu verildi",
+    "submitAnyway": "Yine de yaz",
+    "overridden": "Kayıtlı uyarıya rağmen yazıldı. Gerekçe: {reason}"
   },
   "diagnostic": {
     "title": "Tanı testleri",
@@ -1444,7 +1477,8 @@
       "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",
       "emailInUse": "Bu e-posta adresi zaten kullanılıyor.",
       "lastAdmin": "Bu kliniğin son yöneticisi devre dışı bırakılamaz. Önce başka bir yönetici ekleyiniz.",
-      "invoiceVoided": "Bu fatura iptal edilmiş; üzerine ödeme kaydedilemez."
+      "invoiceVoided": "Bu fatura iptal edilmiş; üzerine ödeme kaydedilemez.",
+      "duplicateRecord": "\"{name}\" bu hayvana bu dakikada zaten kaydedilmiş; ikinci kez kaydedilmedi. Kaydı aşağıdaki listede görebilirsiniz."
     },
     "auth": {
       "signupFailed": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
@@ -1478,12 +1512,17 @@
       "importDuplicatesUnanswered": "Aynı kişi olabilecek kayıtlar için karar verilmeden içe aktarma tamamlanamaz.",
       "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış.",
       "appointmentNotWaiting": "Bu randevunun durumu zaten değişmiş. Sayfayı yenileyin.",
-      "noShowBeforeStart": "Randevu saati gelmeden \"gelmedi\" işaretlenemez.",
       "recallOutcome": "Bilinmeyen arama sonucu.",
       "mergeSameClient": "Bir kayıt kendisiyle birleştirilemez.",
       "mergeIntoArchived": "Arşivdeki bir kayda birleştirilemez. Önce o kaydı geri alın.",
       "ownerChangeUnconfirmed": "Sahip değişikliğini onaylayın: sahip alanının altındaki kutuyu işaretleyin.",
-      "importPetsUnanswered": "Hangi hayvan olduğu belli olmayan satırlar için karar verilmeden içe aktarma tamamlanamaz."
+      "importPetsUnanswered": "Hangi hayvan olduğu belli olmayan satırlar için karar verilmeden içe aktarma tamamlanamaz.",
+      "petDeceased": "Bu hayvan vefat etti olarak işaretli; randevu verilemez.",
+      "afterDeath": "Bu hayvan bu tarihten önce vefat etti olarak işaretli. Tarihi kontrol ediniz.",
+      "deceasedInFuture": "Vefat tarihi ileri bir tarih olamaz.",
+      "deceasedBeforeBirth": "Vefat tarihi doğum tarihinden önce olamaz.",
+      "noShowBeforeStart": "Randevu saati henüz gelmedi; \"Gelmedi\" ancak randevu başladıktan sonra işaretlenebilir.",
+      "appointmentOutcomeClosed": "Bu randevunun sonucu zaten kaydedilmiş."
     },
     "form": {
       "required": "{field} gerekli.",
@@ -1509,7 +1548,8 @@
       "linesRequired": "En az bir satır ekleyiniz.",
       "paymentOverBalance": "Bu faturada kalan borç {remaining}. Ödeme bundan fazla olamaz; lütfen tutarı kontrol ediniz.",
       "paymentNothingOwed": "Bu faturada ödenecek borç kalmadı."
-    }
+    },
+    "allergyConflict": "Kaydedilmedi. Bu hayvanın kayıtlı uyarısı \"{allergy}\"; yazılan \"{drug}\" bununla eşleşiyor{family, select, penicillin { (ikisi de penisilin grubu)} sulfonamide { (ikisi de sülfonamid grubu)} nsaid { (ikisi de NSAİİ grubu)} other {}}. Yine de yazmak için gerekçe girin."
   },
   "recall": {
     "title": "Aşı takibi",

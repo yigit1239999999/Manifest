@@ -21,7 +21,7 @@ import {
   updateAppointmentAction,
 } from "@/modules/appointments/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
-import { searchPetsAction } from "@/modules/pets/actions";
+import { searchBookablePetsAction, searchPetsAction } from "@/modules/pets/actions";
 import { petRowCaption, petRowLabel } from "@/lib/pet-label";
 
 interface Props {
@@ -145,7 +145,13 @@ export function AppointmentForm({
             defaultLabel={defaultPetLabel}
             placeholder={tCommon("searchOrType")}
             noResultsLabel={tCommon("noResults")}
-            onSearch={petsCapped ? searchPetsAction : undefined}
+            // A new booking never offers an animal that has died; the
+            // server refuses one. Editing keeps the full list, so an
+            // appointment made before the death can still be opened and
+            // cancelled with its animal shown.
+            onSearch={
+              petsCapped ? (appointment ? searchPetsAction : searchBookablePetsAction) : undefined
+            }
             hasMore={petsCapped}
             searchHintLabel={tCommon("searchMinChars")}
             searchingLabel={tCommon("searching")}

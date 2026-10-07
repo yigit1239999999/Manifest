@@ -318,6 +318,10 @@ model Pet {
   birthDateEstimated Boolean        @default(false)
   color              String?
   weightKg           Float?
+  /// When `weightKg` was typed into the pet form. A visit's weight is the
+  /// other reading; the newer of the two is the animal's weight (see
+  /// `modules/pets/weight.ts`). Null for weights from before this column.
+  weightRecordedAt   DateTime?
   microchipId        String?
   insuranceProvider  String?
   insurancePolicy    String?
@@ -325,6 +329,8 @@ model Pet {
   alerts             String?
   deceased           Boolean        @default(false)
   deceasedAt         DateTime?
+  /// What the clinic wrote when marking the death ("evde, yaşlılık").
+  deceasedNote       String?
   archivedAt         DateTime?
   notes              String?
   /// Accent-folded name, breed and microchip id. See `Client.searchKey`
@@ -570,19 +576,19 @@ enum DueSource {
 }
 
 model Vaccination {
-  id                   String       @id @default(cuid())
+  id                   String        @id @default(cuid())
   clinicId             String
-  clinic               Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic               Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   petId                String
-  pet                  Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+  pet                  Pet           @relation(fields: [petId], references: [id], onDelete: Cascade)
   visitId              String?
-  visit                Visit?       @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  visit                Visit?        @relation(fields: [visitId], references: [id], onDelete: SetNull)
   administeredById     String?
-  administeredBy       User?        @relation("VaccinationBy", fields: [administeredById], references: [id], onDelete: SetNull)
+  administeredBy       User?         @relation("VaccinationBy", fields: [administeredById], references: [id], onDelete: SetNull)
   name                 String
   manufacturer         String?
   lotNumber            String?
-  administeredAt       DateTime     @default(now())
+  administeredAt       DateTime      @default(now())
   nextDueAt            DateTime?
   /// Where the interval behind `nextDueAt` came from, so the screen can
   /// say it out loud. Null when there is no next date, or when the row
@@ -629,21 +635,36 @@ model Vaccination {
   /// The spreadsheet run that wrote this row, or null for one typed in
   /// the product. Undo deletes by it, as it does for clients and pets.
   importBatchId        String?
-  importBatch          ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  importBatch          ImportBatch?  @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
   /// The file gave a day, not a time. `administeredAt` holds that day at
   /// UTC noon and every screen prints the day alone -- a time of day
   /// here would be one nobody wrote.
-  administeredDateOnly Boolean      @default(false)
+  administeredDateOnly Boolean       @default(false)
+  /// The next dose of the same vaccine for the same animal, when one was
+  /// recorded after this. Its `nextDueAt` is then answered: Badem's Karma
+  /// from last year is not overdue once this year's is on file, and the
+  /// overdue and upcoming lists skip a superseded row.
+  ///
+  /// Derived, never typed: `modules/vaccinations/supersede.ts` recomputes
+  /// it for an animal whenever one of its vaccinations is written or
+  /// removed, matching names through the catalogue's aliases. Points at
+  /// the NEXT newer dose rather than the newest, so removing the newest
+  /// (an import undone, a row deleted) un-answers exactly one row through
+  /// the foreign key's SET NULL, without anything having to recompute.
+  supersededById       String?
+  supersededBy         Vaccination?  @relation("Supersedes", fields: [supersededById], references: [id], onDelete: SetNull)
+  supersedes           Vaccination[] @relation("Supersedes")
   site                 String?
   notes                String?
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   recalls RecallContact[]
 
   @@index([clinicId, petId, administeredAt])
   @@index([clinicId, nextDueAt])
   @@index([clinicId, importBatchId])
+  @@index([supersededById])
   // A third index is not written here: (clinicId, administeredAt DESC)
   // WHERE "nextDueAt" IS NOT NULL, added in
   // `20260921150000_vaccination_suggestion_index` for the next-due
@@ -716,6 +737,11 @@ model Prescription {
   status         PrescriptionStatus @default(ACTIVE)
   instructions   String?
   notes          String?
+  /// Why this was written although it matches the animal's recorded
+  /// allergy (see `lib/allergy-check.ts`). Null when there was no match:
+  /// the server refuses a matching drug without one, so a value here is
+  /// always a vet's deliberate decision, in their words.
+  overrideReason String?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -743,6 +769,11 @@ model Treatment {
   performedAt     DateTime @default(now())
   durationMinutes Int?
   notes           String?
+  /// Why this was written although it matches the animal's recorded
+  /// allergy (see `lib/allergy-check.ts`). Null when there was no match:
+  /// the server refuses a matching drug without one, so a value here is
+  /// always a vet's deliberate decision, in their words.
+  overrideReason  String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

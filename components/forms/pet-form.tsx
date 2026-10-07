@@ -183,7 +183,6 @@ export function PetForm({
       pet.microchipId ||
       pet.insuranceProvider ||
       pet.insurancePolicy ||
-      pet.alerts ||
       pet.notes),
   );
 
@@ -346,6 +345,23 @@ export function PetForm({
             </Select>
           </Field>
         </div>
+
+        {/* Outside "optional details", always open. An allergy folded
+            away under "you can fill these in later" is one nobody types
+            in on the first visit, and it is the field every prescription
+            is now checked against. */}
+        <Field
+          label={t("alerts")}
+          hint={t("alertsHint")}
+          error={state.fieldErrors?.alerts}
+        >
+          <Textarea
+            name="alerts"
+            rows={2}
+            defaultValue={pet?.alerts ?? ""}
+            placeholder={t("alertsPlaceholder")}
+          />
+        </Field>
       </FormSection>
 
       <OptionalDetails
@@ -424,13 +440,6 @@ export function PetForm({
                 />
               </Field>
             </div>
-            <Field label={t("alerts")} error={state.fieldErrors?.alerts}>
-              <Textarea
-                name="alerts"
-                rows={2}
-                defaultValue={pet?.alerts ?? ""}
-              />
-            </Field>
           </FormSection>
 
           <FormSection
