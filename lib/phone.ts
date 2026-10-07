@@ -189,3 +189,29 @@ export function turkishNational(raw: string): string | null {
   if (digits.length !== 10 || !/^[2-5]/.test(digits)) return null;
   return digits;
 }
+
+/**
+ * The digits a search term should be matched against `Client.phoneDigits`
+ * with, or null when the term is not a phone number.
+ *
+ *   "0532 411"        → "532411"
+ *   "+90 532 411 22"  → "53241122"
+ *   "4112233"         → "4112233"
+ *   "Ayşe"            → null
+ *
+ * Four digits at least: fewer would match half the clinic. The trunk 0
+ * and the 90 country code are dropped because the stored digits never
+ * carry them, and a term longer than ten keeps its last ten for the
+ * same reason.
+ */
+export function phoneSearchDigits(term: string): string | null {
+  const text = term.trim();
+  if (!PHONE_TEXT.test(text)) return null;
+  let digits = text.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("90") && (text.startsWith("+") || digits.length > 10))
+    digits = digits.slice(2);
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  if (digits.length > 10) digits = digits.slice(-10);
+  return digits.length >= 4 ? digits : null;
+}

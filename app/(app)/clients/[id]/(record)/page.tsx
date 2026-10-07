@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { formatPhone } from "@/lib/phone";
+import { PhoneLink } from "@/components/phone-link";
 import { notFound } from "next/navigation";
 import { Edit3, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -71,7 +73,7 @@ export default async function ClientPage({
 
       <PageHeader
         title={ownerLabel(client)}
-        description={client.email ?? client.phone ?? ""}
+        description={client.email ?? formatPhone(client.phone)}
       >
         {canEdit && (
           <Link
@@ -129,8 +131,16 @@ export default async function ClientPage({
             <DescriptionList
               items={[
                 { label: t("email"), value: client.email },
-                { label: t("phone"), value: client.phone },
-                { label: t("secondaryPhone"), value: client.secondaryPhone },
+                {
+                  label: t("phone"),
+                  value: client.phone ? <PhoneLink phone={client.phone} /> : null,
+                },
+                {
+                  label: t("secondaryPhone"),
+                  value: client.secondaryPhone ? (
+                    <PhoneLink phone={client.secondaryPhone} />
+                  ) : null,
+                },
                 { label: t("address"), value: client.address },
                 { label: t("city"), value: client.city },
                 { label: t("postalCode"), value: client.postalCode },

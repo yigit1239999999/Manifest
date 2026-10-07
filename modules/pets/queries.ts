@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { fold } from "@/lib/search";
+import { termWhere } from "@/modules/clients/queries";
 import { ownerLabel, petLabel } from "@/lib/pet-label";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -88,7 +89,9 @@ function buildPetWhere(args: {
       ? {
           OR: [
             { searchKey: { contains: fold(term) } },
-            { owner: { searchKey: { contains: fold(term) } } },
+            // The owner's name, or the owner's number however it was
+            // typed: "the cat of 0532 411…" is how a call starts.
+            { owner: termWhere(term) },
           ],
         }
       : {}),

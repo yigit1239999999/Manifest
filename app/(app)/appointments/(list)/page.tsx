@@ -3,7 +3,7 @@ import { AlertTriangle, CalendarClock, Plus, Stethoscope } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
-import { telHref } from "@/lib/phone";
+import { formatPhone, telHref } from "@/lib/phone";
 import { can } from "@/lib/permissions";
 import { listAppointmentsPage } from "@/modules/appointments/queries";
 import { APPOINTMENT_STATUSES } from "@/modules/appointments/schema";
@@ -355,13 +355,13 @@ export default async function AppointmentsPage({
                             href={telHref(a.client.phone) ?? undefined}
                             className="whitespace-nowrap hover:underline"
                           >
-                            {a.client.phone}
+                            {formatPhone(a.client.phone)}
                           </a>
                         ) : (
                           // Not dialable, so not a link: something that
                           // looks tappable and does nothing is worse than
                           // plain text.
-                          <span className="whitespace-nowrap">{a.client.phone}</span>
+                          <span className="whitespace-nowrap">{formatPhone(a.client.phone)}</span>
                         ))}
                     </div>
                   </>
@@ -434,11 +434,11 @@ export default async function AppointmentsPage({
                       href={dial}
                       className="text-muted-foreground hover:underline"
                     >
-                      {a.client.phone}
+                      {formatPhone(a.client.phone)}
                     </a>
                   ) : (
                     <span className="text-muted-foreground">
-                      {a.client.phone}
+                      {formatPhone(a.client.phone)}
                     </span>
                   );
                 },

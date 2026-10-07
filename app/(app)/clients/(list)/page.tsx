@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { PhoneLink } from "@/components/phone-link";
 import { DataTable } from "@/components/ui/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { ownerLabel } from "@/lib/pet-label";
@@ -183,7 +184,11 @@ export default async function ClientsPage({
                 // whole line, and a longer address breaks rather than
                 // pushing the card wider than the screen.
                 cellClassName: "text-muted-foreground wrap-anywhere",
-                cell: (c) => c.email ?? "-",
+                // A missing value is a dash in the table, and nothing at
+                // all when the row is stacked: on a phone the dash stood
+                // alone at the start of the line and read as a bullet or
+                // a minus (pm C5).
+                cell: (c) => c.email ?? <EmptyCell />,
               },
               {
                 key: "phone",
@@ -192,7 +197,10 @@ export default async function ClientsPage({
                 // column it broke at every space, onto three lines, and a
                 // number read in pieces is a number misdialled.
                 cellClassName: "text-muted-foreground whitespace-nowrap",
-                cell: (c) => c.phone ?? "-",
+                // Dialable from the list: on a phone this is the screen a
+                // call starts from (pm C5).
+                cell: (c) =>
+                  c.phone ? <PhoneLink phone={c.phone} /> : <EmptyCell />,
               },
             ]}
           />
@@ -206,5 +214,14 @@ export default async function ClientsPage({
         </>
       )}
     </div>
+  );
+}
+
+/** The table's dash for "none", dropped when the row is stacked. */
+function EmptyCell() {
+  return (
+    <span aria-hidden="true" className="@max-lg:hidden">
+      -
+    </span>
   );
 }

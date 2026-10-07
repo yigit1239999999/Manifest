@@ -10,6 +10,7 @@ import {
   listClients,
   listClientsPage,
   quickSearchClients,
+  termWhere,
 } from "./queries";
 
 beforeEach(() => {
@@ -237,5 +238,27 @@ describe("the label for a client outside the picker's list", () => {
     } as never);
 
     expect(await getClientLabel("clinic-1", "c-9")).toBe("Ayşe Çelik");
+  });
+});
+
+// pm B5: "0532 411" found "0532 411 22 33" and missed "05324112233" and
+// "+90 (532) 411-22-33" -- one owner, four spellings, one findable.
+describe("termWhere, phone search", () => {
+  it("matches a number on its digits however either side was written", () => {
+    expect(termWhere("+90 (532) 411")).toEqual({
+      OR: [{ searchKey: { contains: "+90 (532) 411" } }, { phoneDigits: { contains: "532411" } }],
+    });
+  });
+
+  it("leaves a name to the folded key alone", () => {
+    expect(termWhere("Ayşe")).toEqual({ searchKey: { contains: "ayse" } });
+  });
+
+  it("reaches the client search through the same rule", async () => {
+    await quickSearchClients("clinic-1", "05324112233");
+    expect(callOf()?.where).toMatchObject({
+      clinicId: "clinic-1",
+      OR: [{ searchKey: { contains: "05324112233" } }, { phoneDigits: { contains: "5324112233" } }],
+    });
   });
 });
