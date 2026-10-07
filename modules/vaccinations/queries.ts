@@ -23,6 +23,18 @@ export async function listVaccinationsForPet(
 }
 
 /**
+ * How far ahead "upcoming" looks, everywhere it is said: the dashboard
+ * card, this list, and the import result's "N in the next 30 days".
+ *
+ * One window because there were three: the card had none (it listed a
+ * booster due in 2027 as "upcoming"), the import said 30 days, and a vet
+ * reading both could not tell which one was the clinic's. A month is the
+ * horizon a recall call is made on: far enough to book, near enough that
+ * the owner will still remember the call.
+ */
+export const UPCOMING_WINDOW_DAYS = 30;
+
+/**
  * What the dashboard offers as work to do next.
  *
  * The animal filter is the point of this comment. Without it the card
@@ -43,11 +55,17 @@ export async function listVaccinationsForPet(
  * their booster sends a vet to somebody they should not be calling --
  * the dead-animal case one level up.
  */
-export async function upcomingVaccinations(clinicId: string, take = 10) {
+export async function upcomingVaccinations(clinicId: string, take = 10, now = new Date()) {
   return prisma.vaccination.findMany({
     where: {
       clinicId,
-      nextDueAt: { not: null, gte: new Date() },
+      nextDueAt: {
+        not: null,
+        gte: now,
+        lte: new Date(now.getTime() + UPCOMING_WINDOW_DAYS * 86_400_000),
+      },
+      // Taken off the recall list: off this card too.
+      dueDismissedAt: null,
       pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
     },
     orderBy: { nextDueAt: "asc" },
@@ -105,6 +123,21 @@ export async function overdueVaccinations(clinicId: string, take = 5, now = new 
           owner: { select: { phone: true } },
         },
       },
+    },
+  });
+}
+
+/** How many are due inside the upcoming window: the card's "see all" count. */
+export async function countUpcomingVaccinations(clinicId: string, now = new Date()) {
+  return prisma.vaccination.count({
+    where: {
+      clinicId,
+      nextDueAt: {
+        gte: now,
+        lte: new Date(now.getTime() + UPCOMING_WINDOW_DAYS * 86_400_000),
+      },
+      dueDismissedAt: null,
+      pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
     },
   });
 }

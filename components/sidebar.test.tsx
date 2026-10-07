@@ -127,6 +127,6 @@ describe("Sidebar", () => {
       "clients.write",
       "pets.write",
     ]);
-    expect(screen.getAllByRole("link")).toHaveLength(13); // 12 nav + the logo
+    expect(screen.getAllByRole("link")).toHaveLength(14); // 13 nav + the logo
   });
 });

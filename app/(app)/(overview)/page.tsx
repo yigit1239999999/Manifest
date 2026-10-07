@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
 import {
+  ArrowRight,
   CalendarClock,
   ClipboardList,
   PhoneOff,
@@ -15,12 +16,13 @@ import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
-import { telHref } from "@/lib/phone";
 import { dashboardInsights, todayAppointments } from "@/modules/dashboard/queries";
 import { blockedReminders } from "@/modules/notifications/queries";
 import { unreadDiagnostics } from "@/modules/diagnostics/queries";
 import { getClinicCurrency, getClinicSettings } from "@/modules/clinics/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
+import { UPCOMING_WINDOW_DAYS } from "@/modules/vaccinations/queries";
+import { PhoneLink } from "@/components/phone-link";
 import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
 import { FirstStepCard } from "@/components/first-step-card";
 import { TodayStrip } from "@/components/today-strip";
@@ -198,7 +200,9 @@ export default async function DashboardPage() {
             icon: PhoneOff,
             value: blocked.unreachedTotal,
             href: "/reminders?status=blocked&group=unreached",
-            hint: undefined,
+            // The heading alone ("ULAŞMAYACAK") read as a verdict with no
+            // subject (pm C2): it says which messages, and what to do.
+            hint: t("unreachedHint") as string | undefined,
           },
         ]
       : []),
@@ -272,6 +276,9 @@ export default async function DashboardPage() {
     can(session.user.role, "clients.write") &&
     can(session.user.role, "pets.write");
   const canBook = can(session.user.role, "appointments.write");
+  // The server refuses the close to anyone else; a button that can only
+  // fail is worse than none.
+  const canDismissDue = can(session.user.role, "vaccinations.write");
 
   if (firstRun) {
     return (
@@ -592,20 +599,13 @@ export default async function DashboardPage() {
                 {insights.overdueVaccinations.map((v) => (
                   <li
                     key={v.id}
-                    className="flex items-center justify-between gap-2 rounded-control px-2 py-2"
+                    className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-control px-2 py-2"
                   >
-                    {/* The animal is a link for the same reason it is one on a
-                        reminder row: somebody reading which vaccinations
-                        are overdue wants to go to the animal, and the card
-                        was making them find it by hand. Half of what this
-                        card is for is getting them there.
-
-                        Both lists on this page, not just the one that was
-                        reported: the same gap, and one linked card beside
-                        one unlinked card is a worse answer than neither. */}
+                    {/* The animal is a link: somebody reading which
+                        vaccinations are overdue wants to go to the animal. */}
                     <span className="text-sm font-medium">
-                      <Link href={`/pets/${v.pet.id}`} className="hover:underline">
-                        {v.pet.name}
+                      <Link href={`/pets/${v.petId}`} className="hover:underline">
+                        {v.petName}
                       </Link>{" "}
                       · {v.name}
                     </span>
@@ -613,59 +613,61 @@ export default async function DashboardPage() {
                       <span className="text-xs text-muted-foreground">
                         {formatDate(fmt, v.nextDueAt)}
                       </span>
-                      {/* The two things an overdue line leads to: ringing
-                          the owner and booking the animal in. They used
-                          to be two pages away. */}
-                      {telHref(v.pet.owner?.phone) && (
-                        <a
-                          href={telHref(v.pet.owner?.phone) ?? undefined}
-                          className="whitespace-nowrap text-xs text-muted-foreground hover:underline"
-                        >
-                          {v.pet.owner?.phone}
-                        </a>
-                      )}
-                      {/* Booked as the vaccine it is for. No day: it
-                          is already overdue, so the form offers the
-                          next slot the clinic is open. */}
-                      {canBook && (
+                      <PhoneLink phone={v.ownerPhone} className="text-xs text-muted-foreground" />
+                      {/* Booked already: the row says when, and the
+                          recall query has sorted it below the rows still
+                          waiting for a call (pm B2). */}
+                      {v.apptId && v.apptStartsAt ? (
                         <Link
-                          href={newAppointmentHref({
-                            petId: v.pet.id,
-                            type: "VACCINATION",
-                            reason: v.name,
-                          })}
+                          href={`/appointments/${v.apptId}`}
                           className="whitespace-nowrap text-xs font-medium text-primary hover:underline"
                         >
-                          {t("overdueVaccinationsBook")}
+                          {t("overdueVaccinationsBooked", {
+                            when: formatDateTime(fmt, v.apptStartsAt),
+                          })}
                         </Link>
+                      ) : (
+                        canBook && (
+                          <Link
+                            href={newAppointmentHref({
+                              petId: v.petId,
+                              type: "VACCINATION",
+                              reason: v.name,
+                            })}
+                            className="whitespace-nowrap text-xs font-medium text-primary hover:underline"
+                          >
+                            {t("overdueVaccinationsBook")}
+                          </Link>
+                        )
                       )}
-                      <VaccinationDueDismissButton
-                        action={setVaccinationDueDismissedAction.bind(null, v.id)}
-                        label={t("overdueVaccinationsDismiss")}
-                        // `actionFor`, the same pattern every named row
-                        // action on `/reminders` uses -- "Close: Zeytin ·
-                        // Karma aşı". Ten rows carry ten buttons reading
-                        // "Close", and by voice they are one button ten
-                        // times over unless the row is in the name.
-                        //
-                        // It replaces a key of its own, which had put the
-                        // word "aşı" after a vaccine name that already
-                        // ended in it. Building the sentence out of the
-                        // shared pattern instead of writing a new one
-                        // also means no new place for a Turkish suffix to
-                        // go wrong: `actionFor` joins with a colon and
-                        // inflects nothing.
-                        name={tCommon("actionFor", {
-                          action: t("overdueVaccinationsDismiss"),
-                          subject: `${v.pet.name} · ${v.name}`,
-                        })}
-                        undoLabel={t("overdueVaccinationsUndo")}
-                        undoneLabel={t("overdueVaccinationsDismissed")}
-                      />
+                      {canDismissDue && (
+                        <VaccinationDueDismissButton
+                          action={setVaccinationDueDismissedAction.bind(null, v.id)}
+                          label={t("overdueVaccinationsDismiss")}
+                          // Named with the row: ten rows would otherwise be
+                          // ten identical buttons by voice.
+                          name={tCommon("actionFor", {
+                            action: t("overdueVaccinationsDismiss"),
+                            subject: `${v.petName} · ${v.name}`,
+                          })}
+                          undoLabel={t("overdueVaccinationsUndo")}
+                          undoneLabel={t("overdueVaccinationsDismissed")}
+                        />
+                      )}
                     </span>
                   </li>
                 ))}
               </ul>
+              {/* Where the count leads. The card is five rows of a
+                  backlog that can run to a thousand, and it had no way
+                  to the rest (pm B1). */}
+              <Link
+                href="/recalls"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+              >
+                {t("seeAll", { count: insights.overdueVaccinationCount })}
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
             </CardContent>
           </Card>
         )}
@@ -673,6 +675,11 @@ export default async function DashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>{t("sections.upcomingVaccinations")}</CardTitle>
+            {/* The window, said: the card had none and listed a booster
+                due in 2027 as "upcoming" (pm C1). */}
+            <p className="text-sm text-muted-foreground">
+              {t("upcomingWindow", { days: UPCOMING_WINDOW_DAYS })}
+            </p>
           </CardHeader>
           <CardContent>
             {insights.upcomingVaccinations.length === 0 ? (
@@ -703,6 +710,15 @@ export default async function DashboardPage() {
                   </li>
                 ))}
               </ul>
+            )}
+            {insights.upcomingVaccinationCount > insights.upcomingVaccinations.length && (
+              <Link
+                href="/recalls?view=upcoming"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+              >
+                {t("seeAll", { count: insights.upcomingVaccinationCount })}
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
             )}
           </CardContent>
         </Card>

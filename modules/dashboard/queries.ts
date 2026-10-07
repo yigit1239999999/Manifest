@@ -14,9 +14,10 @@ import { upcomingAppointments } from "@/modules/appointments/queries";
 import {
   countOlderOverdueVaccinations,
   countOverdueVaccinations,
-  overdueVaccinations,
+  countUpcomingVaccinations,
   upcomingVaccinations,
 } from "@/modules/vaccinations/queries";
+import { listRecalls, type RecallRow } from "@/modules/vaccinations/recall";
 import { OPEN_REMINDER_STATUSES } from "@/modules/reminders/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
 
@@ -89,8 +90,10 @@ export interface DashboardInsights {
    * heading has to say how many there really are -- five of five and
    * five of forty are different mornings.
    */
-  overdueVaccinations: Awaited<ReturnType<typeof overdueVaccinations>>;
+  overdueVaccinations: RecallRow[];
   overdueVaccinationCount: number;
+  /** Inside the upcoming window: the "see all" count under that card. */
+  upcomingVaccinationCount: number;
   /** Overdue before the card's window: counted beside it, not listed. */
   overdueOlderVaccinationCount: number;
   recentVisits: Awaited<ReturnType<typeof recentVisits>>;
@@ -229,6 +232,7 @@ export async function dashboardInsights(
     upcomingVaccsList,
     overdueVaccsList,
     overdueVaccsCount,
+    upcomingVaccsCount,
     overdueOlderCount,
     recentVisitsList,
     visitTypeGroups,
@@ -239,8 +243,11 @@ export async function dashboardInsights(
     monthsPromise,
     upcomingAppointments(clinicId, 5),
     upcomingVaccinations(clinicId, 5),
-    overdueVaccinations(clinicId, 5),
-    countOverdueVaccinations(clinicId),
+    // The recall list's first five, read the same way the list reads
+    // them: an animal already booked shows it and sorts below (pm B2).
+    listRecalls({ clinicId, view: "overdue", perPage: 5, now }).then((r) => r.items),
+    countOverdueVaccinations(clinicId, now),
+    countUpcomingVaccinations(clinicId, now),
     countOlderOverdueVaccinations(clinicId),
     recentVisits(clinicId, 5),
     prisma.visit.groupBy({
@@ -327,6 +334,7 @@ export async function dashboardInsights(
     upcomingVaccinations: upcomingVaccsList,
     overdueVaccinations: overdueVaccsList,
     overdueVaccinationCount: overdueVaccsCount,
+    upcomingVaccinationCount: upcomingVaccsCount,
     overdueOlderVaccinationCount: overdueOlderCount,
     recentVisits: recentVisitsList,
     visitsByType: visitTypeGroups.map((g) => ({

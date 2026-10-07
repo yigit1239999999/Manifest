@@ -18,7 +18,8 @@
     "staff": "Team",
     "settings": "Settings",
     "audit": "Audit log",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "recalls": "Vaccine recalls"
   },
   "common": {
     "close": "Close",
@@ -159,12 +160,12 @@
     },
     "unreachedRemindersCount": "{count, plural, one {1 did not arrive} other {# did not arrive}}",
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
-    "overdueVaccinationsDismiss": "Close",
+    "overdueVaccinationsDismiss": "Remove from list",
     "overdueVaccinationsBook": "Book",
     "draftInvoices": "{count, plural, one {# draft not sent} other {# drafts not sent}}",
-    "overdueVaccinationsDismissed": "Vaccination row closed.",
+    "overdueVaccinationsDismissed": "Removed from the list. The vaccination stays on the animal's page.",
     "overdueVaccinationsUndo": "Undo",
-    "overdueVaccinationsOlder": "Also {count, plural, one {# vaccination has} other {# vaccinations have}} been overdue for more than 6 months; each is on the animal's page.",
+    "overdueVaccinationsOlder": "Also {count, plural, one {# vaccination has} other {# vaccinations have}} been overdue for more than 6 months; see \"Older than 6 months\" on the recall list.",
     "today": {
       "title": "Today",
       "summary": "{total, plural, one {# appointment} other {# appointments}} · {here} in clinic · {waiting} expected",
@@ -179,7 +180,11 @@
       "undo": "Undo",
       "startVisit": "Start visit",
       "openVisit": "Open visit"
-    }
+    },
+    "overdueVaccinationsBooked": "Booked · {when}",
+    "seeAll": "See all · {count, number}",
+    "upcomingWindow": "Next {days} days",
+    "unreachedHint": "The reminder did not reach the owner; call them instead."
   },
   "client": {
     "createNamed": "Add \"{name}\" as a new client",
@@ -1269,7 +1274,8 @@
       "importDuplicatesUnanswered": "The import cannot finish while rows that may be the same person are unanswered.",
       "importAlreadyUndone": "This import has already been undone.",
       "appointmentNotWaiting": "This appointment's status has already changed. Refresh the page.",
-      "noShowBeforeStart": "An appointment cannot be marked as a no-show before its time."
+      "noShowBeforeStart": "An appointment cannot be marked as a no-show before its time.",
+      "recallOutcome": "Unknown call outcome."
     },
     "form": {
       "required": "{field} is required.",
@@ -1295,6 +1301,82 @@
       "linesRequired": "Add at least one line.",
       "paymentOverBalance": "Only {remaining} is left to pay on this invoice. A payment cannot be more than that; please check the amount.",
       "paymentNothingOwed": "Nothing is left to pay on this invoice."
+    }
+  },
+  "recall": {
+    "title": "Vaccine recalls",
+    "subtitle": "Vaccinations that are due, or due within {days} days. Call the owner, book them in, and mark what happened.",
+    "tabs": {
+      "label": "List",
+      "overdue": "Overdue",
+      "upcoming": "Upcoming ({days} days)"
+    },
+    "filters": {
+      "label": "Filters",
+      "vaccine": "Vaccine",
+      "allVaccines": "All vaccines",
+      "species": "Species",
+      "allSpecies": "All species",
+      "age": "Overdue by",
+      "ages": {
+        "month": "Last 30 days",
+        "recent": "Last 6 months",
+        "older": "Older than 6 months",
+        "all": "All"
+      },
+      "contact": "Contact",
+      "contacts": {
+        "any": "Any",
+        "none": "Not tried yet",
+        "called": "Called",
+        "unreachable": "Unreachable"
+      },
+      "sort": "Sort",
+      "sorts": {
+        "dueOverdue": "Longest waiting first",
+        "dueUpcoming": "Soonest first",
+        "pet": "Animal name",
+        "owner": "Owner name"
+      }
+    },
+    "columns": {
+      "pet": "Animal and vaccine",
+      "owner": "Owner",
+      "due": "Due",
+      "state": "Status",
+      "actions": "Actions"
+    },
+    "total": "{count, plural, one {# vaccination} other {# vaccinations}}.",
+    "bookedLast": "Animals already booked are at the end.",
+    "booked": "Booked · {when}",
+    "lastCalled": "Called · {who} · {when}",
+    "lastUnreachable": "{count, plural, one {Unreachable} other {Tried # times, unreachable}} · {who} · {when}",
+    "someone": "a team member",
+    "notTried": "Not called yet",
+    "noPhone": "No phone",
+    "called": "Called",
+    "unreachable": "Unreachable",
+    "markedCalled": "{pet}: marked as called.",
+    "markedUnreachable": "{pet}: marked as unreachable.",
+    "undo": "Undo",
+    "book": "Book",
+    "dismiss": "Remove from list",
+    "dismissed": "Removed from the list. The vaccination stays on the animal's page.",
+    "dismissExplained": "\"Remove from list\" only takes this row off the list; the vaccination stays on the animal's page and can be restored there.",
+    "empty": {
+      "overdue": "No overdue vaccinations.",
+      "upcoming": "No vaccinations due in the next 30 days."
+    },
+    "emptyHint": {
+      "overdue": "A vaccination appears here once its next date has passed; call the owner and book them in from here.",
+      "upcoming": "Vaccinations whose next date is coming up appear here; use it to tell owners in advance."
+    },
+    "copy": {
+      "label": "Copy messages",
+      "done": "{owners, plural, one {Message copied for # owner.} other {Messages copied for # owners.}}",
+      "doneHint": "Paste each owner's section into their WhatsApp chat.",
+      "empty": "No owner on this list has a phone number.",
+      "failed": "Could not copy. The browser did not allow clipboard access."
     }
   }
 }

@@ -152,3 +152,40 @@ export function maskPhone(raw: string | null | undefined): string {
   if (digits.length < 4) return "••••";
   return `•••• ${digits.slice(-4)}`;
 }
+
+/**
+ * A number the way it is printed on every screen: Turkish numbers in the
+ * one shape a Turkish reader expects, "0532 411 22 33", whatever was typed
+ * ("+90 (532) 4112233", "5324112233", "0532-411-22-33"). Anything that is
+ * not recognisably a Turkish number -- a foreign one, a note somebody typed
+ * -- comes back as typed, trimmed: reshaping a Dubai number into Turkish
+ * groups would be inventing a format, and dropping it would hide it.
+ */
+export function formatPhone(raw: string | null | undefined): string {
+  const text = (raw ?? "").trim();
+  if (!text) return "";
+  const national = turkishNational(text);
+  if (!national) return text;
+  return `0${national.slice(0, 3)} ${national.slice(3, 6)} ${national.slice(6, 8)} ${national.slice(8, 10)}`;
+}
+
+/**
+ * The ten national digits of a Turkish number ("5324112233"), or null when
+ * the text is not one. Area codes start with 2-5 (landlines 2-4, mobiles 5);
+ * anything else is left alone.
+ */
+export function turkishNational(raw: string): string | null {
+  if (!PHONE_TEXT.test(raw)) return null;
+  let digits = raw.replace(/\D/g, "");
+  // Written internationally: only Turkey's own code makes it a Turkish
+  // number, whatever its length.
+  const international = raw.trim().startsWith("+") || digits.startsWith("00");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (international) {
+    if (!(digits.length === 12 && digits.startsWith("90"))) return null;
+    digits = digits.slice(2);
+  } else if (digits.length === 12 && digits.startsWith("90")) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  if (digits.length !== 10 || !/^[2-5]/.test(digits)) return null;
+  return digits;
+}

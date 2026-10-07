@@ -18,7 +18,8 @@
     "staff": "Ekip",
     "settings": "Ayarlar",
     "audit": "İşlem geçmişi",
-    "signOut": "Çıkış"
+    "signOut": "Çıkış",
+    "recalls": "Aşı takibi"
   },
   "common": {
     "close": "Kapat",
@@ -159,12 +160,12 @@
     },
     "unreachedRemindersCount": "{count, plural, one {1 tanesi ulaşmadı} other {# tanesi ulaşmadı}}",
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
-    "overdueVaccinationsDismiss": "Kapat",
+    "overdueVaccinationsDismiss": "Listeden çıkar",
     "overdueVaccinationsBook": "Randevu ver",
     "draftInvoices": "{count, plural, one {# taslak gönderilmedi} other {# taslak gönderilmedi}}",
-    "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
+    "overdueVaccinationsDismissed": "Listeden çıkarıldı. Aşı hayvanın sayfasında duruyor.",
     "overdueVaccinationsUndo": "Geri al",
-    "overdueVaccinationsOlder": "Ayrıca {count, plural, one {# aşı} other {# aşı}} 6 aydan uzun süredir gecikmiş; her biri hayvanın sayfasında.",
+    "overdueVaccinationsOlder": "Ayrıca {count, plural, one {# aşı} other {# aşı}} 6 aydan uzun süredir gecikmiş; Aşı takibi listesinde \"6 aydan eski\" seçeneğiyle görünür.",
     "today": {
       "title": "Bugün",
       "summary": "{total, plural, one {# randevu} other {# randevu}} · {here} içeride · {waiting} bekleniyor",
@@ -179,7 +180,11 @@
       "undo": "Geri al",
       "startVisit": "Vizite başla",
       "openVisit": "Viziti aç"
-    }
+    },
+    "overdueVaccinationsBooked": "Randevu var · {when}",
+    "seeAll": "Tümünü gör · {count, number}",
+    "upcomingWindow": "Önümüzdeki {days} gün",
+    "unreachedHint": "Hatırlatma mesajı sahibine ulaşmadı; telefonla arayın."
   },
   "client": {
     "createNamed": "\"{name}\" adıyla yeni müşteri aç",
@@ -1269,7 +1274,8 @@
       "importDuplicatesUnanswered": "Aynı kişi olabilecek kayıtlar için karar verilmeden içe aktarma tamamlanamaz.",
       "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış.",
       "appointmentNotWaiting": "Bu randevunun durumu zaten değişmiş. Sayfayı yenileyin.",
-      "noShowBeforeStart": "Randevu saati gelmeden \"gelmedi\" işaretlenemez."
+      "noShowBeforeStart": "Randevu saati gelmeden \"gelmedi\" işaretlenemez.",
+      "recallOutcome": "Bilinmeyen arama sonucu."
     },
     "form": {
       "required": "{field} gerekli.",
@@ -1295,6 +1301,82 @@
       "linesRequired": "En az bir satır ekleyiniz.",
       "paymentOverBalance": "Bu faturada kalan borç {remaining}. Ödeme bundan fazla olamaz; lütfen tutarı kontrol ediniz.",
       "paymentNothingOwed": "Bu faturada ödenecek borç kalmadı."
+    }
+  },
+  "recall": {
+    "title": "Aşı takibi",
+    "subtitle": "Zamanı gelen ve {days} gün içinde gelecek aşılar. Sahibini arayın, randevu verin, ne olduğunu işaretleyin.",
+    "tabs": {
+      "label": "Liste",
+      "overdue": "Gecikmiş",
+      "upcoming": "Yaklaşan ({days} gün)"
+    },
+    "filters": {
+      "label": "Süzgeçler",
+      "vaccine": "Aşı",
+      "allVaccines": "Tüm aşılar",
+      "species": "Tür",
+      "allSpecies": "Tüm türler",
+      "age": "Gecikme",
+      "ages": {
+        "month": "Son 30 gün",
+        "recent": "Son 6 ay",
+        "older": "6 aydan eski",
+        "all": "Tümü"
+      },
+      "contact": "Arama",
+      "contacts": {
+        "any": "Hepsi",
+        "none": "Hiç aranmadı",
+        "called": "Arandı",
+        "unreachable": "Ulaşılamadı"
+      },
+      "sort": "Sıralama",
+      "sorts": {
+        "dueOverdue": "En uzun bekleyen önce",
+        "dueUpcoming": "En yakın tarih önce",
+        "pet": "Hayvan adı",
+        "owner": "Sahip adı"
+      }
+    },
+    "columns": {
+      "pet": "Hayvan ve aşı",
+      "owner": "Sahip",
+      "due": "Tarih",
+      "state": "Durum",
+      "actions": "İşlemler"
+    },
+    "total": "{count, plural, one {# aşı} other {# aşı}}.",
+    "bookedLast": "Randevusu olanlar listenin sonunda.",
+    "booked": "Randevu var · {when}",
+    "lastCalled": "Arandı · {who} · {when}",
+    "lastUnreachable": "{count, plural, one {Ulaşılamadı} other {# kez denendi, ulaşılamadı}} · {who} · {when}",
+    "someone": "bir ekip üyesi",
+    "notTried": "Henüz aranmadı",
+    "noPhone": "Telefon yok",
+    "called": "Arandı",
+    "unreachable": "Ulaşılamadı",
+    "markedCalled": "{pet}: arandı olarak işaretlendi.",
+    "markedUnreachable": "{pet}: ulaşılamadı olarak işaretlendi.",
+    "undo": "Geri al",
+    "book": "Randevu ver",
+    "dismiss": "Listeden çıkar",
+    "dismissed": "Listeden çıkarıldı. Aşı hayvanın sayfasında duruyor.",
+    "dismissExplained": "\"Listeden çıkar\" yalnızca bu satırı listeden kaldırır; aşı kaydı hayvanın sayfasında kalır ve oradan geri alınabilir.",
+    "empty": {
+      "overdue": "Gecikmiş aşı yok.",
+      "upcoming": "Önümüzdeki 30 gün içinde zamanı gelen aşı yok."
+    },
+    "emptyHint": {
+      "overdue": "Bir aşının sonraki tarihi geçtiğinde burada görünür; sahibini buradan arayıp randevu verebilirsiniz.",
+      "upcoming": "Sonraki tarihi yaklaşan aşılar burada görünür; sahibine önceden haber vermek için kullanın."
+    },
+    "copy": {
+      "label": "Mesajları kopyala",
+      "done": "{owners, plural, one {# sahip için mesaj kopyalandı.} other {# sahip için mesajlar kopyalandı.}}",
+      "doneHint": "WhatsApp'ta her sahibin sohbetine kendi bölümünü yapıştırın.",
+      "empty": "Bu listede telefonu kayıtlı sahip yok.",
+      "failed": "Kopyalanamadı. Tarayıcı panoya erişime izin vermedi."
     }
   }
 }

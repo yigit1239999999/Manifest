@@ -74,6 +74,7 @@ model Clinic {
   auditLogs     AuditLog[]
   messages      MessageLog[]
   importBatches ImportBatch[]
+  recalls       RecallContact[]
 
   @@map("clinics")
 }
@@ -118,6 +119,8 @@ model User {
   auditLogs         AuditLog[]     @relation("AuditActor")
   importBatches     ImportBatch[]  @relation("ImportBatchCreator")
   paymentsVoided    Payment[]      @relation("PaymentVoidedBy")
+
+  recallsBy RecallContact[] @relation("RecallContactBy")
 
   @@index([clinicId])
   @@map("users")
@@ -617,6 +620,8 @@ model Vaccination {
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
+  recalls RecallContact[]
+
   @@index([clinicId, petId, administeredAt])
   @@index([clinicId, nextDueAt])
   @@index([clinicId, importBatchId])
@@ -627,6 +632,38 @@ model Vaccination {
   // screens. Prisma cannot express a partial index, so it lives in the
   // migration; noted here so nobody adds a fourth one for the same query.
   @@map("vaccinations")
+}
+
+/// What came of trying to reach an owner about a due vaccination.
+enum RecallOutcome {
+  /// Reached: the owner knows. Booking is a separate fact (an appointment).
+  CALLED
+  /// Tried, and nobody answered or the number did not work.
+  UNREACHABLE
+}
+
+/// One attempt to reach an owner about one due vaccination, from the recall
+/// list: who tried, when, and what came of it.
+///
+/// A row per attempt rather than a column on the vaccination, because the
+/// vet's question is "kime yazıldı, kim dönmedi" -- and "unreachable three
+/// times since Monday" is a different morning from "unreachable once".
+/// Nothing is overwritten; the list reads the newest row and the count.
+model RecallContact {
+  id            String        @id @default(cuid())
+  clinicId      String
+  clinic        Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  vaccinationId String
+  vaccination   Vaccination   @relation(fields: [vaccinationId], references: [id], onDelete: Cascade)
+  outcome       RecallOutcome
+  byId          String?
+  by            User?         @relation("RecallContactBy", fields: [byId], references: [id], onDelete: SetNull)
+  createdAt     DateTime      @default(now())
+
+  @@index([vaccinationId, createdAt(sort: Desc)])
+  @@index([clinicId])
+  @@index([byId])
+  @@map("recall_contacts")
 }
 
 // ===========================================================================

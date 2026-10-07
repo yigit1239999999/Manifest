@@ -13,6 +13,7 @@ import {
   Receipt,
   Settings,
   Stethoscope,
+  Syringe,
   Upload,
   UserCog,
   Users,
@@ -49,6 +50,8 @@ const NAV: {
   { href: "/appointments", key: "appointments", icon: CalendarClock },
   { href: "/prescriptions", key: "prescriptions", icon: Pill },
   { href: "/reminders", key: "reminders", icon: ClipboardList },
+  // Beside the reminders it feeds: the list of whom to call this week.
+  { href: "/recalls", key: "recalls", icon: Syringe },
   { href: "/invoices", key: "invoices", icon: Receipt },
   // Under the day's work and above the history, because that is what it
   // is: not something a vet opens between patients, and not a record of
