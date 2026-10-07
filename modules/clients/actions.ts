@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { action, parse, type FormState } from "@/lib/action";
+import { msg } from "@/lib/forms";
+import { findDuplicateClients, type DuplicateCandidate } from "./duplicates";
 import { clientSchema } from "./schema";
 import { quickSearchClients } from "./queries";
 import { ownerLabel } from "@/lib/pet-label";
@@ -22,6 +24,9 @@ export const createClientAction = action(
   async (ctx, _prev: FormState, formData: FormData): Promise<FormState> => {
     const parsed = parse(clientSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
+
+    const duplicate = await duplicateRefusal(ctx.clinicId, parsed.data, formData);
+    if (duplicate) return duplicate;
 
     const client = await createClient(parsed.data, ctx);
     revalidatePath("/clients");
@@ -50,12 +55,65 @@ export const updateClientAction = action(
     const parsed = parse(clientSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
+    const duplicate = await duplicateRefusal(ctx.clinicId, parsed.data, formData, id);
+    if (duplicate) return duplicate;
+
     await updateClient(id, parsed.data, ctx);
     revalidatePath("/clients");
     revalidatePath(`/clients/${id}`);
     redirect(`/clients/${id}`);
   },
 );
+
+/**
+ * A soft stop, not a rule: the number or address is already somebody's.
+ *
+ * The form says so as the phone is typed (`checkDuplicateClientsAction`);
+ * this is the same answer for a save that arrived without that check --
+ * a fast typist, an autofilled field. Overridden explicitly with the
+ * box the form shows beside the warning, because two people can share a
+ * number (a couple, a shelter) and the counter knows when they do.
+ */
+async function duplicateRefusal(
+  clinicId: string,
+  input: { phone?: string | null; email?: string | null },
+  formData: FormData,
+  excludeId?: string,
+): Promise<(FormState & { duplicates: DuplicateCandidate[] }) | null> {
+  if (formData.get("allowDuplicate")) return null;
+  const duplicates = await findDuplicateClients(clinicId, {
+    phone: input.phone,
+    email: input.email,
+    excludeId,
+  });
+  if (duplicates.length === 0) return null;
+  const first = duplicates[0];
+  const field = first.matchedOn.includes("phone") ? "phone" : "email";
+  return {
+    fieldErrors: {
+      [field]: [msg("client.duplicate.refused", { name: ownerLabel(first) })],
+    },
+    duplicates,
+  };
+}
+
+/**
+ * Who is already on file with this number or address, asked as the form
+ * is filled in so the warning arrives before the save, not after it.
+ */
+export async function checkDuplicateClientsAction(input: {
+  phone?: string;
+  email?: string;
+  excludeId?: string;
+}): Promise<DuplicateCandidate[]> {
+  const session = await requireSession();
+  requirePermission(session.user.role ?? "", "clients.read");
+  return findDuplicateClients(session.user.clinicId, {
+    phone: input.phone?.slice(0, 40),
+    email: input.email?.slice(0, 200),
+    excludeId: input.excludeId,
+  });
+}
 
 export const archiveClientAction = action(
   "client.archive",

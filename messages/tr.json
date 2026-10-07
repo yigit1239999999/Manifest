@@ -255,7 +255,39 @@
     "one": "Müşteri",
     "lastNameHint": "Bilmiyorsanız boş bırakın.",
     "phoneHint": "Telefonsuz müşteriye hatırlatma gönderilemez.",
-    "phoneLater": "Numarasız kaydet"
+    "phoneLater": "Numarasız kaydet",
+    "duplicate": {
+      "title": "Bu kişi zaten kayıtlı olabilir",
+      "byPhone": "Bu numarayla kayıtlı:",
+      "byEmail": "Bu e-postayla kayıtlı:",
+      "archived": "arşivde",
+      "goTo": "Ona git",
+      "allow": "Farklı bir kişi, yine de yeni müşteri olarak kaydet",
+      "refused": "Bu bilgilerle kayıtlı bir müşteri var: {name}. Aynı kişiyse onun kaydına gidin; farklı biriyse uyarıdaki kutuyu işaretleyip kaydedin."
+    },
+    "merge": {
+      "open": "Başka bir kayıtla birleştir",
+      "title": "Müşterileri birleştir",
+      "hint": "Bu kaydın hayvanları, vizitleri, randevuları, faturaları, hatırlatmaları, notları ve mesaj geçmişi seçtiğiniz kayda taşınır. Bu kayıt arşivlenir.",
+      "searchPlaceholder": "Tutulacak müşteriyi arayın",
+      "summary": "{target} kaydına taşınacak: {list}.",
+      "confirmTitle": "{source}, {target} ile birleştirilsin mi?",
+      "confirmMoves": "Taşınacak: {list}.",
+      "confirmNothing": "Bu kayıtta taşınacak bir şey yok.",
+      "confirmArchive": "{source} arşivlenir; işlem geçmişine iki kayıt düşer. Taşınan kayıtlar geri taşınmaz.",
+      "confirm": "Birleştir",
+      "done": "Kayıtlar birleştirildi. Diğer kaydın hayvanları ve geçmişi artık burada; o kayıt arşivlendi.",
+      "counts": {
+        "pets": "{count, plural, one {# hayvan} other {# hayvan}}",
+        "visits": "{count, plural, one {# vizit} other {# vizit}}",
+        "appointments": "{count, plural, one {# randevu} other {# randevu}}",
+        "invoices": "{count, plural, one {# fatura (ödemeleriyle)} other {# fatura (ödemeleriyle)}}",
+        "reminders": "{count, plural, one {# hatırlatma} other {# hatırlatma}}",
+        "notes": "{count, plural, one {# not} other {# not}}",
+        "documents": "{count, plural, one {# belge} other {# belge}}",
+        "messages": "{count, plural, one {# mesaj kaydı} other {# mesaj kaydı}}"
+      }
+    }
   },
   "pet": {
     "createNamed": "\"{name}\" adıyla yeni hayvan aç",
@@ -1275,7 +1307,9 @@
       "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış.",
       "appointmentNotWaiting": "Bu randevunun durumu zaten değişmiş. Sayfayı yenileyin.",
       "noShowBeforeStart": "Randevu saati gelmeden \"gelmedi\" işaretlenemez.",
-      "recallOutcome": "Bilinmeyen arama sonucu."
+      "recallOutcome": "Bilinmeyen arama sonucu.",
+      "mergeSameClient": "Bir kayıt kendisiyle birleştirilemez.",
+      "mergeIntoArchived": "Arşivdeki bir kayda birleştirilemez. Önce o kaydı geri alın."
     },
     "form": {
       "required": "{field} gerekli.",

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatPhone } from "@/lib/phone";
 import { PhoneLink } from "@/components/phone-link";
+import { ClientMerge } from "@/components/client-merge";
 import { notFound } from "next/navigation";
 import { Edit3, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -36,11 +37,14 @@ import { ownerLabel } from "@/lib/pet-label";
 
 export default async function ClientPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ merged?: string }>;
 }) {
   const fmt = await getFormatContext();
   const { id } = await params;
+  const { merged } = await searchParams;
   const session = await requireSession();
 
   const [client, t, tCommon, tNav, tTimeline, timeline] =
@@ -100,7 +104,20 @@ export default async function ClientPage({
             description={tCommon("archiveUndoHint")}
           />
         )}
+        {/* Last and quiet: a rare, administrative act, not the page's
+            work. The duplicate it is for is found by the warning on the
+            client form; this is where two records already made become
+            one (pm B6). */}
+        {can(session.user.role, "clients.merge") && !client.archivedAt && (
+          <ClientMerge sourceId={client.id} />
+        )}
       </PageHeader>
+
+      {merged && (
+        <Callout variant="info" live>
+          {t("merge.done")}
+        </Callout>
+      )}
 
       {client.archivedAt && (
         <Callout variant="warning">

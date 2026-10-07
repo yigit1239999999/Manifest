@@ -255,7 +255,39 @@
     "one": "Client",
     "lastNameHint": "Leave it blank if you do not know it.",
     "phoneHint": "A client without a phone number cannot be sent reminders.",
-    "phoneLater": "Save without a number"
+    "phoneLater": "Save without a number",
+    "duplicate": {
+      "title": "This person may already be on file",
+      "byPhone": "On file with this number:",
+      "byEmail": "On file with this e-mail:",
+      "archived": "archived",
+      "goTo": "Go to them",
+      "allow": "A different person; save as a new client anyway",
+      "refused": "A client is already on file with these details: {name}. If it is the same person, go to their record; if not, tick the box in the warning and save."
+    },
+    "merge": {
+      "open": "Merge with another record",
+      "title": "Merge clients",
+      "hint": "This record's animals, visits, appointments, invoices, reminders, notes and message history move to the record you choose. This record is archived.",
+      "searchPlaceholder": "Search for the client to keep",
+      "summary": "Moving to {target}: {list}.",
+      "confirmTitle": "Merge {source} into {target}?",
+      "confirmMoves": "Moving: {list}.",
+      "confirmNothing": "Nothing on this record to move.",
+      "confirmArchive": "{source} is archived and the audit log records both sides. Moved records are not moved back.",
+      "confirm": "Merge",
+      "done": "Records merged. The other record's animals and history are here now; that record was archived.",
+      "counts": {
+        "pets": "{count, plural, one {# animal} other {# animals}}",
+        "visits": "{count, plural, one {# visit} other {# visits}}",
+        "appointments": "{count, plural, one {# appointment} other {# appointments}}",
+        "invoices": "{count, plural, one {# invoice (with payments)} other {# invoices (with payments)}}",
+        "reminders": "{count, plural, one {# reminder} other {# reminders}}",
+        "notes": "{count, plural, one {# note} other {# notes}}",
+        "documents": "{count, plural, one {# document} other {# documents}}",
+        "messages": "{count, plural, one {# message log} other {# message logs}}"
+      }
+    }
   },
   "pet": {
     "createNamed": "Add \"{name}\" as a new animal",
@@ -1275,7 +1307,9 @@
       "importAlreadyUndone": "This import has already been undone.",
       "appointmentNotWaiting": "This appointment's status has already changed. Refresh the page.",
       "noShowBeforeStart": "An appointment cannot be marked as a no-show before its time.",
-      "recallOutcome": "Unknown call outcome."
+      "recallOutcome": "Unknown call outcome.",
+      "mergeSameClient": "A record cannot be merged with itself.",
+      "mergeIntoArchived": "Cannot merge into an archived record. Restore it first."
     },
     "form": {
       "required": "{field} is required.",

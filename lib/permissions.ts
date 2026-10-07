@@ -17,6 +17,14 @@ export type Permission =
   | "clients.read"
   | "clients.write"
   | "clients.archive"
+  /**
+   * Folding one client record into another: every animal, visit,
+   * appointment, invoice, reminder, note and message moves, and the
+   * emptied record is archived. Administrators only -- it rewrites whose
+   * history is whose, and the person who decides that is the one who
+   * answers for the books.
+   */
+  | "clients.merge"
   | "pets.read"
   | "pets.write"
   | "pets.archive"
@@ -58,6 +66,7 @@ const PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     "clients.read",
     "clients.write",
     "clients.archive",
+    "clients.merge",
     "pets.read",
     "pets.write",
     "pets.archive",
