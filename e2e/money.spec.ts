@@ -51,9 +51,15 @@ test.describe("Money is stored as the amount that was typed", () => {
     // An invoice of 2 × 500 = 1000.
     await page.goto("/invoices/new");
     await pickOption(page, page.getByLabel(/^client$|^müşteri$/i));
-    await page.getByPlaceholder(/description|açıklama/i).fill("Muayene");
-    await page.getByPlaceholder(/^qty$|^adet$/i).fill("2");
-    await page.getByPlaceholder(/unit price|birim fiyat/i).fill("500");
+    // Labelled fields, not placeholders (B9).
+    await page.getByLabel(/^description|^açıklama/i).fill("Muayene");
+    await page.getByLabel(/^qty$|^adet$/i).fill("2");
+    await page.getByLabel(/^unit price$|^birim fiyat$/i).fill("500");
+    // The totals add up as the vet types, VAT worked out from a rate:
+    // 1000 + 20% opens as 1.200, and 0% takes it back to 1.000.
+    await expect(page.getByText(/1[.,]200[.,]00/).first()).toBeVisible();
+    await page.getByLabel(/^vat rate$|^kdv oranı$/i).selectOption("0");
+    await expect(page.getByText(/1[.,]200[.,]00/)).toHaveCount(0);
     await page.getByRole("button", { name: /save invoice|faturayı kaydet/i }).click();
     // Same trap as the client redirect above, and the same fix: the
     // bill's own page, not the form it was raised from.
@@ -61,6 +67,8 @@ test.describe("Money is stored as the amount that was typed", () => {
 
     // 500 is five hundred, not five: the total is 1000, not 10.
     await expect(page.getByText(/1[.,]000[.,]00/).first()).toBeVisible();
+    // Numbered in sequence: the clinic's first invoice of the year.
+    await expect(page.getByRole("heading", { name: /#\d{4}-0001/ })).toBeVisible();
 
     // Pay 500 of it.
     // The form that owns the amount field, rather than "the last div that

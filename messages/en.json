@@ -741,7 +741,7 @@
     "remaining": "Remaining",
     "recordPayment": "Record payment",
     "void": "Void invoice",
-    "markSent": "Mark as sent",
+    "markSent": "Issue invoice",
     "payment": {
       "title": "Payments",
       "amount": "Amount",
@@ -761,7 +761,11 @@
     "ownerBalance": "Owes {amount} · {count, plural, one {# invoice} other {# invoices}}",
     "ownerBalanceOpen": "Show the invoices",
     "filteredClient": "Invoices for {name}",
-    "filteredClientClear": "All clients"
+    "filteredClientClear": "All clients",
+    "numberAssigned": "The next number in sequence is given when you save.",
+    "vatRate": "VAT rate",
+    "vatOption": "{rate}%",
+    "taxAt": "VAT ({rate}%)"
   },
   "timeline": {
     "openVisit": "Open visit",
@@ -1167,7 +1171,7 @@
     },
     "invoiceStatus": {
       "DRAFT": "Draft",
-      "SENT": "Sent",
+      "SENT": "Issued",
       "PARTIAL": "Partial",
       "PAID": "Paid",
       "VOID": "Void"
@@ -1221,6 +1225,13 @@
       "SIGNIN": "Signed in",
       "SIGNOUT": "Signed out",
       "SIGNUP": "Signed up"
+    },
+    "invoiceLineKind": {
+      "VISIT": "Visit",
+      "VACCINATION": "Vaccination",
+      "TREATMENT": "Treatment",
+      "DIAGNOSTIC": "Test",
+      "PRESCRIPTION": "Prescription"
     }
   },
   "error": {

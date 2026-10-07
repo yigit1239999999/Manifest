@@ -49,6 +49,7 @@ const SHOWN: Record<string, string> = {
   ReminderStatus: "reminderStatus",
   InvoiceStatus: "invoiceStatus",
   PaymentMethod: "paymentMethod",
+  InvoiceLineKind: "invoiceLineKind",
   MessageChannel: "messageChannel",
   MessageKind: "messageKind",
   MessageStatus: "messageStatus",

@@ -16,6 +16,7 @@ function parseInvoiceFormData(formData: FormData, locale: string) {
     status: String(formData.get("status") ?? "DRAFT"),
     dueAt: String(formData.get("dueAt") ?? ""),
     tax: String(formData.get("tax") ?? ""),
+    taxRate: formData.get("taxRate") == null ? undefined : String(formData.get("taxRate")),
     notes: String(formData.get("notes") ?? ""),
     lines: extractLines(formData),
   };
@@ -27,12 +28,21 @@ function extractLines(formData: FormData) {
   for (let i = 0; ; i++) {
     const description = formData.get(`lines[${i}].description`);
     if (description == null) break;
+    // A row left completely empty is a row nobody filled in, not an item
+    // to refuse the whole invoice over.
+    if (
+      String(description).trim() === "" &&
+      String(formData.get(`lines[${i}].unitPrice`) ?? "").trim() === ""
+    ) {
+      continue;
+    }
     lines.push({
       description: String(description),
       quantity: String(formData.get(`lines[${i}].quantity`) ?? "1"),
       unitPrice: String(formData.get(`lines[${i}].unitPrice`) ?? ""),
       petId: String(formData.get(`lines[${i}].petId`) ?? ""),
       visitId: String(formData.get(`lines[${i}].visitId`) ?? ""),
+      kind: String(formData.get(`lines[${i}].kind`) ?? ""),
     });
   }
   return lines;

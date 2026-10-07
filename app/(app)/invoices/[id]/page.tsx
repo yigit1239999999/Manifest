@@ -25,6 +25,7 @@ import {
 import Link from "next/link";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { ownerLabel } from "@/lib/pet-label";
+import { invoiceLineText } from "@/components/invoices/line-text";
 
 export default async function InvoicePage({
   params,
@@ -34,12 +35,14 @@ export default async function InvoicePage({
   const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
-  const [invoice, t, tCommon, tStatus, tMethod] = await Promise.all([
+  const [invoice, t, tCommon, tStatus, tMethod, tKind, tVisitType] = await Promise.all([
     getInvoiceById(session.user.clinicId, id),
     getTranslations("invoice"),
     getTranslations("common"),
     getTranslations("enum.invoiceStatus"),
     getTranslations("enum.paymentMethod"),
+    getTranslations("enum.invoiceLineKind"),
+    getTranslations("enum.visitType"),
   ]);
   if (!invoice) notFound();
 
@@ -63,6 +66,24 @@ export default async function InvoicePage({
     0,
   );
   const remaining = invoice.totalCents - paidSoFar;
+
+  const lineWords = {
+    kind: (kind: Parameters<typeof tKind>[0]) => tKind(kind),
+    visitType: (type: string) => tVisitType(type as never),
+    date: (date: Date) => formatDate(fmt, date),
+  };
+  // The "from the visit" link once per visit, on its first line: a visit
+  // billed as six lines would otherwise say so six times.
+  const firstLineOfVisit = new Set<string>();
+  {
+    const seen = new Set<string>();
+    for (const l of invoice.lines) {
+      if (l.visit && !seen.has(l.visit.id)) {
+        seen.add(l.visit.id);
+        firstLineOfVisit.add(l.id);
+      }
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -151,7 +172,7 @@ export default async function InvoicePage({
                 {invoice.lines.map((l) => (
                   <tr key={l.id}>
                     <td className="px-4 py-3">
-                      {l.description}
+                      {invoiceLineText(l, lineWords)}
                       {/* The two hidden columns, riding along. Hidden at
                           `@sm`, the breakpoint their columns arrive at,
                           so between them they are always on screen once
@@ -174,7 +195,7 @@ export default async function InvoicePage({
                           smallest honest version so the column is not
                           filled and invisible, which is the same as not
                           having it. */}
-                      {l.visit && (
+                      {l.visit && firstLineOfVisit.has(l.id) && (
                         <Link
                           href={`/visits/${l.visit.id}`}
                           className="mt-0.5 block text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
@@ -210,7 +231,9 @@ export default async function InvoicePage({
               <dd className="text-end tabular-nums">
                 {formatMoney(fmt, invoice.subtotalCents, currency)}
               </dd>
-              <dt className="text-end text-muted-foreground">{t("tax")}</dt>
+              <dt className="text-end text-muted-foreground">
+                {invoice.taxRate !== null ? t("taxAt", { rate: invoice.taxRate }) : t("tax")}
+              </dt>
               <dd className="text-end tabular-nums">
                 {formatMoney(fmt, invoice.taxCents, currency)}
               </dd>

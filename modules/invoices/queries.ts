@@ -210,3 +210,19 @@ export async function clientBalance(clinicId: string, clientId: string): Promise
     invoiceCount,
   };
 }
+
+/**
+ * The VAT rate this clinic used on its most recent invoice, for the next
+ * one to open on. A clinic that bills at 10% should not have to change
+ * 20% on every invoice, and there is no settings screen to ask it on:
+ * the last choice is the clinic's own answer. Null before the first.
+ * One index read (`invoices_clinicId_issuedAt_idx`).
+ */
+export async function lastVatRate(clinicId: string): Promise<number | null> {
+  const last = await prisma.invoice.findFirst({
+    where: { clinicId, taxRate: { not: null } },
+    orderBy: { issuedAt: "desc" },
+    select: { taxRate: true },
+  });
+  return last?.taxRate ?? null;
+}

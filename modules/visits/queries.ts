@@ -137,6 +137,16 @@ export async function getVisitForInvoice(clinicId: string, id: string) {
       clientId: true,
       petId: true,
       client: { select: { firstName: true, lastName: true } },
+      // What was done, so the invoice can list it line by line instead of
+      // one "Aşı · 14 Eyl" for the whole visit (B9).
+      vaccinations: { select: { id: true, name: true }, orderBy: { administeredAt: "asc" } },
+      treatments: { select: { id: true, name: true }, orderBy: { performedAt: "asc" } },
+      diagnostics: { select: { id: true, name: true, type: true }, orderBy: { createdAt: "asc" } },
+      prescriptions: {
+        where: { status: { not: "CANCELLED" } },
+        select: { id: true, medicationName: true, dosage: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 }

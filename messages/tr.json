@@ -741,7 +741,7 @@
     "remaining": "Kalan",
     "recordPayment": "Ödeme kaydet",
     "void": "Faturayı iptal et",
-    "markSent": "Gönderildi olarak işaretle",
+    "markSent": "Faturayı kesin",
     "payment": {
       "title": "Ödemeler",
       "amount": "Tutar",
@@ -761,7 +761,11 @@
     "ownerBalance": "Toplam borç {amount} · {count} fatura",
     "ownerBalanceOpen": "Faturaları gösterin",
     "filteredClient": "{name} adına kesilen faturalar",
-    "filteredClientClear": "Bütün müşteriler"
+    "filteredClientClear": "Bütün müşteriler",
+    "numberAssigned": "Kaydedince sıradaki numara verilir.",
+    "vatRate": "KDV oranı",
+    "vatOption": "%{rate}",
+    "taxAt": "KDV (%{rate})"
   },
   "timeline": {
     "openVisit": "Viziti aç",
@@ -1167,7 +1171,7 @@
     },
     "invoiceStatus": {
       "DRAFT": "Taslak",
-      "SENT": "Gönderildi",
+      "SENT": "Kesildi",
       "PARTIAL": "Kısmen ödendi",
       "PAID": "Ödendi",
       "VOID": "İptal"
@@ -1221,6 +1225,13 @@
       "SIGNIN": "Giriş yaptı",
       "SIGNOUT": "Çıkış yaptı",
       "SIGNUP": "Kaydoldu"
+    },
+    "invoiceLineKind": {
+      "VISIT": "Vizit",
+      "VACCINATION": "Aşı",
+      "TREATMENT": "Tedavi",
+      "DIAGNOSTIC": "Tetkik",
+      "PRESCRIPTION": "Reçete"
     }
   },
   "error": {
