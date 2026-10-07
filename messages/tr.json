@@ -1026,7 +1026,19 @@
         "date": "Aşı tarihi",
         "nextDue": "Sonraki doz tarihi"
       }
-    }
+    },
+    "petQuestionsTitle": "Hangi hayvan?",
+    "petQuestionsHint": "Bu sahiplerin kayıtlı aynı adlı hayvanları var ve dosyadaki bilgi hangisi olduğunu kesin söylemiyor. Aşılar yanlış hayvana yazılmasın diye siz seçin; hiçbirini sizin yerinize eşleştirmeyiz.",
+    "petQuestionLegend": "{owner} · {pet} ({row}. satır)",
+    "petQuestionFile": "Dosyada: {facts}",
+    "petQuestionSame": "Kayıtlı {name}: {facts}",
+    "petQuestionNew": "Başka bir hayvan; {name} yeni hayvan olarak eklensin",
+    "petQuestionsMore": "{count, plural, one {# soru daha} other {# soru daha}} var; yukarıdakileri yanıtladıkça görünür.",
+    "petFactBorn": "doğum {date}",
+    "petFactChip": "çip {chip}",
+    "petFactNone": "ayırt edici bilgi yok",
+    "decisionPetWhat": "Yukarıdaki \"Hangi hayvan?\" sorusunu yanıtlayın.",
+    "commitBlockedPets": "Önce \"Hangi hayvan?\" sorularını yanıtlayın."
   },
   "enum": {
     "species": {
@@ -1252,7 +1264,8 @@
       "timezoneUnknown": "Geçersiz saat dilimi.",
       "noteTarget": "Bir hayvan veya müşteri belirtmelisiniz.",
       "importDuplicatesUnanswered": "Aynı kişi olabilecek kayıtlar için karar verilmeden içe aktarma tamamlanamaz.",
-      "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış."
+      "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış.",
+      "importPetsUnanswered": "Hangi hayvan olduğu belli olmayan satırlar için karar verilmeden içe aktarma tamamlanamaz."
     },
     "form": {
       "required": "{field} gerekli.",

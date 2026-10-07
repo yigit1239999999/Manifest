@@ -669,6 +669,106 @@ describe("vaccinations", () => {
   });
 });
 
+describe("re-importing an owner with two animals of one name (A4)", () => {
+  // Ayşe has a dog AND a cat called Boncuk. The file names both, each with
+  // its own rabies date. Matching by name took the first Boncuk for both
+  // rows, so the cat's date was written to the dog.
+  const MAP: ImportAnswers["mapping"] = {
+    0: "client.firstName",
+    1: "client.phone",
+    2: "pet.name",
+    3: "pet.species",
+    4: "vaccine.column",
+  };
+  const FILE = [
+    ["Ayşe Yılmaz", "0532 411 22 33", "Boncuk", "Köpek", "01.03.2025"],
+    ["Ayşe Yılmaz", "0532 411 22 33", "Boncuk", "Kedi", "15.06.2025"],
+  ];
+  const owner = (pets: unknown[]) => [
+    {
+      id: "c1",
+      firstName: "Ayşe Yılmaz",
+      lastName: null,
+      phone: "0532 411 22 33",
+      secondaryPhone: null,
+      pets,
+    },
+  ];
+  const boncuk = (id: string, species: string) => ({
+    id,
+    name: "Boncuk",
+    species,
+    customSpeciesId: null,
+    sex: "UNKNOWN",
+    birthDate: null,
+    microchipId: null,
+    breed: null,
+  });
+  const reAnswers = (over: Partial<ImportAnswers> = {}) =>
+    answers({
+      mapping: { ...MAP },
+      dateOrders: { 4: "dayFirst" },
+      vaccineNames: { "4": "Kuduz" },
+      species: {
+        Köpek: { target: { kind: "builtIn", key: "DOG" } },
+        Kedi: { target: { kind: "builtIn", key: "CAT" } },
+      },
+      ...over,
+    });
+
+  it("writes each date to its own Boncuk, by species", async () => {
+    // The dog is listed first: the old matcher sent both dates to it.
+    vi.mocked(prisma.client.findMany).mockResolvedValue(owner([boncuk("dog", "DOG"), boncuk("cat", "CAT")]) as never);
+    const tx = fakeTx();
+    await commitImport(FILE, reAnswers(), admin);
+    expect(tx.pet.createMany).not.toHaveBeenCalled();
+    const rows = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(rows.map((r: { petId: string; administeredAt: Date }) => [r.petId, r.administeredAt.toISOString().slice(0, 10)])).toEqual([
+      ["dog", "2025-03-01"],
+      ["cat", "2025-06-15"],
+    ]);
+  });
+
+  it("asks which Boncuk when the file gives no species, and refuses to write until answered", async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue(owner([boncuk("dog", "DOG"), boncuk("cat", "CAT")]) as never);
+    const noSpecies = FILE.map((r) => [r[0], r[1], r[2], "", r[4]]);
+    const summary = await planImport(noSpecies, reAnswers(), admin);
+    expect(summary.petQuestions.map((q) => [q.row, q.candidates.map((c) => c.id)])).toEqual([
+      [1, ["dog", "cat"]],
+      [2, ["dog", "cat"]],
+    ]);
+    expect(summary.rows.filter((r) => r.status === "decision").map((r) => r.question)).toEqual(["pet", "pet"]);
+
+    fakeTx();
+    await expect(commitImport(noSpecies, reAnswers(), admin)).rejects.toBeInstanceOf(AppError);
+
+    const tx = fakeTx();
+    await commitImport(noSpecies, reAnswers({ pets: { "1": "cat", "2": "dog" } }), admin);
+    const rows = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(rows.map((r: { petId: string }) => r.petId)).toEqual(["cat", "dog"]);
+  });
+
+  it("treats an answer naming an animal the question did not offer as no answer", async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue(owner([boncuk("dog", "DOG"), boncuk("cat", "CAT")]) as never);
+    const noSpecies = FILE.map((r) => [r[0], r[1], r[2], "", r[4]]);
+    fakeTx();
+    await expect(
+      commitImport(noSpecies, reAnswers({ pets: { "1": "someone-elses-pet", "2": "dog" } }), admin),
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it("adds the cat as a new animal when the clinic only has the dog", async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue(owner([boncuk("dog", "DOG")]) as never);
+    const tx = fakeTx();
+    await commitImport(FILE, reAnswers(), admin);
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets).toHaveLength(1);
+    expect(pets[0]).toMatchObject({ name: "Boncuk", species: "CAT" });
+    const rows = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(rows.map((r: { petId: string }) => r.petId)).toEqual(["dog", "new-1"]);
+  });
+});
+
 describe("dueCounts uses the dashboard's window", () => {
   it("splits overdue at six months and counts the next thirty days", async () => {
     const { dueCounts } = await import("./service");

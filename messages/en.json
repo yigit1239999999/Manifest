@@ -1026,7 +1026,19 @@
         "date": "Vaccination date",
         "nextDue": "Next dose date"
       }
-    }
+    },
+    "petQuestionsTitle": "Which animal?",
+    "petQuestionsHint": "These owners already have animals with the same name, and the file does not say for certain which one each row is. Choose, so vaccinations are not written to the wrong animal; we never match them for you.",
+    "petQuestionLegend": "{owner} · {pet} (row {row})",
+    "petQuestionFile": "In the file: {facts}",
+    "petQuestionSame": "Registered {name}: {facts}",
+    "petQuestionNew": "A different animal; add {name} as a new animal",
+    "petQuestionsMore": "{count, plural, one {# more question} other {# more questions}}; they appear as you answer the ones above.",
+    "petFactBorn": "born {date}",
+    "petFactChip": "chip {chip}",
+    "petFactNone": "nothing to tell them apart",
+    "decisionPetWhat": "Answer the \"Which animal?\" question above.",
+    "commitBlockedPets": "Answer the \"Which animal?\" questions first."
   },
   "enum": {
     "species": {
@@ -1252,7 +1264,8 @@
       "timezoneUnknown": "Unknown timezone.",
       "noteTarget": "Pick a pet or a client to attach the note to.",
       "importDuplicatesUnanswered": "The import cannot finish while rows that may be the same person are unanswered.",
-      "importAlreadyUndone": "This import has already been undone."
+      "importAlreadyUndone": "This import has already been undone.",
+      "importPetsUnanswered": "The import cannot finish while rows that may be one of several animals are unanswered."
     },
     "form": {
       "required": "{field} is required.",

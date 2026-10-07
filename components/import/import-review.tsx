@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, CalendarClock, CircleAlert, History } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
@@ -12,6 +12,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
+import { formatPlainDate } from "@/lib/format";
 import { SPECIES } from "@/modules/pets/schema";
 import { MAX_REQUEST_MB } from "@/modules/import/limits";
 import type { ImportField } from "@/modules/import/fields";
@@ -19,6 +20,7 @@ import type { DuplicateAnswer } from "@/modules/import/plan";
 import type { SpeciesFallback, SpeciesTarget } from "@/modules/import/enum-map";
 import type {
   CommitResult,
+  PetQuestion,
   PlanRowView,
   PlanSummary,
   UndoResult,
@@ -83,6 +85,7 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
 
   const [phase, setPhase] = React.useState<Phase>({ kind: "planning", summary: null });
   const [duplicates, setDuplicates] = React.useState<Record<string, DuplicateAnswer>>({});
+  const [petAnswers, setPetAnswers] = React.useState<Record<string, string>>({});
   const [species, setSpecies] = React.useState<Record<string, SpeciesAnswer>>({});
   const [sex, setSex] = React.useState<Record<string, Sex>>({});
   const [speciesFallback, setSpeciesFallback] = React.useState<SpeciesFallback | null>(null);
@@ -131,9 +134,10 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
         sex,
         ...(speciesFallback ? { speciesFallback } : {}),
         ...(nextDueFromList ? { nextDueFromList: true } : {}),
+        ...(Object.keys(petAnswers).length > 0 ? { pets: petAnswers } : {}),
       },
     };
-  }, [input, used, patches, excluded, duplicates, species, sex, speciesFallback, nextDueFromList]);
+  }, [input, used, patches, excluded, duplicates, species, sex, speciesFallback, nextDueFromList, petAnswers]);
 
   const plan = React.useCallback(async () => {
     setPhase((previous) => ({
@@ -157,7 +161,7 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void plan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duplicates, patches, excluded, nextDueFromList, speciesFallback]);
+  }, [duplicates, patches, excluded, nextDueFromList, speciesFallback, petAnswers]);
 
   const saved = phase.kind === "saved";
   React.useEffect(() => {
@@ -167,7 +171,7 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
   }, [saved]);
 
   async function save(summary: PlanSummary) {
-    if (summary.questions.some((q) => !duplicates[q.key])) {
+    if (summary.questions.some((q) => !duplicates[q.key]) || summary.petQuestions.some((q) => !q.answer)) {
       setAskedWithQuestions(true);
       return;
     }
@@ -195,7 +199,9 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
       : phase.kind === "planning"
         ? phase.summary
         : null;
-  const openQuestions = summary ? summary.questions.filter((q) => !duplicates[q.key]).length : 0;
+  const openOwnerQuestions = summary ? summary.questions.filter((q) => !duplicates[q.key]).length : 0;
+  const openPetQuestions = summary ? summary.petQuestions.filter((q) => !(petAnswers[String(q.row)] ?? q.answer)).length : 0;
+  const openQuestions = openOwnerQuestions + openPetQuestions;
   const nothingNew =
     summary && summary.petCount === 0 && summary.createCount === 0 && summary.vaccinationCount === 0;
 
@@ -324,7 +330,7 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
                   product handing its own question back one row at a time.
                   It answers "different people" -- the answer that never
                   merges anybody -- and every line stays changeable. */}
-              {openQuestions > 1 && (
+              {openOwnerQuestions > 1 && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -338,7 +344,7 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
                     })
                   }
                 >
-                  {t("questionsAllSeparate")} ({t("questionsCount", { count: openQuestions })})
+                  {t("questionsAllSeparate")} ({t("questionsCount", { count: openOwnerQuestions })})
                 </Button>
               )}
               {summary.questions.slice(0, QUESTION_LIMIT).map((question) => (
@@ -406,6 +412,16 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
             <p className="-mt-3 text-sm text-muted-foreground">
               {t("questionsMore", { count: summary.questions.length - QUESTION_LIMIT })}
             </p>
+          )}
+
+          {summary.petQuestions.length > 0 && (
+            <PetQuestions
+              questions={summary.petQuestions}
+              answers={petAnswers}
+              highlight={askedWithQuestions}
+              firstRowNumber={input.firstRowNumber}
+              onAnswer={(row, value) => setPetAnswers((prev) => ({ ...prev, [String(row)]: value }))}
+            />
           )}
 
           <RowsToLookAt
@@ -601,9 +617,14 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
               </Button>
               )}
             </div>
-            {askedWithQuestions && openQuestions > 0 && (
+            {askedWithQuestions && openOwnerQuestions > 0 && (
               <p className="mt-2 text-sm text-warning" role="alert">
                 {t("commitBlocked")}
+              </p>
+            )}
+            {askedWithQuestions && openPetQuestions > 0 && (
+              <p className="mt-2 text-sm text-warning" role="alert">
+                {t("commitBlockedPets")}
               </p>
             )}
             {phase.kind === "saveFailed" && (
@@ -615,6 +636,118 @@ export function ImportReview({ input, onBack }: { input: ReviewInput; onBack: ()
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * "Which Boncuk is this?" -- the rows `pet-match.ts` would not place.
+ *
+ * Each candidate is drawn with what tells two same-named animals apart
+ * (species, sex, birth date, chip), next to what the file says, because
+ * that comparison is the whole question. The unanswered ones come first
+ * and at most `QUESTION_LIMIT` of them are drawn; answered ones stay so an
+ * answer can be changed.
+ */
+function PetQuestions({
+  questions,
+  answers,
+  highlight,
+  firstRowNumber,
+  onAnswer,
+}: {
+  questions: PetQuestion[];
+  answers: Record<string, string>;
+  highlight: boolean;
+  firstRowNumber: number;
+  onAnswer: (row: number, value: string) => void;
+}) {
+  const t = useTranslations("import");
+  const tSpecies = useTranslations("enum.species");
+  const tSex = useTranslations("enum.sex");
+  const locale = useLocale();
+  const answerOf = (q: PetQuestion) => answers[String(q.row)] ?? q.answer ?? null;
+  const open = questions.filter((q) => !answerOf(q));
+  const shown = [...questions.filter((q) => answerOf(q)), ...open.slice(0, QUESTION_LIMIT)].sort((x, y) => x.row - y.row);
+
+  const facts = (parts: {
+    species: string | null;
+    sex: Sex | null;
+    birthDate: string | null;
+    microchipId: string | null;
+    breed?: string | null;
+  }) => {
+    const out = [
+      parts.species,
+      parts.breed,
+      parts.sex && parts.sex !== "UNKNOWN" ? tSex(parts.sex) : null,
+      parts.birthDate ? t("petFactBorn", { date: formatPlainDate(locale, parts.birthDate) }) : null,
+      parts.microchipId ? t("petFactChip", { chip: parts.microchipId }) : null,
+    ].filter((x): x is string => Boolean(x));
+    return out.length > 0 ? out.join(" · ") : t("petFactNone");
+  };
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h3 className="text-base font-semibold text-foreground">{t("petQuestionsTitle")}</h3>
+      <p className="text-sm text-muted-foreground">{t("petQuestionsHint")}</p>
+      {shown.map((q) => {
+        const answer = answerOf(q);
+        return (
+          <fieldset
+            key={q.row}
+            className={cn(
+              "flex min-w-0 flex-col gap-2 rounded-control border bg-card p-3",
+              highlight && !answer ? "border-warning" : "border-border",
+            )}
+          >
+            <legend className="max-w-full break-words px-1 text-sm font-medium text-foreground">
+              {t("petQuestionLegend", { owner: q.owner, pet: q.pet.name, row: q.row + firstRowNumber - 1 })}
+            </legend>
+            <p className="break-words text-sm text-muted-foreground">
+              {t("petQuestionFile", { facts: facts(q.pet) })}
+            </p>
+            {q.candidates.map((c) => (
+              <label key={c.id} className="flex items-start gap-2 text-sm text-foreground">
+                <input
+                  type="radio"
+                  name={`pet-${q.row}`}
+                  className="mt-0.5 size-4 shrink-0"
+                  checked={answer === c.id}
+                  onChange={() => onAnswer(q.row, c.id)}
+                />
+                <span className="min-w-0 break-words">
+                  {t("petQuestionSame", {
+                    name: c.name,
+                    facts: facts({
+                      species: c.customSpecies ?? tSpecies(c.species),
+                      breed: c.breed,
+                      sex: c.sex,
+                      birthDate: c.birthDate,
+                      microchipId: c.microchipId,
+                    }),
+                  })}
+                </span>
+              </label>
+            ))}
+            <label className="flex items-start gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name={`pet-${q.row}`}
+                className="mt-0.5 size-4 shrink-0"
+                checked={answer === "new"}
+                onChange={() => onAnswer(q.row, "new")}
+              />
+              <span className="min-w-0 break-words">{t("petQuestionNew", { name: q.pet.name })}</span>
+            </label>
+          </fieldset>
+        );
+      })}
+      {open.length > QUESTION_LIMIT && (
+        <p className="text-sm text-muted-foreground">
+          {t("petQuestionsMore", { count: open.length - QUESTION_LIMIT })}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -742,7 +875,7 @@ function RowWhat({
   const lines: string[] = [];
   if (isExcluded) lines.push(t("excludedWhat"));
   else {
-    if (row.status === "decision") lines.push(t("decisionWhat"));
+    if (row.status === "decision") lines.push(row.question === "pet" ? t("decisionPetWhat") : t("decisionWhat"));
     if (row.status === "existing") lines.push(t("existingWhat"));
     if (row.issue === "noOwnerName" || row.issue === "noPetName") lines.push(t(`issue.${row.issue}`));
     for (const w of row.warnings) {
