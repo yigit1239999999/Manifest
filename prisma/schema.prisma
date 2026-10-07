@@ -660,6 +660,11 @@ model Prescription {
   status         PrescriptionStatus @default(ACTIVE)
   instructions   String?
   notes          String?
+  /// Why this was written although it matches the animal's recorded
+  /// allergy (see `lib/allergy-check.ts`). Null when there was no match:
+  /// the server refuses a matching drug without one, so a value here is
+  /// always a vet's deliberate decision, in their words.
+  overrideReason String?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -687,6 +692,11 @@ model Treatment {
   performedAt     DateTime @default(now())
   durationMinutes Int?
   notes           String?
+  /// Why this was written although it matches the animal's recorded
+  /// allergy (see `lib/allergy-check.ts`). Null when there was no match:
+  /// the server refuses a matching drug without one, so a value here is
+  /// always a vet's deliberate decision, in their words.
+  overrideReason  String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

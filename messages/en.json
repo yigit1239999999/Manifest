@@ -266,6 +266,8 @@
     "insuranceProvider": "Insurance",
     "insurancePolicy": "Policy number",
     "alerts": "Medical alerts",
+    "alertsHint": "Allergies and cautions. Every prescription and treatment is checked against this.",
+    "alertsPlaceholder": "E.g. Penicillin allergy; bites",
     "owner": "Owner",
     "notes": "Notes",
     "sections": {
@@ -274,7 +276,7 @@
       "physical": "Physical",
       "physicalHint": "Visible attributes and vitals at intake.",
       "medical": "Medical",
-      "medicalHint": "Identifiers, insurance and alerts that should be visible at every visit.",
+      "medicalHint": "Identifiers and insurance that should be visible at every visit.",
       "notes": "Notes",
       "notesHint": "Anything else the clinical team should know."
     },
@@ -603,6 +605,15 @@
     "durationMinutes": "Duration (min)",
     "notes": "Procedure notes",
     "notesPlaceholder": "Anaesthesia protocol, materials used, complications, owner briefing…"
+  },
+  "allergyCheck": {
+    "title": "This drug matches the animal's recorded alert",
+    "body": "Recorded alert: \"{allergy}\". Entered: \"{drug}\"{family, select, penicillin { (both are penicillins)} sulfonamide { (both are sulfonamides)} nsaid { (both are NSAIDs)} other {}}. It is not saved without a reason.",
+    "reason": "Write it anyway: reason",
+    "reasonHint": "The reason is kept with the record and written to the audit log.",
+    "reasonPlaceholder": "E.g. allergy history checked with the owner, no reaction; test dose given",
+    "submitAnyway": "Write it anyway",
+    "overridden": "Written despite the recorded alert. Reason: {reason}"
   },
   "diagnostic": {
     "title": "Diagnostics",
@@ -1278,6 +1289,7 @@
       "linesRequired": "Add at least one line.",
       "paymentOverBalance": "Only {remaining} is left to pay on this invoice. A payment cannot be more than that; please check the amount.",
       "paymentNothingOwed": "Nothing is left to pay on this invoice."
-    }
+    },
+    "allergyConflict": "Not saved. This animal's recorded alert is \"{allergy}\" and \"{drug}\" matches it{family, select, penicillin { (both are penicillins)} sulfonamide { (both are sulfonamides)} nsaid { (both are NSAIDs)} other {}}. Enter a reason to write it anyway."
   }
 }

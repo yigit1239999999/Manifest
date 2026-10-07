@@ -266,6 +266,8 @@
     "insuranceProvider": "Sigorta",
     "insurancePolicy": "Poliçe no",
     "alerts": "Tıbbi uyarılar",
+    "alertsHint": "Alerjiler ve dikkat edilecekler. Yazılan her reçete ve tedavi bununla karşılaştırılır.",
+    "alertsPlaceholder": "Örn. Penisilin alerjisi; ısırır",
     "owner": "Sahibi",
     "notes": "Notlar",
     "sections": {
@@ -274,7 +276,7 @@
       "physical": "Fiziksel",
       "physicalHint": "Görünür özellikler ve giriş anındaki vital bulgular.",
       "medical": "Tıbbi",
-      "medicalHint": "Her vizitte görünmesi gereken tanımlayıcılar, sigorta ve uyarılar.",
+      "medicalHint": "Her vizitte görünmesi gereken tanımlayıcılar ve sigorta.",
       "notes": "Notlar",
       "notesHint": "Klinik ekibinin bilmesi gereken her şey."
     },
@@ -603,6 +605,15 @@
     "durationMinutes": "Süre (dk)",
     "notes": "Uygulama notları",
     "notesPlaceholder": "Anestezi protokolü, kullanılan malzeme, komplikasyon, sahip bilgilendirmesi…"
+  },
+  "allergyCheck": {
+    "title": "Bu ilaç hayvanın kayıtlı uyarısıyla eşleşiyor",
+    "body": "Kayıtlı uyarı: \"{allergy}\". Yazılan: \"{drug}\"{family, select, penicillin { (ikisi de penisilin grubu)} sulfonamide { (ikisi de sülfonamid grubu)} nsaid { (ikisi de NSAİİ grubu)} other {}}. Gerekçe yazılmadan kaydedilmez.",
+    "reason": "Yine de yaz: gerekçe",
+    "reasonHint": "Gerekçe kayıtla birlikte saklanır ve denetim kaydına yazılır.",
+    "reasonPlaceholder": "Örn. alerji öyküsü sahiple doğrulandı, reaksiyon yok; test dozu verildi",
+    "submitAnyway": "Yine de yaz",
+    "overridden": "Kayıtlı uyarıya rağmen yazıldı. Gerekçe: {reason}"
   },
   "diagnostic": {
     "title": "Tanı testleri",
@@ -1278,6 +1289,7 @@
       "linesRequired": "En az bir satır ekleyiniz.",
       "paymentOverBalance": "Bu faturada kalan borç {remaining}. Ödeme bundan fazla olamaz; lütfen tutarı kontrol ediniz.",
       "paymentNothingOwed": "Bu faturada ödenecek borç kalmadı."
-    }
+    },
+    "allergyConflict": "Kaydedilmedi. Bu hayvanın kayıtlı uyarısı \"{allergy}\"; yazılan \"{drug}\" bununla eşleşiyor{family, select, penicillin { (ikisi de penisilin grubu)} sulfonamide { (ikisi de sülfonamid grubu)} nsaid { (ikisi de NSAİİ grubu)} other {}}. Yine de yazmak için gerekçe girin."
   }
 }

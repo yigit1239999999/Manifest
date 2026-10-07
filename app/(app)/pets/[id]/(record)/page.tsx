@@ -76,6 +76,7 @@ export default async function PetPage({
     tDiag,
     tDiagType,
     tClient,
+    tCheck,
     timeline,
     vaccinations,
     prescriptions,
@@ -96,6 +97,7 @@ export default async function PetPage({
     getTranslations("diagnostic"),
     getTranslations("enum.diagnosticType"),
     getTranslations("client"),
+    getTranslations("allergyCheck"),
     petTimeline(clinicId, id),
     listVaccinationsForPet(clinicId, id, 20),
     listPrescriptionsForPet(clinicId, id, 20),
@@ -440,6 +442,13 @@ export default async function PetPage({
                           {p.dosage} · {p.frequency}
                           {p.durationDays ? ` · ${tRx("durationShort", { count: p.durationDays })}` : ""}
                         </p>
+                        {/* Kept on the record it excuses: whoever reads
+                            this later sees that the allergy was known. */}
+                        {p.overrideReason && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {tCheck("overridden", { reason: p.overrideReason })}
+                          </p>
+                        )}
                       </div>
                       <StatusBadge
                         kind="prescription"
@@ -486,6 +495,11 @@ export default async function PetPage({
                           {tr.performedBy?.name && ` · ${tr.performedBy.name}`}
                           {tr.durationMinutes != null && ` · ${tr.durationMinutes} dk`}
                         </p>
+                        {tr.overrideReason && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {tCheck("overridden", { reason: tr.overrideReason })}
+                          </p>
+                        )}
                         {tr.notes && (
                           <p className="mt-1 max-w-prose whitespace-pre-wrap text-xs text-muted-foreground">
                             {tr.notes}
@@ -508,6 +522,7 @@ export default async function PetPage({
                       petId={pet.id}
                       vets={vets}
                       defaultVetId={session.user.id}
+                      alerts={pet.alerts}
                     />
                   </div>
                 </details>

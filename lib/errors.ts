@@ -54,6 +54,23 @@ export const conflict = (messageKey: string): AppError =>
   new AppError("CONFLICT", messageKey);
 
 /**
+ * A drug matches the animal's recorded allergy and no reason was given.
+ * The conflict travels in `details` so the form can name both sides and
+ * offer "write it anyway" (see `lib/allergy-check.ts`).
+ */
+export const allergyConflict = (c: {
+  allergy: string;
+  drug: string;
+  family: string | null;
+}): AppError =>
+  new AppError(
+    "CONFLICT",
+    "error.allergyConflict",
+    { allergy: c.allergy, drug: c.drug, family: c.family ?? "none" },
+    { allergyConflict: c },
+  );
+
+/**
  * A unique index refused the row.
  *
  * Not the same predicate as `lostTheRace` in

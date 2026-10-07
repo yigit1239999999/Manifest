@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
+import { requireAllergyOverride } from "@/lib/allergy-check";
 import type { ActionContext } from "@/lib/action";
 import type { TreatmentInput } from "./schema";
 
@@ -12,9 +13,12 @@ export async function createTreatment(
   requirePermission(ctx.userRole, "treatments.write");
   const pet = await prisma.pet.findFirst({
     where: { id: input.petId, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: { id: true, alerts: true },
   });
   if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
+  // A treatment is often a drug given in the clinic ("Amoksisilin
+  // enjeksiyonu"), so it is held to the same check as a prescription.
+  const override = requireAllergyOverride(pet.alerts, input.name, input.overrideReason);
 
   const treatment = await prisma.treatment.create({
     data: {
@@ -27,6 +31,7 @@ export async function createTreatment(
       performedAt: input.performedAt,
       durationMinutes: input.durationMinutes,
       notes: input.notes,
+      overrideReason: override?.reason ?? null,
     },
   });
   await writeAudit({
@@ -36,6 +41,15 @@ export async function createTreatment(
     entityType: "Treatment",
     entityId: treatment.id,
     changes: { name: treatment.name },
+    ...(override && {
+      metadata: {
+        allergyOverride: {
+          allergy: override.conflict.allergy,
+          family: override.conflict.family,
+          reason: override.reason,
+        },
+      },
+    }),
   });
   return treatment;
 }

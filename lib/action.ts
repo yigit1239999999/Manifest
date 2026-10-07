@@ -19,6 +19,7 @@
 
 import type { ZodError, ZodType } from "zod";
 import { getTranslations } from "next-intl/server";
+import type { AllergyConflict } from "./allergy-check";
 import { AppError } from "./errors";
 import { MESSAGE_PREFIX } from "./forms";
 import { logger } from "./logger";
@@ -49,6 +50,12 @@ export type FormState = {
    * returns). Sensitive fields are stripped — see `submittedValues`.
    */
   values?: Record<string, string>;
+  /**
+   * Set when the save was refused because the drug matches the animal's
+   * recorded allergy. The sentence is in `error`; this is what the form
+   * needs to offer writing it anyway, with a reason.
+   */
+  allergyConflict?: AllergyConflict;
 };
 
 export interface ActionContext {
@@ -259,7 +266,8 @@ async function appErrorToFormState(error: AppError): Promise<FormState> {
       vars.entity = t(error.messageVars.entityKey);
     }
     const message = t(error.messageKey, vars);
-    return { error: message };
+    const allergy = error.details?.allergyConflict as AllergyConflict | undefined;
+    return allergy ? { error: message, allergyConflict: allergy } : { error: message };
   } catch {
     // No request scope (e.g. when called from a worker): fall back to
     // the message key so at least something readable surfaces.

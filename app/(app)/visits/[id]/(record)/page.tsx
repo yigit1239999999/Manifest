@@ -69,6 +69,7 @@ export default async function VisitPage({
     tDiag,
     tPet,
     tInvoiceStatus,
+    tCheck,
     currency,
   ] = await Promise.all([
     getVisitById(clinicId, id),
@@ -81,6 +82,7 @@ export default async function VisitPage({
     getTranslations("diagnostic"),
     getTranslations("pet"),
     getTranslations("enum.invoiceStatus"),
+    getTranslations("allergyCheck"),
     getClinicCurrency(clinicId),
   ]);
 
@@ -557,6 +559,11 @@ export default async function VisitPage({
                 <li key={p.id} className="text-sm">
                   • <strong>{p.medicationName}</strong> · {p.dosage} ·{" "}
                   {p.frequency}
+                  {p.overrideReason && (
+                    <p className="ms-3 text-xs text-destructive">
+                      {tCheck("overridden", { reason: p.overrideReason })}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>
@@ -594,6 +601,11 @@ export default async function VisitPage({
                   {t.code && (
                     <span className="text-muted-foreground"> · {t.code}</span>
                   )}
+                  {t.overrideReason && (
+                    <p className="ms-3 text-xs text-destructive">
+                      {tCheck("overridden", { reason: t.overrideReason })}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>
@@ -605,7 +617,11 @@ export default async function VisitPage({
                 {tTreatment("new")}
               </summary>
               <div className="mt-3">
-                <TreatmentForm petId={visit.petId} visitId={visit.id} />
+                <TreatmentForm
+                  petId={visit.petId}
+                  visitId={visit.id}
+                  alerts={visit.pet.alerts}
+                />
               </div>
             </details>
           )}
