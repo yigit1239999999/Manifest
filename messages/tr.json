@@ -1521,8 +1521,7 @@
       "afterDeath": "Bu hayvan bu tarihten önce vefat etti olarak işaretli. Tarihi kontrol ediniz.",
       "deceasedInFuture": "Vefat tarihi ileri bir tarih olamaz.",
       "deceasedBeforeBirth": "Vefat tarihi doğum tarihinden önce olamaz.",
-      "noShowBeforeStart": "Randevu saati henüz gelmedi; \"Gelmedi\" ancak randevu başladıktan sonra işaretlenebilir.",
-      "appointmentOutcomeClosed": "Bu randevunun sonucu zaten kaydedilmiş."
+      "noShowBeforeStart": "Randevu saati henüz gelmedi; \"Gelmedi\" ancak randevu başladıktan sonra işaretlenebilir."
     },
     "form": {
       "required": "{field} gerekli.",

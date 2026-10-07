@@ -3,6 +3,7 @@ import { conflict, notFound } from "@/lib/errors";
 import { withAudited } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
+import { refuseEarlyNoShow } from "./service";
 
 /**
  * The one-tap outcomes a day's appointment can be given from a list row:
@@ -31,7 +32,13 @@ function isWaiting(status: string): status is Waiting {
  * appointment as a no-show from today's screen by mistake, and nothing
  * stopped it: an outcome is a statement about something that has
  * happened, and an appointment whose hour has not come cannot have been
- * missed yet. Arrival is not held to the hour -- people come early.
+ * missed yet. Arrival is not held to the hour -- people come early. The
+ * rule itself is `refuseEarlyNoShow` in `./service.ts`, shared with the
+ * appointment form.
+ *
+ * This is the only one-tap path: the dashboard's "Bugün" strip and the
+ * appointments list both call it through `setArrivalAction`, so both
+ * offer the same undo.
  */
 export async function setArrival(
   id: string,
@@ -55,8 +62,7 @@ export async function setArrival(
   if (existing.visit) throw conflict("error.validation.appointmentHasVisit");
   if (!isWaiting(existing.status))
     throw conflict("error.validation.appointmentNotWaiting");
-  if (status === "NO_SHOW" && existing.startsAt.getTime() > now.getTime())
-    throw conflict("error.validation.noShowBeforeStart");
+  refuseEarlyNoShow(status, existing.startsAt, now, "button");
 
   await withAudited(
     {

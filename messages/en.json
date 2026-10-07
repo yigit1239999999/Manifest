@@ -1521,8 +1521,7 @@
       "petDeceased": "This animal is marked as deceased and cannot be booked.",
       "afterDeath": "This animal is marked as deceased before this date. Please check the date.",
       "deceasedInFuture": "The date of death cannot be in the future.",
-      "deceasedBeforeBirth": "The date of death cannot be before the birth date.",
-      "appointmentOutcomeClosed": "This appointment's outcome is already recorded."
+      "deceasedBeforeBirth": "The date of death cannot be before the birth date."
     },
     "form": {
       "required": "{field} is required.",

@@ -52,10 +52,11 @@ export async function TodayStrip({
   canStartVisit: boolean;
   canBook: boolean;
 }) {
-  const [t, tCommon, tStatus] = await Promise.all([
+  const [t, tCommon, tStatus, tPet] = await Promise.all([
     getTranslations("dashboard.today"),
     getTranslations("common"),
     getTranslations("enum.appointmentStatus"),
+    getTranslations("pet"),
   ]);
 
   const waiting = items.filter((a) => WAITING.has(a.status)).length;
@@ -109,8 +110,12 @@ export async function TodayStrip({
             {items.map((a, i) => {
               const subject = `${a.pet.name} ${formatTime(fmt, a.startsAt)}`;
               const settled = SETTLED.has(a.status);
+              // A deceased animal is not seen again (the pet page's rule):
+              // its row stays so the booking can be cancelled, without
+              // "Geldi" or "Vizite başla".
+              const alive = !a.pet.deceased;
               const canStart =
-                canStartVisit && !a.visit && !settled && a.status !== "CANCELLED";
+                alive && canStartVisit && !a.visit && !settled && a.status !== "CANCELLED";
               return (
                 <li key={a.id} className="contents">
                   {i === nowIndex && (
@@ -173,7 +178,12 @@ export async function TodayStrip({
                         status={a.status}
                         label={tStatus(a.status as never)}
                       />
-                      {canMark && WAITING.has(a.status) && (
+                      {a.pet.deceased && (
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {tPet("deceased")}
+                        </span>
+                      )}
+                      {alive && canMark && WAITING.has(a.status) && (
                         <ArrivalButtons
                           setAction={setArrivalAction.bind(null, a.id)}
                           undoAction={undoArrivalAction.bind(null, a.id)}

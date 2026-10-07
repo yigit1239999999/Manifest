@@ -464,7 +464,9 @@ function advanceBucket(date: Date, unit: "week" | "month"): Date {
  * their place and lets their status say where they are.
  *
  * Cancelled ones are left out: they are not part of the day any more, and
- * the appointments page still has them under its own filter. Capped well
+ * the appointments page still has them under its own filter. An animal
+ * that has died since it was booked keeps its row, so reception sees the
+ * booking to cancel, but the strip offers it no outcome and no visit. Capped well
  * above any one clinic's day so a bad import cannot draw a thousand rows.
  */
 export async function todayAppointments(
@@ -488,7 +490,7 @@ export async function todayAppointments(
       status: true,
       type: true,
       reason: true,
-      pet: { select: { id: true, name: true, species: true, alerts: true } },
+      pet: { select: { id: true, name: true, species: true, alerts: true, deceased: true } },
       client: {
         select: { id: true, firstName: true, lastName: true, phone: true },
       },

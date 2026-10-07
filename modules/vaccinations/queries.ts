@@ -144,6 +144,7 @@ export async function countUpcomingVaccinations(clinicId: string, now = new Date
         lte: new Date(now.getTime() + UPCOMING_WINDOW_DAYS * 86_400_000),
       },
       dueDismissedAt: null,
+      supersededById: null,
       pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
     },
   });

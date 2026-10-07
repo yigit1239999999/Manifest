@@ -30,7 +30,11 @@ import {
 import { matchOwnerPets, type RowFacts } from "./pet-match";
 import { addInterval } from "@/lib/vaccination-interval";
 import { clinicVaccineList, normalizeVaccineSettings, offerByName, type VaccineOffer } from "@/modules/vaccinations/catalogue";
-import { OVERDUE_WINDOW_MONTHS, vaccinationIntervalSuggestions } from "@/modules/vaccinations/queries";
+import {
+  OVERDUE_WINDOW_MONTHS,
+  UPCOMING_WINDOW_DAYS,
+  vaccinationIntervalSuggestions,
+} from "@/modules/vaccinations/queries";
 import { recomputeSuperseded } from "@/modules/vaccinations/supersede";
 
 /**
@@ -607,14 +611,15 @@ function rowFacts(
 
 /**
  * Where a set of next dates falls against today, by the dashboard's own
- * rule: the overdue card looks back `OVERDUE_WINDOW_MONTHS`, and a count
- * that disagreed with the card would be the result screen promising rows
- * the dashboard then does not show.
+ * rule: the overdue card looks back `OVERDUE_WINDOW_MONTHS` and the
+ * upcoming card and recall list look ahead `UPCOMING_WINDOW_DAYS`, and a
+ * count that disagreed with them would be the result screen promising
+ * rows the dashboard then does not show.
  */
 export function dueCounts(dates: readonly Date[], now: Date): DueCounts {
   const since = new Date(now);
   since.setMonth(since.getMonth() - OVERDUE_WINDOW_MONTHS);
-  const soon = new Date(now.getTime() + 30 * DAY_MS);
+  const soon = new Date(now.getTime() + UPCOMING_WINDOW_DAYS * DAY_MS);
   let overdue = 0;
   let overdueOlder = 0;
   let dueSoon = 0;

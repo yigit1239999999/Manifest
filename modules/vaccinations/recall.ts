@@ -102,6 +102,9 @@ function baseWhere(f: RecallFilters, now: Date): Prisma.Sql {
     dueWindow(f.view, f.age ?? "recent", now),
     // Taken off the list by somebody: it stays on the animal's page.
     Prisma.sql`v."dueDismissedAt" IS NULL`,
+    // A later dose of the same vaccine has answered this date
+    // (`./supersede.ts`): last year's Karma is nobody to call about.
+    Prisma.sql`v."supersededById" IS NULL`,
     // The two layers the dashboard card has: a dead or archived animal,
     // or an owner the clinic no longer serves, is not somebody to call.
     Prisma.sql`p."deceased" = false AND p."archivedAt" IS NULL AND c."archivedAt" IS NULL`,

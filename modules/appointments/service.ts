@@ -103,10 +103,21 @@ function lostTheRace(error: unknown): boolean {
  * appointment a week ahead as a no-show from today's screen, and nothing
  * stopped it: the owner who would have come next Tuesday was already on
  * record as having not come.
+ *
+ * The one rule for every way in: the form's create and edit below, and
+ * the one-tap "Gelmedi" (`./arrival.ts`) on the dashboard and the
+ * appointments list. The form gets it under its status field; a button
+ * has no field, so it gets the sentence itself for its toast.
  */
-function refuseEarlyNoShow(status: string, startsAt: Date, now: Date) {
-  if (status === "NO_SHOW" && startsAt.getTime() > now.getTime())
-    throw validationFailed({ status: ["error.validation.noShowBeforeStart"] });
+export function refuseEarlyNoShow(
+  status: string,
+  startsAt: Date,
+  now: Date,
+  from: "form" | "button" = "form",
+) {
+  if (status !== "NO_SHOW" || startsAt.getTime() <= now.getTime()) return;
+  if (from === "button") throw conflict("error.validation.noShowBeforeStart");
+  throw validationFailed({ status: ["error.validation.noShowBeforeStart"] });
 }
 
 export async function createAppointment(
@@ -263,48 +274,6 @@ export async function updateAppointment(
         },
       }),
   );
-}
-
-/**
- * "Geldi" / "Gelmedi", one tap from today's list instead of Edit, the
- * status select and Save (the vet, on the phone with reception).
- *
- * Only from an appointment still waiting for its answer. "Geldi" may be
- * pressed early -- an owner arrives before the hour -- and corrects a
- * "Gelmedi" for one who came late; "Gelmedi" waits for the start time and
- * is never set over an arrival or a visit, which record that they came.
- */
-export async function setAppointmentOutcome(
-  id: string,
-  outcome: "ARRIVED" | "NO_SHOW",
-  ctx: ActionContext,
-  now: Date = new Date(),
-) {
-  requirePermission(ctx.userRole, "appointments.write");
-  const existing = await prisma.appointment.findFirst({
-    where: { id, clinicId: ctx.clinicId },
-    select: { id: true, status: true, startsAt: true, petId: true, visit: { select: { id: true } } },
-  });
-  if (!existing) throw notFound("appointment", id);
-  if (existing.visit) throw conflict("error.validation.appointmentHasVisit");
-  const from =
-    outcome === "ARRIVED" ? ["SCHEDULED", "CONFIRMED", "NO_SHOW"] : ["SCHEDULED", "CONFIRMED"];
-  if (!from.includes(existing.status)) throw conflict("error.validation.appointmentOutcomeClosed");
-  refuseEarlyNoShow(outcome, existing.startsAt, now);
-  if (existing.status === outcome) return existing;
-
-  await withAudited(
-    {
-      clinicId: ctx.clinicId,
-      actorId: ctx.userId,
-      action: "UPDATE",
-      entityType: "Appointment",
-      entityId: id,
-      changes: { status: outcome, from: existing.status },
-    },
-    (tx) => tx.appointment.update({ where: { id }, data: { status: outcome } }),
-  );
-  return existing;
 }
 
 export async function cancelAppointment(id: string, ctx: ActionContext) {

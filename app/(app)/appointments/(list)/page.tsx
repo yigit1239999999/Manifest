@@ -6,8 +6,8 @@ import { requireSession } from "@/lib/session";
 import { formatPhone, telHref } from "@/lib/phone";
 import { can } from "@/lib/permissions";
 import { listAppointmentsPage } from "@/modules/appointments/queries";
-import { setAppointmentOutcomeAction } from "@/modules/appointments/actions";
-import { AppointmentOutcomeButtons } from "@/components/appointment-outcome-buttons";
+import { setArrivalAction, undoArrivalAction } from "@/modules/appointments/arrival-actions";
+import { ArrivalButtons } from "@/components/arrival-buttons";
 import { APPOINTMENT_STATUSES } from "@/modules/appointments/schema";
 import { countPets } from "@/modules/pets/queries";
 import { MissingLink } from "@/components/missing-link";
@@ -91,12 +91,15 @@ export default async function AppointmentsPage({
   // The one-tap outcome is for the day being worked, not for a day browsed.
   const isToday = !showAllDates && date === today;
 
-  const [t, tCommon, tPet, tType, tStatus, result] = await Promise.all([
+  const [t, tCommon, tPet, tType, tStatus, tArrival, result] = await Promise.all([
     getTranslations("appointment"),
     getTranslations("common"),
     getTranslations("pet"),
     getTranslations("enum.visitType"),
     getTranslations("enum.appointmentStatus"),
+    // The same one-tap outcome as the dashboard's "Bugün" strip, so the
+    // same toast and the same undo.
+    getTranslations("dashboard.today"),
     listAppointmentsPage({
       clinicId: session.user.clinicId,
       statuses: status ? [status] : null,
@@ -407,24 +410,28 @@ export default async function AppointmentsPage({
                     {/* Today only: "geldi" about next week is not a thing
                         anyone knows yet. */}
                     {canCreate && isToday && AWAITING_STATUSES.includes(a.status) && (
-                      <AppointmentOutcomeButtons
-                        arrived={setAppointmentOutcomeAction.bind(null, a.id, "ARRIVED")}
-                        noShow={
-                          hasStarted(a)
-                            ? setAppointmentOutcomeAction.bind(null, a.id, "NO_SHOW")
-                            : undefined
-                        }
-                        arrivedLabel={t("outcomeArrived")}
-                        noShowLabel={t("outcomeNoShow")}
-                        arrivedName={tCommon("actionFor", {
-                          action: t("outcomeArrived"),
-                          subject: a.pet.name,
-                        })}
-                        noShowName={tCommon("actionFor", {
-                          action: t("outcomeNoShow"),
-                          subject: a.pet.name,
-                        })}
-                      />
+                      <div className="flex flex-wrap gap-1.5" data-outcome-buttons="">
+                        <ArrivalButtons
+                          setAction={setArrivalAction.bind(null, a.id)}
+                          undoAction={undoArrivalAction.bind(null, a.id)}
+                          canMarkNoShow={hasStarted(a)}
+                          labels={{
+                            arrived: t("outcomeArrived"),
+                            noShow: t("outcomeNoShow"),
+                            arrivedFor: tCommon("actionFor", {
+                              action: t("outcomeArrived"),
+                              subject: a.pet.name,
+                            }),
+                            noShowFor: tCommon("actionFor", {
+                              action: t("outcomeNoShow"),
+                              subject: a.pet.name,
+                            }),
+                            markedArrived: tArrival("markedArrived", { pet: a.pet.name }),
+                            markedNoShow: tArrival("markedNoShow", { pet: a.pet.name }),
+                            undo: tArrival("undo"),
+                          }}
+                        />
+                      </div>
                     )}
                     {canStartVisit && !VISIT_CLOSED_STATUSES.includes(a.status) && (
                       <Link

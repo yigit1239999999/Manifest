@@ -53,6 +53,8 @@ describe("listRecalls", () => {
     expect(text).toContain('v."clinicId" = ?');
     expect(values).toContain("clinic-1");
     expect(text).toContain('v."dueDismissedAt" IS NULL');
+    // A later dose of the same vaccine has answered it (`./supersede.ts`).
+    expect(text).toContain('v."supersededById" IS NULL');
     expect(text).toContain('p."deceased" = false AND p."archivedAt" IS NULL AND c."archivedAt" IS NULL');
   });
 

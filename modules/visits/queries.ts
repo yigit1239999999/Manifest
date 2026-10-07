@@ -139,6 +139,9 @@ export async function getVisitForInvoice(clinicId: string, id: string) {
       client: { select: { firstName: true, lastName: true } },
       // What was done, so the invoice can list it line by line instead of
       // one "Aşı · 14 Eyl" for the whole visit (B9).
+      // A cancelled prescription was never dispensed, so it is not billed.
+      // A dose later superseded (`supersededById`) or taken off the recall
+      // list was still given at this visit, and is.
       vaccinations: { select: { id: true, name: true }, orderBy: { administeredAt: "asc" } },
       treatments: { select: { id: true, name: true }, orderBy: { performedAt: "asc" } },
       diagnostics: { select: { id: true, name: true, type: true }, orderBy: { createdAt: "asc" } },
