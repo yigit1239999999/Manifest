@@ -298,7 +298,8 @@
       "vaccinations": "Aşılar",
       "prescriptions": "Reçeteler",
       "documents": "Belgeler"
-    }
+    },
+    "birthDateEstimated": "tahmini"
   },
   "visit": {
     "openExisting": "Viziti aç",
@@ -1048,7 +1049,22 @@
     "undoConfirmCancel": "Vazgeçin",
     "undoCounting": "Sayılıyor…",
     "undoAdminOnly": "Bir aktarımı yalnız klinik yöneticisi geri alabilir.",
-    "batchesHintNoUndo": "Bir aktarımı geri almak gerekirse klinik yöneticinize söyleyin."
+    "batchesHintNoUndo": "Bir aktarımı geri almak gerekirse klinik yöneticinize söyleyin.",
+    "noteNext": "sonraki",
+    "futureTitle": "İleri tarihli aşılar",
+    "futureQuestion": "Dosyada bugünden sonraki {count} aşı tarihi var. Bu tarihler planlanmış aşı olabilir; sonraki doz olarak alalım mı?",
+    "futureYes": "Evet, sonraki doz olarak alın",
+    "futureNo": "Hayır, notta kalsın",
+    "futureYesEffect": "{count} tarih, aynı aşının dosyadaki önceki dozuna sonraki doz olarak eklenecek ve yaklaşan aşılarda görünecek.",
+    "futureNoEffect": "Tarihler aşı adıyla birlikte hayvanın notunda kalacak, ör. \"Kuduz: 26.10.2026\".",
+    "futureUnanchored": "{count} tarihin dosyada önceki dozu yok; aşı adı ve tarihiyle hayvanın notuna yazılacak.",
+    "futureOnlyNotes": "Dosyada bugünden sonraki {count} aşı tarihi var. Önceki dozları dosyada olmadığı için aşı kaydı olarak değil, aşı adı ve tarihiyle hayvanın notuna yazılacak.",
+    "birthYearTitle": "Yalnız yılı yazılı doğum tarihleri",
+    "birthYearQuestion": "{count, plural, one {# hayvanın} other {# hayvanın}} doğum tarihi yalnız yıl olarak yazılmış (ör. 2021). 1 Ocak olarak, \"tahmini\" işaretiyle alalım mı?",
+    "birthYearYes": "Evet, tahmini olarak alın",
+    "birthYearNo": "Hayır, notta kalsın",
+    "birthYearYesEffect": "Yaş hesaplanır; hayvanın sayfasında doğum tarihinin yanında \"tahmini\" yazar.",
+    "birthYearNoEffect": "Doğum tarihi boş kalır; yıl hayvanın notuna yazılır."
   },
   "enum": {
     "species": {

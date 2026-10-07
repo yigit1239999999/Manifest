@@ -843,6 +843,52 @@ describe("re-importing an owner with two animals of one name (A4)", () => {
   });
 });
 
+describe("the file-level questions about dates (B13)", () => {
+  const MAP: ImportAnswers["mapping"] = {
+    0: "client.firstName",
+    1: "client.phone",
+    2: "pet.name",
+    3: "pet.birthDate",
+    4: "vaccine.column",
+    5: "vaccine.column",
+  };
+  // Past Karma, then a Karma dated after today: a planned second dose.
+  const FILE = [["Ayşe Yılmaz", "0532 411 22 33", "Pamuk", "2021", "01.03.2025", "01.03.2099"]];
+  const ans = (over: Partial<ImportAnswers> = {}) =>
+    answers({
+      mapping: { ...MAP },
+      dateOrders: { 4: "dayFirst", 5: "dayFirst" },
+      vaccineNames: { "4": "Karma", "5": "Karma" },
+      ...over,
+    });
+
+  it("says how many future dates there are and how many animals have a year alone", async () => {
+    const summary = await planImport(FILE, ans(), admin);
+    expect(summary.futureDates).toEqual({ anchored: 1, unanchored: 0 });
+    expect(summary.birthYearOnly).toBe(1);
+  });
+
+  it("writes the future date as the next dose and the year as an estimate when both are answered yes", async () => {
+    const tx = fakeTx();
+    await commitImport(FILE, ans({ futureAsNextDue: true, estimateBirthYear: true }), admin);
+    const pet = tx.pet.createMany.mock.calls[0][0].data[0];
+    expect(pet.birthDate.toISOString().slice(0, 10)).toBe("2021-01-01");
+    expect(pet.birthDateEstimated).toBe(true);
+    const [dose] = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(dose.nextDueAt.toISOString().slice(0, 10)).toBe("2099-03-01");
+    expect(dose.nextDueSource).toBe("MANUAL");
+  });
+
+  it("leaves both alone when unanswered", async () => {
+    const tx = fakeTx();
+    await commitImport(FILE, ans(), admin);
+    const pet = tx.pet.createMany.mock.calls[0][0].data[0];
+    expect(pet.birthDate).toBeNull();
+    expect(pet.birthDateEstimated).toBe(false);
+    expect(pet.notes).toContain("Karma: 01.03.2099");
+  });
+});
+
 describe("dueCounts uses the dashboard's window", () => {
   it("splits overdue at six months and counts the next thirty days", async () => {
     const { dueCounts } = await import("./service");

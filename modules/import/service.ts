@@ -94,6 +94,13 @@ export type ImportAnswers = {
    * while any of those is.
    */
   pets?: Record<string, string>;
+  /**
+   * "These future dates may be planned doses -- take them as the next
+   * dose?" (B13). Absent is no: the dates stay in the notes, named.
+   */
+  futureAsNextDue?: boolean;
+  /** "A year alone: take it as 1 January, marked estimated?" Absent is no. */
+  estimateBirthYear?: boolean;
 };
 
 /** "Which Boncuk is this row?" -- one per row the file cannot settle. */
@@ -214,6 +221,14 @@ export type PlanSummary = {
   } | null;
   /** Rows that may be one of several animals the owner already has. */
   petQuestions: PetQuestion[];
+  /**
+   * Vaccinations dated after today (B13), by whether the same row has an
+   * earlier dose of that vaccine they could be the next date of. Null when
+   * the file has none.
+   */
+  futureDates: { anchored: number; unanchored: number } | null;
+  /** New animals whose birth date cell is a year alone. */
+  birthYearOnly: number;
   /** Under the answers as they stand. */
   due: DueCounts;
   /** Rows to look at, at most `ROW_VIEW_LIMIT`. */
@@ -311,6 +326,9 @@ async function analyse(rows: string[][], answers: ImportAnswers, ctx: ActionCont
     vaccineNames,
     columnLabels,
     today,
+    nextWord: labels["note.next"],
+    futureAsNextDue: answers.futureAsNextDue === true,
+    estimateBirthYear: answers.estimateBirthYear === true,
   });
   const resolved = resolveGroups(plan, answers.duplicates);
 
@@ -547,6 +565,17 @@ async function analyse(rows: string[][], answers: ImportAnswers, ctx: ActionCont
   };
 }
 
+function futureDatesOf(plan: ImportPlan): PlanSummary["futureDates"] {
+  let anchored = 0;
+  let unanchored = 0;
+  for (const row of plan.rows) {
+    if (!row.pet || !row.future) continue;
+    anchored += row.future.anchored;
+    unanchored += row.future.unanchored;
+  }
+  return anchored + unanchored > 0 ? { anchored, unanchored } : null;
+}
+
 /**
  * What a row says about its animal, read through the vet's species and sex
  * tables -- never through the bulk species answer, which is a guess about
@@ -708,6 +737,8 @@ export async function planImport(
     existingVaccinationCount: a.existingVaccinationCount,
     nextDue: a.nextDue,
     petQuestions: a.petQuestions,
+    futureDates: futureDatesOf(plan),
+    birthYearOnly: plan.rows.filter((r) => r.pet && r.birthYearOnly && !a.existingPetOf.has(r.index)).length,
     due: a.due,
     rows: views.slice(0, ROW_VIEW_LIMIT),
     rowsNotShown: Math.max(0, views.length - ROW_VIEW_LIMIT),
@@ -917,6 +948,7 @@ export async function commitImport(
           // it is. `deceased` is left alone entirely -- see `PetDraft`.
           sex: row.pet.sexRaw ? (sexTable.get(row.pet.sexRaw) ?? "UNKNOWN") : "UNKNOWN",
           birthDate: row.pet.birthDate,
+          birthDateEstimated: row.pet.birthDateEstimated,
           microchipId: row.pet.microchipId,
           color: row.pet.color,
           weightKg: row.pet.weightKg,

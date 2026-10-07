@@ -99,6 +99,8 @@ export function ImportReview({
   const [sex, setSex] = React.useState<Record<string, Sex>>({});
   const [speciesFallback, setSpeciesFallback] = React.useState<SpeciesFallback | null>(null);
   const [nextDueFromList, setNextDueFromList] = React.useState<boolean | null>(null);
+  const [futureAsNextDue, setFutureAsNextDue] = React.useState<boolean | null>(null);
+  const [estimateBirthYear, setEstimateBirthYear] = React.useState<boolean | null>(null);
   const [patches, setPatches] = React.useState<Record<string, string>>({});
   const [excluded, setExcluded] = React.useState<Set<number>>(new Set());
   const [askedWithQuestions, setAskedWithQuestions] = React.useState(false);
@@ -144,9 +146,24 @@ export function ImportReview({
         ...(speciesFallback ? { speciesFallback } : {}),
         ...(nextDueFromList ? { nextDueFromList: true } : {}),
         ...(Object.keys(petAnswers).length > 0 ? { pets: petAnswers } : {}),
+        ...(futureAsNextDue ? { futureAsNextDue: true } : {}),
+        ...(estimateBirthYear ? { estimateBirthYear: true } : {}),
       },
     };
-  }, [input, used, patches, excluded, duplicates, species, sex, speciesFallback, nextDueFromList, petAnswers]);
+  }, [
+    input,
+    used,
+    patches,
+    excluded,
+    duplicates,
+    species,
+    sex,
+    speciesFallback,
+    nextDueFromList,
+    petAnswers,
+    futureAsNextDue,
+    estimateBirthYear,
+  ]);
 
   const plan = React.useCallback(async () => {
     setPhase((previous) => ({
@@ -170,7 +187,7 @@ export function ImportReview({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void plan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duplicates, patches, excluded, nextDueFromList, speciesFallback, petAnswers]);
+  }, [duplicates, patches, excluded, nextDueFromList, speciesFallback, petAnswers, futureAsNextDue, estimateBirthYear]);
 
   const saved = phase.kind === "saved";
   React.useEffect(() => {
@@ -289,6 +306,46 @@ export function ImportReview({
               {nothingNew && <Callout variant="info">{t("nothingNew")}</Callout>}
             </CardContent>
           </Card>
+
+          {summary.futureDates && summary.futureDates.anchored > 0 && (
+            <YesNoQuestion
+              name="import-future"
+              title={t("futureTitle")}
+              question={t("futureQuestion", {
+                count: summary.futureDates.anchored + summary.futureDates.unanchored,
+              })}
+              yes={t("futureYes")}
+              no={t("futureNo")}
+              value={futureAsNextDue}
+              onChange={setFutureAsNextDue}
+              effect={[
+                futureAsNextDue
+                  ? t("futureYesEffect", { count: summary.futureDates.anchored })
+                  : t("futureNoEffect"),
+                summary.futureDates.unanchored > 0
+                  ? t("futureUnanchored", { count: summary.futureDates.unanchored })
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            />
+          )}
+          {summary.futureDates && summary.futureDates.anchored === 0 && (
+            <Callout variant="info">{t("futureOnlyNotes", { count: summary.futureDates.unanchored })}</Callout>
+          )}
+
+          {summary.birthYearOnly > 0 && (
+            <YesNoQuestion
+              name="import-birth-year"
+              title={t("birthYearTitle")}
+              question={t("birthYearQuestion", { count: summary.birthYearOnly })}
+              yes={t("birthYearYes")}
+              no={t("birthYearNo")}
+              value={estimateBirthYear}
+              onChange={setEstimateBirthYear}
+              effect={estimateBirthYear ? t("birthYearYesEffect") : t("birthYearNoEffect")}
+            />
+          )}
 
           {summary.nextDue && (
             <section className="flex flex-col gap-3 rounded-surface border border-border bg-card p-4">
@@ -647,6 +704,55 @@ export function ImportReview({
         </>
       )}
     </div>
+  );
+}
+
+/** One file-level yes-or-no, in the shape of the next-dose question. */
+function YesNoQuestion({
+  name,
+  title,
+  question,
+  yes,
+  no,
+  value,
+  onChange,
+  effect,
+}: {
+  name: string;
+  title: string;
+  question: string;
+  yes: string;
+  no: string;
+  value: boolean | null;
+  onChange: (value: boolean) => void;
+  effect: string;
+}) {
+  return (
+    <section className="flex flex-col gap-3 rounded-surface border border-border bg-card p-4">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <p className="text-sm text-foreground">{question}</p>
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={title}>
+        {([true, false] as const).map((choice) => (
+          <label
+            key={String(choice)}
+            className={cn(
+              "flex cursor-pointer items-center gap-2 rounded-control border px-3 py-2 text-sm text-foreground",
+              value === choice ? "border-primary bg-accent/40" : "border-border",
+            )}
+          >
+            <input
+              type="radio"
+              name={name}
+              checked={value === choice}
+              onChange={() => onChange(choice)}
+              className="size-4"
+            />
+            {choice ? yes : no}
+          </label>
+        ))}
+      </div>
+      <p className="text-sm text-muted-foreground">{effect}</p>
+    </section>
   );
 }
 

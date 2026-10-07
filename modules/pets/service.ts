@@ -144,13 +144,17 @@ export async function updatePet(id: string, input: PetInput, ctx: ActionContext)
   requirePermission(ctx.userRole, "pets.write");
   const existing = await prisma.pet.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: { id: true, birthDate: true },
   });
   if (!existing) throw notFound("pet", id);
 
   await assertOwnerInClinic(input.ownerId, ctx.clinicId);
   const { species: rawSpecies, ...rest } = input;
   const { species, customSpeciesId } = await resolveSpecies(rawSpecies, ctx);
+  // An estimated birth date (an import's "2021" read as 1 January) stops
+  // being an estimate the moment somebody types a different one.
+  const birthDateChanged =
+    (input.birthDate?.getTime() ?? null) !== (existing.birthDate?.getTime() ?? null);
 
   return withAudited(
     {
@@ -164,7 +168,12 @@ export async function updatePet(id: string, input: PetInput, ctx: ActionContext)
     (tx) =>
       tx.pet.update({
         where: { id },
-        data: { ...rest, species, customSpeciesId },
+        data: {
+          ...rest,
+          species,
+          customSpeciesId,
+          ...(birthDateChanged ? { birthDateEstimated: false } : {}),
+        },
       }),
   );
 }

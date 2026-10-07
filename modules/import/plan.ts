@@ -88,6 +88,12 @@ export type PetDraft = {
   breed: string | null;
   sexRaw: string | null;
   birthDate: Date | null;
+  /**
+   * The file gave a year alone and the vet chose to take it as 1 January
+   * of that year. Written with the record so every screen can say
+   * "tahmini" rather than state a birthday nobody gave.
+   */
+  birthDateEstimated: boolean;
   microchipId: string | null;
   color: string | null;
   weightKg: number | null;
@@ -140,6 +146,21 @@ export type PlanOptions = {
   columnLabels?: Record<number, string>;
   /** "Today" for the future-date check. A parameter so tests can pin it. */
   today?: Date;
+  /**
+   * The word a kept vaccine note uses before the file's own next date:
+   * "Lyme: 26.10.2026 (sonraki: 26.10.2027)". In the reader's language.
+   */
+  nextWord?: string;
+  /**
+   * The vet's one answer to "these future dates may be planned doses --
+   * take them as the next dose?". Yes moves a future date onto the
+   * latest earlier dose of the same vaccine in the same row, as that
+   * dose's next date. A future date with no earlier dose to hang on
+   * stays in the notes either way: there is no record to attach it to.
+   */
+  futureAsNextDue?: boolean;
+  /** "A year alone: take it as 1 January, marked estimated?" Yes when true. */
+  estimateBirthYear?: boolean;
 };
 
 /**
@@ -182,6 +203,14 @@ export type PlanRow = {
   /** What this row's animal has had, read off the vaccine columns. */
   vaccinations: VaccinationDraft[];
   warnings: RowWarning[];
+  /**
+   * Vaccinations dated after today, counted by whether the row also has an
+   * earlier dose of the same vaccine for them to be the next date of. The
+   * file-level question is asked from these counts.
+   */
+  future?: { anchored: number; unanchored: number };
+  /** The birth date cell held a year alone. */
+  birthYearOnly?: boolean;
 };
 
 /** A client this clinic already has, as much of one as dedup needs. */
@@ -373,11 +402,23 @@ export function planRow(
   // words. A value that has nowhere to go goes HERE rather than nowhere.
   const kept: string[] = [];
 
+  let birthYearOnly = false;
+  let birthDateEstimated = false;
   const readDate = (field: ValueField, col: number | undefined, raw: string | null) => {
     if (raw === null || col === undefined) return null;
     const date = parseDate(raw, dateOrders[col]);
     if (date) return date;
-    warnings.push({ kind: looksLikeYear(raw) ? "yearOnly" : "dateUnreadable", field, col, raw });
+    const yearOnly = looksLikeYear(raw);
+    if (yearOnly && field === "pet.birthDate") {
+      birthYearOnly = true;
+      if (options.estimateBirthYear) {
+        // The vet's answer, and the record says it is an estimate. No note:
+        // the year is in the date, and the flag says the rest.
+        birthDateEstimated = true;
+        return makeDate(Number(raw.trim()), 1, 1);
+      }
+    }
+    warnings.push({ kind: yearOnly ? "yearOnly" : "dateUnreadable", field, col, raw });
     kept.push(`${label(col)}: ${raw}`);
     return null;
   };
@@ -389,8 +430,9 @@ export function planRow(
   const neuteredRaw = text(values, "pet.neutered");
 
   const birthDate = petName ? readDate("pet.birthDate", birthColumn, birthRaw) : null;
+  const future = { anchored: 0, unanchored: 0 };
   const vaccinations = petName
-    ? vaccinationsOf(cells, values, mapping, dateOrders, vaccineColumns, options, today, label, warnings, kept)
+    ? vaccinationsOf(cells, values, mapping, dateOrders, vaccineColumns, options, today, label, warnings, kept, future)
     : [];
 
   const notes = [text(values, "pet.notes"), ...kept].filter((n): n is string => !!n);
@@ -401,6 +443,7 @@ export function planRow(
         breed: text(values, "pet.breed"),
         sexRaw: text(values, "pet.sex"),
         birthDate,
+        birthDateEstimated,
         microchipId: text(values, "pet.microchipId"),
         color: text(values, "pet.color"),
         weightKg: weightRaw ? parseWeight(weightRaw) : null,
@@ -417,6 +460,8 @@ export function planRow(
     issue: pet ? undefined : "noPetName",
     vaccinations,
     warnings,
+    ...(future.anchored + future.unanchored > 0 ? { future } : {}),
+    ...(birthYearOnly ? { birthYearOnly } : {}),
   };
 }
 
@@ -441,12 +486,24 @@ function vaccinationsOf(
   label: (col: number) => string,
   warnings: RowWarning[],
   kept: string[],
+  futureCount: { anchored: number; unanchored: number },
 ): VaccinationDraft[] {
   const out: VaccinationDraft[] = [];
   const columnOf = (field: ValueField) => {
     const found = Object.entries(mapping).find(([, f]) => f === field)?.[0];
     return found === undefined ? undefined : Number(found);
   };
+  const nextWord = options.nextWord ?? "sonraki";
+  // A kept vaccine note names the vaccine and carries the file's next
+  // date, so "Lyme: 26.10.2026 (sonraki: 26.10.2027)" survives whole
+  // instead of "Aşı Tarihi: 26.10.2026" with the vaccine and the next dose
+  // gone (A3).
+  const note = (name: string, raw: string, nextRaw: string | null) =>
+    `${name}: ${showDate(raw)}${nextRaw ? ` (${nextWord}: ${showDate(nextRaw)})` : ""}`;
+
+  // Future-dated doses wait until every past dose of the row is known, so
+  // one can be matched to the latest earlier dose of its vaccine.
+  const future: Array<{ name: string; date: Date; raw: string; nextRaw: string | null; col: number; field: ValueField }> = [];
 
   const dated = (
     name: string,
@@ -454,16 +511,16 @@ function vaccinationsOf(
     raw: string,
     nextDueAt: Date | null,
     field: ValueField,
+    nextRaw: string | null,
   ) => {
     const date = parseDate(raw, dateOrders[col]);
     if (!date) {
       warnings.push({ kind: looksLikeYear(raw) ? "yearOnly" : "dateUnreadable", field, col, raw, vaccine: name });
-      kept.push(`${label(col)}: ${raw}`);
+      kept.push(note(name, raw, nextRaw));
       return;
     }
     if (date.getTime() > today.getTime()) {
-      warnings.push({ kind: "dateInFuture", field, col, raw, vaccine: name });
-      kept.push(`${label(col)}: ${raw}`);
+      future.push({ name, date, raw, nextRaw, col, field });
       return;
     }
     out.push({ name, administeredAt: date, nextDueAt, col });
@@ -473,7 +530,7 @@ function vaccinationsOf(
     const raw = (cells[col] ?? "").trim();
     if (raw === "" || isBlank(raw)) continue;
     const name = options.vaccineNames?.[col]?.trim() || label(col);
-    dated(name, col, raw, null, "vaccine.column");
+    dated(name, col, raw, null, "vaccine.column", null);
   }
 
   const name = text(values, "vaccine.name");
@@ -484,10 +541,10 @@ function vaccinationsOf(
   const next = nextRaw && nextCol !== undefined ? parseDate(nextRaw, dateOrders[nextCol]) : null;
   if (nextRaw && !next && nextCol !== undefined) {
     warnings.push({ kind: "dateUnreadable", field: "vaccine.nextDue", col: nextCol, raw: nextRaw, vaccine: name ?? undefined });
-    kept.push(`${label(nextCol)}: ${nextRaw}`);
+    kept.push(name ? `${name}: ${label(nextCol)}: ${nextRaw}` : `${label(nextCol)}: ${nextRaw}`);
   }
   if (name && dateRaw && dateCol !== undefined) {
-    dated(name, dateCol, dateRaw, next, "vaccine.date");
+    dated(name, dateCol, dateRaw, next, "vaccine.date", next ? nextRaw : null);
   } else if (name) {
     const nameCol = columnOf("vaccine.name") as number;
     warnings.push({ kind: "vaccineNoDate", field: "vaccine.name", col: nameCol, raw: name, vaccine: name });
@@ -496,7 +553,37 @@ function vaccinationsOf(
     warnings.push({ kind: "vaccineNoName", field: "vaccine.date", col: dateCol, raw: dateRaw });
     kept.push(`${label(dateCol)}: ${dateRaw}`);
   }
+
+  const taken = new Set<VaccinationDraft>();
+  for (const entry of future) {
+    const key = fold(entry.name.trim());
+    let anchor: VaccinationDraft | null = null;
+    for (const dose of out) {
+      if (fold(dose.name.trim()) !== key || dose.administeredAt >= entry.date) continue;
+      if (!anchor || dose.administeredAt > anchor.administeredAt) anchor = dose;
+    }
+    // Only a dose with no next date of its own takes this one: a date the
+    // file already gave is the file's word and is not overwritten.
+    const usable = anchor && !anchor.nextDueAt && !taken.has(anchor) ? anchor : null;
+    if (usable) {
+      taken.add(usable);
+      futureCount.anchored += 1;
+    } else {
+      futureCount.unanchored += 1;
+    }
+    if (usable && options.futureAsNextDue) {
+      usable.nextDueAt = entry.date;
+      continue;
+    }
+    warnings.push({ kind: "dateInFuture", field: entry.field, col: entry.col, raw: entry.raw, vaccine: entry.name });
+    kept.push(note(entry.name, entry.raw, entry.nextRaw));
+  }
   return out;
+}
+
+/** A real Excel date travels as ISO; a note shows it the way Excel showed it. */
+function showDate(raw: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw.split("-").reverse().join(".") : raw;
 }
 
 /**

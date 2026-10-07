@@ -298,7 +298,8 @@
       "vaccinations": "Vaccinations",
       "prescriptions": "Prescriptions",
       "documents": "Documents"
-    }
+    },
+    "birthDateEstimated": "estimated"
   },
   "visit": {
     "openExisting": "Open the visit",
@@ -1048,7 +1049,22 @@
     "undoConfirmCancel": "Cancel",
     "undoCounting": "Counting…",
     "undoAdminOnly": "Only a clinic admin can undo an import.",
-    "batchesHintNoUndo": "If an import needs undoing, ask your clinic admin."
+    "batchesHintNoUndo": "If an import needs undoing, ask your clinic admin.",
+    "noteNext": "next",
+    "futureTitle": "Vaccinations dated in the future",
+    "futureQuestion": "The file has {count, plural, one {# vaccination date} other {# vaccination dates}} after today. They may be planned doses; take them as the next dose?",
+    "futureYes": "Yes, take them as the next dose",
+    "futureNo": "No, keep them in the notes",
+    "futureYesEffect": "{count, plural, one {# date is} other {# dates are}} added as the next dose of the earlier dose of the same vaccine in the file, and will show under upcoming vaccinations.",
+    "futureNoEffect": "The dates stay in the animal's notes with the vaccine name, e.g. \"Rabies: 26.10.2026\".",
+    "futureUnanchored": "{count, plural, one {# date has} other {# dates have}} no earlier dose in the file; kept in the animal's notes with the vaccine name and date.",
+    "futureOnlyNotes": "The file has {count, plural, one {# vaccination date} other {# vaccination dates}} after today. With no earlier dose in the file, they are written to the animal's notes with the vaccine name and date rather than as vaccinations.",
+    "birthYearTitle": "Birth dates written as a year",
+    "birthYearQuestion": "{count, plural, one {# animal has} other {# animals have}} a birth date written as a year alone (e.g. 2021). Take it as 1 January, marked \"estimated\"?",
+    "birthYearYes": "Yes, take it as estimated",
+    "birthYearNo": "No, keep it in the notes",
+    "birthYearYesEffect": "The age is worked out; the animal's page says \"estimated\" next to the birth date.",
+    "birthYearNoEffect": "The birth date stays empty; the year goes into the animal's notes."
   },
   "enum": {
     "species": {

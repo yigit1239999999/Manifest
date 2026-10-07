@@ -152,7 +152,9 @@ export default async function PetPage({
           pet.customSpecies?.name ?? tSpecies(pet.species as never),
           pet.breed,
           tSex(pet.sex as never),
-          petAge(fmt, pet.birthDate),
+          pet.birthDateEstimated && pet.birthDate
+            ? `${petAge(fmt, pet.birthDate)} (${t("birthDateEstimated")})`
+            : petAge(fmt, pet.birthDate),
         ]
           .filter(Boolean)
           .join(" · ")}
@@ -303,7 +305,11 @@ export default async function PetPage({
                 { label: t("color"), value: pet.color },
                 {
                   label: t("birthDate"),
-                  value: formatDateOnly(fmt, pet.birthDate),
+                  // An import's "2021" taken as 1 January says so (B13).
+                  value:
+                    pet.birthDate && pet.birthDateEstimated
+                      ? `${formatDateOnly(fmt, pet.birthDate)} (${t("birthDateEstimated")})`
+                      : formatDateOnly(fmt, pet.birthDate),
                 },
                 {
                   label: t("weightKg"),
