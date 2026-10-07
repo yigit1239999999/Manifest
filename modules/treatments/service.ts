@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
+import { refuseDuplicate, sameMinute } from "@/lib/duplicate-guard";
 import { requireAllergyOverride } from "@/lib/allergy-check";
 import type { ActionContext } from "@/lib/action";
 import type { TreatmentInput } from "./schema";
@@ -19,6 +20,19 @@ export async function createTreatment(
   // A treatment is often a drug given in the clinic ("Amoksisilin
   // enjeksiyonu"), so it is held to the same check as a prescription.
   const override = requireAllergyOverride(pet.alerts, input.name, input.overrideReason);
+
+  refuseDuplicate(
+    await prisma.treatment.findFirst({
+      where: {
+        clinicId: ctx.clinicId,
+        petId: input.petId,
+        name: { equals: input.name, mode: "insensitive" },
+        performedAt: sameMinute(input.performedAt),
+      },
+      select: { id: true },
+    }),
+    input.name,
+  );
 
   const treatment = await prisma.treatment.create({
     data: {

@@ -177,3 +177,40 @@ describe("setVaccineSettings", () => {
     });
   });
 });
+
+describe("createVaccination: a second press of save", () => {
+  it("refuses the same vaccine for the same animal in the same minute", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "pet-1" } as never);
+    vi.mocked(prisma.vaccination.findFirst).mockResolvedValue({ id: "v-1" } as never);
+
+    const err = await createVaccination(
+      {
+        petId: "pet-1",
+        visitId: null,
+        administeredById: null,
+        name: "Lyme",
+        manufacturer: null,
+        lotNumber: null,
+        site: null,
+        administeredAt: new Date("2026-10-07T05:40:31.000Z"),
+        nextDueAt: null,
+        nextDueSource: null,
+        doseNumber: null,
+        seriesOf: null,
+        notes: null,
+      } as never,
+      { clinicId: "clinic-1", userId: "user-1", userName: "T", userRole: "VETERINARIAN" },
+    ).catch((e) => e);
+    expect(err.messageKey).toBe("error.conflict.duplicateRecord");
+    expect(err.messageVars).toEqual({ name: "Lyme" });
+    expect(vi.mocked(prisma.vaccination.findFirst).mock.calls[0][0]).toMatchObject({
+      where: {
+        administeredAt: {
+          gte: new Date("2026-10-07T05:40:00.000Z"),
+          lt: new Date("2026-10-07T05:41:00.000Z"),
+        },
+      },
+    });
+    expect(prisma.vaccination.create).not.toHaveBeenCalled();
+  });
+});

@@ -54,6 +54,13 @@ export const conflict = (messageKey: string): AppError =>
   new AppError("CONFLICT", messageKey);
 
 /**
+ * The same clinical record for the same animal in the same minute: a
+ * second press of save. See `lib/duplicate-guard.ts`.
+ */
+export const duplicateRecord = (name: string): AppError =>
+  new AppError("CONFLICT", "error.conflict.duplicateRecord", { name });
+
+/**
  * A drug matches the animal's recorded allergy and no reason was given.
  * The conflict travels in `details` so the form can name both sides and
  * offer "write it anyway" (see `lib/allergy-check.ts`).

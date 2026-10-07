@@ -1231,7 +1231,8 @@
       "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",
       "emailInUse": "Bu e-posta adresi zaten kullanılıyor.",
       "lastAdmin": "Bu kliniğin son yöneticisi devre dışı bırakılamaz. Önce başka bir yönetici ekleyiniz.",
-      "invoiceVoided": "Bu fatura iptal edilmiş; üzerine ödeme kaydedilemez."
+      "invoiceVoided": "Bu fatura iptal edilmiş; üzerine ödeme kaydedilemez.",
+      "duplicateRecord": "\"{name}\" bu hayvana bu dakikada zaten kaydedilmiş; ikinci kez kaydedilmedi. Kaydı aşağıdaki listede görebilirsiniz."
     },
     "auth": {
       "signupFailed": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",

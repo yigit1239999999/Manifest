@@ -679,7 +679,12 @@ export function ActionForm({
           {t("draftRestored")}
         </p>
       )}
-      {children}
+      {/* Remounted on reset(). `form.reset()` clears what the DOM owns and
+          nothing a widget keeps in its own state -- a combobox's chosen
+          name survived every save, so the next press saved the same
+          vaccination again (Badem, two "Lyme" at 08:40). One key here
+          clears every widget in every form, including the next one. */}
+      <React.Fragment key={resetToken}>{children}</React.Fragment>
     </form>
   );
 }

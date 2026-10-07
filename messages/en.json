@@ -1231,7 +1231,8 @@
       "invoiceDuplicate": "Invoice number is already in use.",
       "emailInUse": "This email is already in use.",
       "lastAdmin": "This clinic's last administrator cannot be deactivated. Add another administrator first.",
-      "invoiceVoided": "This invoice has been voided, so no payment can be recorded on it."
+      "invoiceVoided": "This invoice has been voided, so no payment can be recorded on it.",
+      "duplicateRecord": "\"{name}\" is already recorded for this animal at this minute, so it was not saved a second time. It is in the list below."
     },
     "auth": {
       "signupFailed": "Sign-up failed. Please try again.",

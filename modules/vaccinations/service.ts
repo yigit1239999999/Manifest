@@ -3,6 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
+import { refuseDuplicate, sameMinute } from "@/lib/duplicate-guard";
 import type { ActionContext } from "@/lib/action";
 import type { VaccinationInput } from "./schema";
 import { normalizeVaccineSettings, type VaccineSettings } from "./catalogue";
@@ -17,6 +18,19 @@ export async function createVaccination(
     select: { id: true },
   });
   if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
+
+  refuseDuplicate(
+    await prisma.vaccination.findFirst({
+      where: {
+        clinicId: ctx.clinicId,
+        petId: input.petId,
+        name: { equals: input.name, mode: "insensitive" },
+        administeredAt: sameMinute(input.administeredAt),
+      },
+      select: { id: true },
+    }),
+    input.name,
+  );
 
   const vaccination = await prisma.vaccination.create({
     data: {
