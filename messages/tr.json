@@ -410,7 +410,8 @@
       "completedNotice": "Bu randevu tamamlandığı için onay ve hatırlatma mesajları artık sunulmuyor.",
       "pastNotice": "Randevu saati geçtiği için onay ve hatırlatma mesajları artık sunulmuyor. Bu randevunun sonucu henüz kaydedilmedi.",
       "recordOutcome": "Sonucu kaydedin",
-      "petSilencedNotice": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için mesaj gönderilmiyor."
+      "petSilencedNotice": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için mesaj gönderilmiyor.",
+      "noShowNotice": "Hayvan bu randevuya gelmediği için onay ve hatırlatma mesajları artık sunulmuyor."
     },
     "today": "Bugün",
     "previousDay": "Önceki gün",
@@ -425,7 +426,9 @@
     "emptyDayHint": "Başka bir güne bakmak için okları kullanabilir veya yeni randevu oluşturabilirsiniz.",
     "emptyHint": "Randevu, kayıtlı bir hayvan için verilir; oluşturduğunuz randevular en yakın tarihli olan başta olmak üzere burada görünür.",
     "cancelConfirm": "Bu randevu iptal edilsin mi?",
-    "cancelUndoHint": "Randevu listede kalır, durumu iptal edildi olur. İsterseniz düzenleme ekranından yeniden planlayabilirsiniz."
+    "cancelUndoHint": "Randevu listede kalır, durumu iptal edildi olur. İsterseniz düzenleme ekranından yeniden planlayabilirsiniz.",
+    "outcomeArrived": "Geldi",
+    "outcomeNoShow": "Gelmedi"
   },
   "staff": {
     "title": "Ekip",
@@ -1287,7 +1290,9 @@
       "petDeceased": "Bu hayvan vefat etti olarak işaretli; randevu verilemez.",
       "afterDeath": "Bu hayvan bu tarihten önce vefat etti olarak işaretli. Tarihi kontrol ediniz.",
       "deceasedInFuture": "Vefat tarihi ileri bir tarih olamaz.",
-      "deceasedBeforeBirth": "Vefat tarihi doğum tarihinden önce olamaz."
+      "deceasedBeforeBirth": "Vefat tarihi doğum tarihinden önce olamaz.",
+      "noShowBeforeStart": "Randevu saati henüz gelmedi; \"Gelmedi\" ancak randevu başladıktan sonra işaretlenebilir.",
+      "appointmentOutcomeClosed": "Bu randevunun sonucu zaten kaydedilmiş."
     },
     "form": {
       "required": "{field} gerekli.",

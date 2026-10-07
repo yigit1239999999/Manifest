@@ -410,7 +410,8 @@
       "completedNotice": "This appointment is complete, so confirmation and reminder messages are no longer offered.",
       "pastNotice": "The appointment time has passed, so confirmation and reminder messages are no longer offered. This appointment's outcome has not been recorded yet.",
       "recordOutcome": "Record the outcome",
-      "petSilencedNotice": "This animal has died or been archived, so no message is sent about it."
+      "petSilencedNotice": "This animal has died or been archived, so no message is sent about it.",
+      "noShowNotice": "The animal did not come to this appointment, so confirmation and reminder messages are no longer offered."
     },
     "today": "Today",
     "previousDay": "Previous day",
@@ -425,7 +426,9 @@
     "emptyDayHint": "Use the arrows to look at another day, or book an appointment.",
     "emptyHint": "An appointment is booked for an animal on file; the ones you book appear here, the nearest first.",
     "cancelConfirm": "Cancel this appointment?",
-    "cancelUndoHint": "The appointment stays on the list with its status set to cancelled. You can schedule it again from the edit screen."
+    "cancelUndoHint": "The appointment stays on the list with its status set to cancelled. You can schedule it again from the edit screen.",
+    "outcomeArrived": "Arrived",
+    "outcomeNoShow": "No-show"
   },
   "staff": {
     "title": "Team",
@@ -1287,7 +1290,9 @@
       "petDeceased": "This animal is marked as deceased and cannot be booked.",
       "afterDeath": "This animal is marked as deceased before this date. Please check the date.",
       "deceasedInFuture": "The date of death cannot be in the future.",
-      "deceasedBeforeBirth": "The date of death cannot be before the birth date."
+      "deceasedBeforeBirth": "The date of death cannot be before the birth date.",
+      "noShowBeforeStart": "The appointment has not started yet; it can be marked as a no-show only once it has begun.",
+      "appointmentOutcomeClosed": "This appointment's outcome is already recorded."
     },
     "form": {
       "required": "{field} is required.",

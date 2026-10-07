@@ -293,7 +293,12 @@ export default async function AppointmentPage({
               <p className="text-sm text-muted-foreground">
                 {appointment.status === "COMPLETED"
                   ? t("notifications.completedNotice")
-                  : isAppointmentClosed(appointment.status)
+                  : // Not "iptal edildiği için": a no-show and a
+                    // cancellation are different facts, and the owner
+                    // of one did not tell anybody anything.
+                    appointment.status === "NO_SHOW"
+                    ? t("notifications.noShowNotice")
+                    : isAppointmentClosed(appointment.status)
                     ? t("notifications.cancelledNotice")
                     : // Still `SCHEDULED`, but the day has gone by. Saying
                       // "cancelled" here would be a second false statement on

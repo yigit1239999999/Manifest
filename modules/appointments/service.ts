@@ -98,11 +98,23 @@ function lostTheRace(error: unknown): boolean {
   return code === "P2002" || code === "P2034";
 }
 
+/**
+ * "Gelmedi" is a statement about an hour that has gone by. pm marked an
+ * appointment a week ahead as a no-show from today's screen, and nothing
+ * stopped it: the owner who would have come next Tuesday was already on
+ * record as having not come.
+ */
+function refuseEarlyNoShow(status: string, startsAt: Date, now: Date) {
+  if (status === "NO_SHOW" && startsAt.getTime() > now.getTime())
+    throw validationFailed({ status: ["error.validation.noShowBeforeStart"] });
+}
+
 export async function createAppointment(
   input: AppointmentInput,
   ctx: ActionContext,
 ) {
   requirePermission(ctx.userRole, "appointments.write");
+  refuseEarlyNoShow(input.status, input.startsAt, new Date());
   const pet = await resolvePet(input.petId, ctx.clinicId);
   // No appointment for an animal that has died: pm booked one for Fındık,
   // and the reminder for it would have been the message that ends a
@@ -217,6 +229,7 @@ export async function updateAppointment(
   if (existing.visit && input.status !== "COMPLETED") {
     throw validationFailed({ status: ["error.validation.appointmentHasVisit"] });
   }
+  refuseEarlyNoShow(input.status, input.startsAt, new Date());
 
   const pet = await resolvePet(input.petId, ctx.clinicId);
   // An appointment already booked for an animal that has since died can
@@ -250,6 +263,48 @@ export async function updateAppointment(
         },
       }),
   );
+}
+
+/**
+ * "Geldi" / "Gelmedi", one tap from today's list instead of Edit, the
+ * status select and Save (the vet, on the phone with reception).
+ *
+ * Only from an appointment still waiting for its answer. "Geldi" may be
+ * pressed early -- an owner arrives before the hour -- and corrects a
+ * "Gelmedi" for one who came late; "Gelmedi" waits for the start time and
+ * is never set over an arrival or a visit, which record that they came.
+ */
+export async function setAppointmentOutcome(
+  id: string,
+  outcome: "ARRIVED" | "NO_SHOW",
+  ctx: ActionContext,
+  now: Date = new Date(),
+) {
+  requirePermission(ctx.userRole, "appointments.write");
+  const existing = await prisma.appointment.findFirst({
+    where: { id, clinicId: ctx.clinicId },
+    select: { id: true, status: true, startsAt: true, petId: true, visit: { select: { id: true } } },
+  });
+  if (!existing) throw notFound("appointment", id);
+  if (existing.visit) throw conflict("error.validation.appointmentHasVisit");
+  const from =
+    outcome === "ARRIVED" ? ["SCHEDULED", "CONFIRMED", "NO_SHOW"] : ["SCHEDULED", "CONFIRMED"];
+  if (!from.includes(existing.status)) throw conflict("error.validation.appointmentOutcomeClosed");
+  refuseEarlyNoShow(outcome, existing.startsAt, now);
+  if (existing.status === outcome) return existing;
+
+  await withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "UPDATE",
+      entityType: "Appointment",
+      entityId: id,
+      changes: { status: outcome, from: existing.status },
+    },
+    (tx) => tx.appointment.update({ where: { id }, data: { status: outcome } }),
+  );
+  return existing;
 }
 
 export async function cancelAppointment(id: string, ctx: ActionContext) {
