@@ -7,7 +7,16 @@ import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getPetById } from "@/modules/pets/queries";
 import { petTimeline } from "@/modules/timeline/queries";
-import { archivePetAction, restorePetAction } from "@/modules/pets/actions";
+import {
+  archivePetAction,
+  markDeceasedAction,
+  restorePetAction,
+  unmarkDeceasedAction,
+} from "@/modules/pets/actions";
+import {
+  MarkDeceasedButton,
+  UnmarkDeceasedButton,
+} from "@/components/pet-deceased-buttons";
 import {
   listVaccinationsForPet,
   vaccineOffersForPet,
@@ -125,8 +134,12 @@ export default async function PetPage({
   // none of them: the service refuses each one, so offering the button
   // only turns a refusal into a click that looks like nothing happened.
   const canEdit = can(session.user.role, "pets.write");
-  const canStartVisit = can(session.user.role, "visits.write");
-  const canBook = can(session.user.role, "appointments.write");
+  // A deceased animal is not booked, seen or vaccinated again: the buttons
+  // go, and each service refuses the same thing (`isAfterDeath`), so a
+  // link typed by hand meets the same answer.
+  const alive = !pet.deceased;
+  const canStartVisit = alive && can(session.user.role, "visits.write");
+  const canBook = alive && can(session.user.role, "appointments.write");
   const canArchive = can(session.user.role, "pets.archive");
   // And the same again for the forms inside the cards, each with the
   // permission its own service checks — they differ per record type, which
@@ -189,6 +202,12 @@ export default async function PetPage({
             {tCommon("edit")}
           </Link>
         )}
+        {canEdit && alive && (
+          <MarkDeceasedButton
+            action={markDeceasedAction.bind(null, pet.id)}
+            petName={pet.name}
+          />
+        )}
         {canArchive && !pet.archivedAt && (
           <DeleteButton
             // Archived, not deleted: reversible, so it is neither red nor
@@ -244,9 +263,23 @@ export default async function PetPage({
       )}
 
       {pet.deceased && (
-        <p className="rounded-control border border-muted-foreground/30 bg-muted px-3 py-2 text-sm">
-          {t("deceased")}: {formatDate(fmt, pet.deceasedAt)}
-        </p>
+        // Calm, not red: nothing here is anybody's fault or anybody's
+        // task. `info` is the neutral notice; it says the day, the
+        // clinic's own line, what the product now does differently, and
+        // the way back for a mark made by mistake.
+        <Callout variant="info" title={t("deceasedOn", { date: formatDate(fmt, pet.deceasedAt) })}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              {pet.deceasedNote && (
+                <p className="whitespace-pre-wrap text-foreground">{pet.deceasedNote}</p>
+              )}
+              <p>{t("deceasedEffect")}</p>
+            </div>
+            {canEdit && (
+              <UnmarkDeceasedButton action={unmarkDeceasedAction.bind(null, pet.id)} />
+            )}
+          </div>
+        </Callout>
       )}
 
       {/* See `/invoices/[id]`: a grid item will not shrink below its own
@@ -436,7 +469,7 @@ export default async function PetPage({
                   })}
                 </ul>
               )}
-              {canAddVaccination && (
+              {canAddVaccination && alive && (
                 <details className="rounded-control border border-dashed border-border p-3 text-sm">
                   <summary className="cursor-pointer font-medium">
                     <Plus className="me-1 inline size-3.5" />

@@ -21,6 +21,7 @@ vi.mock("@/modules/notifications/service", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
+import { AppError } from "@/lib/errors";
 import { createAppointment } from "./service";
 
 const ctx = {
@@ -288,5 +289,20 @@ describe("createAppointment, asked twice for the same slot", () => {
     expect(prisma.appointment.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ vetId: "vet-1" }),
     });
+  });
+});
+
+// pm (A6): the deceased Fındık was booked from an unmarked picker row.
+describe("an animal that has died", () => {
+  it("cannot be booked", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      ownerId: "owner-1",
+      deceased: true,
+    } as never);
+    const err = await createAppointment(validInput, ctx).catch((e) => e);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.details.fieldErrors).toEqual({ petId: ["error.validation.petDeceased"] });
+    expect(prisma.appointment.create).not.toHaveBeenCalled();
   });
 });

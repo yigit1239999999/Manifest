@@ -249,6 +249,8 @@ export async function quickSearchPets(
    * absence one step further in.
    */
   ownerId?: string,
+  /** See `ListPetsArgs.excludeDeceased`. For a picker whose server refuses them. */
+  excludeDeceased = false,
 ) {
   if (term.length < 2) return { items: [], hasMore: false };
   // Reads one row past the cap and throws it away, the same way
@@ -259,7 +261,7 @@ export async function quickSearchPets(
   // is the same fact written in two places -- and the two disagree the
   // day the cap moves.
   const rows = await prisma.pet.findMany({
-    where: buildPetWhere({ clinicId, search: term, ownerId }),
+    where: buildPetWhere({ clinicId, search: term, ownerId, excludeDeceased }),
     orderBy: { name: "asc" },
     take: take + 1,
     select: {

@@ -281,6 +281,21 @@
       "notesHint": "Anything else the clinical team should know."
     },
     "deceased": "Deceased",
+    "deceasedOn": "Deceased · {date}",
+    "deceasedEffect": "No reminders, vaccination recalls or messages are sent for this animal, and no new appointments, visits or vaccinations are opened. Its records stay here.",
+    "deceasedMark": {
+      "button": "Mark as deceased",
+      "title": "Mark {name} as deceased?",
+      "description": "No message about this animal goes to its owner, it leaves the vaccination lists and it can no longer be booked. Its history is kept. If this is a mistake you can undo it.",
+      "confirm": "Mark as deceased",
+      "date": "Date of death",
+      "note": "Note",
+      "noteHint": "Optional. E.g. at home, old age; euthanasia with the owner's consent.",
+      "undo": "Marked by mistake",
+      "undoTitle": "Undo the deceased mark?",
+      "undoDescription": "The animal shows as active again, and reminders and messages can be sent again. The undo is written to the history.",
+      "undoConfirm": "Undo"
+    },
     "deceasedAt": "Date of passing",
     "markDeceased": "Mark as deceased",
     "archiveConfirm": "Archive this pet?",
@@ -1268,7 +1283,11 @@
       "timezoneUnknown": "Unknown timezone.",
       "noteTarget": "Pick a pet or a client to attach the note to.",
       "importDuplicatesUnanswered": "The import cannot finish while rows that may be the same person are unanswered.",
-      "importAlreadyUndone": "This import has already been undone."
+      "importAlreadyUndone": "This import has already been undone.",
+      "petDeceased": "This animal is marked as deceased and cannot be booked.",
+      "afterDeath": "This animal is marked as deceased before this date. Please check the date.",
+      "deceasedInFuture": "The date of death cannot be in the future.",
+      "deceasedBeforeBirth": "The date of death cannot be before the birth date."
     },
     "form": {
       "required": "{field} is required.",

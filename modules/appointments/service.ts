@@ -27,7 +27,7 @@ async function resolveVet(
 async function resolvePet(petId: string, clinicId: string) {
   const pet = await prisma.pet.findFirst({
     where: { id: petId, clinicId, archivedAt: null },
-    select: { id: true, ownerId: true },
+    select: { id: true, ownerId: true, deceased: true },
   });
   if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
   return pet;
@@ -104,6 +104,10 @@ export async function createAppointment(
 ) {
   requirePermission(ctx.userRole, "appointments.write");
   const pet = await resolvePet(input.petId, ctx.clinicId);
+  // No appointment for an animal that has died: pm booked one for Fındık,
+  // and the reminder for it would have been the message that ends a
+  // clinic's trust. Refused here, not only hidden in the picker.
+  if (pet.deceased) throw validationFailed({ petId: ["error.validation.petDeceased"] });
   const vet = await resolveVet(input.vetId, ctx.clinicId);
   const clash = duplicateOf(input, pet.id, ctx.clinicId);
 
@@ -204,7 +208,7 @@ export async function updateAppointment(
   requirePermission(ctx.userRole, "appointments.write");
   const existing = await prisma.appointment.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true, visit: { select: { id: true } } },
+    select: { id: true, petId: true, visit: { select: { id: true } } },
   });
   if (!existing) throw notFound("appointment", id);
   // An appointment its visit has closed stays closed. Set back to
@@ -215,6 +219,10 @@ export async function updateAppointment(
   }
 
   const pet = await resolvePet(input.petId, ctx.clinicId);
+  // An appointment already booked for an animal that has since died can
+  // still be edited (cancelled, most likely); moving one onto it cannot.
+  if (pet.deceased && pet.id !== existing.petId)
+    throw validationFailed({ petId: ["error.validation.petDeceased"] });
   const vet = await resolveVet(input.vetId, ctx.clinicId);
 
   return withAudited(

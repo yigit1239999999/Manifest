@@ -281,6 +281,21 @@
       "notesHint": "Klinik ekibinin bilmesi gereken her şey."
     },
     "deceased": "Vefat etti",
+    "deceasedOn": "Vefat etti · {date}",
+    "deceasedEffect": "Bu hayvan için hatırlatma, aşı çağrısı veya mesaj gönderilmez; yeni randevu, vizit ve aşı açılmaz. Kayıtları burada kalır.",
+    "deceasedMark": {
+      "button": "Vefat etti olarak işaretle",
+      "title": "{name} vefat etti olarak işaretlensin mi?",
+      "description": "Sahibine bu hayvan için hiçbir mesaj gitmez, aşı listelerinden çıkar ve yeni randevu verilemez. Geçmiş kayıtları silinmez. Yanlışlıkla işaretlenirse geri alabilirsiniz.",
+      "confirm": "Vefat etti olarak işaretle",
+      "date": "Vefat tarihi",
+      "note": "Not",
+      "noteHint": "İsteğe bağlı. Örn. evde, yaşlılık; ötanazi, sahibin onayıyla.",
+      "undo": "Yanlışlıkla işaretlendi",
+      "undoTitle": "Vefat kaydı geri alınsın mı?",
+      "undoDescription": "Hayvan yeniden aktif görünür; hatırlatma ve mesajlar yeniden gönderilebilir. Geri alma işlem geçmişine yazılır.",
+      "undoConfirm": "Geri al"
+    },
     "deceasedAt": "Vefat tarihi",
     "markDeceased": "Vefat etti olarak işaretle",
     "archiveConfirm": "Bu hayvan arşivlensin mi?",
@@ -1268,7 +1283,11 @@
       "timezoneUnknown": "Geçersiz saat dilimi.",
       "noteTarget": "Bir hayvan veya müşteri belirtmelisiniz.",
       "importDuplicatesUnanswered": "Aynı kişi olabilecek kayıtlar için karar verilmeden içe aktarma tamamlanamaz.",
-      "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış."
+      "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış.",
+      "petDeceased": "Bu hayvan vefat etti olarak işaretli; randevu verilemez.",
+      "afterDeath": "Bu hayvan bu tarihten önce vefat etti olarak işaretli. Tarihi kontrol ediniz.",
+      "deceasedInFuture": "Vefat tarihi ileri bir tarih olamaz.",
+      "deceasedBeforeBirth": "Vefat tarihi doğum tarihinden önce olamaz."
     },
     "form": {
       "required": "{field} gerekli.",

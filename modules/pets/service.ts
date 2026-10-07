@@ -5,7 +5,7 @@ import { requirePermission } from "@/lib/permissions";
 import type { ActionContext } from "@/lib/action";
 import type { Species } from "@/generated/prisma/enums";
 import { fold } from "@/lib/search";
-import { SPECIES, type PetInput } from "./schema";
+import { SPECIES, type DeceasedInput, type PetInput } from "./schema";
 import { builtInSpeciesNamed } from "./species-names";
 
 async function assertOwnerInClinic(ownerId: string, clinicId: string) {
@@ -224,17 +224,33 @@ export async function restorePet(id: string, ctx: ActionContext) {
   return existing;
 }
 
+/**
+ * "Vefat etti olarak işaretle".
+ *
+ * What follows from it lives where each thing is decided, not here: every
+ * message path already refuses a deceased animal (`isPetSilenced`), the
+ * dashboard's vaccination cards and the reminder picker leave it out, and
+ * appointments, visits and vaccinations after the day are refused by their
+ * own services (`isAfterDeath`). This only records the fact.
+ */
 export async function markPetDeceased(
   id: string,
-  deceasedAt: Date,
+  input: DeceasedInput,
   ctx: ActionContext,
+  now: Date = new Date(),
 ) {
   requirePermission(ctx.userRole, "pets.write");
   const existing = await prisma.pet.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: { id: true, birthDate: true },
   });
   if (!existing) throw notFound("pet", id);
+  // A day ahead of now is allowed, because the form sends the clinic's
+  // midnight and the server's "now" may be on the other side of it.
+  if (input.deceasedAt.getTime() > now.getTime() + 86_400_000)
+    throw validationFailed({ deceasedAt: ["error.validation.deceasedInFuture"] });
+  if (existing.birthDate && input.deceasedAt < existing.birthDate)
+    throw validationFailed({ deceasedAt: ["error.validation.deceasedBeforeBirth"] });
 
   await withAudited(
     {
@@ -243,9 +259,59 @@ export async function markPetDeceased(
       action: "UPDATE",
       entityType: "Pet",
       entityId: id,
-      changes: { deceased: true, deceasedAt: deceasedAt.toISOString() },
+      changes: {
+        deceased: true,
+        deceasedAt: input.deceasedAt.toISOString(),
+        deceasedNote: input.deceasedNote,
+      },
     },
     (tx) =>
-      tx.pet.update({ where: { id }, data: { deceased: true, deceasedAt } }),
+      tx.pet.update({
+        where: { id },
+        data: {
+          deceased: true,
+          deceasedAt: input.deceasedAt,
+          deceasedNote: input.deceasedNote,
+        },
+      }),
   );
+  return existing;
+}
+
+/**
+ * "Yanlışlıkla işaretlendi": takes the mark back. The audit entry keeps
+ * the date and the note it removes, so the correction is visible and the
+ * mistake is not erased.
+ */
+export async function unmarkPetDeceased(id: string, ctx: ActionContext) {
+  requirePermission(ctx.userRole, "pets.write");
+  const existing = await prisma.pet.findFirst({
+    where: { id, clinicId: ctx.clinicId, deceased: true },
+    select: { id: true, deceasedAt: true, deceasedNote: true },
+  });
+  if (!existing) throw notFound("pet", id);
+
+  await withAudited(
+    {
+      clinicId: ctx.clinicId,
+      actorId: ctx.userId,
+      action: "RESTORE",
+      entityType: "Pet",
+      entityId: id,
+      changes: { deceased: false },
+      metadata: {
+        reason: "markedByMistake",
+        was: {
+          deceasedAt: existing.deceasedAt?.toISOString() ?? null,
+          deceasedNote: existing.deceasedNote,
+        },
+      },
+    },
+    (tx) =>
+      tx.pet.update({
+        where: { id },
+        data: { deceased: false, deceasedAt: null, deceasedNote: null },
+      }),
+  );
+  return existing;
 }

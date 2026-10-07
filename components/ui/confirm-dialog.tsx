@@ -38,12 +38,22 @@ interface ConfirmDialogProps {
   /** Rendered as the trigger. Receives the handler that opens the dialog. */
   children: (open: () => void) => React.ReactNode;
   /**
+   * Controls asked inside the dialog, for a confirmation that needs an
+   * answer with it: marking an animal as deceased asks for the day. Their
+   * named values reach `action` as its `FormData`, and a required one that
+   * is empty or invalid stops the confirm with the browser's own message.
+   *
+   * Still not a `<form>`, for the reason the confirm button gives below:
+   * the dialog may sit inside one.
+   */
+  fields?: React.ReactNode;
+  /**
    * Called when the user confirms — called, not submitted.
    *
-   * The dialog holds no fields, so the `FormData` it passes is always
-   * empty; it is there because every call site binds a server action whose
-   * last parameter is one. A dialog that needs a value closes over it
-   * (`clinic-settings-form` does) rather than expecting to find it here.
+   * Without `fields` the `FormData` it passes is empty; it is there because
+   * every call site binds a server action whose last parameter is one. A
+   * dialog that needs a value it does not ask for closes over it
+   * (`clinic-settings-form` does).
    *
    * A returned error state is not handled: the call sites that can fail
    * either report it themselves before returning (`staff-status-button`)
@@ -73,6 +83,7 @@ export function ConfirmDialog({
   tone,
   children,
   action,
+  fields,
   reloadAfter = false,
 }: ConfirmDialogProps) {
   const ref = React.useRef<HTMLDialogElement>(null);
@@ -89,8 +100,20 @@ export function ConfirmDialog({
   // error state is not handled here — the three call sites that can fail
   // report through the page they return to.
   const confirm = React.useCallback(() => {
+    const data = new FormData();
+    const controls = Array.from(
+      ref.current?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+        "input, textarea, select",
+      ) ?? [],
+    );
+    const invalid = controls.find((c) => !c.checkValidity());
+    if (invalid) {
+      invalid.reportValidity();
+      return;
+    }
+    for (const c of controls) if (c.name) data.append(c.name, c.value);
     startTransition(async () => {
-      await action(new FormData());
+      await action(data);
       if (reloadAfter) {
         window.location.reload();
         return;
@@ -130,6 +153,7 @@ export function ConfirmDialog({
               </p>
             )}
           </div>
+          {fields && <div className="flex flex-col gap-3">{fields}</div>}
           <div className="flex flex-wrap justify-end gap-2">
             {/* Cancel comes first in the DOM and takes focus on open, so the
                 default action of a dialog nobody read is the harmless one. */}

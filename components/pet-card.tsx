@@ -4,6 +4,7 @@ import { surface } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { SpeciesIcon } from "@/components/species-icon";
+import { Badge } from "@/components/ui/badge";
 import { formatDecimal, formatShortDate, petAge } from "@/lib/format";
 import type { WeightReading } from "@/modules/pets/weight";
 
@@ -17,12 +18,14 @@ export async function PetCard({
     customSpecies?: { name: string } | null;
     breed: string | null;
     birthDate: Date | null;
+    deceased?: boolean;
     /** See `modules/pets/weight.ts`. Absent where the caller did not ask. */
     currentWeight?: WeightReading | null;
   };
 }) {
   const fmt = await getFormatContext();
   const t = await getTranslations("enum.species");
+  const tPet = await getTranslations("pet");
   const age = petAge(fmt, pet.birthDate);
   const weight = pet.currentWeight
     ? [
@@ -47,8 +50,11 @@ export async function PetCard({
         <SpeciesIcon species={pet.species} className="size-5" />
       </span>
       <div className="flex min-w-0 flex-col">
-        <span className="truncate text-sm font-medium text-foreground">
-          {pet.name}
+        <span className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium text-foreground">
+            {pet.name}
+          </span>
+          {pet.deceased && <Badge variant="outline">{tPet("deceased")}</Badge>}
         </span>
         <span className="truncate text-xs text-muted-foreground">
           {meta.join(" · ")}

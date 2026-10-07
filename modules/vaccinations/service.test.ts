@@ -220,3 +220,17 @@ describe("createVaccination: a second press of save", () => {
     expect(prisma.vaccination.create).not.toHaveBeenCalled();
   });
 });
+
+describe("createVaccination for an animal that has died", () => {
+  it("refuses a dose after the day of death", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      deceased: true,
+      deceasedAt: new Date("2026-05-01T21:00:00.000Z"),
+    } as never);
+    const err = await createVaccination(validInput, ctx).catch((e) => e);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.details.fieldErrors).toEqual({ administeredAt: ["error.validation.afterDeath"] });
+    expect(prisma.vaccination.create).not.toHaveBeenCalled();
+  });
+});

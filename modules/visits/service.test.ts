@@ -592,3 +592,32 @@ describe("a visit that brings its animal with it", () => {
     expect(prisma.visit.create).not.toHaveBeenCalled();
   });
 });
+
+describe("a visit for an animal that has died", () => {
+  const died = new Date("2026-05-21T21:00:00.000Z"); // 22 May, Istanbul midnight
+
+  it("is allowed on the day: it may have died during it", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      ownerId: "owner-1",
+      deceased: true,
+      deceasedAt: died,
+    } as never);
+    // Whatever happens after the pet check, it is not the death refusal.
+    const err = await onFile().catch((e) => e);
+    expect(err?.details?.fieldErrors?.visitedAt).toBeUndefined();
+  });
+
+  it("is refused after that day, on the date field", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      ownerId: "owner-1",
+      deceased: true,
+      deceasedAt: died,
+    } as never);
+    const err = await onFile({ visitedAt: new Date("2026-05-23T10:00:00.000Z") }).catch((e) => e);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.details.fieldErrors).toEqual({ visitedAt: ["error.validation.afterDeath"] });
+    expect(prisma.visit.create).not.toHaveBeenCalled();
+  });
+});

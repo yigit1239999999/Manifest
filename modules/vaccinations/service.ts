@@ -3,6 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
+import { isAfterDeath } from "@/lib/pet-status";
 import { refuseDuplicate, sameMinute } from "@/lib/duplicate-guard";
 import type { ActionContext } from "@/lib/action";
 import type { VaccinationInput } from "./schema";
@@ -16,9 +17,11 @@ export async function createVaccination(
   requirePermission(ctx.userRole, "vaccinations.write");
   const pet = await prisma.pet.findFirst({
     where: { id: input.petId, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: { id: true, deceased: true, deceasedAt: true },
   });
   if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
+  if (isAfterDeath(pet, input.administeredAt))
+    throw validationFailed({ administeredAt: ["error.validation.afterDeath"] });
 
   refuseDuplicate(
     await prisma.vaccination.findFirst({

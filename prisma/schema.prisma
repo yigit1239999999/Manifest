@@ -313,6 +313,8 @@ model Pet {
   alerts            String?
   deceased          Boolean        @default(false)
   deceasedAt        DateTime?
+  /// What the clinic wrote when marking the death ("evde, yaşlılık").
+  deceasedNote      String?
   archivedAt        DateTime?
   notes             String?
   /// Accent-folded name, breed and microchip id. See `Client.searchKey`
