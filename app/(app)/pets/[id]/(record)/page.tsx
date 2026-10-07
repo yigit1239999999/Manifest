@@ -7,12 +7,22 @@ import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getPetById } from "@/modules/pets/queries";
 import { petTimeline } from "@/modules/timeline/queries";
-import { archivePetAction, restorePetAction } from "@/modules/pets/actions";
+import {
+  archivePetAction,
+  markDeceasedAction,
+  restorePetAction,
+  unmarkDeceasedAction,
+} from "@/modules/pets/actions";
+import {
+  MarkDeceasedButton,
+  UnmarkDeceasedButton,
+} from "@/components/pet-deceased-buttons";
 import {
   listVaccinationsForPet,
   vaccineOffersForPet,
 } from "@/modules/vaccinations/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
+import { dueState } from "@/modules/vaccinations/due-state";
 import { listPrescriptionsForPet } from "@/modules/prescriptions/queries";
 import { listTreatmentsForPet } from "@/modules/treatments/queries";
 import { listDiagnosticsForPet } from "@/modules/diagnostics/queries";
@@ -48,7 +58,9 @@ import {
   formatDateOnly,
   formatDateTime,
   formatDecimal,
+  formatShortDate,
   petAge,
+  toDateInput,
 } from "@/lib/format";
 import { ownerLabel, ownerPhone } from "@/lib/pet-label";
 
@@ -76,6 +88,7 @@ export default async function PetPage({
     tDiag,
     tDiagType,
     tClient,
+    tCheck,
     timeline,
     vaccinations,
     prescriptions,
@@ -96,6 +109,7 @@ export default async function PetPage({
     getTranslations("diagnostic"),
     getTranslations("enum.diagnosticType"),
     getTranslations("client"),
+    getTranslations("allergyCheck"),
     petTimeline(clinicId, id),
     listVaccinationsForPet(clinicId, id, 20),
     listPrescriptionsForPet(clinicId, id, 20),
@@ -109,7 +123,7 @@ export default async function PetPage({
   // Needs the species, so it cannot join the batch above. One indexed read
   // of this clinic's own vaccination history; the form shows nothing at all
   // when it comes back empty (backlog 20).
-  const { offers: vaccineOffers, priorDoses, doses } = await vaccineOffersForPet(
+  const { offers: vaccineOffers, priorDoses, doses, openSeries } = await vaccineOffersForPet(
     clinicId,
     pet.id,
     pet.species,
@@ -120,8 +134,12 @@ export default async function PetPage({
   // none of them: the service refuses each one, so offering the button
   // only turns a refusal into a click that looks like nothing happened.
   const canEdit = can(session.user.role, "pets.write");
-  const canStartVisit = can(session.user.role, "visits.write");
-  const canBook = can(session.user.role, "appointments.write");
+  // A deceased animal is not booked, seen or vaccinated again: the buttons
+  // go, and each service refuses the same thing (`isAfterDeath`), so a
+  // link typed by hand meets the same answer.
+  const alive = !pet.deceased;
+  const canStartVisit = alive && can(session.user.role, "visits.write");
+  const canBook = alive && can(session.user.role, "appointments.write");
   const canArchive = can(session.user.role, "pets.archive");
   // And the same again for the forms inside the cards, each with the
   // permission its own service checks — they differ per record type, which
@@ -152,7 +170,9 @@ export default async function PetPage({
           pet.customSpecies?.name ?? tSpecies(pet.species as never),
           pet.breed,
           tSex(pet.sex as never),
-          petAge(fmt, pet.birthDate),
+          pet.birthDateEstimated && pet.birthDate
+            ? `${petAge(fmt, pet.birthDate)} (${t("birthDateEstimated")})`
+            : petAge(fmt, pet.birthDate),
         ]
           .filter(Boolean)
           .join(" · ")}
@@ -183,6 +203,12 @@ export default async function PetPage({
             <Edit3 />
             {tCommon("edit")}
           </Link>
+        )}
+        {canEdit && alive && (
+          <MarkDeceasedButton
+            action={markDeceasedAction.bind(null, pet.id)}
+            petName={pet.name}
+          />
         )}
         {canArchive && !pet.archivedAt && (
           <DeleteButton
@@ -239,9 +265,23 @@ export default async function PetPage({
       )}
 
       {pet.deceased && (
-        <p className="rounded-control border border-muted-foreground/30 bg-muted px-3 py-2 text-sm">
-          {t("deceased")}: {formatDate(fmt, pet.deceasedAt)}
-        </p>
+        // Calm, not red: nothing here is anybody's fault or anybody's
+        // task. `info` is the neutral notice; it says the day, the
+        // clinic's own line, what the product now does differently, and
+        // the way back for a mark made by mistake.
+        <Callout variant="info" title={t("deceasedOn", { date: formatDate(fmt, pet.deceasedAt) })}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              {pet.deceasedNote && (
+                <p className="whitespace-pre-wrap text-foreground">{pet.deceasedNote}</p>
+              )}
+              <p>{t("deceasedEffect")}</p>
+            </div>
+            {canEdit && (
+              <UnmarkDeceasedButton action={unmarkDeceasedAction.bind(null, pet.id)} />
+            )}
+          </div>
+        </Callout>
       )}
 
       {/* See `/invoices/[id]`: a grid item will not shrink below its own
@@ -303,13 +343,27 @@ export default async function PetPage({
                 { label: t("color"), value: pet.color },
                 {
                   label: t("birthDate"),
-                  value: formatDateOnly(fmt, pet.birthDate),
+                  // An import's "2021" taken as 1 January says so (B13).
+                  value:
+                    pet.birthDate && pet.birthDateEstimated
+                      ? `${formatDateOnly(fmt, pet.birthDate)} (${t("birthDateEstimated")})`
+                      : formatDateOnly(fmt, pet.birthDate),
                 },
                 {
                   label: t("weightKg"),
                   // The unit belongs to the reading, so it is only written
-                  // when there is one; the list supplies the "-".
-                  value: pet.weightKg != null ? `${formatDecimal(fmt, pet.weightKg)} kg` : null,
+                  // when there is one; the list supplies the "-". The
+                  // newer of the pet form's weight and the last weighed
+                  // visit's, with the day it was taken: the vet weighs on
+                  // the visit and reads it here, typing it once.
+                  value: pet.currentWeight
+                    ? [
+                        `${formatDecimal(fmt, pet.currentWeight.kg)} kg`,
+                        pet.currentWeight.at && formatShortDate(fmt, pet.currentWeight.at),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")
+                    : null,
                 },
                 { label: t("microchipId"), value: pet.microchipId },
                 {
@@ -349,18 +403,37 @@ export default async function PetPage({
                 <EmptyState size="inline" title={tVacc("empty")} />
               ) : (
                 <ul className="flex flex-col gap-2">
-                  {vaccinations.map((v) => (
+                  {vaccinations.map((v) => {
+                    const due = dueState(v);
+                    return (
                     <li
                       key={v.id}
-                      className="flex items-center justify-between rounded-control border border-border px-3 py-2 text-sm"
+                      className={
+                        // An overdue row looks overdue: the dashboard's
+                        // card says it in red, and the animal's own page
+                        // used to list the same row like any other.
+                        due.kind === "overdue"
+                          ? "flex flex-wrap items-center justify-between gap-2 rounded-control border border-destructive/40 px-3 py-2 text-sm"
+                          : "flex flex-wrap items-center justify-between gap-2 rounded-control border border-border px-3 py-2 text-sm"
+                      }
                     >
-                      <div>
-                        <p className="font-medium">{v.name}</p>
+                      <div className="min-w-0">
+                        <p className="flex flex-wrap items-center gap-2 font-medium">
+                          {v.name}
+                          {due.kind === "overdue" && (
+                            <Badge variant="destructive">
+                              {tVacc("overdueBadge", { count: due.days })}
+                            </Badge>
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {v.administeredDateOnly
                             ? formatDateOnly(fmt, v.administeredAt)
                             : formatDateTime(fmt, v.administeredAt)}
                           {v.nextDueAt && ` · → ${formatDate(fmt, v.nextDueAt)}`}
+                          {/* Not overdue, and saying why: a later dose of
+                              the same vaccine answered this date. */}
+                          {due.kind === "superseded" && ` · ${tVacc("supersededNote")}`}
                         </p>
                       </div>
                       {/* Closing an overdue vaccination on the dashboard
@@ -398,10 +471,11 @@ export default async function PetPage({
                         </span>
                       )}
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
-              {canAddVaccination && (
+              {canAddVaccination && alive && (
                 <details className="rounded-control border border-dashed border-border p-3 text-sm">
                   <summary className="cursor-pointer font-medium">
                     <Plus className="me-1 inline size-3.5" />
@@ -412,6 +486,8 @@ export default async function PetPage({
                       petId={pet.id}
                       offers={vaccineOffers}
                       priorDoses={priorDoses}
+                      openSeries={openSeries}
+                      birthDate={pet.birthDate ? toDateInput(pet.birthDate) : null}
                     />
                   </div>
                 </details>
@@ -440,6 +516,13 @@ export default async function PetPage({
                           {p.dosage} · {p.frequency}
                           {p.durationDays ? ` · ${tRx("durationShort", { count: p.durationDays })}` : ""}
                         </p>
+                        {/* Kept on the record it excuses: whoever reads
+                            this later sees that the allergy was known. */}
+                        {p.overrideReason && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {tCheck("overridden", { reason: p.overrideReason })}
+                          </p>
+                        )}
                       </div>
                       <StatusBadge
                         kind="prescription"
@@ -486,6 +569,11 @@ export default async function PetPage({
                           {tr.performedBy?.name && ` · ${tr.performedBy.name}`}
                           {tr.durationMinutes != null && ` · ${tr.durationMinutes} dk`}
                         </p>
+                        {tr.overrideReason && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {tCheck("overridden", { reason: tr.overrideReason })}
+                          </p>
+                        )}
                         {tr.notes && (
                           <p className="mt-1 max-w-prose whitespace-pre-wrap text-xs text-muted-foreground">
                             {tr.notes}
@@ -508,6 +596,7 @@ export default async function PetPage({
                       petId={pet.id}
                       vets={vets}
                       defaultVetId={session.user.id}
+                      alerts={pet.alerts}
                     />
                   </div>
                 </details>

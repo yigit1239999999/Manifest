@@ -6,7 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
-import { telHref } from "@/lib/phone";
+import { formatPhone, telHref } from "@/lib/phone";
 import {
   listReminders,
   OPEN_REMINDER_STATUSES,
@@ -548,10 +548,10 @@ export default async function RemindersPage({
                         <span aria-hidden="true">·</span>
                         {dial ? (
                           <a href={dial} className="hover:underline">
-                            {b.client.phone}
+                            {formatPhone(b.client.phone)}
                           </a>
                         ) : (
-                          <span>{b.client.phone}</span>
+                          <span>{formatPhone(b.client.phone)}</span>
                         )}
                       </>
                     )}
@@ -727,10 +727,10 @@ export default async function RemindersPage({
                           // The written form is what is read, the dialable
                           // form is what is called.
                           <a href={dial} className="hover:underline">
-                            {r.client.phone}
+                            {formatPhone(r.client.phone)}
                           </a>
                         ) : (
-                          <span>{r.client.phone}</span>
+                          <span>{formatPhone(r.client.phone)}</span>
                         )}
                       </>
                     )}

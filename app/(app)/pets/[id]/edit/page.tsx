@@ -64,7 +64,10 @@ export default async function EditPetPage({
       <PageHeader title={t("edit")} description={pet.name} />
       <Card className="p-6">
         <PetForm
-          pet={pet}
+          // The weight the animal's page shows, not the form's own last
+          // entry: a visit weighed it since, and opening this form must not
+          // offer the older number back as if it were current.
+          pet={{ ...pet, weightKg: pet.currentWeight?.kg ?? pet.weightKg }}
           owners={owners.items.map((o) => ({
             id: o.id,
             firstName: o.firstName,

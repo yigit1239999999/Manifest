@@ -3,13 +3,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     invoiceLine: { findFirst: vi.fn() },
-    invoice: { findFirst: vi.fn(), findMany: vi.fn(), count: vi.fn() },
-    payment: { groupBy: vi.fn() },
+    invoice: { findFirst: vi.fn(), findMany: vi.fn(), count: vi.fn(), groupBy: vi.fn() },
+    payment: { groupBy: vi.fn(), aggregate: vi.fn() },
   },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { getInvoiceById, getInvoiceForVisit, listInvoicesPage } from "./queries";
+import {
+  buildInvoiceWhere,
+  clientBalance,
+  getInvoiceById,
+  getInvoiceForVisit,
+  invoiceTotals,
+  listInvoicesPage,
+} from "./queries";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -170,5 +177,65 @@ describe("what an invoice says about where its lines came from", () => {
     // pick one of them and be wrong about the rest.
     expect(lines.include).toHaveProperty("visit");
     expect(args?.include).not.toHaveProperty("visit");
+  });
+});
+
+describe("what one owner still owes (the client page's 'Toplam borç')", () => {
+  it("sums the open invoices less their unvoided payments, and counts only those still owing", async () => {
+    vi.mocked(prisma.invoice.findMany).mockResolvedValue([
+      { id: "a", totalCents: 50_000, currency: "TRY" },
+      { id: "b", totalCents: 20_000, currency: "TRY" },
+      { id: "c", totalCents: 10_000, currency: "TRY" },
+    ] as never);
+    vi.mocked(prisma.payment.groupBy).mockResolvedValue([
+      { invoiceId: "a", _sum: { amountCents: 35_000 } },
+      // Paid off by payments while still marked SENT: owes nothing.
+      { invoiceId: "c", _sum: { amountCents: 10_000 } },
+    ] as never);
+
+    const balance = await clientBalance("clinic-1", "client-1");
+
+    expect(balance).toEqual({ owed: [{ currency: "TRY", cents: 35_000 }], invoiceCount: 2 });
+    expect(vi.mocked(prisma.invoice.findMany).mock.calls[0][0]).toMatchObject({
+      where: { clinicId: "clinic-1", clientId: "client-1", status: { in: ["SENT", "PARTIAL"] } },
+    });
+    expect(vi.mocked(prisma.payment.groupBy).mock.calls[0][0]).toMatchObject({
+      where: { voidedAt: null },
+    });
+  });
+
+  it("asks nothing more when the owner has no open invoice", async () => {
+    expect(await clientBalance("clinic-1", "client-1")).toEqual({ owed: [], invoiceCount: 0 });
+    expect(prisma.payment.groupBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("the list's filter and its totals (B10)", () => {
+  it("filters by issue date and by the client's folded name", () => {
+    const from = new Date("2026-09-30T21:00:00Z");
+    const to = new Date("2026-10-31T21:00:00Z");
+    expect(buildInvoiceWhere({ clinicId: "clinic-1", q: "  AYŞE ", from, to })).toEqual({
+      clinicId: "clinic-1",
+      client: { archivedAt: null, searchKey: { contains: "ayse" } },
+      issuedAt: { gte: from, lt: to },
+    });
+  });
+
+  it("adds up billed, collected and remaining for the whole filter, not the page", async () => {
+    vi.mocked(prisma.invoice.groupBy)
+      .mockResolvedValueOnce([{ currency: "TRY", _sum: { totalCents: 300_000 } }] as never)
+      .mockResolvedValueOnce([{ currency: "TRY", _sum: { totalCents: 120_000 } }] as never);
+    vi.mocked(prisma.payment.aggregate)
+      .mockResolvedValueOnce({ _sum: { amountCents: 230_000 } } as never)
+      .mockResolvedValueOnce({ _sum: { amountCents: 50_000 } } as never);
+
+    const totals = await invoiceTotals({ clinicId: "clinic-1" });
+
+    expect(totals).toEqual([
+      { currency: "TRY", issuedCents: 300_000, collectedCents: 230_000, remainingCents: 70_000 },
+    ]);
+    // Drafts and voids are not billed; voided payments are not collected.
+    expect(JSON.stringify(vi.mocked(prisma.invoice.groupBy).mock.calls[0][0])).toContain('"notIn":["DRAFT","VOID"]');
+    expect(vi.mocked(prisma.payment.aggregate).mock.calls[0][0]).toMatchObject({ where: { voidedAt: null } });
   });
 });

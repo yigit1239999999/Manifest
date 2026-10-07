@@ -3,6 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { fold } from "@/lib/search";
 import { ownerLabel } from "@/lib/pet-label";
+import { phoneSearchDigits } from "@/lib/phone";
 
 export interface ListClientsArgs {
   clinicId: string;
@@ -34,8 +35,20 @@ function buildClientWhere(args: {
     // and last name are stored apart -- the first thing anyone types,
     // and it never worked. And the search is indexed for the first time
     // (trigram GIN); four `contains` over separate columns could not be.
-    ...(term ? { searchKey: { contains: fold(term) } } : {}),
+    ...(term ? termWhere(term) : {}),
   };
+}
+
+/**
+ * A name matches the folded key; a number matches its digits as well,
+ * however either side was written (pm B5: "0532 411" missed
+ * "05324112233"). Both, not one or the other: "2024" may be part of an
+ * e-mail address as easily as part of a number.
+ */
+export function termWhere(term: string): Prisma.ClientWhereInput {
+  const digits = phoneSearchDigits(term);
+  const byKey = { searchKey: { contains: fold(term) } };
+  return digits ? { OR: [byKey, { phoneDigits: { contains: digits } }] } : byKey;
 }
 
 /**

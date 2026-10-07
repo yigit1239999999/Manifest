@@ -16,7 +16,15 @@ import { createVaccinationAction } from "@/modules/vaccinations/actions";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import { addInterval } from "@/lib/vaccination-interval";
 import { formatPlainDate } from "@/lib/format";
-import { offerByName, type VaccineOffer } from "@/modules/vaccinations/catalogue";
+import { ageInWeeks, offerByName, type VaccineOffer } from "@/modules/vaccinations/catalogue";
+
+/**
+ * Below this age an animal with fewer doses than the series is taken to be
+ * starting it. Six months: every starting series in the catalogue ends by
+ * sixteen weeks, so an animal past this with no positioned dose on record
+ * is having a booster, not a first dose.
+ */
+const PRIMARY_SERIES_WEEKS = 26;
 
 export function VaccinationForm({
   petId,
@@ -33,11 +41,21 @@ export function VaccinationForm({
   offers = [],
   /** How many doses this animal already has of each offer, by key. */
   priorDoses = {},
+  /**
+   * A starting series this animal is part-way through, by offer key, as
+   * its own records state it (`seriesFrom`): the last dose was written
+   * with its position and was not the last of the series.
+   */
+  openSeries = {},
+  /** The animal's birth date ("YYYY-MM-DD"), or null when it is unknown. */
+  birthDate = null,
 }: {
   petId: string;
   visitId?: string;
   offers?: VaccineOffer[];
   priorDoses?: Record<string, number>;
+  openSeries?: Record<string, { dose: number; of: number }>;
+  birthDate?: string | null;
 }) {
   const t = useTranslations("vaccination");
   const tCommon = useTranslations("common");
@@ -49,7 +67,14 @@ export function VaccinationForm({
   // own state, as before.
   const [name, setName] = useState("");
   const [administered, setAdministered] = useState("");
-  const [nextDue, setNextDue] = useState("");
+  /**
+   * The next-due date as the vet set it, or null while the field is still
+   * following the list's proposal. Following, it fills in as soon as the
+   * vaccine is chosen (pm: the date used to appear only after pressing
+   * save), says where it came from, and moves with the administration
+   * date and the dose; typed into, it is the vet's and stays put.
+   */
+  const [typedDue, setTypedDue] = useState<string | null>(null);
   /**
    * Which dose the vet settled on, once they have touched the field. Null
    * means "still whatever the list proposed" -- the same distinction the
@@ -57,12 +82,6 @@ export function VaccinationForm({
    * looked at must not be indistinguishable from one they chose.
    */
   const [dose, setDose] = useState<string | null>(null);
-  /**
-   * Where the date in the field came from, as the record will remember it.
-   * Typing one by hand makes it MANUAL whatever the list said, because at
-   * that point the list is not what the vet used.
-   */
-  const [dueSource, setDueSource] = useState<"HISTORY" | "CLINIC" | "LIST" | "MANUAL" | "">("");
   // Saving with no next date is allowed, and asked about once. The vet's
   // words: "boş bıraktığımda kaydederken bir kez sorsun" -- left empty, the
   // vaccine silently drops out of the upcoming list and the animal is not
@@ -92,9 +111,8 @@ export function VaccinationForm({
   if (seenReset !== form.resetToken) {
     setSeenReset(form.resetToken);
     setName("");
-    setNextDue("");
+    setTypedDue(null);
     setDose(null);
-    setDueSource("");
     setAskedEmptyDue(false);
   }
 
@@ -103,9 +121,47 @@ export function VaccinationForm({
   // under the old long name is the same vaccine, and the whole point of the
   // list is that it does not cut a clinic off from its own history.
   const offer = offerByName(offers, name);
-  const interval = offer && offer.due.kind !== "ask" && offer.due.kind !== "none"
-    ? offer.due.interval
+
+  // Which dose of the starting series this is -- IF this animal is in one.
+  //
+  // The vet's screenshot of an adult dog's yearly booster said both "1 yıl,
+  // listeden geldi" and "3 dozluk serinin 1. dozu, dozlar arası 3-4 hafta":
+  // every Karma was treated as the first of a puppy series. A series is
+  // offered only when the record says the animal is part-way through one
+  // (its last dose was written with a position short of the end), or when
+  // it is young enough to be starting one and has fewer doses than the
+  // series. An animal with no birth date is never assumed to be a puppy.
+  const given = offer ? (priorDoses[offer.key] ?? 0) : 0;
+  const open = offer ? openSeries[offer.key] : undefined;
+  // On the day the dose is given, not today: a puppy's June dose written
+  // up in October is still a puppy's dose.
+  const ageWeeks =
+    birthDate && administered
+      ? ageInWeeks(new Date(`${birthDate}T00:00:00Z`), new Date(`${administered.slice(0, 10)}T00:00:00Z`))
+      : null;
+  const series =
+    offer?.series &&
+    (open ||
+      (ageWeeks !== null && ageWeeks < PRIMARY_SERIES_WEEKS && given < offer.series.doses))
+      ? offer.series
+      : undefined;
+  const proposedDose = series
+    ? Math.min(open ? open.dose + 1 : given + 1, series.doses)
     : null;
+  // What the sentence under the field counts: the number in the field, not
+  // the number we proposed for it. They are the same until the vet changes
+  // one, and after that the sentence has to follow, or the screen argues
+  // with itself about which dose this is.
+  const doseShown = Number(dose ?? "") || proposedDose;
+  // Mid-series, the next date is the next dose of the series, not the
+  // yearly booster: three to four weeks, not a year.
+  const midSeries = series !== undefined && doseShown !== null && doseShown < series.doses;
+
+  const interval = midSeries
+    ? { unit: "week" as const, value: series.between.min }
+    : offer && offer.due.kind !== "ask" && offer.due.kind !== "none"
+      ? offer.due.interval
+      : null;
   // Dated from the administration date on screen, not from today: a dose
   // recorded three weeks late is due a year after it was given.
   const suggestedDate =
@@ -113,13 +169,28 @@ export function VaccinationForm({
   const intervalLabel = interval
     ? t(`interval.${interval.unit}`, { count: interval.value })
     : "";
+  const proposalSource: "HISTORY" | "CLINIC" | "LIST" =
+    !midSeries && offer?.due.kind === "history"
+      ? "HISTORY"
+      : !midSeries && offer?.due.kind === "clinic"
+        ? "CLINIC"
+        : "LIST";
+
+  // The field: the vet's date when they typed one, otherwise the proposal.
+  const nextDue = typedDue ?? suggestedDate;
+  const following = typedDue === null && suggestedDate !== "";
+  // Where the date in the field came from, as the record will remember it.
+  // Typing one by hand makes it MANUAL whatever the list said, because at
+  // that point the list is not what the vet used.
+  const dueSource = !nextDue ? "" : typedDue === null ? proposalSource : "MANUAL";
 
   // Where the number comes from, as a sentence rather than a decoration.
   // The user chose this screen with that line in it ("365 gün, listeden
   // geldi"), and it is the difference between a clinic's own measurement
   // and our default -- which must never look the same (#37).
-  const sourceLine =
-    offer?.due.kind === "history"
+  const sourceLine = midSeries
+    ? t("sourceSeries", { interval: intervalLabel, number: (doseShown ?? 1) + 1 })
+    : offer?.due.kind === "history"
       ? t("suggestionSource", {
           count: offer.due.sampleSize,
           name: offer.name,
@@ -133,18 +204,6 @@ export function VaccinationForm({
             ? t("sourceAsk")
             : "";
 
-  // Which dose of the starting series this is, counted from what the animal
-  // already has on record. A PROPOSAL like every other number here: shown,
-  // editable, and never written without being seen.
-  const given = offer ? (priorDoses[offer.key] ?? 0) : 0;
-  const series = offer?.series;
-  const proposedDose = series ? Math.min(given + 1, series.doses) : null;
-  // What the sentence under the field counts: the number in the field, not
-  // the number we proposed for it. They are the same until the vet changes
-  // one, and after that the sentence has to follow, or the screen argues
-  // with itself about which dose this is.
-  const doseShown = Number(dose ?? "") || proposedDose;
-  const seriesFinished = series ? given >= series.doses : false;
 
   // The clinic's own list, with the book's name beside the vet's where
   // there is one: "Karma (FVRCP)" is what the approved screen shows, and
@@ -154,20 +213,15 @@ export function VaccinationForm({
   // than in an effect, the way `resetToken` above is handled: an effect
   // would paint the old number for a frame.
   //
-  // The DATE goes with it too, but only if the date came from a proposal:
-  // a proposed date is a claim about the vaccine that proposed it, and
-  // leaving it behind would put one vaccine's schedule on another under
-  // that vaccine's source. A date the vet typed themselves stays, because
-  // it was never ours to withdraw -- and it is already MANUAL, so nothing
-  // it says about where it came from becomes false.
+  // A proposed date follows the vaccine on its own (it is derived), so one
+  // vaccine's schedule never stays on another. A date the vet typed
+  // themselves stays, because it was never ours to withdraw -- and it is
+  // already MANUAL, so nothing it says about where it came from becomes
+  // false.
   const [seenOffer, setSeenOffer] = useState(offer?.key ?? "");
   if (seenOffer !== (offer?.key ?? "")) {
     setSeenOffer(offer?.key ?? "");
     setDose(null);
-    if (dueSource !== "" && dueSource !== "MANUAL") {
-      setNextDue("");
-      setDueSource("");
-    }
   }
 
   const options = offers.map((entry) => ({
@@ -229,14 +283,23 @@ export function VaccinationForm({
             granularity="day"
             value={nextDue}
             onValueChange={(value) => {
-              setNextDue(value);
-              // Whatever the list said, the vet typed this one.
-              if (value !== suggestedDate) setDueSource(value ? "MANUAL" : "");
+              // Whatever the list said, the vet typed this one -- unless it
+              // is the proposal itself, which keeps following.
+              setTypedDue(value === suggestedDate ? null : value);
             }}
           />
         </Field>
 
-        {suggestedDate && (
+        {/* Filled in, and saying so: an editable proposal with its source,
+            never a date that looks typed. */}
+        {following && (
+          <p className="text-xs text-foreground" data-due-proposal="">
+            <Sparkles className="me-1 inline size-3.5 text-muted-foreground" />
+            {t("proposalFilled")} {sourceLine}
+          </p>
+        )}
+
+        {suggestedDate && !following && (
           <div className="flex flex-col gap-1">
             {/* A suggestion, never a default: the field stays empty until
                 someone decides. One tap is cheap, but it is a decision, and
@@ -244,16 +307,7 @@ export function VaccinationForm({
                 made (TEAM.md #14). */}
             <button
               type="button"
-              onClick={() => {
-                setNextDue(suggestedDate);
-                setDueSource(
-                  offer?.due.kind === "history"
-                    ? "HISTORY"
-                    : offer?.due.kind === "clinic"
-                      ? "CLINIC"
-                      : "LIST",
-                );
-              }}
+              onClick={() => setTypedDue(null)}
               className="inline-flex w-fit items-center gap-1.5 rounded-pill border border-border bg-card px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
             >
               <Sparkles className="size-3.5 text-muted-foreground" />
@@ -295,16 +349,7 @@ export function VaccinationForm({
               <span className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setNextDue(suggestedDate);
-                    setDueSource(
-                      offer?.due.kind === "history"
-                        ? "HISTORY"
-                        : offer?.due.kind === "clinic"
-                          ? "CLINIC"
-                          : "LIST",
-                    );
-                  }}
+                  onClick={() => setTypedDue(null)}
                   className={buttonVariants({ variant: "secondary", size: "sm" })}
                 >
                   {t("suggestionChip", {
@@ -370,9 +415,7 @@ export function VaccinationForm({
           {/* Counted from the animal's own record, including doses written
               under a name this product no longer offers. */}
           <p className="text-xs text-foreground">
-            {seriesFinished
-              ? t("seriesDone", { of: series.doses })
-              : t("seriesPosition", { number: doseShown ?? 1, of: series.doses })}
+            {t("seriesPosition", { number: doseShown ?? 1, of: series.doses })}
           </p>
         </div>
       )}

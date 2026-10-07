@@ -21,7 +21,9 @@ vi.mock("@/modules/notifications/service", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { createAppointment } from "./service";
+import { AppError } from "@/lib/errors";
+import { createAppointment, refuseEarlyNoShow, updateAppointment } from "./service";
+import { setArrival } from "./arrival";
 
 const ctx = {
   clinicId: "clinic-1",
@@ -288,5 +290,102 @@ describe("createAppointment, asked twice for the same slot", () => {
     expect(prisma.appointment.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ vetId: "vet-1" }),
     });
+  });
+});
+
+// pm (A6): the deceased Fındık was booked from an unmarked picker row.
+describe("an animal that has died", () => {
+  it("cannot be booked", async () => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue({
+      id: "pet-1",
+      ownerId: "owner-1",
+      deceased: true,
+    } as never);
+    const err = await createAppointment(validInput, ctx).catch((e) => e);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.details.fieldErrors).toEqual({ petId: ["error.validation.petDeceased"] });
+    expect(prisma.appointment.create).not.toHaveBeenCalled();
+  });
+});
+
+// The vet: "haftaya olan randevu bugünden 'gelmedi' yapılabildi". One
+// rule (`refuseEarlyNoShow`) for every way an appointment becomes a
+// no-show: the form's create and edit, and the one-tap button on the
+// dashboard and the appointments list (`setArrival`).
+describe("no 'no-show' before the appointment has started", () => {
+  const now = new Date("2026-10-07T09:00:00.000Z");
+  const nextWeek = new Date("2026-10-14T08:30:00.000Z");
+  const row = (over: Record<string, unknown> = {}) =>
+    ({
+      id: "a-1",
+      status: "SCHEDULED",
+      startsAt: new Date("2026-10-07T08:30:00.000Z"),
+      petId: "pet-1",
+      clientId: "owner-1",
+      visit: null,
+      ...over,
+    }) as never;
+
+  it("answers the form under its status field, and a button with the sentence", () => {
+    const fromForm = (() => {
+      try {
+        refuseEarlyNoShow("NO_SHOW", nextWeek, now);
+      } catch (e) {
+        return e as AppError;
+      }
+    })();
+    expect(fromForm?.details?.fieldErrors).toEqual({
+      status: ["error.validation.noShowBeforeStart"],
+    });
+    expect(() => refuseEarlyNoShow("NO_SHOW", nextWeek, now, "button")).toThrow(
+      expect.objectContaining({ messageKey: "error.validation.noShowBeforeStart" }),
+    );
+    expect(() => refuseEarlyNoShow("NO_SHOW", new Date("2026-10-07T08:30:00.000Z"), now)).not.toThrow();
+    expect(() => refuseEarlyNoShow("ARRIVED", nextWeek, now, "button")).not.toThrow();
+  });
+
+  it("is refused on creation", async () => {
+    const future = new Date(Date.now() + 7 * 86_400_000);
+    await expect(
+      createAppointment({ ...validInput, startsAt: future, status: "NO_SHOW" }, ctx),
+    ).rejects.toBeInstanceOf(AppError);
+    expect(prisma.appointment.create).not.toHaveBeenCalled();
+  });
+
+  it("is refused through the edit form", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(row());
+    const future = new Date(Date.now() + 7 * 86_400_000);
+    const err = await updateAppointment(
+      "a-1",
+      { ...validInput, startsAt: future, status: "NO_SHOW" },
+      ctx,
+    ).catch((e) => e);
+    expect(err.details.fieldErrors).toEqual({ status: ["error.validation.noShowBeforeStart"] });
+    expect(prisma.appointment.update).not.toHaveBeenCalled();
+  });
+
+  it("is refused from the one-tap button", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(row({ startsAt: nextWeek }));
+    await expect(setArrival("a-1", "NO_SHOW", ctx, now)).rejects.toMatchObject({
+      messageKey: "error.validation.noShowBeforeStart",
+    });
+    expect(prisma.appointment.update).not.toHaveBeenCalled();
+  });
+
+  it("lets the button mark a started appointment, and an early arrival", async () => {
+    vi.mocked(prisma.appointment.update).mockResolvedValue({ id: "a-1" } as never);
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(row());
+    await setArrival("a-1", "NO_SHOW", ctx, now);
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(row({ startsAt: nextWeek }));
+    await setArrival("a-1", "ARRIVED", ctx, now);
+    expect(prisma.appointment.update).toHaveBeenCalledTimes(2);
+  });
+
+  it("never sets 'no-show' over an arrival or a visit", async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(row({ status: "ARRIVED" }));
+    await expect(setArrival("a-1", "NO_SHOW", ctx, now)).rejects.toBeInstanceOf(AppError);
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(row({ visit: { id: "v-1" } }));
+    await expect(setArrival("a-1", "NO_SHOW", ctx, now)).rejects.toBeInstanceOf(AppError);
+    expect(prisma.appointment.update).not.toHaveBeenCalled();
   });
 });

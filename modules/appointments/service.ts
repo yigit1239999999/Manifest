@@ -27,7 +27,7 @@ async function resolveVet(
 async function resolvePet(petId: string, clinicId: string) {
   const pet = await prisma.pet.findFirst({
     where: { id: petId, clinicId, archivedAt: null },
-    select: { id: true, ownerId: true },
+    select: { id: true, ownerId: true, deceased: true },
   });
   if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
   return pet;
@@ -98,12 +98,39 @@ function lostTheRace(error: unknown): boolean {
   return code === "P2002" || code === "P2034";
 }
 
+/**
+ * "Gelmedi" is a statement about an hour that has gone by. pm marked an
+ * appointment a week ahead as a no-show from today's screen, and nothing
+ * stopped it: the owner who would have come next Tuesday was already on
+ * record as having not come.
+ *
+ * The one rule for every way in: the form's create and edit below, and
+ * the one-tap "Gelmedi" (`./arrival.ts`) on the dashboard and the
+ * appointments list. The form gets it under its status field; a button
+ * has no field, so it gets the sentence itself for its toast.
+ */
+export function refuseEarlyNoShow(
+  status: string,
+  startsAt: Date,
+  now: Date,
+  from: "form" | "button" = "form",
+) {
+  if (status !== "NO_SHOW" || startsAt.getTime() <= now.getTime()) return;
+  if (from === "button") throw conflict("error.validation.noShowBeforeStart");
+  throw validationFailed({ status: ["error.validation.noShowBeforeStart"] });
+}
+
 export async function createAppointment(
   input: AppointmentInput,
   ctx: ActionContext,
 ) {
   requirePermission(ctx.userRole, "appointments.write");
+  refuseEarlyNoShow(input.status, input.startsAt, new Date());
   const pet = await resolvePet(input.petId, ctx.clinicId);
+  // No appointment for an animal that has died: pm booked one for Fındık,
+  // and the reminder for it would have been the message that ends a
+  // clinic's trust. Refused here, not only hidden in the picker.
+  if (pet.deceased) throw validationFailed({ petId: ["error.validation.petDeceased"] });
   const vet = await resolveVet(input.vetId, ctx.clinicId);
   const clash = duplicateOf(input, pet.id, ctx.clinicId);
 
@@ -204,7 +231,7 @@ export async function updateAppointment(
   requirePermission(ctx.userRole, "appointments.write");
   const existing = await prisma.appointment.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true, visit: { select: { id: true } } },
+    select: { id: true, petId: true, visit: { select: { id: true } } },
   });
   if (!existing) throw notFound("appointment", id);
   // An appointment its visit has closed stays closed. Set back to
@@ -213,8 +240,13 @@ export async function updateAppointment(
   if (existing.visit && input.status !== "COMPLETED") {
     throw validationFailed({ status: ["error.validation.appointmentHasVisit"] });
   }
+  refuseEarlyNoShow(input.status, input.startsAt, new Date());
 
   const pet = await resolvePet(input.petId, ctx.clinicId);
+  // An appointment already booked for an animal that has since died can
+  // still be edited (cancelled, most likely); moving one onto it cannot.
+  if (pet.deceased && pet.id !== existing.petId)
+    throw validationFailed({ petId: ["error.validation.petDeceased"] });
   const vet = await resolveVet(input.vetId, ctx.clinicId);
 
   return withAudited(

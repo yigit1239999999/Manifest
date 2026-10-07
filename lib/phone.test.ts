@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPossiblePhoneText, maskPhone, normalizePhone, telHref } from "./phone";
+import { formatPhone, phoneSearchDigits, turkishNational, isPossiblePhoneText, maskPhone, normalizePhone, telHref } from "./phone";
 
 describe("normalizePhone", () => {
   it("turns Turkish local formats into international digits", () => {
@@ -124,5 +124,53 @@ describe("maskPhone", () => {
     expect(maskPhone(null)).toBe("••••");
     expect(maskPhone("")).toBe("••••");
     expect(maskPhone("12")).toBe("••••");
+  });
+});
+
+describe("formatPhone", () => {
+  it.each([
+    ["0532 411 22 33", "0532 411 22 33"],
+    ["05324112233", "0532 411 22 33"],
+    ["5324112233", "0532 411 22 33"],
+    ["+90 (532) 411-22-33", "0532 411 22 33"],
+    ["0090 532 411 22 33", "0532 411 22 33"],
+    ["905324112233", "0532 411 22 33"],
+    ["0212 555 00 00", "0212 555 00 00"],
+  ])("prints %s as %s", (raw, out) => {
+    expect(formatPhone(raw)).toBe(out);
+  });
+
+  it("leaves a foreign or unreadable number as it was typed", () => {
+    expect(formatPhone("+971 50 123 4567")).toBe("+971 50 123 4567");
+    expect(formatPhone("+44 20 7946 0958")).toBe("+44 20 7946 0958");
+    expect(formatPhone(" sabit hat yok ")).toBe("sabit hat yok");
+    expect(formatPhone(null)).toBe("");
+  });
+});
+
+describe("turkishNational", () => {
+  it("is the ten national digits, or null", () => {
+    expect(turkishNational("0532 411 22 33")).toBe("5324112233");
+    expect(turkishNational("+4420794609")).toBeNull();
+    expect(turkishNational("0800 123 45 67")).toBeNull();
+  });
+});
+
+describe("phoneSearchDigits", () => {
+  it.each([
+    ["0532 411", "532411"],
+    ["+90 532 411 22", "53241122"],
+    ["0090 532 411 22 33", "5324112233"],
+    ["905324112233", "5324112233"],
+    ["4112233", "4112233"],
+    ["(0532) 411-22-33", "5324112233"],
+  ])("reads %s as %s", (term, digits) => {
+    expect(phoneSearchDigits(term)).toBe(digits);
+  });
+
+  it("is null for a name, or too few digits to mean anything", () => {
+    expect(phoneSearchDigits("Ayşe")).toBeNull();
+    expect(phoneSearchDigits("053")).toBeNull();
+    expect(phoneSearchDigits("Ayşe 0532")).toBeNull();
   });
 });

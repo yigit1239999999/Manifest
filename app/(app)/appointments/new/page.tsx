@@ -37,7 +37,9 @@ export default async function NewAppointmentPage({
   const [t, tCommon, pets, vets, defaultPetLabel, tSpecies, fmt] = await Promise.all([
     getTranslations("appointment"),
     getTranslations("common"),
-    listPets({ clinicId: session.user.clinicId }),
+    // `createAppointment` refuses a deceased animal, so the picker does
+    // not offer one (pm: Fındık, unmarked, booked).
+    listPets({ clinicId: session.user.clinicId, excludeDeceased: true }),
     listClinicians(session.user.clinicId),
     // Only when a link carried an animal: that animal may sit past
     // the picker's cap, and then the field renders empty (`getPetLabel`).

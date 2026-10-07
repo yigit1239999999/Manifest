@@ -13,11 +13,12 @@ import { formatDate } from "@/lib/format";
 export default async function PrescriptionsPage() {
   const fmt = await getFormatContext();
   const session = await requireSession();
-  const [t, tStatus, tPet, prescriptions] = await Promise.all([
+  const [t, tStatus, tPet, prescriptions, tInvoice] = await Promise.all([
     getTranslations("prescription"),
     getTranslations("enum.prescriptionStatus"),
     getTranslations("pet"),
     activePrescriptions(session.user.clinicId, 100),
+    getTranslations("invoice"),
   ]);
 
   return (
@@ -80,6 +81,20 @@ export default async function PrescriptionsPage() {
               header: t("startedAt"),
               cellClassName: "text-muted-foreground",
               cell: (p) => formatDate(fmt, p.startedAt),
+            },
+            {
+              key: "print",
+              header: tInvoice("print.button"),
+              stack: "meta",
+              cell: (p) => (
+                <Link
+                  href={`/print/prescriptions/${p.id}`}
+                  className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+                  aria-label={`${tInvoice("print.button")}: ${p.medicationName} · ${p.pet.name}`}
+                >
+                  {tInvoice("print.button")}
+                </Link>
+              ),
             },
             {
               key: "status",

@@ -27,9 +27,15 @@ import {
   type RowIssue,
   type RowWarning,
 } from "./plan";
+import { matchOwnerPets, type RowFacts } from "./pet-match";
 import { addInterval } from "@/lib/vaccination-interval";
 import { clinicVaccineList, normalizeVaccineSettings, offerByName, type VaccineOffer } from "@/modules/vaccinations/catalogue";
-import { OVERDUE_WINDOW_MONTHS, vaccinationIntervalSuggestions } from "@/modules/vaccinations/queries";
+import {
+  OVERDUE_WINDOW_MONTHS,
+  UPCOMING_WINDOW_DAYS,
+  vaccinationIntervalSuggestions,
+} from "@/modules/vaccinations/queries";
+import { recomputeSuperseded } from "@/modules/vaccinations/supersede";
 
 /**
  * Writing the file, and being able to take it back.
@@ -86,6 +92,47 @@ export type ImportAnswers = {
    * a next date is a medical claim, and nobody makes it by default.
    */
   nextDueFromList?: boolean;
+  /**
+   * Per body row, which of the owner's animals it is about, for the rows
+   * `pet-match.ts` would not decide: an animal's id, or "new" for "a
+   * different animal, add it". Absent is unanswered, and the write refuses
+   * while any of those is.
+   */
+  pets?: Record<string, string>;
+  /**
+   * "These future dates may be planned doses -- take them as the next
+   * dose?" (B13). Absent is no: the dates stay in the notes, named.
+   */
+  futureAsNextDue?: boolean;
+  /** "A year alone: take it as 1 January, marked estimated?" Absent is no. */
+  estimateBirthYear?: boolean;
+};
+
+/** "Which Boncuk is this row?" -- one per row the file cannot settle. */
+export type PetQuestion = {
+  /** 1-based body row, the key the answer comes back under. */
+  row: number;
+  owner: string;
+  /** What the file says, as the file says it. */
+  pet: {
+    name: string;
+    species: string | null;
+    sex: Sex | null;
+    birthDate: string | null;
+    microchipId: string | null;
+  };
+  candidates: Array<{
+    id: string;
+    name: string;
+    species: Species;
+    customSpecies: string | null;
+    breed: string | null;
+    sex: Sex;
+    birthDate: string | null;
+    microchipId: string | null;
+  }>;
+  /** The answer as the server understood it, or null while unanswered. */
+  answer: string | null;
 };
 
 /** A row of the plan the vet should look at, for the preview table. */
@@ -93,6 +140,8 @@ export type PlanRowView = {
   /** 1-based over body rows, like everywhere else in the plan. */
   index: number;
   status: "skip" | "decision" | "warning" | "existing";
+  /** For a "decision" row, which question it waits on. */
+  question?: "owner" | "pet";
   issue?: RowIssue;
   warnings: RowWarning[];
   owner: string | null;
@@ -175,6 +224,16 @@ export type PlanSummary = {
     intervals: Array<{ name: string; unit: "week" | "month" | "year"; value: number }>;
     ifApplied: DueCounts;
   } | null;
+  /** Rows that may be one of several animals the owner already has. */
+  petQuestions: PetQuestion[];
+  /**
+   * Vaccinations dated after today (B13), by whether the same row has an
+   * earlier dose of that vaccine they could be the next date of. Null when
+   * the file has none.
+   */
+  futureDates: { anchored: number; unanchored: number } | null;
+  /** New animals whose birth date cell is a year alone. */
+  birthYearOnly: number;
   /** Under the answers as they stand. */
   due: DueCounts;
   /** Rows to look at, at most `ROW_VIEW_LIMIT`. */
@@ -234,7 +293,16 @@ async function analyse(rows: string[][], answers: ImportAnswers, ctx: ActionCont
         secondaryPhone: true,
         pets: {
           where: { archivedAt: null },
-          select: { id: true, name: true, species: true },
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            customSpeciesId: true,
+            sex: true,
+            birthDate: true,
+            microchipId: true,
+            breed: true,
+          },
         },
       },
     }),
@@ -263,6 +331,9 @@ async function analyse(rows: string[][], answers: ImportAnswers, ctx: ActionCont
     vaccineNames,
     columnLabels,
     today,
+    nextWord: labels["note.next"],
+    futureAsNextDue: answers.futureAsNextDue === true,
+    estimateBirthYear: answers.estimateBirthYear === true,
   });
   const resolved = resolveGroups(plan, answers.duplicates);
 
@@ -313,22 +384,74 @@ async function analyse(rows: string[][], answers: ImportAnswers, ctx: ActionCont
       ? null
       : fallback;
 
-  // Which client each row's animal goes under, and whether that client
-  // already has an animal of that name. Merged groups only: a client the
-  // run creates has no animals yet by definition.
+  // Which client each row's animal goes under, and which of that client's
+  // animals -- if any -- the row is about. Merged groups only: a client the
+  // run creates has no animals yet by definition. See `pet-match.ts` for why
+  // a name alone never decides it.
   const mergedClient = new Map<string, string>();
   for (const { group, clientId } of resolved.merging) mergedClient.set(group.key, clientId);
   const clientById = new Map(existing.map((c) => [c.id, c]));
-  const existingPetOf = new Map<number, { id: string; species: string }>();
+  const rowsByClient = new Map<string, Array<{ index: number; facts: RowFacts }>>();
   for (const row of plan.rows) {
     if (!row.pet || !row.ownerKey) continue;
     const ownerKey = resolved.ownerOf.get(row.ownerKey) ?? row.ownerKey;
     const clientId = mergedClient.get(ownerKey);
     if (!clientId) continue;
-    const found = clientById
-      .get(clientId)
-      ?.pets?.find((p) => fold(p.name) === fold(row.pet!.name));
-    if (found) existingPetOf.set(row.index, { id: found.id, species: found.species });
+    const list = rowsByClient.get(clientId) ?? [];
+    list.push({ index: row.index, facts: rowFacts(row, speciesTable, sexTable) });
+    rowsByClient.set(clientId, list);
+  }
+  const existingPetOf = new Map<number, { id: string; species: string }>();
+  const petQuestions: PetQuestion[] = [];
+  for (const [clientId, clientRows] of rowsByClient) {
+    const client = clientById.get(clientId);
+    const pets = client?.pets ?? [];
+    const matches = matchOwnerPets(clientRows, pets);
+    for (const { index, facts } of clientRows) {
+      const match = matches.get(index);
+      if (!match || match.kind === "new") continue;
+      if (match.kind === "match") {
+        const pet = pets.find((p) => p.id === match.petId)!;
+        existingPetOf.set(index, { id: pet.id, species: pet.species });
+        continue;
+      }
+      // Asked. An answer counts only if it names one of the animals the
+      // question offered: an id from the browser is not a licence to write
+      // onto any animal of the clinic.
+      const answer = answers.pets?.[String(index)];
+      const chosen = answer && answer !== "new" && match.candidates.includes(answer) ? answer : null;
+      if (chosen) {
+        const pet = pets.find((p) => p.id === chosen)!;
+        existingPetOf.set(index, { id: pet.id, species: pet.species });
+      }
+      petQuestions.push({
+        row: index,
+        owner: client ? [client.firstName, client.lastName ?? ""].join(" ").trim() : "",
+        pet: {
+          name: facts.name,
+          species: plan.rows[index - 1]?.pet?.speciesRaw ?? null,
+          sex: facts.sex,
+          birthDate: facts.birthDate ? facts.birthDate.toISOString().slice(0, 10) : null,
+          microchipId: facts.microchipId,
+        },
+        candidates: match.candidates.map((id) => {
+          const pet = pets.find((p) => p.id === id)!;
+          return {
+            id: pet.id,
+            name: pet.name,
+            species: pet.species,
+            customSpecies: pet.customSpeciesId
+              ? (custom.find((c) => c.id === pet.customSpeciesId)?.name ?? null)
+              : null,
+            breed: pet.breed,
+            sex: pet.sex,
+            birthDate: pet.birthDate ? pet.birthDate.toISOString().slice(0, 10) : null,
+            microchipId: pet.microchipId,
+          };
+        }),
+        answer: chosen ?? (answer === "new" ? "new" : null),
+      });
+    }
   }
 
   // What those animals already have, so the same rabies date read a second
@@ -423,6 +546,7 @@ async function analyse(rows: string[][], answers: ImportAnswers, ctx: ActionCont
     sexTable,
     speciesFallback,
     existingPetOf,
+    petQuestions,
     items,
     existingVaccinationCount,
     nextDue:
@@ -446,16 +570,56 @@ async function analyse(rows: string[][], answers: ImportAnswers, ctx: ActionCont
   };
 }
 
+function futureDatesOf(plan: ImportPlan): PlanSummary["futureDates"] {
+  let anchored = 0;
+  let unanchored = 0;
+  for (const row of plan.rows) {
+    if (!row.pet || !row.future) continue;
+    anchored += row.future.anchored;
+    unanchored += row.future.unanchored;
+  }
+  return anchored + unanchored > 0 ? { anchored, unanchored } : null;
+}
+
+/**
+ * What a row says about its animal, read through the vet's species and sex
+ * tables -- never through the bulk species answer, which is a guess about
+ * the whole file rather than a fact about this row.
+ */
+function rowFacts(
+  row: PlanRow,
+  speciesTable: ReadonlyMap<string, SpeciesProposal>,
+  sexTable: ReadonlyMap<string, Sex>,
+): RowFacts {
+  const pet = row.pet!;
+  let species: RowFacts["species"] = null;
+  if (pet.speciesRaw) {
+    const target = applySpecies(pet.speciesRaw, pet.breed, speciesTable, null).target;
+    if (target.kind === "builtIn") species = { kind: "builtIn", key: target.key };
+    else if (target.kind === "custom") species = { kind: "custom", id: target.id };
+    else if (target.kind === "newCustom") species = { kind: "newCustom" };
+  }
+  const sex = pet.sexRaw ? (sexTable.get(pet.sexRaw) ?? null) : null;
+  return {
+    name: pet.name,
+    species,
+    sex,
+    birthDate: pet.birthDate,
+    microchipId: pet.microchipId,
+  };
+}
+
 /**
  * Where a set of next dates falls against today, by the dashboard's own
- * rule: the overdue card looks back `OVERDUE_WINDOW_MONTHS`, and a count
- * that disagreed with the card would be the result screen promising rows
- * the dashboard then does not show.
+ * rule: the overdue card looks back `OVERDUE_WINDOW_MONTHS` and the
+ * upcoming card and recall list look ahead `UPCOMING_WINDOW_DAYS`, and a
+ * count that disagreed with them would be the result screen promising
+ * rows the dashboard then does not show.
  */
 export function dueCounts(dates: readonly Date[], now: Date): DueCounts {
   const since = new Date(now);
   since.setMonth(since.getMonth() - OVERDUE_WINDOW_MONTHS);
-  const soon = new Date(now.getTime() + 30 * DAY_MS);
+  const soon = new Date(now.getTime() + UPCOMING_WINDOW_DAYS * DAY_MS);
   let overdue = 0;
   let overdueOlder = 0;
   let dueSoon = 0;
@@ -492,6 +656,7 @@ export async function planImport(
   const questionRows = new Set(
     plan.groups.filter((g) => open.has(g.key)).flatMap((g) => g.rowIndexes),
   );
+  const petQuestionRows = new Set(a.petQuestions.filter((q) => !q.answer).map((q) => q.row));
   const columnOf = (field: string) => {
     const found = Object.entries(answers.mapping).find(([, f]) => f === field)?.[0];
     return found === undefined ? undefined : Number(found);
@@ -506,11 +671,16 @@ export async function planImport(
       if (col !== undefined) fixes.push({ field, col, raw: cells[col] ?? "" });
     };
     let status: PlanRowView["status"] | null = null;
+    let question: PlanRowView["question"];
     if (row.issue === "noOwnerName") {
       status = "skip";
       fix("client.firstName");
     } else if (questionRows.has(row.index)) {
       status = "decision";
+      question = "owner";
+    } else if (petQuestionRows.has(row.index)) {
+      status = "decision";
+      question = "pet";
     } else if (a.existingPetOf.has(row.index)) {
       // Said once, as a count, above the list ("13 animals in this file
       // are already in your clinic"). Sixty rows each saying "already on
@@ -530,6 +700,7 @@ export async function planImport(
     views.push({
       index: row.index,
       status,
+      ...(question ? { question } : {}),
       ...(row.issue ? { issue: row.issue } : {}),
       warnings: row.warnings,
       owner: row.owner ? [row.owner.firstName, row.owner.lastName ?? ""].join(" ").trim() : (cells[columnOf("client.firstName") ?? -1] ?? null),
@@ -571,6 +742,9 @@ export async function planImport(
     vaccines: [...vaccines].map(([name, count]) => ({ name, count })).sort((x, y) => y.count - x.count),
     existingVaccinationCount: a.existingVaccinationCount,
     nextDue: a.nextDue,
+    petQuestions: a.petQuestions,
+    futureDates: futureDatesOf(plan),
+    birthYearOnly: plan.rows.filter((r) => r.pet && r.birthYearOnly && !a.existingPetOf.has(r.index)).length,
     due: a.due,
     rows: views.slice(0, ROW_VIEW_LIMIT),
     rowsNotShown: Math.max(0, views.length - ROW_VIEW_LIMIT),
@@ -680,6 +854,11 @@ export async function commitImport(
     // gave must not become a merge just because the request reached here.
     throw validationFailed({ duplicates: ["error.validation.importDuplicatesUnanswered"] });
   }
+  if (a.petQuestions.some((q) => !q.answer)) {
+    // Same control for "which of the owner's animals is this": a row the
+    // file cannot place is never written onto the first animal that fits.
+    throw validationFailed({ pets: ["error.validation.importPetsUnanswered"] });
+  }
 
   return prisma.$transaction(
     async (tx) => {
@@ -775,6 +954,7 @@ export async function commitImport(
           // it is. `deceased` is left alone entirely -- see `PetDraft`.
           sex: row.pet.sexRaw ? (sexTable.get(row.pet.sexRaw) ?? "UNKNOWN") : "UNKNOWN",
           birthDate: row.pet.birthDate,
+          birthDateEstimated: row.pet.birthDateEstimated,
           microchipId: row.pet.microchipId,
           color: row.pet.color,
           weightKg: row.pet.weightKg,
@@ -808,7 +988,16 @@ export async function commitImport(
           nextDueSource: item.nextDueAt ? item.nextDueSource : null,
         });
       }
-      if (vaccinations.length > 0) await tx.vaccination.createMany({ data: vaccinations });
+      if (vaccinations.length > 0) {
+        await tx.vaccination.createMany({ data: vaccinations });
+        // An imported dose can answer one already on file, or be answered
+        // by it: last year's Kuduz is not overdue once this year's is in.
+        await recomputeSuperseded(
+          ctx.clinicId,
+          vaccinations.map((v) => v.petId),
+          tx,
+        );
+      }
 
       const result: CommitResult = {
         batchId: batch.id,
@@ -830,6 +1019,9 @@ export async function commitImport(
           petCount: result.petCount,
           mergedCount: result.mergedCount,
           vaccinationCount: result.vaccinationCount,
+          // After every row above: anything of this batch changed later
+          // than this was changed by a person (see `undoImport`).
+          completedAt: new Date(),
         },
       });
 
@@ -909,77 +1101,187 @@ export type UndoResult = {
   /** Rows it left behind because the clinic has since worked on them. */
   keptClients: number;
   keptPets: number;
+  /** Imported vaccinations left behind because somebody changed them. */
+  keptVaccinations: number;
 };
+
+/** What undo would do, said before it does it. */
+export type UndoPreview = UndoResult & {
+  /**
+   * Names of records kept because they were EDITED after the import --
+   * the case a vet would not guess, unlike "it has a visit now". At most
+   * `EDITED_NAMES` of each; the counts above cover the rest.
+   */
+  editedPets: string[];
+  editedClients: string[];
+};
+
+const EDITED_NAMES = 8;
+/**
+ * The import transaction's own ceiling (`commitImport`'s timeout plus its
+ * wait), plus a margin. For a batch written before `completedAt` existed,
+ * no row the run itself wrote can carry an `updatedAt` later than this.
+ */
+const LEGACY_COMMIT_WINDOW_MS = 135_000;
+
+/**
+ * Which rows of a batch undo may delete. One builder for the preview and
+ * for the delete, so the dialog's numbers are the numbers that happen.
+ *
+ * "Unused" is two things: nothing has been recorded against the row since
+ * (a visit, an invoice, a note), and nobody has edited the row itself
+ * since the import finished. The second is the one a vet would not
+ * expect undo to know about, and the one whose loss they would not notice
+ * until they looked for the phone number they corrected.
+ *
+ * Written with `every` rather than `none` for the relations the undo
+ * itself empties: before the vaccinations are deleted "every one of this
+ * pet's vaccinations is an unedited one of this batch" is the same set as
+ * "none left" is after, so the preview can count the same rows.
+ */
+function undoFilters(clinicId: string, batchId: string, cutoff: Date) {
+  const vaccination = {
+    clinicId,
+    importBatchId: batchId,
+    updatedAt: { lte: cutoff },
+  } satisfies Prisma.VaccinationWhereInput;
+  const pet = {
+    clinicId,
+    importBatchId: batchId,
+    updatedAt: { lte: cutoff },
+    visits: { none: {} },
+    appointments: { none: {} },
+    vaccinations: { every: { importBatchId: batchId, updatedAt: { lte: cutoff } } },
+    prescriptions: { none: {} },
+    treatments: { none: {} },
+    diagnostics: { none: {} },
+    invoiceLines: { none: {} },
+    documents: { none: {} },
+    reminders: { none: {} },
+    notes_rel: { none: {} },
+  } satisfies Prisma.PetWhereInput;
+  const client = {
+    clinicId,
+    importBatchId: batchId,
+    updatedAt: { lte: cutoff },
+    // An animal that survives keeps its owner: a client with no record left
+    // is what the import created and nothing more.
+    pets: { every: pet },
+    visits: { none: {} },
+    appointments: { none: {} },
+    invoices: { none: {} },
+    documents: { none: {} },
+    reminders: { none: {} },
+    messages: { none: {} },
+    notes_rel: { none: {} },
+  } satisfies Prisma.ClientWhereInput;
+  return { vaccination, pet, client };
+}
+
+async function batchForUndo(batchId: string, ctx: ActionContext) {
+  // Admins only (`imports.undo`): one press deletes a clinic's whole first
+  // import. Running an import stays with everyone who can write clients
+  // and animals; taking one back does not.
+  requirePermission(ctx.userRole, "clients.write");
+  requirePermission(ctx.userRole, "pets.write");
+  requirePermission(ctx.userRole, "imports.undo");
+
+  const batch = await prisma.importBatch.findFirst({
+    where: { id: batchId, clinicId: ctx.clinicId },
+    select: { id: true, undoneAt: true, createdAt: true, completedAt: true, fileName: true },
+  });
+  if (!batch) throw notFound("importBatch", batchId);
+  if (batch.undoneAt) throw validationFailed({ batch: ["error.validation.importAlreadyUndone"] });
+  const cutoff = batch.completedAt ?? new Date(batch.createdAt.getTime() + LEGACY_COMMIT_WINDOW_MS);
+  return { batch, cutoff };
+}
+
+/**
+ * The numbers for the confirmation: what goes, what stays, and the names
+ * of what stays because somebody edited it. Read-only.
+ */
+export async function previewUndoImport(batchId: string, ctx: ActionContext): Promise<UndoPreview> {
+  const { cutoff } = await batchForUndo(batchId, ctx);
+  const where = undoFilters(ctx.clinicId, batchId, cutoff);
+  const mine = { clinicId: ctx.clinicId, importBatchId: batchId };
+  const edited = { ...mine, updatedAt: { gt: cutoff } };
+  const [
+    vaccinationsAll,
+    vaccinationsGoing,
+    petsAll,
+    petsGoing,
+    clientsAll,
+    clientsGoing,
+    editedPets,
+    editedClients,
+  ] = await Promise.all([
+    prisma.vaccination.count({ where: mine }),
+    prisma.vaccination.count({ where: where.vaccination }),
+    prisma.pet.count({ where: mine }),
+    prisma.pet.count({ where: where.pet }),
+    prisma.client.count({ where: mine }),
+    prisma.client.count({ where: where.client }),
+    prisma.pet.findMany({ where: edited, select: { name: true }, orderBy: { updatedAt: "desc" }, take: EDITED_NAMES }),
+    prisma.client.findMany({
+      where: edited,
+      select: { firstName: true, lastName: true },
+      orderBy: { updatedAt: "desc" },
+      take: EDITED_NAMES,
+    }),
+  ]);
+  return {
+    vaccinationCount: vaccinationsGoing,
+    petCount: petsGoing,
+    clientCount: clientsGoing,
+    keptVaccinations: vaccinationsAll - vaccinationsGoing,
+    keptPets: petsAll - petsGoing,
+    keptClients: clientsAll - clientsGoing,
+    editedPets: editedPets.map((p) => p.name),
+    editedClients: editedClients.map((c) => [c.firstName, c.lastName ?? ""].join(" ").trim()),
+  };
+}
 
 /**
  * Take the import back.
  *
- * Both deletes are one statement with relation filters, so an animal that
+ * Every delete is one statement with relation filters, so an animal that
  * has been seen, vaccinated, billed or written about survives its own
- * batch, and a client survives while anything at all still points at them.
- * There is no query per row and no list of ids in the statement: an import
- * of five thousand animals is undone by the same two statements as an
- * import of five.
+ * batch, a record somebody edited after the import survives too, and a
+ * client survives while anything at all still points at them. There is
+ * no query per row and no list of ids in the statement: an import of five
+ * thousand animals is undone by the same statements as an import of five.
  */
 export async function undoImport(batchId: string, ctx: ActionContext): Promise<UndoResult> {
-  requirePermission(ctx.userRole, "clients.write");
-  requirePermission(ctx.userRole, "pets.write");
-
-  const batch = await prisma.importBatch.findFirst({
-    where: { id: batchId, clinicId: ctx.clinicId },
-    select: { id: true, undoneAt: true },
-  });
-  if (!batch) throw notFound("importBatch", batchId);
-  if (batch.undoneAt) throw validationFailed({ batch: ["error.validation.importAlreadyUndone"] });
+  const { batch, cutoff } = await batchForUndo(batchId, ctx);
+  const where = undoFilters(ctx.clinicId, batchId, cutoff);
+  const mine = { clinicId: ctx.clinicId, importBatchId: batchId };
 
   return prisma.$transaction(
     async (tx) => {
       // The run's vaccinations first: they are what it wrote onto animals,
       // including animals the clinic already had, and the animals below
       // are only "unused" once these are gone.
-      const vaccinationsDeleted = await tx.vaccination.deleteMany({
-        where: { clinicId: ctx.clinicId, importBatchId: batchId },
+      const vaccinationsBefore = await tx.vaccination.count({ where: mine });
+      const touched = await tx.vaccination.findMany({
+        where: where.vaccination,
+        select: { petId: true },
+        distinct: ["petId"],
       });
+      const vaccinationsDeleted = await tx.vaccination.deleteMany({ where: where.vaccination });
+      // The doses the run answered are open again. The foreign key does
+      // most of it; this covers a dose the run slotted between two the
+      // clinic already had.
+      await recomputeSuperseded(
+        ctx.clinicId,
+        touched.map((v) => v.petId),
+        tx,
+      );
 
-      const petsBefore = await tx.pet.count({
-        where: { clinicId: ctx.clinicId, importBatchId: batchId },
-      });
-      const petsDeleted = await tx.pet.deleteMany({
-        where: {
-          clinicId: ctx.clinicId,
-          importBatchId: batchId,
-          visits: { none: {} },
-          appointments: { none: {} },
-          vaccinations: { none: {} },
-          prescriptions: { none: {} },
-          treatments: { none: {} },
-          diagnostics: { none: {} },
-          invoiceLines: { none: {} },
-          documents: { none: {} },
-          reminders: { none: {} },
-          notes_rel: { none: {} },
-        },
-      });
+      const petsBefore = await tx.pet.count({ where: mine });
+      const petsDeleted = await tx.pet.deleteMany({ where: where.pet });
 
-      const clientsBefore = await tx.client.count({
-        where: { clinicId: ctx.clinicId, importBatchId: batchId },
-      });
-      const clientsDeleted = await tx.client.deleteMany({
-        where: {
-          clinicId: ctx.clinicId,
-          importBatchId: batchId,
-          // An animal that survived above keeps its owner: a client with no
-          // record left is what the import created and nothing more.
-          pets: { none: {} },
-          visits: { none: {} },
-          appointments: { none: {} },
-          invoices: { none: {} },
-          documents: { none: {} },
-          reminders: { none: {} },
-          messages: { none: {} },
-          notes_rel: { none: {} },
-        },
-      });
+      const clientsBefore = await tx.client.count({ where: mine });
+      const clientsDeleted = await tx.client.deleteMany({ where: where.client });
 
       await tx.importBatch.update({
         where: { id: batchId },
@@ -992,6 +1294,7 @@ export async function undoImport(batchId: string, ctx: ActionContext): Promise<U
         petCount: petsDeleted.count,
         keptClients: clientsBefore - clientsDeleted.count,
         keptPets: petsBefore - petsDeleted.count,
+        keptVaccinations: vaccinationsBefore - vaccinationsDeleted.count,
       };
 
       await writeAudit(
@@ -1001,7 +1304,7 @@ export async function undoImport(batchId: string, ctx: ActionContext): Promise<U
           action: "DELETE",
           entityType: "ImportBatch",
           entityId: batchId,
-          metadata: { ...result },
+          metadata: { fileName: batch.fileName, undo: true, ...result },
         },
         tx,
       );

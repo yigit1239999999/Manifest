@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { isUniqueViolation, notFound, validationFailed } from "@/lib/errors";
 import { redact, withAudited } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
+import { isAfterDeath } from "@/lib/pet-status";
 import type { ActionContext } from "@/lib/action";
 import type { VisitInput, VisitIntakeInput } from "./schema";
 import { resolveSpecies } from "@/modules/pets/service";
@@ -13,10 +14,23 @@ import { NO_VISIT_STATUSES } from "@/modules/appointments/schema";
 async function resolvePetAndOwner(petId: string, clinicId: string) {
   const pet = await prisma.pet.findFirst({
     where: { id: petId, clinicId, archivedAt: null },
-    select: { id: true, ownerId: true },
+    select: { id: true, ownerId: true, deceased: true, deceasedAt: true },
   });
   if (!pet) throw validationFailed({ petId: ["error.validation.petNotInClinic"] });
   return pet;
+}
+
+/**
+ * A visit on the day an animal died is ordinary (it may have died during
+ * it); one after that day is a visit nobody had. Refused on the date
+ * field, which is the answer the vet can change.
+ */
+function refuseAfterDeath(
+  pet: { deceased: boolean; deceasedAt: Date | null },
+  visitedAt: Date | null | undefined,
+) {
+  if (isAfterDeath(pet, visitedAt ?? new Date()))
+    throw validationFailed({ visitedAt: ["error.validation.afterDeath"] });
 }
 
 /**
@@ -189,6 +203,7 @@ export async function createVisitWithIntake(
   // the visit's `clientId` still comes from the animal rather than from
   // anything the form said.
   const existing = petId ? await resolvePetAndOwner(petId, ctx.clinicId) : null;
+  if (existing) refuseAfterDeath(existing, rest.visitedAt);
 
   // Outside the transaction on purpose: it may create a clinic-defined
   // species of its own, with its own audit row, and it answers a

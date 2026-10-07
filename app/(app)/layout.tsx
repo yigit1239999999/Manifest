@@ -5,6 +5,7 @@ import { can, type Permission } from "@/lib/permissions";
 import { getClinicSettings } from "@/modules/clinics/queries";
 import { ClinicZoneProvider } from "@/components/clinic-zone";
 import { Sidebar } from "@/components/sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { Topbar } from "@/components/topbar";
 
 /**
@@ -42,6 +43,8 @@ export default async function AppLayout({
     getTranslations("nav"),
   ]);
 
+  const permissions = NAV_PERMISSIONS.filter((p) => can(session.user.role, p));
+
   return (
     <ClinicZoneProvider timeZone={clinic?.timezone}>
       {/* Up to twelve navigation links stand between the top of every page
@@ -54,11 +57,7 @@ export default async function AppLayout({
         {t("skipToContent")}
       </a>
       <div className="flex min-h-screen">
-        <Sidebar
-          permissions={NAV_PERMISSIONS.filter((p) =>
-            can(session.user.role, p),
-          )}
-        />
+        <Sidebar permissions={permissions} />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar
             clinicName={clinic?.name ?? "Your clinic"}
@@ -91,12 +90,17 @@ export default async function AppLayout({
             // a line length that is hard to read. If that starts to
             // bite, the answer is a cap on those blocks where the prose
             // is, not one on every screen.
-            className="w-full flex-1 px-4 py-6 md:px-8 md:py-8"
+            //
+            // The bottom padding below `md` is the phone's tab bar: its
+            // 56px, the home indicator's inset, and the page's own 24px,
+            // so the last row of a page is never under the bar.
+            className="w-full flex-1 px-4 pt-6 pb-[calc(5rem+env(safe-area-inset-bottom))] md:px-8 md:py-8"
           >
             {children}
           </main>
         </div>
       </div>
+      <BottomNav permissions={permissions} />
     </ClinicZoneProvider>
   );
 }

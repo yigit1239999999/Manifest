@@ -204,3 +204,24 @@ describe("vaccinationIntervalSuggestions", () => {
     );
   });
 });
+
+// pm (A1): re-vaccinated against Lyme, still listed as overdue for it.
+describe("a dose answered by a later one", () => {
+  beforeEach(() => {
+    vi.mocked(prisma.vaccination.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.vaccination.count).mockResolvedValue(0);
+  });
+
+  it("leaves the overdue card, its count and the upcoming card", async () => {
+    const now = new Date("2026-10-07T09:00:00.000Z");
+    await overdueVaccinations("clinic-1", 5, now);
+    await countOverdueVaccinations("clinic-1", now);
+    await upcomingVaccinations("clinic-1");
+    for (const call of vi.mocked(prisma.vaccination.findMany).mock.calls) {
+      expect(call[0]?.where).toMatchObject({ supersededById: null });
+    }
+    expect(vi.mocked(prisma.vaccination.count).mock.calls[0][0]?.where).toMatchObject({
+      supersededById: null,
+    });
+  });
+});

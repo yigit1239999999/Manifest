@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useTranslations } from "next-intl";
 import type { Client } from "@/generated/prisma/client";
 import { Field } from "@/components/ui/field";
@@ -12,9 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { CONTACT_METHODS, LANGUAGES } from "@/modules/clients/schema";
 import {
+  checkDuplicateClientsAction,
   createClientAction,
   updateClientAction,
 } from "@/modules/clients/actions";
+import type { DuplicateCandidate } from "@/modules/clients/duplicates";
+import { DuplicateClientNotice } from "@/components/duplicate-client-notice";
 import { ActionForm, useActionForm } from "@/components/forms/action-form";
 import {
   ConsentChoice,
@@ -83,6 +87,37 @@ export function ClientForm({
   const form = useActionForm(action, {});
   const { state } = form;
 
+  // Asked when the phone or e-mail field is left, so the warning is on
+  // screen before the save rather than after it (pm B6). The server's own
+  // answer, on a save that skipped the check, arrives in `state` and
+  // takes over.
+  // Whichever answer is newer: a check made after the last save answers
+  // for the field as it is now, the save's answer for the field as sent.
+  const [checked, setChecked] = React.useState<{
+    after: typeof state;
+    found: DuplicateCandidate[];
+  }>({ after: state, found: [] });
+  const fromServer = (state as { duplicates?: DuplicateCandidate[] }).duplicates;
+  const duplicates =
+    checked.after === state ? checked.found : (fromServer ?? checked.found);
+  const lastAsked = React.useRef("");
+  const checkDuplicates = (event: React.FocusEvent<HTMLFormElement>) => {
+    const name = (event.target as { name?: unknown }).name;
+    if (name !== "phone" && name !== "email") return;
+    const data = new FormData(event.currentTarget);
+    const phone = String(data.get("phone") ?? "");
+    const email = String(data.get("email") ?? "");
+    const key = `${phone}|${email}`;
+    if (key === lastAsked.current) return;
+    lastAsked.current = key;
+    void checkDuplicateClientsAction({ phone, email, excludeId: client?.id }).then(
+      (found) => {
+        if (lastAsked.current === key) setChecked({ after: state, found });
+      },
+      () => {},
+    );
+  };
+
   // Editing an existing client opens the fold when any of it is filled,
   // so nothing that exists is ever hidden from the person looking at it.
   const hasOptionalData = Boolean(
@@ -115,7 +150,7 @@ export function ClientForm({
         : null;
 
   return (
-    <ActionForm form={form} className="flex flex-col gap-8">
+    <ActionForm form={form} className="flex flex-col gap-8" onBlur={checkDuplicates}>
       {/* The errand, travelling with the form because a server action
           cannot see the URL it was submitted from. */}
       {next && <input type="hidden" name="next" value={next} />}
@@ -172,6 +207,7 @@ export function ClientForm({
           // never had every time somebody opens it to fix an address.
           defaultLater={Boolean(client) && !client?.phone}
         />
+        <DuplicateClientNotice duplicates={duplicates} />
       </FormSection>
 
     {/* Under the phone and above the fold, which is the order of the

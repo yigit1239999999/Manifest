@@ -118,5 +118,7 @@ export async function fieldLabels(): Promise<Record<string, string>> {
   ]) {
     out[key] = t(key as never);
   }
+  // The word before a kept next date: "Lyme: 26.10.2026 (sonraki: ...)".
+  out["note.next"] = (await getTranslations("import"))("noteNext");
   return out;
 }

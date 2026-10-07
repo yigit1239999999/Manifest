@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
@@ -10,6 +10,16 @@ const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
+
+// `viewportFit: "cover"` lets the phone's bottom tab bar reach the screen
+// edge and pad itself by the home indicator (`env(safe-area-inset-bottom)`
+// is 0 without it). Width and scale are Next's defaults, written out
+// because naming one field replaces the default object.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("app");

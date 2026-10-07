@@ -4,6 +4,7 @@ import {
   dayKey,
   firstName,
   formatDate,
+  formatShortDate,
   formatDuration,
   formatMoney,
   formatTime,
@@ -219,5 +220,19 @@ describe("formatMoney", () => {
 
   it("treats a missing amount as zero rather than printing nothing", () => {
     expect(formatMoney("en", null, "USD")).toBe("$0.00");
+  });
+});
+
+describe("formatShortDate", () => {
+  const now = new Date("2026-10-07T12:00:00.000Z");
+  it("writes day and short month this year, as the weight line reads", () => {
+    expect(
+      formatShortDate({ locale: "tr", timeZone: "Europe/Istanbul" }, new Date("2026-10-07T08:00:00Z"), now),
+    ).toBe("7 Eki");
+  });
+  it("adds the year when it is not this one", () => {
+    expect(
+      formatShortDate({ locale: "tr", timeZone: "Europe/Istanbul" }, new Date("2025-10-07T08:00:00Z"), now),
+    ).toBe("7 Eki 2025");
   });
 });

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
+import { refuseDuplicate, sameMinute } from "@/lib/duplicate-guard";
 import type { ActionContext } from "@/lib/action";
 import type { DiagnosticInput } from "./schema";
 
@@ -20,6 +21,19 @@ export async function createDiagnostic(
     select: { id: true },
   });
   if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
+
+  refuseDuplicate(
+    await prisma.diagnostic.findFirst({
+      where: {
+        clinicId: ctx.clinicId,
+        petId: input.petId,
+        name: { equals: input.name, mode: "insensitive" },
+        performedAt: sameMinute(input.performedAt),
+      },
+      select: { id: true },
+    }),
+    input.name,
+  );
 
   const diagnostic = await prisma.diagnostic.create({
     data: {

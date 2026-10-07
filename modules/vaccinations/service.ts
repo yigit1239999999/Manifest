@@ -3,9 +3,12 @@ import type { Prisma } from "@/generated/prisma/client";
 import { notFound, validationFailed } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/permissions";
+import { isAfterDeath } from "@/lib/pet-status";
+import { refuseDuplicate, sameMinute } from "@/lib/duplicate-guard";
 import type { ActionContext } from "@/lib/action";
 import type { VaccinationInput } from "./schema";
 import { normalizeVaccineSettings, type VaccineSettings } from "./catalogue";
+import { recomputeSuperseded } from "./supersede";
 
 export async function createVaccination(
   input: VaccinationInput,
@@ -14,9 +17,24 @@ export async function createVaccination(
   requirePermission(ctx.userRole, "vaccinations.write");
   const pet = await prisma.pet.findFirst({
     where: { id: input.petId, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: { id: true, deceased: true, deceasedAt: true },
   });
   if (!pet) throw validationFailed({ petId: ["error.validation.petRequired"] });
+  if (isAfterDeath(pet, input.administeredAt))
+    throw validationFailed({ administeredAt: ["error.validation.afterDeath"] });
+
+  refuseDuplicate(
+    await prisma.vaccination.findFirst({
+      where: {
+        clinicId: ctx.clinicId,
+        petId: input.petId,
+        name: { equals: input.name, mode: "insensitive" },
+        administeredAt: sameMinute(input.administeredAt),
+      },
+      select: { id: true },
+    }),
+    input.name,
+  );
 
   const vaccination = await prisma.vaccination.create({
     data: {
@@ -48,6 +66,9 @@ export async function createVaccination(
     entityId: vaccination.id,
     changes: { name: vaccination.name, petId: vaccination.petId },
   });
+  // A new dose answers the older one's due date, which then leaves the
+  // overdue and upcoming lists. Derived from the records, never a close.
+  await recomputeSuperseded(ctx.clinicId, [input.petId]);
   return vaccination;
 }
 
@@ -101,6 +122,7 @@ export async function deleteVaccination(id: string, ctx: ActionContext) {
   if (!existing) throw notFound("vaccination", id);
 
   await prisma.vaccination.delete({ where: { id } });
+  await recomputeSuperseded(ctx.clinicId, [existing.petId]);
   await writeAudit({
     clinicId: ctx.clinicId,
     actorId: ctx.userId,

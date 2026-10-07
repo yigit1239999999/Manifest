@@ -4,8 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Callout } from "@/components/ui/callout";
-import { Button } from "@/components/ui/button";
+import { UndoImportButton, undoDoneText } from "@/components/import/undo-import";
 import type { UndoResult } from "@/modules/import/service";
 
 /**
@@ -30,37 +29,12 @@ export type ImportBatchRow = {
   undone: boolean;
 };
 
-export function ImportBatches({ batches }: { batches: ImportBatchRow[] }) {
+export function ImportBatches({ batches, canUndo }: { batches: ImportBatchRow[]; canUndo: boolean }) {
   const t = useTranslations("import");
   const router = useRouter();
-  const [busy, setBusy] = React.useState<string | null>(null);
   const [done, setDone] = React.useState<Record<string, UndoResult>>({});
-  const [failed, setFailed] = React.useState<string | null>(null);
 
   if (batches.length === 0) return null;
-
-  async function undo(id: string) {
-    setFailed(null);
-    setBusy(id);
-    try {
-      const res = await fetch("/api/import/undo", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ batchId: id }),
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      const data = (await res.json()) as { result: UndoResult };
-      setDone((prev) => ({ ...prev, [id]: data.result }));
-      // The counts stay on screen and the list behind them catches up: what
-      // was taken back and what STAYED is the sentence the vet needs, and a
-      // reload alone would leave them with a shorter list and no reason.
-      router.refresh();
-    } catch {
-      setFailed(id);
-    } finally {
-      setBusy(null);
-    }
-  }
 
   return (
     <Card>
@@ -68,7 +42,7 @@ export function ImportBatches({ batches }: { batches: ImportBatchRow[] }) {
         <CardTitle>{t("batchesTitle")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">{t("batchesHint")}</p>
+        <p className="text-sm text-muted-foreground">{canUndo ? t("batchesHint") : t("batchesHintNoUndo")}</p>
         <ul className="flex flex-col gap-3">
           {batches.map((batch) => {
             const result = done[batch.id];
@@ -97,30 +71,21 @@ export function ImportBatches({ batches }: { batches: ImportBatchRow[] }) {
                 </p>
                 {batch.undone || result ? (
                   <p className="text-sm text-muted-foreground">
-                    {result
-                      ? `${t("undoDone", { clients: result.clientCount, pets: result.petCount, vaccinations: result.vaccinationCount })}${
-                          result.keptClients + result.keptPets > 0
-                            ? ` ${t("undoKept", {
-                                clients: result.keptClients,
-                                pets: result.keptPets,
-                              })}`
-                            : ""
-                        }`
-                      : t("batchUndone")}
+                    {result ? undoDoneText(result, t) : t("batchUndone")}
                   </p>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="self-start"
-                    disabled={busy === batch.id}
-                    onClick={() => void undo(batch.id)}
-                  >
-                    {busy === batch.id ? t("undoing") : t("undoButton")}
-                  </Button>
-                )}
-                {failed === batch.id && <Callout variant="danger">{t("undoFailed")}</Callout>}
+                ) : canUndo ? (
+                  <UndoImportButton
+                    batchId={batch.id}
+                    onDone={(r) => {
+                      setDone((prev) => ({ ...prev, [batch.id]: r }));
+                      // The counts stay on screen and the list behind them
+                      // catches up: what was taken back and what STAYED is
+                      // the sentence the vet needs, and a reload alone would
+                      // leave them with a shorter list and no reason.
+                      router.refresh();
+                    }}
+                  />
+                ) : null}
               </li>
             );
           })}

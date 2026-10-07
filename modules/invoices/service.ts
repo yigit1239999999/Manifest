@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { conflict, notFound, validationFailed } from "@/lib/errors";
 import { withAudited, writeAudit } from "@/lib/audit";
+import { dayKey, formatMoney } from "@/lib/format";
 import { requirePermission } from "@/lib/permissions";
 import { msg } from "@/lib/forms";
-import { formatMoney } from "@/lib/format";
 import type { ActionContext } from "@/lib/action";
 import type { Prisma } from "@/generated/prisma/client";
-import type { InvoiceInput, PaymentInput } from "./schema";
+import { vatCents, type InvoiceInput, type PaymentInput } from "./schema";
 
 function lineTotals(lines: InvoiceInput["lines"]) {
   return lines.reduce(
@@ -23,59 +23,111 @@ export async function createInvoice(input: InvoiceInput, ctx: ActionContext) {
   });
   if (!client) throw validationFailed({ clientId: ["error.validation.clientRequired"] });
 
-  const existing = await prisma.invoice.findFirst({
-    where: { clinicId: ctx.clinicId, number: input.number },
-    select: { id: true },
-  });
-  if (existing) throw conflict("error.conflict.invoiceDuplicate");
+  if (input.number) {
+    const existing = await prisma.invoice.findFirst({
+      where: { clinicId: ctx.clinicId, number: input.number },
+      select: { id: true },
+    });
+    if (existing) throw conflict("error.conflict.invoiceDuplicate");
+  }
 
   // Stamped now, not read later: the invoice keeps the currency it was
   // issued in even after the clinic changes its setting.
   const clinic = await prisma.clinic.findUnique({
     where: { id: ctx.clinicId },
-    select: { currency: true },
+    select: { currency: true, timezone: true },
   });
   if (!clinic) throw notFound("clinic", ctx.clinicId);
 
   const subtotal = lineTotals(input.lines);
-  const tax = input.tax ?? 0;
+  // A rate, when the form sent one, is the source of truth and the amount
+  // is worked out here: the screen's live total and the stored one are the
+  // same arithmetic. A typed amount is still read for callers that send it.
+  const taxRate = input.taxRate ?? null;
+  const tax = taxRate !== null ? vatCents(subtotal, taxRate) : (input.tax ?? 0);
   const total = subtotal + tax;
 
-  return withAudited(
-    {
-      clinicId: ctx.clinicId,
-      actorId: ctx.userId,
-      action: "CREATE",
-      entityType: "Invoice",
-      changes: { number: input.number, total },
-    },
-    (tx) =>
-      tx.invoice.create({
-        data: {
-          clinicId: ctx.clinicId,
-          clientId: input.clientId,
-          number: input.number,
-          currency: clinic.currency,
-          status: input.status,
-          dueAt: input.dueAt,
-          notes: input.notes,
-          subtotalCents: subtotal,
-          taxCents: tax,
-          totalCents: total,
-          lines: {
-            create: input.lines.map((line) => ({
-              description: line.description,
-              quantity: line.quantity,
-              unitPriceCents: line.unitPrice,
-              totalCents: line.quantity * line.unitPrice,
-              petId: line.petId,
-              visitId: line.visitId,
-            })),
-          },
+  return prisma.$transaction(async (tx) => {
+    const number = input.number ?? (await nextInvoiceNumber(tx, ctx.clinicId, clinic.timezone));
+    const created = await tx.invoice.create({
+      data: {
+        clinicId: ctx.clinicId,
+        clientId: input.clientId,
+        number,
+        currency: clinic.currency,
+        status: input.status,
+        dueAt: input.dueAt,
+        notes: input.notes,
+        subtotalCents: subtotal,
+        taxCents: tax,
+        taxRate,
+        totalCents: total,
+        lines: {
+          create: input.lines.map((line) => ({
+            description: line.description,
+            kind: line.kind ?? null,
+            quantity: line.quantity,
+            unitPriceCents: line.unitPrice,
+            totalCents: line.quantity * line.unitPrice,
+            petId: line.petId,
+            visitId: line.visitId,
+          })),
         },
-        include: { lines: true },
-      }),
-  );
+      },
+      include: { lines: true },
+    });
+    await writeAudit(
+      {
+        clinicId: ctx.clinicId,
+        actorId: ctx.userId,
+        action: "CREATE",
+        entityType: "Invoice",
+        entityId: created.id,
+        changes: { number, total, taxRate },
+      },
+      tx,
+    );
+    return created;
+  });
+}
+
+/**
+ * The clinic's next invoice number for this year: "2026-0001", then
+ * "2026-0002", in the clinic's own calendar year.
+ *
+ * ONE atomic statement advances the counter, inside the invoice's own
+ * transaction: the row lock it takes makes a second invoice saved at the
+ * same moment wait and then take the next number, and a save that fails
+ * rolls the number back with it -- no gaps from errors, no duplicates from
+ * races. A number somebody once typed by hand that happens to read the
+ * same is stepped over rather than collided with; existing numbers are
+ * never changed.
+ */
+async function nextInvoiceNumber(
+  tx: Prisma.TransactionClient,
+  clinicId: string,
+  timeZone: string | null,
+): Promise<string> {
+  const year = Number(dayKey(new Date(), timeZone || undefined).slice(0, 4));
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const rows = await tx.$queryRaw<Array<{ last: number }>>`
+      INSERT INTO "invoice_counters" ("clinicId", "year", "last")
+      VALUES (${clinicId}, ${year}, 1)
+      ON CONFLICT ("clinicId", "year")
+      DO UPDATE SET "last" = "invoice_counters"."last" + 1
+      RETURNING "last"`;
+    const number = formatInvoiceNumber(year, Number(rows[0]?.last ?? 0));
+    const taken = await tx.invoice.findFirst({
+      where: { clinicId, number },
+      select: { id: true },
+    });
+    if (!taken) return number;
+  }
+  throw conflict("error.conflict.invoiceDuplicate");
+}
+
+export function formatInvoiceNumber(year: number, sequence: number): string {
+  return `${year}-${String(sequence).padStart(4, "0")}`;
 }
 
 /**

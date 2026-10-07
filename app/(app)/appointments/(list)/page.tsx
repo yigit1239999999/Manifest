@@ -3,9 +3,11 @@ import { AlertTriangle, CalendarClock, Plus, Stethoscope } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
-import { telHref } from "@/lib/phone";
+import { formatPhone, telHref } from "@/lib/phone";
 import { can } from "@/lib/permissions";
 import { listAppointmentsPage } from "@/modules/appointments/queries";
+import { setArrivalAction, undoArrivalAction } from "@/modules/appointments/arrival-actions";
+import { ArrivalButtons } from "@/components/arrival-buttons";
 import { APPOINTMENT_STATUSES } from "@/modules/appointments/schema";
 import { countPets } from "@/modules/pets/queries";
 import { MissingLink } from "@/components/missing-link";
@@ -47,8 +49,16 @@ const PER_DAY = 100;
  */
 const OPEN_STATUSES = ["SCHEDULED", "CONFIRMED", "ARRIVED", "IN_PROGRESS"];
 
+/** Still waiting to hear whether the animal came. */
+const AWAITING_STATUSES = ["SCHEDULED", "CONFIRMED"];
+
 /** Over, or never happened: no visit left to start from the row. */
 const VISIT_CLOSED_STATUSES = ["CANCELLED", "NO_SHOW", "COMPLETED"];
+
+/** Its hour has begun: only then can anybody say the animal did not come. */
+function hasStarted(a: { startsAt: Date }) {
+  return a.startsAt.getTime() <= Date.now();
+}
 
 function isOpenAndPast(a: { startsAt: Date; status: string }) {
   return OPEN_STATUSES.includes(a.status) && a.startsAt.getTime() < Date.now();
@@ -78,13 +88,18 @@ export default async function AppointmentsPage({
   const showAllDates = dateParam === "all";
   const date = isDayKey(dateParam) ? dateParam : today;
   const range = showAllDates ? null : dayRange(date, fmt.timeZone);
+  // The one-tap outcome is for the day being worked, not for a day browsed.
+  const isToday = !showAllDates && date === today;
 
-  const [t, tCommon, tPet, tType, tStatus, result] = await Promise.all([
+  const [t, tCommon, tPet, tType, tStatus, tArrival, result] = await Promise.all([
     getTranslations("appointment"),
     getTranslations("common"),
     getTranslations("pet"),
     getTranslations("enum.visitType"),
     getTranslations("enum.appointmentStatus"),
+    // The same one-tap outcome as the dashboard's "Bugün" strip, so the
+    // same toast and the same undo.
+    getTranslations("dashboard.today"),
     listAppointmentsPage({
       clinicId: session.user.clinicId,
       statuses: status ? [status] : null,
@@ -355,13 +370,13 @@ export default async function AppointmentsPage({
                             href={telHref(a.client.phone) ?? undefined}
                             className="whitespace-nowrap hover:underline"
                           >
-                            {a.client.phone}
+                            {formatPhone(a.client.phone)}
                           </a>
                         ) : (
                           // Not dialable, so not a link: something that
                           // looks tappable and does nothing is worse than
                           // plain text.
-                          <span className="whitespace-nowrap">{a.client.phone}</span>
+                          <span className="whitespace-nowrap">{formatPhone(a.client.phone)}</span>
                         ))}
                     </div>
                   </>
@@ -392,6 +407,32 @@ export default async function AppointmentsPage({
                       status={a.status}
                       label={tStatus(a.status as never)}
                     />
+                    {/* Today only: "geldi" about next week is not a thing
+                        anyone knows yet. */}
+                    {canCreate && isToday && AWAITING_STATUSES.includes(a.status) && (
+                      <div className="flex flex-wrap gap-1.5" data-outcome-buttons="">
+                        <ArrivalButtons
+                          setAction={setArrivalAction.bind(null, a.id)}
+                          undoAction={undoArrivalAction.bind(null, a.id)}
+                          canMarkNoShow={hasStarted(a)}
+                          labels={{
+                            arrived: t("outcomeArrived"),
+                            noShow: t("outcomeNoShow"),
+                            arrivedFor: tCommon("actionFor", {
+                              action: t("outcomeArrived"),
+                              subject: a.pet.name,
+                            }),
+                            noShowFor: tCommon("actionFor", {
+                              action: t("outcomeNoShow"),
+                              subject: a.pet.name,
+                            }),
+                            markedArrived: tArrival("markedArrived", { pet: a.pet.name }),
+                            markedNoShow: tArrival("markedNoShow", { pet: a.pet.name }),
+                            undo: tArrival("undo"),
+                          }}
+                        />
+                      </div>
+                    )}
                     {canStartVisit && !VISIT_CLOSED_STATUSES.includes(a.status) && (
                       <Link
                         href={`/visits/new?${new URLSearchParams({
@@ -434,11 +475,11 @@ export default async function AppointmentsPage({
                       href={dial}
                       className="text-muted-foreground hover:underline"
                     >
-                      {a.client.phone}
+                      {formatPhone(a.client.phone)}
                     </a>
                   ) : (
                     <span className="text-muted-foreground">
-                      {a.client.phone}
+                      {formatPhone(a.client.phone)}
                     </span>
                   );
                 },

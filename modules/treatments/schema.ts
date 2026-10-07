@@ -16,6 +16,8 @@ export const treatmentSchema = z.object({
   performedAt: requiredDateTime,
   durationMinutes: optionalInt({ min: 0, max: 1440 }),
   notes: optionalText(2000),
+  /** "Yine de yaz: gerekçe". See `requireAllergyOverride`. */
+  overrideReason: optionalText(500),
 });
 
 export type TreatmentInput = z.infer<typeof treatmentSchema>;

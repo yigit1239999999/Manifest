@@ -18,7 +18,12 @@
     "staff": "Team",
     "settings": "Settings",
     "audit": "Audit log",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "recalls": "Vaccine recalls",
+    "search": "Search",
+    "more": "More",
+    "close": "Close",
+    "searchHint": "Type a client's name, a phone number, an animal's name or an invoice number; or add a new record below."
   },
   "common": {
     "close": "Close",
@@ -104,7 +109,6 @@
     "greeting": "Hi, {name}",
     "subtitle": "Here's what's happening today.",
     "readyFor": "{clinic} is ready.",
-    "importInvite": "Already have your records in a spreadsheet? Upload your file.",
     "metrics": {
       "clients": "Clients",
       "pets": "Pets",
@@ -122,7 +126,7 @@
       "petsBySpecies": "Pets by species",
       "visitsByType": "Visits by type",
       "visitsLast12Weeks": "Visits (last 12 weeks)",
-      "revenueLast6Months": "Paid invoices (last 6 months)",
+      "revenueLast6Months": "Money received (last 6 months)",
       "overdueVaccinations": "Overdue vaccinations"
     },
     "chart": {
@@ -134,14 +138,14 @@
     "empty": {
       "appointments": "No upcoming appointments.",
       "pets": "No animals yet.",
-      "revenue": "No paid invoices in this period.",
-      "revenueCurrency": "No invoices paid in {currency} in this period.",
+      "revenue": "No money received in this period.",
+      "revenueCurrency": "No money received in {currency} in this period.",
       "visits": "No visits yet.",
       "vaccinations": "No vaccinations due soon."
     },
     "firstStep": {
       "visit": {
-        "title": "Write up a visit for an animal you have seen.",
+        "title": "Open your first visit.",
         "hint": "The animal and its owner go on the same form."
       },
       "client": {
@@ -155,16 +159,54 @@
       "waiting": {
         "title": "Your work starts with the first records.",
         "hint": "Your clinic administrator can add the first client and animal."
+      },
+      "import": {
+        "title": "Bring your records over.",
+        "hint": "Import your clients, animals and vaccinations from an Excel file; we match the columns.",
+        "action": "Upload an Excel file"
       }
     },
     "unreachedRemindersCount": "{count, plural, one {1 did not arrive} other {# did not arrive}}",
     "overdueVaccinationsCount": "{count, plural, one {1 vaccination overdue} other {# vaccinations overdue}}",
-    "overdueVaccinationsDismiss": "Close",
+    "overdueVaccinationsDismiss": "Remove from list",
     "overdueVaccinationsBook": "Book",
     "draftInvoices": "{count, plural, one {# draft not sent} other {# drafts not sent}}",
-    "overdueVaccinationsDismissed": "Vaccination row closed.",
+    "overdueVaccinationsDismissed": "Removed from the list. The vaccination stays on the animal's page.",
     "overdueVaccinationsUndo": "Undo",
-    "overdueVaccinationsOlder": "Also {count, plural, one {# vaccination has} other {# vaccinations have}} been overdue for more than 6 months; each is on the animal's page."
+    "overdueVaccinationsOlder": "Also {count, plural, one {# vaccination has} other {# vaccinations have}} been overdue for more than 6 months; see \"Older than 6 months\" on the recall list.",
+    "today": {
+      "title": "Today",
+      "summary": "{total, plural, one {# appointment} other {# appointments}} · {here} in clinic · {waiting} expected",
+      "dayPlan": "Day plan",
+      "empty": "No appointments today.",
+      "book": "Book an appointment",
+      "now": "Now {time}",
+      "arrived": "Arrived",
+      "noShow": "No-show",
+      "markedArrived": "{pet} marked as arrived.",
+      "markedNoShow": "{pet} marked as a no-show.",
+      "undo": "Undo",
+      "startVisit": "Start visit",
+      "openVisit": "Open visit"
+    },
+    "overdueVaccinationsBooked": "Booked · {when}",
+    "seeAll": "See all · {count, number}",
+    "upcomingWindow": "Next {days} days",
+    "unreachedHint": "The reminder did not reach the owner; call them instead.",
+    "setupSteps": {
+      "title": "Next steps",
+      "hide": "Hide",
+      "hidden": "Next steps hidden.",
+      "undo": "Undo",
+      "messaging": {
+        "title": "Connect SMS",
+        "hint": "Let vaccination and appointment reminders reach owners on their own."
+      },
+      "team": {
+        "title": "Add your team",
+        "hint": "Give vets and reception their own sign-in."
+      }
+    }
   },
   "client": {
     "createNamed": "Add \"{name}\" as a new client",
@@ -235,7 +277,39 @@
     "one": "Client",
     "lastNameHint": "Leave it blank if you do not know it.",
     "phoneHint": "A client without a phone number cannot be sent reminders.",
-    "phoneLater": "Save without a number"
+    "phoneLater": "Save without a number",
+    "duplicate": {
+      "title": "This person may already be on file",
+      "byPhone": "On file with this number:",
+      "byEmail": "On file with this e-mail:",
+      "archived": "archived",
+      "goTo": "Go to them",
+      "allow": "A different person; save as a new client anyway",
+      "refused": "A client is already on file with these details: {name}. If it is the same person, go to their record; if not, tick the box in the warning and save."
+    },
+    "merge": {
+      "open": "Merge with another record",
+      "title": "Merge clients",
+      "hint": "This record's animals, visits, appointments, invoices, reminders, notes and message history move to the record you choose. This record is archived.",
+      "searchPlaceholder": "Search for the client to keep",
+      "summary": "Moving to {target}: {list}.",
+      "confirmTitle": "Merge {source} into {target}?",
+      "confirmMoves": "Moving: {list}.",
+      "confirmNothing": "Nothing on this record to move.",
+      "confirmArchive": "{source} is archived and the audit log records both sides. Moved records are not moved back.",
+      "confirm": "Merge",
+      "done": "Records merged. The other record's animals and history are here now; that record was archived.",
+      "counts": {
+        "pets": "{count, plural, one {# animal} other {# animals}}",
+        "visits": "{count, plural, one {# visit} other {# visits}}",
+        "appointments": "{count, plural, one {# appointment} other {# appointments}}",
+        "invoices": "{count, plural, one {# invoice (with payments)} other {# invoices (with payments)}}",
+        "reminders": "{count, plural, one {# reminder} other {# reminders}}",
+        "notes": "{count, plural, one {# note} other {# notes}}",
+        "documents": "{count, plural, one {# document} other {# documents}}",
+        "messages": "{count, plural, one {# message log} other {# message logs}}"
+      }
+    }
   },
   "pet": {
     "createNamed": "Add \"{name}\" as a new animal",
@@ -266,6 +340,8 @@
     "insuranceProvider": "Insurance",
     "insurancePolicy": "Policy number",
     "alerts": "Medical alerts",
+    "alertsHint": "Allergies and cautions. Every prescription and treatment is checked against this.",
+    "alertsPlaceholder": "E.g. Penicillin allergy; bites",
     "owner": "Owner",
     "notes": "Notes",
     "sections": {
@@ -274,11 +350,26 @@
       "physical": "Physical",
       "physicalHint": "Visible attributes and vitals at intake.",
       "medical": "Medical",
-      "medicalHint": "Identifiers, insurance and alerts that should be visible at every visit.",
+      "medicalHint": "Identifiers and insurance that should be visible at every visit.",
       "notes": "Notes",
       "notesHint": "Anything else the clinical team should know."
     },
     "deceased": "Deceased",
+    "deceasedOn": "Deceased · {date}",
+    "deceasedEffect": "No reminders, vaccination recalls or messages are sent for this animal, and no new appointments, visits or vaccinations are opened. Its records stay here.",
+    "deceasedMark": {
+      "button": "Mark as deceased",
+      "title": "Mark {name} as deceased?",
+      "description": "No message about this animal goes to its owner, it leaves the vaccination lists and it can no longer be booked. Its history is kept. If this is a mistake you can undo it.",
+      "confirm": "Mark as deceased",
+      "date": "Date of death",
+      "note": "Note",
+      "noteHint": "Optional. E.g. at home, old age; euthanasia with the owner's consent.",
+      "undo": "Marked by mistake",
+      "undoTitle": "Undo the deceased mark?",
+      "undoDescription": "The animal shows as active again, and reminders and messages can be sent again. The undo is written to the history.",
+      "undoConfirm": "Undo"
+    },
     "deceasedAt": "Date of passing",
     "markDeceased": "Mark as deceased",
     "archiveConfirm": "Archive this pet?",
@@ -298,7 +389,14 @@
       "vaccinations": "Vaccinations",
       "prescriptions": "Prescriptions",
       "documents": "Documents"
-    }
+    },
+    "ownerChange": {
+      "title": "The owner will change",
+      "body": "{pet} will be registered to {to} instead of {from}. Its open reminders and upcoming appointments move to the new owner; past visits and invoices stay with {from}. Both clients' histories get a note.",
+      "confirm": "Yes, change the owner",
+      "note": "Owner changed ({pet}): {from} → {to}"
+    },
+    "birthDateEstimated": "estimated"
   },
   "visit": {
     "openExisting": "Open the visit",
@@ -393,7 +491,8 @@
       "completedNotice": "This appointment is complete, so confirmation and reminder messages are no longer offered.",
       "pastNotice": "The appointment time has passed, so confirmation and reminder messages are no longer offered. This appointment's outcome has not been recorded yet.",
       "recordOutcome": "Record the outcome",
-      "petSilencedNotice": "This animal has died or been archived, so no message is sent about it."
+      "petSilencedNotice": "This animal has died or been archived, so no message is sent about it.",
+      "noShowNotice": "The animal did not come to this appointment, so confirmation and reminder messages are no longer offered."
     },
     "today": "Today",
     "previousDay": "Previous day",
@@ -408,7 +507,9 @@
     "emptyDayHint": "Use the arrows to look at another day, or book an appointment.",
     "emptyHint": "An appointment is booked for an animal on file; the ones you book appear here, the nearest first.",
     "cancelConfirm": "Cancel this appointment?",
-    "cancelUndoHint": "The appointment stays on the list with its status set to cancelled. You can schedule it again from the edit screen."
+    "cancelUndoHint": "The appointment stays on the list with its status set to cancelled. You can schedule it again from the edit screen.",
+    "outcomeArrived": "Arrived",
+    "outcomeNoShow": "No-show"
   },
   "staff": {
     "title": "Team",
@@ -488,7 +589,7 @@
       "timezoneHint": "Dates and times in messages use this timezone.",
       "providerConnected": "{channel} is connected ({transport}).",
       "providerConnectedSending": "Scheduled messages go out over this connection.",
-      "providerMissing": "{channel} is not connected yet, so nothing is sent automatically. Until then, messages are copied from the appointment page and sent by hand. The connection cannot be set up from inside the app; your clinic administrator has to configure the provider.",
+      "providerMissing": "{channel} is not connected yet, so nothing is sent automatically. Until then, messages are copied from the appointment page and sent by hand. The connection is not set up on this screen: PetTrack support configures your messaging provider account (e.g. Netgsm), and this card says \"connected\" once it is.",
       "preview": "Message preview",
       "previewConfirmation": "Confirmation",
       "previewReminder": "Reminder",
@@ -545,6 +646,8 @@
       "year": "{count, plural, one {1 year} other {# years}}"
     },
     "sourceList": "{interval}, from the list.",
+    "sourceSeries": "{interval} to dose {number} of the series, from the list.",
+    "proposalFilled": "Suggested date filled in; you can change it.",
     "sourceClinic": "{interval}, from your clinic's setting.",
     "sourceAsk": "No repeat date is proposed for this vaccine: the interval differs from vet to vet. Please set it yourself.",
     "seriesLine": "A starting series of {doses} doses, {min}-{max} weeks apart.",
@@ -565,7 +668,9 @@
     "startAtFrom": "The first dose is given from week {min}.",
     "noteInsideCombination": "Comes inside the combination vaccine.",
     "noteTestFirst": "A test comes first; the schedule applies only if it is negative.",
-    "noteByAgreement": "Not given to every animal; decided with the owner."
+    "noteByAgreement": "Not given to every animal; decided with the owner.",
+    "overdueBadge": "{count, plural, =0 {Overdue · today} one {Overdue · 1 day} other {Overdue · # days}}",
+    "supersededNote": "next dose given"
   },
   "prescription": {
     "title": "Prescriptions",
@@ -587,7 +692,8 @@
     "complete": "Mark completed",
     "cancel": "Cancel",
     "durationShort": "{count} days",
-    "emptyHint": "A prescription is written from inside a visit or a pet's page; the ones you write appear here, the newest first."
+    "emptyHint": "A prescription is written from inside a visit or a pet's page; the ones you write appear here, the newest first.",
+    "print": "Print"
   },
   "treatment": {
     "title": "Treatments and procedures",
@@ -603,6 +709,15 @@
     "durationMinutes": "Duration (min)",
     "notes": "Procedure notes",
     "notesPlaceholder": "Anaesthesia protocol, materials used, complications, owner briefing…"
+  },
+  "allergyCheck": {
+    "title": "This drug matches the animal's recorded alert",
+    "body": "Recorded alert: \"{allergy}\". Entered: \"{drug}\"{family, select, penicillin { (both are penicillins)} sulfonamide { (both are sulfonamides)} nsaid { (both are NSAIDs)} other {}}. It is not saved without a reason.",
+    "reason": "Write it anyway: reason",
+    "reasonHint": "The reason is kept with the record and written to the audit log.",
+    "reasonPlaceholder": "E.g. allergy history checked with the owner, no reaction; test dose given",
+    "submitAnyway": "Write it anyway",
+    "overridden": "Written despite the recorded alert. Reason: {reason}"
   },
   "diagnostic": {
     "title": "Diagnostics",
@@ -740,7 +855,7 @@
     "remaining": "Remaining",
     "recordPayment": "Record payment",
     "void": "Void invoice",
-    "markSent": "Mark as sent",
+    "markSent": "Issue invoice",
     "payment": {
       "title": "Payments",
       "amount": "Amount",
@@ -755,8 +870,68 @@
       "method": "Method",
       "reference": "Reference",
       "notes": "Notes",
-      "submit": "Record"
-    }
+      "submit": "Record payment"
+    },
+    "ownerBalance": "Owes {amount} · {count, plural, one {# invoice} other {# invoices}}",
+    "ownerBalanceOpen": "Show the invoices",
+    "filteredClient": "Invoices for {name}",
+    "filteredClientClear": "All clients",
+    "numberAssigned": "The next number in sequence is given when you save.",
+    "vatRate": "VAT rate",
+    "vatOption": "{rate}%",
+    "taxAt": "VAT ({rate}%)",
+    "print": {
+      "button": "Print",
+      "back": "Go back",
+      "title": "Invoice",
+      "prescriptionTitle": "Prescription",
+      "number": "No. {number}",
+      "issued": "Issued: {date}",
+      "due": "Due: {date}",
+      "billedTo": "Billed to",
+      "animal": "Animal",
+      "vet": "Veterinarian",
+      "payments": "Payments received",
+      "signature": "Signature / Stamp",
+      "printedAt": "Printed: {date}"
+    },
+    "paidTotal": "Paid",
+    "filterFrom": "From",
+    "filterTo": "To",
+    "filterClient": "Client (name or phone)",
+    "filterApply": "Filter",
+    "rangeThisMonth": "This month",
+    "rangeLastMonth": "Last month",
+    "exportInvoices": "Download invoices (CSV)",
+    "exportPayments": "Download payments (CSV)",
+    "totalsIssued": "Billed",
+    "totalsCollected": "Collected",
+    "totalsRemaining": "Remaining",
+    "cashTitle": "Money taken on these dates",
+    "cashNone": "No payments on these dates.",
+    "cashCount": "{count, plural, one {# payment} other {# payments}}",
+    "csv": {
+      "date": "Date",
+      "time": "Time",
+      "number": "Invoice no.",
+      "client": "Client",
+      "method": "Method",
+      "amount": "Amount",
+      "currency": "Currency",
+      "reference": "Reference",
+      "status": "Status",
+      "subtotal": "Subtotal",
+      "vatRate": "VAT rate (%)",
+      "vat": "VAT",
+      "total": "Total",
+      "paid": "Paid",
+      "remaining": "Remaining",
+      "fileInvoices": "invoices",
+      "filePayments": "payments"
+    },
+    "settledTitle": "Paid in full",
+    "settledOn": "Settled on {date}.",
+    "settled": "Nothing is left to pay on this invoice."
   },
   "timeline": {
     "openVisit": "Open visit",
@@ -783,7 +958,40 @@
     "action": "Action",
     "entity": "Entity",
     "when": "When",
-    "emptyHint": "Everything staff change — records created, edited or archived — is listed here."
+    "emptyHint": "Everything staff change — records created, edited or archived — is listed here.",
+    "what": "What happened",
+    "filterFrom": "From",
+    "filterTo": "To",
+    "filterType": "Record type",
+    "filterApply": "Filter",
+    "sentence": {
+      "paymentRecorded": "Payment received {amount}",
+      "paymentVoided": "Payment voided {amount}",
+      "invoiceCreated": "Invoice created {amount}",
+      "invoiceIssued": "Invoice issued",
+      "invoiceVoided": "Invoice voided",
+      "importCreated": "Imported from a spreadsheet: {clients} owners, {pets} animals, {vaccinations} vaccinations",
+      "importUndone": "Import undone: {clients} owners, {pets} animals, {vaccinations} vaccinations deleted",
+      "generic": "{entity} · {action}"
+    },
+    "entityType": {
+      "Client": "Client",
+      "Pet": "Animal",
+      "Visit": "Visit",
+      "Appointment": "Appointment",
+      "Vaccination": "Vaccination",
+      "Prescription": "Prescription",
+      "Treatment": "Treatment",
+      "Diagnostic": "Test",
+      "Note": "Note",
+      "Reminder": "Reminder",
+      "Invoice": "Invoice and payment",
+      "ImportBatch": "Spreadsheet import",
+      "User": "Team",
+      "Clinic": "Clinic settings",
+      "CustomSpecies": "Species",
+      "MessageLog": "Message"
+    }
   },
   "import": {
     "title": "Import from Excel",
@@ -988,7 +1196,7 @@
     "undoButton": "Undo this import",
     "undoing": "Undoing…",
     "undoDone": "{clients} owners, {pets} animals and {vaccinations} vaccinations were taken back.",
-    "undoKept": "{clients} owners and {pets} animals stayed, because records were added to them after the import.",
+    "undoKept": "{clients, plural, one {# owner} other {# owners}}, {pets, plural, one {# animal} other {# animals}} and {vaccinations, plural, one {# vaccination} other {# vaccinations}} stayed, because they were worked on or edited after the import.",
     "undoFailed": "This import could not be undone.",
     "batchesTitle": "Earlier imports",
     "batchesHint": "You can undo an import later as well.",
@@ -1026,7 +1234,49 @@
         "date": "Vaccination date",
         "nextDue": "Next dose date"
       }
-    }
+    },
+    "petQuestionsTitle": "Which animal?",
+    "petQuestionsHint": "These owners already have animals with the same name, and the file does not say for certain which one each row is. Choose, so vaccinations are not written to the wrong animal; we never match them for you.",
+    "petQuestionLegend": "{owner} · {pet} (row {row})",
+    "petQuestionFile": "In the file: {facts}",
+    "petQuestionSame": "Registered {name}: {facts}",
+    "petQuestionNew": "A different animal; add {name} as a new animal",
+    "petQuestionsMore": "{count, plural, one {# more question} other {# more questions}}; they appear as you answer the ones above.",
+    "petFactBorn": "born {date}",
+    "petFactChip": "chip {chip}",
+    "petFactNone": "nothing to tell them apart",
+    "decisionPetWhat": "Answer the \"Which animal?\" question above.",
+    "commitBlockedPets": "Answer the \"Which animal?\" questions first.",
+    "undoConfirmTitle": "Undo this import?",
+    "undoConfirmRemove": "{clients, plural, one {# owner} other {# owners}}, {pets, plural, one {# animal} other {# animals}} and {vaccinations, plural, one {# vaccination} other {# vaccinations}} will be deleted.",
+    "undoConfirmKeep": "{clients, plural, one {# owner} other {# owners}}, {pets, plural, one {# animal} other {# animals}} and {vaccinations, plural, one {# vaccination} other {# vaccinations}} will stay, because they were worked on or edited after the import.",
+    "undoConfirmEdited": "Kept because they were edited since: {names}.",
+    "undoConfirmFinal": "What is deleted cannot be brought back; you can import the file again.",
+    "undoConfirmButton": "Yes, undo it",
+    "undoConfirmCancel": "Cancel",
+    "undoCounting": "Counting…",
+    "undoAdminOnly": "Only a clinic admin can undo an import.",
+    "batchesHintNoUndo": "If an import needs undoing, ask your clinic admin.",
+    "noteNext": "next",
+    "futureTitle": "Vaccinations dated in the future",
+    "futureQuestion": "The file has {count, plural, one {# vaccination date} other {# vaccination dates}} after today. They may be planned doses; take them as the next dose?",
+    "futureYes": "Yes, take them as the next dose",
+    "futureNo": "No, keep them in the notes",
+    "futureYesEffect": "{count, plural, one {# date is} other {# dates are}} added as the next dose of the earlier dose of the same vaccine in the file, and will show under upcoming vaccinations.",
+    "futureNoEffect": "The dates stay in the animal's notes with the vaccine name, e.g. \"Rabies: 26.10.2026\".",
+    "futureUnanchored": "{count, plural, one {# date has} other {# dates have}} no earlier dose in the file; kept in the animal's notes with the vaccine name and date.",
+    "futureOnlyNotes": "The file has {count, plural, one {# vaccination date} other {# vaccination dates}} after today. With no earlier dose in the file, they are written to the animal's notes with the vaccine name and date rather than as vaccinations.",
+    "birthYearTitle": "Birth dates written as a year",
+    "birthYearQuestion": "{count, plural, one {# animal has} other {# animals have}} a birth date written as a year alone (e.g. 2021). Take it as 1 January, marked \"estimated\"?",
+    "birthYearYes": "Yes, take it as estimated",
+    "birthYearNo": "No, keep it in the notes",
+    "birthYearYesEffect": "The age is worked out; the animal's page says \"estimated\" next to the birth date.",
+    "birthYearNoEffect": "The birth date stays empty; the year goes into the animal's notes.",
+    "resultHeadlinePets": "{pets, plural, one {# animal is} other {# animals are}} now in your clinic.",
+    "resultHeadlineClients": "{clients, plural, one {# owner is} other {# owners are}} now in your clinic.",
+    "resultHeadlineVaccinationsOnly": "No new animals or owners; {count, plural, one {# vaccination was} other {# vaccinations were}} added to animals you already have.",
+    "resultHeadlineNothing": "Nothing new came in from this file; it is all already in your clinic.",
+    "resultVaccinationsHint": "Each on its animal's page, under vaccinations."
   },
   "enum": {
     "species": {
@@ -1120,7 +1370,7 @@
     },
     "invoiceStatus": {
       "DRAFT": "Draft",
-      "SENT": "Sent",
+      "SENT": "Issued",
       "PARTIAL": "Partial",
       "PAID": "Paid",
       "VOID": "Void"
@@ -1174,6 +1424,13 @@
       "SIGNIN": "Signed in",
       "SIGNOUT": "Signed out",
       "SIGNUP": "Signed up"
+    },
+    "invoiceLineKind": {
+      "VISIT": "Visit",
+      "VACCINATION": "Vaccination",
+      "TREATMENT": "Treatment",
+      "DIAGNOSTIC": "Test",
+      "PRESCRIPTION": "Prescription"
     }
   },
   "error": {
@@ -1220,7 +1477,8 @@
       "invoiceDuplicate": "Invoice number is already in use.",
       "emailInUse": "This email is already in use.",
       "lastAdmin": "This clinic's last administrator cannot be deactivated. Add another administrator first.",
-      "invoiceVoided": "This invoice has been voided, so no payment can be recorded on it."
+      "invoiceVoided": "This invoice has been voided, so no payment can be recorded on it.",
+      "duplicateRecord": "\"{name}\" is already recorded for this animal at this minute, so it was not saved a second time. It is in the list below."
     },
     "auth": {
       "signupFailed": "Sign-up failed. Please try again.",
@@ -1252,7 +1510,18 @@
       "timezoneUnknown": "Unknown timezone.",
       "noteTarget": "Pick a pet or a client to attach the note to.",
       "importDuplicatesUnanswered": "The import cannot finish while rows that may be the same person are unanswered.",
-      "importAlreadyUndone": "This import has already been undone."
+      "importAlreadyUndone": "This import has already been undone.",
+      "appointmentNotWaiting": "This appointment's status has already changed. Refresh the page.",
+      "noShowBeforeStart": "The appointment has not started yet; it can be marked as a no-show only once it has begun.",
+      "recallOutcome": "Unknown call outcome.",
+      "mergeSameClient": "A record cannot be merged with itself.",
+      "mergeIntoArchived": "Cannot merge into an archived record. Restore it first.",
+      "ownerChangeUnconfirmed": "Confirm the change of owner: tick the box under the owner field.",
+      "importPetsUnanswered": "The import cannot finish while rows that may be one of several animals are unanswered.",
+      "petDeceased": "This animal is marked as deceased and cannot be booked.",
+      "afterDeath": "This animal is marked as deceased before this date. Please check the date.",
+      "deceasedInFuture": "The date of death cannot be in the future.",
+      "deceasedBeforeBirth": "The date of death cannot be before the birth date."
     },
     "form": {
       "required": "{field} is required.",
@@ -1278,6 +1547,83 @@
       "linesRequired": "Add at least one line.",
       "paymentOverBalance": "Only {remaining} is left to pay on this invoice. A payment cannot be more than that; please check the amount.",
       "paymentNothingOwed": "Nothing is left to pay on this invoice."
+    },
+    "allergyConflict": "Not saved. This animal's recorded alert is \"{allergy}\" and \"{drug}\" matches it{family, select, penicillin { (both are penicillins)} sulfonamide { (both are sulfonamides)} nsaid { (both are NSAIDs)} other {}}. Enter a reason to write it anyway."
+  },
+  "recall": {
+    "title": "Vaccine recalls",
+    "subtitle": "Vaccinations that are due, or due within {days} days. Call the owner, book them in, and mark what happened.",
+    "tabs": {
+      "label": "List",
+      "overdue": "Overdue",
+      "upcoming": "Upcoming ({days} days)"
+    },
+    "filters": {
+      "label": "Filters",
+      "vaccine": "Vaccine",
+      "allVaccines": "All vaccines",
+      "species": "Species",
+      "allSpecies": "All species",
+      "age": "Overdue by",
+      "ages": {
+        "month": "Last 30 days",
+        "recent": "Last 6 months",
+        "older": "Older than 6 months",
+        "all": "All"
+      },
+      "contact": "Contact",
+      "contacts": {
+        "any": "Any",
+        "none": "Not tried yet",
+        "called": "Called",
+        "unreachable": "Unreachable"
+      },
+      "sort": "Sort",
+      "sorts": {
+        "dueOverdue": "Longest waiting first",
+        "dueUpcoming": "Soonest first",
+        "pet": "Animal name",
+        "owner": "Owner name"
+      }
+    },
+    "columns": {
+      "pet": "Animal and vaccine",
+      "owner": "Owner",
+      "due": "Due",
+      "state": "Status",
+      "actions": "Actions"
+    },
+    "total": "{count, plural, one {# vaccination} other {# vaccinations}}.",
+    "bookedLast": "Animals already booked are at the end.",
+    "booked": "Booked · {when}",
+    "lastCalled": "Called · {who} · {when}",
+    "lastUnreachable": "{count, plural, one {Unreachable} other {Tried # times, unreachable}} · {who} · {when}",
+    "someone": "a team member",
+    "notTried": "Not called yet",
+    "noPhone": "No phone",
+    "called": "Called",
+    "unreachable": "Unreachable",
+    "markedCalled": "{pet}: marked as called.",
+    "markedUnreachable": "{pet}: marked as unreachable.",
+    "undo": "Undo",
+    "book": "Book",
+    "dismiss": "Remove from list",
+    "dismissed": "Removed from the list. The vaccination stays on the animal's page.",
+    "dismissExplained": "\"Remove from list\" only takes this row off the list; the vaccination stays on the animal's page and can be restored there.",
+    "empty": {
+      "overdue": "No overdue vaccinations.",
+      "upcoming": "No vaccinations due in the next 30 days."
+    },
+    "emptyHint": {
+      "overdue": "A vaccination appears here once its next date has passed; call the owner and book them in from here.",
+      "upcoming": "Vaccinations whose next date is coming up appear here; use it to tell owners in advance."
+    },
+    "copy": {
+      "label": "Copy messages",
+      "done": "{owners, plural, one {Message copied for # owner.} other {Messages copied for # owners.}}",
+      "doneHint": "Paste each owner's section into their WhatsApp chat.",
+      "empty": "No owner on this list has a phone number.",
+      "failed": "Could not copy. The browser did not allow clipboard access."
     }
   }
 }

@@ -62,6 +62,12 @@ export const importAnswersSchema = z.object({
   vaccineNames: z.record(z.string(), z.string().max(80)).optional(),
   /** "Work out the next dose from the clinic's list." Absent is no. */
   nextDueFromList: z.boolean().optional(),
+  /** Per body row: which of the owner's animals it is, or "new". */
+  pets: z.record(z.string(), z.string().min(1).max(64)).optional(),
+  /** Future vaccine dates taken as the next dose of an earlier one. */
+  futureAsNextDue: z.boolean().optional(),
+  /** A birth year alone taken as 1 January, marked estimated. */
+  estimateBirthYear: z.boolean().optional(),
 });
 
 /**

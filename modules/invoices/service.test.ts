@@ -17,6 +17,7 @@ vi.mock("@/lib/prisma", () => {
     },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
   };
   prismaMock.$transaction.mockImplementation(
     async (
@@ -44,6 +45,7 @@ const baseInvoice = {
   status: "DRAFT" as const,
   dueAt: null,
   tax: null,
+  taxRate: null,
   notes: null,
   lines: [
     {
@@ -52,6 +54,7 @@ const baseInvoice = {
       unitPrice: 5000,
       petId: null,
       visitId: null,
+      kind: null,
     },
   ],
 };
@@ -89,8 +92,8 @@ describe("createInvoice", () => {
       ...baseInvoice,
       tax: 500,
       lines: [
-        { description: "A", quantity: 2, unitPrice: 1000, petId: null, visitId: null },
-        { description: "B", quantity: 1, unitPrice: 3000, petId: null, visitId: null },
+        { description: "A", quantity: 2, unitPrice: 1000, petId: null, visitId: null, kind: null },
+        { description: "B", quantity: 1, unitPrice: 3000, petId: null, visitId: null, kind: null },
       ],
     };
 
@@ -109,6 +112,56 @@ describe("createInvoice", () => {
       }),
       include: { lines: true },
     });
+  });
+
+  it("works the VAT out from the rate and keeps the rate (B9)", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "client-1" } as never);
+    vi.mocked(prisma.invoice.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({ currency: "TRY", timezone: "Europe/Istanbul" } as never);
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([{ last: 1 }] as never);
+    vi.mocked(prisma.invoice.create).mockResolvedValue({ id: "inv-1", clientId: "client-1" } as never);
+
+    await createInvoice(
+      {
+        ...baseInvoice,
+        number: null,
+        taxRate: 20,
+        // A typed amount is ignored once a rate is given.
+        tax: 1,
+        lines: [
+          { description: "Kuduz", quantity: 1, unitPrice: 35_000, petId: null, visitId: null, kind: "VACCINATION" },
+          { description: "Muayene", quantity: 1, unitPrice: 15_055, petId: null, visitId: null, kind: null },
+        ],
+      },
+      ctx,
+    );
+
+    const data = vi.mocked(prisma.invoice.create).mock.calls[0][0].data;
+    expect(data).toMatchObject({ subtotalCents: 50_055, taxCents: 10_011, totalCents: 60_066, taxRate: 20 });
+    expect((data.lines as { create: Array<{ kind: string | null }> }).create.map((l) => l.kind)).toEqual([
+      "VACCINATION",
+      null,
+    ]);
+  });
+
+  it("numbers invoices in sequence per clinic and year, stepping over a number already taken (B9)", async () => {
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "client-1" } as never);
+    vi.mocked(prisma.clinic.findUnique).mockResolvedValue({ currency: "TRY", timezone: "Europe/Istanbul" } as never);
+    // The counter says 7, but somebody once typed "YYYY-0007" by hand.
+    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([{ last: 7 }] as never).mockResolvedValueOnce([{ last: 8 }] as never);
+    vi.mocked(prisma.invoice.findFirst)
+      .mockResolvedValueOnce({ id: "typed-by-hand" } as never)
+      .mockResolvedValueOnce(null);
+    vi.mocked(prisma.invoice.create).mockResolvedValue({ id: "inv-1", clientId: "client-1" } as never);
+
+    await createInvoice({ ...baseInvoice, number: null }, ctx);
+
+    const year = new Date().getFullYear();
+    expect(vi.mocked(prisma.invoice.create).mock.calls[0][0].data.number).toBe(`${year}-0008`);
+    // The counter is advanced by one atomic upsert inside the transaction.
+    const sql = (vi.mocked(prisma.$queryRaw).mock.calls[0][0] as unknown as string[]).join("?");
+    expect(sql).toMatch(/INSERT INTO "invoice_counters"[\s\S]*ON CONFLICT[\s\S]*"last" \+ 1[\s\S]*RETURNING/);
+    expect(prisma.$transaction).toHaveBeenCalled();
   });
 });
 

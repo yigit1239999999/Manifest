@@ -18,7 +18,12 @@
     "staff": "Ekip",
     "settings": "Ayarlar",
     "audit": "İşlem geçmişi",
-    "signOut": "Çıkış"
+    "signOut": "Çıkış",
+    "recalls": "Aşı takibi",
+    "search": "Ara",
+    "more": "Diğer",
+    "close": "Kapat",
+    "searchHint": "Müşteri adı, telefon, hayvan adı veya fatura numarası yazın; ya da aşağıdan yeni kayıt ekleyin."
   },
   "common": {
     "close": "Kapat",
@@ -104,7 +109,6 @@
     "greeting": "Merhaba {name}",
     "subtitle": "Bugünün özeti.",
     "readyFor": "{clinic} için her şey hazır.",
-    "importInvite": "Kayıtlarınız Excel'de mi? Dosyanızı yükleyin.",
     "metrics": {
       "clients": "Müşteri",
       "pets": "Hayvan",
@@ -122,7 +126,7 @@
       "petsBySpecies": "Türlere göre hayvanlar",
       "visitsByType": "Türlere göre vizitler",
       "visitsLast12Weeks": "Vizitler (son 12 hafta)",
-      "revenueLast6Months": "Ödenen faturalar (son 6 ay)",
+      "revenueLast6Months": "Tahsilat (son 6 ay)",
       "overdueVaccinations": "Geciken aşılar"
     },
     "chart": {
@@ -134,14 +138,14 @@
     "empty": {
       "appointments": "Yaklaşan randevu yok.",
       "pets": "Henüz hayvan yok.",
-      "revenue": "Bu dönemde ödenmiş fatura yok.",
-      "revenueCurrency": "Bu dönemde {currency} cinsinden ödenmiş fatura yok.",
+      "revenue": "Bu dönemde tahsilat yok.",
+      "revenueCurrency": "Bu dönemde {currency} cinsinden tahsilat yok.",
       "visits": "Henüz vizit yok.",
       "vaccinations": "Yaklaşan aşı yok."
     },
     "firstStep": {
       "visit": {
-        "title": "Baktığınız bir hayvanın vizitini yazınız.",
+        "title": "İlk vizitinizi açın.",
         "hint": "Hayvanı ve sahibini aynı formda yazarsınız."
       },
       "client": {
@@ -155,16 +159,54 @@
       "waiting": {
         "title": "İşiniz ilk kayıtlarla başlar.",
         "hint": "İlk müşteri ve hayvan kaydını klinik yöneticiniz açabilir."
+      },
+      "import": {
+        "title": "Kayıtlarınızı getirin.",
+        "hint": "Müşteri, hayvan ve aşı listenizi Excel dosyasından aktarın; sütunları biz eşleştiririz.",
+        "action": "Excel dosyası yükleyin"
       }
     },
     "unreachedRemindersCount": "{count, plural, one {1 tanesi ulaşmadı} other {# tanesi ulaşmadı}}",
     "overdueVaccinationsCount": "{count, plural, one {1 aşı gecikti} other {# aşı gecikti}}",
-    "overdueVaccinationsDismiss": "Kapat",
+    "overdueVaccinationsDismiss": "Listeden çıkar",
     "overdueVaccinationsBook": "Randevu ver",
     "draftInvoices": "{count, plural, one {# taslak gönderilmedi} other {# taslak gönderilmedi}}",
-    "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
+    "overdueVaccinationsDismissed": "Listeden çıkarıldı. Aşı hayvanın sayfasında duruyor.",
     "overdueVaccinationsUndo": "Geri al",
-    "overdueVaccinationsOlder": "Ayrıca {count, plural, one {# aşı} other {# aşı}} 6 aydan uzun süredir gecikmiş; her biri hayvanın sayfasında."
+    "overdueVaccinationsOlder": "Ayrıca {count, plural, one {# aşı} other {# aşı}} 6 aydan uzun süredir gecikmiş; Aşı takibi listesinde \"6 aydan eski\" seçeneğiyle görünür.",
+    "today": {
+      "title": "Bugün",
+      "summary": "{total, plural, one {# randevu} other {# randevu}} · {here} içeride · {waiting} bekleniyor",
+      "dayPlan": "Gün planı",
+      "empty": "Bugün için randevu yok.",
+      "book": "Randevu verin",
+      "now": "Şimdi {time}",
+      "arrived": "Geldi",
+      "noShow": "Gelmedi",
+      "markedArrived": "{pet} geldi olarak işaretlendi.",
+      "markedNoShow": "{pet} gelmedi olarak işaretlendi.",
+      "undo": "Geri al",
+      "startVisit": "Vizite başla",
+      "openVisit": "Viziti aç"
+    },
+    "overdueVaccinationsBooked": "Randevu var · {when}",
+    "seeAll": "Tümünü gör · {count, number}",
+    "upcomingWindow": "Önümüzdeki {days} gün",
+    "unreachedHint": "Hatırlatma mesajı sahibine ulaşmadı; telefonla arayın.",
+    "setupSteps": {
+      "title": "Sıradaki adımlar",
+      "hide": "Gizle",
+      "hidden": "Sıradaki adımlar gizlendi.",
+      "undo": "Geri al",
+      "messaging": {
+        "title": "SMS'i bağlayın",
+        "hint": "Aşı ve randevu hatırlatmaları sahiplere kendiliğinden gitsin."
+      },
+      "team": {
+        "title": "Ekibinizi ekleyin",
+        "hint": "Veteriner hekim ve resepsiyon kendi hesabıyla girsin."
+      }
+    }
   },
   "client": {
     "createNamed": "\"{name}\" adıyla yeni müşteri aç",
@@ -235,7 +277,39 @@
     "one": "Müşteri",
     "lastNameHint": "Bilmiyorsanız boş bırakın.",
     "phoneHint": "Telefonsuz müşteriye hatırlatma gönderilemez.",
-    "phoneLater": "Numarasız kaydet"
+    "phoneLater": "Numarasız kaydet",
+    "duplicate": {
+      "title": "Bu kişi zaten kayıtlı olabilir",
+      "byPhone": "Bu numarayla kayıtlı:",
+      "byEmail": "Bu e-postayla kayıtlı:",
+      "archived": "arşivde",
+      "goTo": "Ona git",
+      "allow": "Farklı bir kişi, yine de yeni müşteri olarak kaydet",
+      "refused": "Bu bilgilerle kayıtlı bir müşteri var: {name}. Aynı kişiyse onun kaydına gidin; farklı biriyse uyarıdaki kutuyu işaretleyip kaydedin."
+    },
+    "merge": {
+      "open": "Başka bir kayıtla birleştir",
+      "title": "Müşterileri birleştir",
+      "hint": "Bu kaydın hayvanları, vizitleri, randevuları, faturaları, hatırlatmaları, notları ve mesaj geçmişi seçtiğiniz kayda taşınır. Bu kayıt arşivlenir.",
+      "searchPlaceholder": "Tutulacak müşteriyi arayın",
+      "summary": "{target} kaydına taşınacak: {list}.",
+      "confirmTitle": "{source}, {target} ile birleştirilsin mi?",
+      "confirmMoves": "Taşınacak: {list}.",
+      "confirmNothing": "Bu kayıtta taşınacak bir şey yok.",
+      "confirmArchive": "{source} arşivlenir; işlem geçmişine iki kayıt düşer. Taşınan kayıtlar geri taşınmaz.",
+      "confirm": "Birleştir",
+      "done": "Kayıtlar birleştirildi. Diğer kaydın hayvanları ve geçmişi artık burada; o kayıt arşivlendi.",
+      "counts": {
+        "pets": "{count, plural, one {# hayvan} other {# hayvan}}",
+        "visits": "{count, plural, one {# vizit} other {# vizit}}",
+        "appointments": "{count, plural, one {# randevu} other {# randevu}}",
+        "invoices": "{count, plural, one {# fatura (ödemeleriyle)} other {# fatura (ödemeleriyle)}}",
+        "reminders": "{count, plural, one {# hatırlatma} other {# hatırlatma}}",
+        "notes": "{count, plural, one {# not} other {# not}}",
+        "documents": "{count, plural, one {# belge} other {# belge}}",
+        "messages": "{count, plural, one {# mesaj kaydı} other {# mesaj kaydı}}"
+      }
+    }
   },
   "pet": {
     "createNamed": "\"{name}\" adıyla yeni hayvan aç",
@@ -266,6 +340,8 @@
     "insuranceProvider": "Sigorta",
     "insurancePolicy": "Poliçe no",
     "alerts": "Tıbbi uyarılar",
+    "alertsHint": "Alerjiler ve dikkat edilecekler. Yazılan her reçete ve tedavi bununla karşılaştırılır.",
+    "alertsPlaceholder": "Örn. Penisilin alerjisi; ısırır",
     "owner": "Sahibi",
     "notes": "Notlar",
     "sections": {
@@ -274,11 +350,26 @@
       "physical": "Fiziksel",
       "physicalHint": "Görünür özellikler ve giriş anındaki vital bulgular.",
       "medical": "Tıbbi",
-      "medicalHint": "Her vizitte görünmesi gereken tanımlayıcılar, sigorta ve uyarılar.",
+      "medicalHint": "Her vizitte görünmesi gereken tanımlayıcılar ve sigorta.",
       "notes": "Notlar",
       "notesHint": "Klinik ekibinin bilmesi gereken her şey."
     },
     "deceased": "Vefat etti",
+    "deceasedOn": "Vefat etti · {date}",
+    "deceasedEffect": "Bu hayvan için hatırlatma, aşı çağrısı veya mesaj gönderilmez; yeni randevu, vizit ve aşı açılmaz. Kayıtları burada kalır.",
+    "deceasedMark": {
+      "button": "Vefat etti olarak işaretle",
+      "title": "{name} vefat etti olarak işaretlensin mi?",
+      "description": "Sahibine bu hayvan için hiçbir mesaj gitmez, aşı listelerinden çıkar ve yeni randevu verilemez. Geçmiş kayıtları silinmez. Yanlışlıkla işaretlenirse geri alabilirsiniz.",
+      "confirm": "Vefat etti olarak işaretle",
+      "date": "Vefat tarihi",
+      "note": "Not",
+      "noteHint": "İsteğe bağlı. Örn. evde, yaşlılık; ötanazi, sahibin onayıyla.",
+      "undo": "Yanlışlıkla işaretlendi",
+      "undoTitle": "Vefat kaydı geri alınsın mı?",
+      "undoDescription": "Hayvan yeniden aktif görünür; hatırlatma ve mesajlar yeniden gönderilebilir. Geri alma işlem geçmişine yazılır.",
+      "undoConfirm": "Geri al"
+    },
     "deceasedAt": "Vefat tarihi",
     "markDeceased": "Vefat etti olarak işaretle",
     "archiveConfirm": "Bu hayvan arşivlensin mi?",
@@ -298,7 +389,14 @@
       "vaccinations": "Aşılar",
       "prescriptions": "Reçeteler",
       "documents": "Belgeler"
-    }
+    },
+    "ownerChange": {
+      "title": "Sahip değişecek",
+      "body": "{pet} artık {from} yerine {to} adına kayıtlı olacak. Açık hatırlatmaları ve ileri tarihli randevuları yeni sahibine geçer; geçmiş vizitler ve faturalar {from} kaydında kalır. İki müşterinin geçmişine de not düşülür.",
+      "confirm": "Evet, sahibini değiştir",
+      "note": "Sahip değişti ({pet}): {from} → {to}"
+    },
+    "birthDateEstimated": "tahmini"
   },
   "visit": {
     "openExisting": "Viziti aç",
@@ -393,7 +491,8 @@
       "completedNotice": "Bu randevu tamamlandığı için onay ve hatırlatma mesajları artık sunulmuyor.",
       "pastNotice": "Randevu saati geçtiği için onay ve hatırlatma mesajları artık sunulmuyor. Bu randevunun sonucu henüz kaydedilmedi.",
       "recordOutcome": "Sonucu kaydedin",
-      "petSilencedNotice": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için mesaj gönderilmiyor."
+      "petSilencedNotice": "Bu hayvan vefat etmiş ya da arşivlenmiş olduğu için mesaj gönderilmiyor.",
+      "noShowNotice": "Hayvan bu randevuya gelmediği için onay ve hatırlatma mesajları artık sunulmuyor."
     },
     "today": "Bugün",
     "previousDay": "Önceki gün",
@@ -408,7 +507,9 @@
     "emptyDayHint": "Başka bir güne bakmak için okları kullanabilir veya yeni randevu oluşturabilirsiniz.",
     "emptyHint": "Randevu, kayıtlı bir hayvan için verilir; oluşturduğunuz randevular en yakın tarihli olan başta olmak üzere burada görünür.",
     "cancelConfirm": "Bu randevu iptal edilsin mi?",
-    "cancelUndoHint": "Randevu listede kalır, durumu iptal edildi olur. İsterseniz düzenleme ekranından yeniden planlayabilirsiniz."
+    "cancelUndoHint": "Randevu listede kalır, durumu iptal edildi olur. İsterseniz düzenleme ekranından yeniden planlayabilirsiniz.",
+    "outcomeArrived": "Geldi",
+    "outcomeNoShow": "Gelmedi"
   },
   "staff": {
     "title": "Ekip",
@@ -488,7 +589,7 @@
       "timezoneHint": "Mesajlardaki tarih ve saatler bu saat dilimine göre yazılır.",
       "providerConnected": "{channel} bağlantısı aktif ({transport}).",
       "providerConnectedSending": "Zamanlanmış mesajlar bu bağlantıdan gönderilir.",
-      "providerMissing": "{channel} bağlantısı henüz yapılmadı; otomatik mesaj gönderilmez. Bu süre içinde mesajlar randevu sayfasından kopyalanıp elle iletilir. Bağlantıyı uygulama içinden kuramazsınız, klinik yöneticinizin sağlayıcı bilgilerini tanımlaması gerekir.",
+      "providerMissing": "{channel} bağlantısı henüz yapılmadı; otomatik mesaj gönderilmez. Bu süre içinde mesajlar randevu sayfasından kopyalanıp elle iletilir. Bağlantı bu ekrandan kurulmaz: mesaj sağlayıcı hesabınız (ör. Netgsm) PetTrack destek ekibi tarafından tanımlanır, tanımlandığında bu kartta \"bağlantısı aktif\" yazar.",
       "preview": "Mesaj önizlemesi",
       "previewConfirmation": "Onay mesajı",
       "previewReminder": "Hatırlatma mesajı",
@@ -545,6 +646,8 @@
       "year": "{count, plural, one {1 yıl} other {# yıl}}"
     },
     "sourceList": "{interval}, listeden geldi.",
+    "sourceSeries": "Serinin {number}. dozu için {interval}, listeden geldi.",
+    "proposalFilled": "Önerilen tarih yazıldı; değiştirebilirsiniz.",
     "sourceClinic": "{interval}, kliniğinizin ayarından geldi.",
     "sourceAsk": "Bu aşı için tekrar tarihi önerilmiyor: aralık hekimden hekime değişiyor. Siz belirleyin.",
     "seriesLine": "{doses} dozluk başlangıç serisi, dozlar arası {min}-{max} hafta.",
@@ -565,7 +668,9 @@
     "startAtFrom": "İlk doz {min}. haftadan sonra yapılır.",
     "noteInsideCombination": "Karma aşının içinde geliyor.",
     "noteTestFirst": "Önce test yapılır; şema yalnız sonuç negatifse geçerlidir.",
-    "noteByAgreement": "Her hayvana yapılmaz; sahibiyle konuşarak karar verilir."
+    "noteByAgreement": "Her hayvana yapılmaz; sahibiyle konuşarak karar verilir.",
+    "overdueBadge": "{count, plural, =0 {Gecikti · bugün} one {Gecikti · 1 gün} other {Gecikti · # gün}}",
+    "supersededNote": "sonraki doz yapıldı"
   },
   "prescription": {
     "title": "Reçeteler",
@@ -587,7 +692,8 @@
     "complete": "Tamamlandı olarak işaretle",
     "cancel": "İptal et",
     "durationShort": "{count} gün",
-    "emptyHint": "Reçete bir vizit ya da hayvan sayfası içinden yazılır; yazdıklarınız en yenisi başta olmak üzere burada görünür."
+    "emptyHint": "Reçete bir vizit ya da hayvan sayfası içinden yazılır; yazdıklarınız en yenisi başta olmak üzere burada görünür.",
+    "print": "Yazdır"
   },
   "treatment": {
     "title": "Tedaviler ve işlemler",
@@ -603,6 +709,15 @@
     "durationMinutes": "Süre (dk)",
     "notes": "Uygulama notları",
     "notesPlaceholder": "Anestezi protokolü, kullanılan malzeme, komplikasyon, sahip bilgilendirmesi…"
+  },
+  "allergyCheck": {
+    "title": "Bu ilaç hayvanın kayıtlı uyarısıyla eşleşiyor",
+    "body": "Kayıtlı uyarı: \"{allergy}\". Yazılan: \"{drug}\"{family, select, penicillin { (ikisi de penisilin grubu)} sulfonamide { (ikisi de sülfonamid grubu)} nsaid { (ikisi de NSAİİ grubu)} other {}}. Gerekçe yazılmadan kaydedilmez.",
+    "reason": "Yine de yaz: gerekçe",
+    "reasonHint": "Gerekçe kayıtla birlikte saklanır ve denetim kaydına yazılır.",
+    "reasonPlaceholder": "Örn. alerji öyküsü sahiple doğrulandı, reaksiyon yok; test dozu verildi",
+    "submitAnyway": "Yine de yaz",
+    "overridden": "Kayıtlı uyarıya rağmen yazıldı. Gerekçe: {reason}"
   },
   "diagnostic": {
     "title": "Tanı testleri",
@@ -740,7 +855,7 @@
     "remaining": "Kalan",
     "recordPayment": "Ödeme kaydet",
     "void": "Faturayı iptal et",
-    "markSent": "Gönderildi olarak işaretle",
+    "markSent": "Faturayı kesin",
     "payment": {
       "title": "Ödemeler",
       "amount": "Tutar",
@@ -755,8 +870,68 @@
       "method": "Yöntem",
       "reference": "Referans",
       "notes": "Notlar",
-      "submit": "Kaydet"
-    }
+      "submit": "Ödemeyi kaydet"
+    },
+    "ownerBalance": "Toplam borç {amount} · {count} fatura",
+    "ownerBalanceOpen": "Faturaları gösterin",
+    "filteredClient": "{name} adına kesilen faturalar",
+    "filteredClientClear": "Bütün müşteriler",
+    "numberAssigned": "Kaydedince sıradaki numara verilir.",
+    "vatRate": "KDV oranı",
+    "vatOption": "%{rate}",
+    "taxAt": "KDV (%{rate})",
+    "print": {
+      "button": "Yazdır",
+      "back": "Geri dönün",
+      "title": "Fatura",
+      "prescriptionTitle": "Reçete",
+      "number": "No: {number}",
+      "issued": "Düzenlenme: {date}",
+      "due": "Vade: {date}",
+      "billedTo": "Müşteri",
+      "animal": "Hayvan",
+      "vet": "Veteriner hekim",
+      "payments": "Tahsilat",
+      "signature": "İmza / Kaşe",
+      "printedAt": "Yazdırılma: {date}"
+    },
+    "paidTotal": "Ödenen",
+    "filterFrom": "Başlangıç",
+    "filterTo": "Bitiş",
+    "filterClient": "Müşteri (ad ya da telefon)",
+    "filterApply": "Süzün",
+    "rangeThisMonth": "Bu ay",
+    "rangeLastMonth": "Geçen ay",
+    "exportInvoices": "Faturaları indir (CSV)",
+    "exportPayments": "Tahsilatları indir (CSV)",
+    "totalsIssued": "Kesilen",
+    "totalsCollected": "Tahsil edilen",
+    "totalsRemaining": "Kalan",
+    "cashTitle": "Bu tarihlerde kasaya giren",
+    "cashNone": "Bu tarihlerde tahsilat yok.",
+    "cashCount": "{count} ödeme",
+    "csv": {
+      "date": "Tarih",
+      "time": "Saat",
+      "number": "Fatura no",
+      "client": "Müşteri",
+      "method": "Ödeme yöntemi",
+      "amount": "Tutar",
+      "currency": "Para birimi",
+      "reference": "Referans",
+      "status": "Durum",
+      "subtotal": "Ara toplam",
+      "vatRate": "KDV oranı (%)",
+      "vat": "KDV",
+      "total": "Toplam",
+      "paid": "Ödenen",
+      "remaining": "Kalan",
+      "fileInvoices": "faturalar",
+      "filePayments": "tahsilatlar"
+    },
+    "settledTitle": "Tamamı ödendi",
+    "settledOn": "{date} tarihinde kapandı.",
+    "settled": "Bu faturada borç kalmadı."
   },
   "timeline": {
     "openVisit": "Viziti aç",
@@ -783,7 +958,40 @@
     "action": "İşlem",
     "entity": "Nesne",
     "when": "Zaman",
-    "emptyHint": "Ekibin yaptığı tüm değişiklikler (oluşturulan, düzenlenen veya arşivlenen kayıtlar) burada listelenir."
+    "emptyHint": "Ekibin yaptığı tüm değişiklikler (oluşturulan, düzenlenen veya arşivlenen kayıtlar) burada listelenir.",
+    "what": "Ne oldu",
+    "filterFrom": "Başlangıç",
+    "filterTo": "Bitiş",
+    "filterType": "Kayıt türü",
+    "filterApply": "Süzün",
+    "sentence": {
+      "paymentRecorded": "Ödeme alındı {amount}",
+      "paymentVoided": "Ödeme iptal edildi {amount}",
+      "invoiceCreated": "Fatura oluşturuldu {amount}",
+      "invoiceIssued": "Fatura kesildi",
+      "invoiceVoided": "Fatura iptal edildi",
+      "importCreated": "Excel'den aktarıldı: {clients} sahip, {pets} hayvan, {vaccinations} aşı",
+      "importUndone": "Aktarım geri alındı: {clients} sahip, {pets} hayvan, {vaccinations} aşı silindi",
+      "generic": "{entity} · {action}"
+    },
+    "entityType": {
+      "Client": "Müşteri",
+      "Pet": "Hayvan",
+      "Visit": "Vizit",
+      "Appointment": "Randevu",
+      "Vaccination": "Aşı",
+      "Prescription": "Reçete",
+      "Treatment": "Tedavi",
+      "Diagnostic": "Tetkik",
+      "Note": "Not",
+      "Reminder": "Hatırlatma",
+      "Invoice": "Fatura ve ödeme",
+      "ImportBatch": "Excel aktarımı",
+      "User": "Ekip",
+      "Clinic": "Klinik ayarları",
+      "CustomSpecies": "Tür",
+      "MessageLog": "Mesaj"
+    }
   },
   "import": {
     "title": "Excel'den aktarın",
@@ -988,7 +1196,7 @@
     "undoButton": "Bu aktarımı geri alın",
     "undoing": "Geri alınıyor…",
     "undoDone": "{clients} sahip, {pets} hayvan ve {vaccinations} aşı kaydı geri alındı.",
-    "undoKept": "{clients} sahip ve {pets} hayvan kaldı, çünkü aktarımdan sonra bu kayıtlara işlem eklenmiş.",
+    "undoKept": "{clients} sahip, {pets} hayvan ve {vaccinations} aşı kaydı kaldı, çünkü aktarımdan sonra üzerlerinde çalışıldı ya da düzenlendiler.",
     "undoFailed": "Geri alınamadı.",
     "batchesTitle": "Önceki aktarımlar",
     "batchesHint": "Bir aktarımı sonradan da geri alabilirsiniz.",
@@ -1026,7 +1234,49 @@
         "date": "Aşı tarihi",
         "nextDue": "Sonraki doz tarihi"
       }
-    }
+    },
+    "petQuestionsTitle": "Hangi hayvan?",
+    "petQuestionsHint": "Bu sahiplerin kayıtlı aynı adlı hayvanları var ve dosyadaki bilgi hangisi olduğunu kesin söylemiyor. Aşılar yanlış hayvana yazılmasın diye siz seçin; hiçbirini sizin yerinize eşleştirmeyiz.",
+    "petQuestionLegend": "{owner} · {pet} ({row}. satır)",
+    "petQuestionFile": "Dosyada: {facts}",
+    "petQuestionSame": "Kayıtlı {name}: {facts}",
+    "petQuestionNew": "Başka bir hayvan; {name} yeni hayvan olarak eklensin",
+    "petQuestionsMore": "{count, plural, one {# soru daha} other {# soru daha}} var; yukarıdakileri yanıtladıkça görünür.",
+    "petFactBorn": "doğum {date}",
+    "petFactChip": "çip {chip}",
+    "petFactNone": "ayırt edici bilgi yok",
+    "decisionPetWhat": "Yukarıdaki \"Hangi hayvan?\" sorusunu yanıtlayın.",
+    "commitBlockedPets": "Önce \"Hangi hayvan?\" sorularını yanıtlayın.",
+    "undoConfirmTitle": "Bu aktarımı geri alalım mı?",
+    "undoConfirmRemove": "{clients} sahip, {pets} hayvan ve {vaccinations} aşı kaydı silinecek.",
+    "undoConfirmKeep": "{clients} sahip, {pets} hayvan ve {vaccinations} aşı kaydı kalacak, çünkü aktarımdan sonra üzerlerinde çalışıldı ya da düzenlendiler.",
+    "undoConfirmEdited": "Sonradan düzenlendiği için korunanlar: {names}.",
+    "undoConfirmFinal": "Silinenler geri getirilemez; dosyayı yeniden aktarabilirsiniz.",
+    "undoConfirmButton": "Evet, geri alın",
+    "undoConfirmCancel": "Vazgeçin",
+    "undoCounting": "Sayılıyor…",
+    "undoAdminOnly": "Bir aktarımı yalnız klinik yöneticisi geri alabilir.",
+    "batchesHintNoUndo": "Bir aktarımı geri almak gerekirse klinik yöneticinize söyleyin.",
+    "noteNext": "sonraki",
+    "futureTitle": "İleri tarihli aşılar",
+    "futureQuestion": "Dosyada bugünden sonraki {count} aşı tarihi var. Bu tarihler planlanmış aşı olabilir; sonraki doz olarak alalım mı?",
+    "futureYes": "Evet, sonraki doz olarak alın",
+    "futureNo": "Hayır, notta kalsın",
+    "futureYesEffect": "{count} tarih, aynı aşının dosyadaki önceki dozuna sonraki doz olarak eklenecek ve yaklaşan aşılarda görünecek.",
+    "futureNoEffect": "Tarihler aşı adıyla birlikte hayvanın notunda kalacak, ör. \"Kuduz: 26.10.2026\".",
+    "futureUnanchored": "{count} tarihin dosyada önceki dozu yok; aşı adı ve tarihiyle hayvanın notuna yazılacak.",
+    "futureOnlyNotes": "Dosyada bugünden sonraki {count} aşı tarihi var. Önceki dozları dosyada olmadığı için aşı kaydı olarak değil, aşı adı ve tarihiyle hayvanın notuna yazılacak.",
+    "birthYearTitle": "Yalnız yılı yazılı doğum tarihleri",
+    "birthYearQuestion": "{count, plural, one {# hayvanın} other {# hayvanın}} doğum tarihi yalnız yıl olarak yazılmış (ör. 2021). 1 Ocak olarak, \"tahmini\" işaretiyle alalım mı?",
+    "birthYearYes": "Evet, tahmini olarak alın",
+    "birthYearNo": "Hayır, notta kalsın",
+    "birthYearYesEffect": "Yaş hesaplanır; hayvanın sayfasında doğum tarihinin yanında \"tahmini\" yazar.",
+    "birthYearNoEffect": "Doğum tarihi boş kalır; yıl hayvanın notuna yazılır.",
+    "resultHeadlinePets": "{pets, plural, one {# hayvan} other {# hayvan}} artık kliniğinizde.",
+    "resultHeadlineClients": "{clients, plural, one {# sahip} other {# sahip}} artık kliniğinizde.",
+    "resultHeadlineVaccinationsOnly": "Yeni hayvan ya da sahip eklenmedi; {count, plural, one {# aşı kaydı} other {# aşı kaydı}} kayıtlı hayvanlarınıza eklendi.",
+    "resultHeadlineNothing": "Bu dosyadan yeni kayıt eklenmedi; hepsi zaten kliniğinizde.",
+    "resultVaccinationsHint": "Her biri hayvanın sayfasında, aşılar altında."
   },
   "enum": {
     "species": {
@@ -1120,7 +1370,7 @@
     },
     "invoiceStatus": {
       "DRAFT": "Taslak",
-      "SENT": "Gönderildi",
+      "SENT": "Kesildi",
       "PARTIAL": "Kısmen ödendi",
       "PAID": "Ödendi",
       "VOID": "İptal"
@@ -1174,6 +1424,13 @@
       "SIGNIN": "Giriş yaptı",
       "SIGNOUT": "Çıkış yaptı",
       "SIGNUP": "Kaydoldu"
+    },
+    "invoiceLineKind": {
+      "VISIT": "Vizit",
+      "VACCINATION": "Aşı",
+      "TREATMENT": "Tedavi",
+      "DIAGNOSTIC": "Tetkik",
+      "PRESCRIPTION": "Reçete"
     }
   },
   "error": {
@@ -1220,7 +1477,8 @@
       "invoiceDuplicate": "Bu fatura numarası zaten kullanılıyor.",
       "emailInUse": "Bu e-posta adresi zaten kullanılıyor.",
       "lastAdmin": "Bu kliniğin son yöneticisi devre dışı bırakılamaz. Önce başka bir yönetici ekleyiniz.",
-      "invoiceVoided": "Bu fatura iptal edilmiş; üzerine ödeme kaydedilemez."
+      "invoiceVoided": "Bu fatura iptal edilmiş; üzerine ödeme kaydedilemez.",
+      "duplicateRecord": "\"{name}\" bu hayvana bu dakikada zaten kaydedilmiş; ikinci kez kaydedilmedi. Kaydı aşağıdaki listede görebilirsiniz."
     },
     "auth": {
       "signupFailed": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
@@ -1252,7 +1510,18 @@
       "timezoneUnknown": "Geçersiz saat dilimi.",
       "noteTarget": "Bir hayvan veya müşteri belirtmelisiniz.",
       "importDuplicatesUnanswered": "Aynı kişi olabilecek kayıtlar için karar verilmeden içe aktarma tamamlanamaz.",
-      "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış."
+      "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış.",
+      "appointmentNotWaiting": "Bu randevunun durumu zaten değişmiş. Sayfayı yenileyin.",
+      "recallOutcome": "Bilinmeyen arama sonucu.",
+      "mergeSameClient": "Bir kayıt kendisiyle birleştirilemez.",
+      "mergeIntoArchived": "Arşivdeki bir kayda birleştirilemez. Önce o kaydı geri alın.",
+      "ownerChangeUnconfirmed": "Sahip değişikliğini onaylayın: sahip alanının altındaki kutuyu işaretleyin.",
+      "importPetsUnanswered": "Hangi hayvan olduğu belli olmayan satırlar için karar verilmeden içe aktarma tamamlanamaz.",
+      "petDeceased": "Bu hayvan vefat etti olarak işaretli; randevu verilemez.",
+      "afterDeath": "Bu hayvan bu tarihten önce vefat etti olarak işaretli. Tarihi kontrol ediniz.",
+      "deceasedInFuture": "Vefat tarihi ileri bir tarih olamaz.",
+      "deceasedBeforeBirth": "Vefat tarihi doğum tarihinden önce olamaz.",
+      "noShowBeforeStart": "Randevu saati henüz gelmedi; \"Gelmedi\" ancak randevu başladıktan sonra işaretlenebilir."
     },
     "form": {
       "required": "{field} gerekli.",
@@ -1278,6 +1547,83 @@
       "linesRequired": "En az bir satır ekleyiniz.",
       "paymentOverBalance": "Bu faturada kalan borç {remaining}. Ödeme bundan fazla olamaz; lütfen tutarı kontrol ediniz.",
       "paymentNothingOwed": "Bu faturada ödenecek borç kalmadı."
+    },
+    "allergyConflict": "Kaydedilmedi. Bu hayvanın kayıtlı uyarısı \"{allergy}\"; yazılan \"{drug}\" bununla eşleşiyor{family, select, penicillin { (ikisi de penisilin grubu)} sulfonamide { (ikisi de sülfonamid grubu)} nsaid { (ikisi de NSAİİ grubu)} other {}}. Yine de yazmak için gerekçe girin."
+  },
+  "recall": {
+    "title": "Aşı takibi",
+    "subtitle": "Zamanı gelen ve {days} gün içinde gelecek aşılar. Sahibini arayın, randevu verin, ne olduğunu işaretleyin.",
+    "tabs": {
+      "label": "Liste",
+      "overdue": "Gecikmiş",
+      "upcoming": "Yaklaşan ({days} gün)"
+    },
+    "filters": {
+      "label": "Süzgeçler",
+      "vaccine": "Aşı",
+      "allVaccines": "Tüm aşılar",
+      "species": "Tür",
+      "allSpecies": "Tüm türler",
+      "age": "Gecikme",
+      "ages": {
+        "month": "Son 30 gün",
+        "recent": "Son 6 ay",
+        "older": "6 aydan eski",
+        "all": "Tümü"
+      },
+      "contact": "Arama",
+      "contacts": {
+        "any": "Hepsi",
+        "none": "Hiç aranmadı",
+        "called": "Arandı",
+        "unreachable": "Ulaşılamadı"
+      },
+      "sort": "Sıralama",
+      "sorts": {
+        "dueOverdue": "En uzun bekleyen önce",
+        "dueUpcoming": "En yakın tarih önce",
+        "pet": "Hayvan adı",
+        "owner": "Sahip adı"
+      }
+    },
+    "columns": {
+      "pet": "Hayvan ve aşı",
+      "owner": "Sahip",
+      "due": "Tarih",
+      "state": "Durum",
+      "actions": "İşlemler"
+    },
+    "total": "{count, plural, one {# aşı} other {# aşı}}.",
+    "bookedLast": "Randevusu olanlar listenin sonunda.",
+    "booked": "Randevu var · {when}",
+    "lastCalled": "Arandı · {who} · {when}",
+    "lastUnreachable": "{count, plural, one {Ulaşılamadı} other {# kez denendi, ulaşılamadı}} · {who} · {when}",
+    "someone": "bir ekip üyesi",
+    "notTried": "Henüz aranmadı",
+    "noPhone": "Telefon yok",
+    "called": "Arandı",
+    "unreachable": "Ulaşılamadı",
+    "markedCalled": "{pet}: arandı olarak işaretlendi.",
+    "markedUnreachable": "{pet}: ulaşılamadı olarak işaretlendi.",
+    "undo": "Geri al",
+    "book": "Randevu ver",
+    "dismiss": "Listeden çıkar",
+    "dismissed": "Listeden çıkarıldı. Aşı hayvanın sayfasında duruyor.",
+    "dismissExplained": "\"Listeden çıkar\" yalnızca bu satırı listeden kaldırır; aşı kaydı hayvanın sayfasında kalır ve oradan geri alınabilir.",
+    "empty": {
+      "overdue": "Gecikmiş aşı yok.",
+      "upcoming": "Önümüzdeki 30 gün içinde zamanı gelen aşı yok."
+    },
+    "emptyHint": {
+      "overdue": "Bir aşının sonraki tarihi geçtiğinde burada görünür; sahibini buradan arayıp randevu verebilirsiniz.",
+      "upcoming": "Sonraki tarihi yaklaşan aşılar burada görünür; sahibine önceden haber vermek için kullanın."
+    },
+    "copy": {
+      "label": "Mesajları kopyala",
+      "done": "{owners, plural, one {# sahip için mesaj kopyalandı.} other {# sahip için mesajlar kopyalandı.}}",
+      "doneHint": "WhatsApp'ta her sahibin sohbetine kendi bölümünü yapıştırın.",
+      "empty": "Bu listede telefonu kayıtlı sahip yok.",
+      "failed": "Kopyalanamadı. Tarayıcı panoya erişime izin vermedi."
     }
   }
 }

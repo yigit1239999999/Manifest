@@ -1088,3 +1088,32 @@ describe("the rows that offer to create what was typed", () => {
     }
   });
 });
+
+// pm: a vaccine name not in the catalogue, typed in full and followed by
+// Enter, submitted the form. Enter in a picker means "done typing".
+describe("Enter in a free-text picker", () => {
+  it("does not submit the form when nothing matches", () => {
+    const view = render(
+      <form>
+        <Combobox name="vaccine" freeText options={OPTIONS} />
+      </form>,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Bronşin" } });
+    // `fireEvent` returns false when the handler prevented the default,
+    // which for Enter in a text field is the form's implicit submit.
+    expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(false);
+    expect((input as HTMLInputElement).value).toBe("Bronşin");
+  });
+
+  it("does not submit with the list closed either", () => {
+    const view = render(
+      <form>
+        <Combobox name="vaccine" freeText options={OPTIONS} />
+      </form>,
+    );
+    const input = view.container.querySelector('input[type="text"]')!;
+    expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(false);
+  });
+});

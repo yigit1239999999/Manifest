@@ -65,8 +65,10 @@ for (const locale of ["tr", "en"] as const) {
     // asserted one file over (`first-run.spec.ts`), and what this journey
     // needs to know is that a vet reading the screen in their own language
     // is offered the way in. Clicked, not read.
+    // One leg: both catalogues say "Excel" on the first-run card's button
+    // since it became a card of its own (pm B14).
     await page
-      .getByRole("link", { name: /spreadsheet|Excel/i })
+      .getByRole("link", { name: /Excel/i })
       .click();
     await expect(page).toHaveURL("/import");
 
@@ -109,6 +111,10 @@ for (const locale of ["tr", "en"] as const) {
     await page
       .getByRole("button", { name: /undo this import|bu aktarımı geri alın/i })
       .click();
+    // Asked first, with the server's own counts (A5).
+    const confirm = page.getByRole("dialog");
+    await expect(confirm.getByText(/will be deleted|silinecek/i)).toBeVisible();
+    await confirm.getByRole("button", { name: /yes, undo it|evet, geri alın/i }).click();
     await expect(page.getByText(/were taken back|geri alındı/i).first()).toBeVisible();
 
     await page.goto("/pets");

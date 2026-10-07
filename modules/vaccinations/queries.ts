@@ -5,6 +5,7 @@ import {
   clinicVaccineList,
   normalizeVaccineSettings,
   offerByName,
+  seriesFrom,
   type DoseRow,
   type VaccineOffer,
 } from "./catalogue";
@@ -21,6 +22,18 @@ export async function listVaccinationsForPet(
     include: { administeredBy: { select: { id: true, name: true } } },
   });
 }
+
+/**
+ * How far ahead "upcoming" looks, everywhere it is said: the dashboard
+ * card, this list, and the import result's "N in the next 30 days".
+ *
+ * One window because there were three: the card had none (it listed a
+ * booster due in 2027 as "upcoming"), the import said 30 days, and a vet
+ * reading both could not tell which one was the clinic's. A month is the
+ * horizon a recall call is made on: far enough to book, near enough that
+ * the owner will still remember the call.
+ */
+export const UPCOMING_WINDOW_DAYS = 30;
 
 /**
  * What the dashboard offers as work to do next.
@@ -43,11 +56,19 @@ export async function listVaccinationsForPet(
  * their booster sends a vet to somebody they should not be calling --
  * the dead-animal case one level up.
  */
-export async function upcomingVaccinations(clinicId: string, take = 10) {
+export async function upcomingVaccinations(clinicId: string, take = 10, now = new Date()) {
   return prisma.vaccination.findMany({
     where: {
       clinicId,
-      nextDueAt: { not: null, gte: new Date() },
+      nextDueAt: {
+        not: null,
+        gte: now,
+        lte: new Date(now.getTime() + UPCOMING_WINDOW_DAYS * 86_400_000),
+      },
+      // Taken off the recall list: off this card too.
+      dueDismissedAt: null,
+      // A later dose of the same vaccine has answered this date.
+      supersededById: null,
       pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
     },
     orderBy: { nextDueAt: "asc" },
@@ -75,6 +96,10 @@ function overdueWhere(clinicId: string, now: Date) {
     // Closed rows are closed. The stamp is on the vaccination, not the
     // animal, so this hides one line from one card and nothing else.
     dueDismissedAt: null,
+    // Answered by a later dose of the same vaccine (catalogue aliases
+    // included): re-vaccinated is not overdue. Derived, not a close --
+    // see `supersede.ts`.
+    supersededById: null,
     // The same two layers as the upcoming card. An overdue booster for
     // a dead animal is the worst version of this card, not a milder
     // one: it is the most urgent-looking row on the screen.
@@ -109,6 +134,22 @@ export async function overdueVaccinations(clinicId: string, take = 5, now = new 
   });
 }
 
+/** How many are due inside the upcoming window: the card's "see all" count. */
+export async function countUpcomingVaccinations(clinicId: string, now = new Date()) {
+  return prisma.vaccination.count({
+    where: {
+      clinicId,
+      nextDueAt: {
+        gte: now,
+        lte: new Date(now.getTime() + UPCOMING_WINDOW_DAYS * 86_400_000),
+      },
+      dueDismissedAt: null,
+      supersededById: null,
+      pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
+    },
+  });
+}
+
 /**
  * The count behind the card's heading, which is also what decides
  * whether the card exists at all: at zero it is not rendered, because
@@ -139,6 +180,7 @@ export async function countOlderOverdueVaccinations(clinicId: string, now = new 
       clinicId,
       nextDueAt: { lt: since },
       dueDismissedAt: null,
+      supersededById: null,
       pet: { deceased: false, archivedAt: null, owner: { archivedAt: null } },
     },
   });
@@ -275,6 +317,12 @@ export async function vaccineOffersForPet(
    * for data already in hand.
    */
   doses: DoseRow[];
+  /**
+   * Series this animal is part-way through, as its records state them.
+   * The form offers the series only here, or for a young animal; see
+   * `VaccinationForm`.
+   */
+  openSeries: Record<string, { dose: number; of: number }>;
 }> {
   const [clinic, history, given] = await Promise.all([
     prisma.clinic.findUnique({ where: { id: clinicId }, select: { settings: true } }),
@@ -305,7 +353,11 @@ export async function vaccineOffersForPet(
     if (!offer) continue;
     priorDoses[offer.key] = (priorDoses[offer.key] ?? 0) + 1;
   }
-  return { offers, priorDoses, doses: given };
+  const openSeries: Record<string, { dose: number; of: number }> = {};
+  for (const progress of seriesFrom(offers, given)) {
+    openSeries[progress.key] = { dose: progress.dose, of: progress.of };
+  }
+  return { offers, priorDoses, doses: given, openSeries };
 }
 
 /**

@@ -77,3 +77,12 @@ describe("a form whose server refuses dead animals", () => {
     expect(withForm.length).toBeGreaterThan(0);
   });
 });
+
+describe("the booking form", () => {
+  it("is never handed a list with animals that have died", () => {
+    // `createAppointment` refuses them; pm booked the deceased Fındık
+    // from an unmarked picker row.
+    const source = readFileSync(join(APP, "appointments/new/page.tsx"), "utf8");
+    expect(source).toMatch(/listPets\([^)]*excludeDeceased:\s*true/);
+  });
+});

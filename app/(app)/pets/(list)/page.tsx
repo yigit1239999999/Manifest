@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SpeciesIcon } from "@/components/species-icon";
 import { Pagination } from "@/components/pagination";
 import { FilterTabs } from "@/components/filter-tabs";
+import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { petAge } from "@/lib/format";
@@ -133,6 +134,10 @@ export default async function PetsPage({
                             label={tCommon("archived")}
                           />
                         )}
+                        {/* Quiet, like "archived": a fact about the
+                            animal, not a task. Without it a deceased
+                            animal read like any other in the list. */}
+                        {pet.deceased && <Badge variant="outline">{t("deceased")}</Badge>}
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
                         {meta.join(" · ")}

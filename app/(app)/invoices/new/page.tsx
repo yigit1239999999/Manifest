@@ -4,7 +4,10 @@ import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getClientLabel, listClients } from "@/modules/clients/queries";
 import { getVisitForInvoice } from "@/modules/visits/queries";
-import { getInvoiceForVisit } from "@/modules/invoices/queries";
+import { getInvoiceForVisit, lastVatRate } from "@/modules/invoices/queries";
+import { getClinicCurrency } from "@/modules/clinics/queries";
+import { DEFAULT_VAT_RATE, VAT_RATES, type VatRate } from "@/modules/invoices/schema";
+import type { Line } from "@/components/forms/invoice-form";
 import { centsToInputValue } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -45,39 +48,66 @@ export default async function NewInvoicePage({
   // consulted when there is no visit to ask.
   const client = visit?.clientId ?? clientId;
 
-  const [t, tCommon, tType, locale, clients, clientLabel] = await Promise.all([
+  const [t, tCommon, tType, tDiagType, locale, clients, clientLabel, currency, lastRate] = await Promise.all([
     getTranslations("invoice"),
     getTranslations("common"),
     getTranslations("enum.visitType"),
+    getTranslations("enum.diagnosticType"),
     getLocale(),
     listClients({ clinicId: session.user.clinicId }),
     // Only when a link carried a client: that client may sit past
     // the picker's cap, and then the field renders empty (`getClientLabel`).
     client ? getClientLabel(session.user.clinicId, client) : undefined,
+    getClinicCurrency(session.user.clinicId),
+    lastVatRate(session.user.clinicId),
   ]);
+  const defaultVatRate: VatRate = (VAT_RATES as readonly number[]).includes(lastRate ?? -1)
+    ? (lastRate as VatRate)
+    : DEFAULT_VAT_RATE;
 
-  // Composed from strings that are already translated rather than a new
-  // message: the line says which visit is being billed, and "Aşı · 14
-  // Eyl" is what a vet calls it. A new key would be a third place for
-  // the same words to drift apart.
-  const prefilledLine = visit
-    ? {
-        description: `${tType(visit.type)} · ${formatDate(locale, visit.visitedAt)}`,
-        quantity: "1",
-        // Blank rather than zero when the visit was never priced. A
-        // prefilled "0,00" reads as the answer and gets submitted; an
-        // empty required field asks the question.
-        unitPrice:
-          visit.totalCents != null
-            ? centsToInputValue(locale, visit.totalCents)
-            : "",
-        petId: visit.petId,
-        visitId: visit.id,
-      }
+  // What the visit was, then what was done in it, one line each (B9):
+  // "Aşı · 14 Eyl" alone billed a morning's work as one unnamed line.
+  //
+  // The visit line is composed from strings that are already translated,
+  // and carries `kind: "VISIT"` so the invoice draws it in its reader's
+  // language rather than in whoever raised it -- until somebody edits the
+  // words, when they become the vet's own (see `InvoiceForm`).
+  //
+  // Every line carries the visit: that link is what stops the same visit
+  // being billed twice, and it must survive the vet removing the visit
+  // fee line and billing only the vaccine.
+  const prefilledLines: Line[] | undefined = visit
+    ? [
+        {
+          description: `${tType(visit.type)} · ${formatDate(locale, visit.visitedAt)}`,
+          quantity: "1",
+          // Blank rather than zero when the visit was never priced. A
+          // prefilled "0,00" reads as the answer and gets submitted; an
+          // empty required field asks the question.
+          unitPrice:
+            visit.totalCents != null
+              ? centsToInputValue(locale, visit.totalCents)
+              : "",
+          petId: visit.petId,
+          visitId: visit.id,
+          kind: "VISIT" as const,
+        },
+        ...visit.vaccinations.map((v) => ({ description: v.name, kind: "VACCINATION" as const })),
+        ...visit.treatments.map((tr) => ({ description: tr.name, kind: "TREATMENT" as const })),
+        ...visit.diagnostics.map((d) => ({
+          description: d.name || tDiagType(d.type),
+          kind: "DIAGNOSTIC" as const,
+        })),
+        ...visit.prescriptions.map((p) => ({
+          description: [p.medicationName, p.dosage].filter(Boolean).join(" "),
+          kind: "PRESCRIPTION" as const,
+        })),
+      ].map((line, i) =>
+        i === 0
+          ? (line as Line)
+          : { ...line, quantity: "1", unitPrice: "", petId: visit.petId, visitId: visit.id },
+      )
     : undefined;
-
-  // eslint-disable-next-line react-hooks/purity -- server component, evaluated once per request
-  const defaultNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`;
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
@@ -96,8 +126,9 @@ export default async function NewInvoicePage({
             clientsCapped={clients.hasMore}
             defaultClientId={client}
             defaultClientLabel={clientLabel}
-            defaultNumber={defaultNumber}
-            prefilledLine={prefilledLine}
+            prefilledLines={prefilledLines}
+            currency={currency}
+            defaultVatRate={defaultVatRate}
             // A visit's fee is owed once it is billed. Opened as a draft,
             // it counted nowhere: neither the dashboard's outstanding
             // total nor the unpaid list includes drafts.

@@ -42,7 +42,8 @@ describe("one row, several vaccinations", () => {
     const row = planRow(["Elif", "Aslan", "", "geçen eylül", ""], MAPPING, {}, 1, OPTIONS);
     expect(row.vaccinations).toEqual([]);
     expect(row.warnings[0]).toMatchObject({ kind: "dateUnreadable", raw: "geçen eylül", vaccine: "Kuduz" });
-    expect(row.pet?.notes).toContain("Kuduz Aşısı: geçen eylül");
+    // Named by the vaccine rather than the column heading (A3).
+    expect(row.pet?.notes).toContain("Kuduz: geçen eylül");
   });
 
   it("does not record a vaccination dated after today", () => {
@@ -55,6 +56,71 @@ describe("one row, several vaccinations", () => {
   it("reads the column's day-or-month answer for each vaccine column", () => {
     const row = planRow(["A", "B", "", "05/06/2024", ""], MAPPING, { 3: "dayFirst" }, 1, OPTIONS);
     expect(row.vaccinations[0].administeredAt.toISOString().slice(0, 10)).toBe("2024-06-05");
+  });
+});
+
+describe("future and unreadable dates keep the vaccine and the next dose (A3, B13)", () => {
+  const PAIR: Mapping = { 0: "client.firstName", 1: "pet.name", 2: "vaccine.name", 3: "vaccine.date", 4: "vaccine.nextDue" };
+
+  it("writes 'Lyme: 26.10.2026 (sonraki: 26.10.2027)', not 'Aşı Tarihi: 26.10.2026'", () => {
+    const row = planRow(["A", "Boncuk", "Lyme", "26.10.2026", "26.10.2027"], PAIR, {}, 1, {
+      today: TODAY,
+      columnLabels: { 3: "Aşı Tarihi", 4: "Sonraki" },
+    });
+    expect(row.vaccinations).toEqual([]);
+    expect(row.pet?.notes).toBe("Lyme: 26.10.2026 (sonraki: 26.10.2027)");
+    expect(row.future).toEqual({ anchored: 0, unanchored: 1 });
+  });
+
+  it("shows an Excel date the way Excel showed it, in the reader's word for next", () => {
+    const row = planRow(["A", "Boncuk", "Lyme", "2026-10-26", "2027-10-26"], PAIR, {}, 1, {
+      today: TODAY,
+      nextWord: "next",
+    });
+    expect(row.pet?.notes).toBe("Lyme: 26.10.2026 (next: 26.10.2027)");
+  });
+
+  const TWO_KARMA: Mapping = { 0: "client.firstName", 1: "pet.name", 2: "vaccine.column", 3: "vaccine.column" };
+  const KARMA = { vaccineNames: { 2: "Karma", 3: "Karma" }, today: TODAY };
+
+  it("counts a future dose with an earlier dose of the same vaccine as one that can be its next date", () => {
+    const row = planRow(["A", "Pamuk", "01.09.2026", "29.10.2026"], TWO_KARMA, {}, 1, KARMA);
+    expect(row.future).toEqual({ anchored: 1, unanchored: 0 });
+    // Unanswered, it stays a note and the earlier dose has no next date.
+    expect(row.vaccinations[0].nextDueAt).toBeNull();
+    expect(row.pet?.notes).toBe("Karma: 29.10.2026");
+  });
+
+  it("takes it as the earlier dose's next date when the vet says yes", () => {
+    const row = planRow(["A", "Pamuk", "01.09.2026", "29.10.2026"], TWO_KARMA, {}, 1, { ...KARMA, futureAsNextDue: true });
+    expect(row.vaccinations).toHaveLength(1);
+    expect(row.vaccinations[0].nextDueAt?.toISOString().slice(0, 10)).toBe("2026-10-29");
+    expect(row.pet?.notes).toBeNull();
+    expect(row.warnings).toEqual([]);
+  });
+
+  it("never overwrites a next date the file already gave", () => {
+    const row = planRow(["A", "Pamuk", "Karma", "01.09.2026", "01.09.2027", "29.10.2026"], {
+      0: "client.firstName",
+      1: "pet.name",
+      2: "vaccine.name",
+      3: "vaccine.date",
+      4: "vaccine.nextDue",
+      5: "vaccine.column",
+    }, {}, 1, { today: TODAY, vaccineNames: { 5: "Karma" }, futureAsNextDue: true });
+    expect(row.vaccinations[0].nextDueAt?.toISOString().slice(0, 10)).toBe("2027-09-01");
+    expect(row.future).toEqual({ anchored: 0, unanchored: 1 });
+    expect(row.pet?.notes).toBe("Karma: 29.10.2026");
+  });
+});
+
+describe("a year alone, taken as an estimate when asked (B13)", () => {
+  it("is 1 January of that year, flagged estimated, with no note", () => {
+    const row = planRow(["Ayşe", "Zeytin", "2021", "", ""], MAPPING, {}, 1, { ...OPTIONS, estimateBirthYear: true });
+    expect(row.pet?.birthDate?.toISOString().slice(0, 10)).toBe("2021-01-01");
+    expect(row.pet?.birthDateEstimated).toBe(true);
+    expect(row.pet?.notes).toBeNull();
+    expect(row.birthYearOnly).toBe(true);
   });
 });
 

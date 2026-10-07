@@ -88,6 +88,7 @@ export function ColumnBars({
   formatValue,
   partialLast,
   footnote,
+  valueLabel,
 }: {
   data: BarDatum[];
   height?: number;
@@ -123,6 +124,13 @@ export function ColumnBars({
    * (TEAM.md #21).
    */
   footnote?: string;
+  /**
+   * A short figure printed on top of each non-zero bar ("₺12,5 B"), for a
+   * chart whose heights are read for their amounts -- money taken in a
+   * month is a number the vet wants, not a shape (QA C13). Optional: a
+   * count chart of twelve weeks reads fine as a shape.
+   */
+  valueLabel?: (value: number) => string;
 }) {
   // Two different kinds of "nothing", and the second is the one that actually
   // happens: the dashboard series are gap-filled to a fixed 12 weeks / 6
@@ -175,8 +183,8 @@ export function ColumnBars({
       <div
         role="img"
         aria-label={summary}
-        className="flex items-end gap-1 border-b border-border"
-        style={{ height }}
+        className={cn("flex items-end gap-1 border-b border-border", valueLabel && "pt-4")}
+        style={{ height: valueLabel ? height + 16 : height }}
       >
         {data.map((d, i) => {
           const pct = (d.value / max) * 100;
@@ -196,6 +204,18 @@ export function ColumnBars({
                   animal came in" the same height on a busy clinic's chart.
                   Non-zero values instead get a small pixel floor, so a value
                   that rounds to nearly nothing still reads as present. */}
+              {d.value > 0 && valueLabel && (
+                // Above the bar, in the room `pt-4` keeps for it. Hidden
+                // from assistive technology: the chart's summary already
+                // says every amount in full.
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 truncate text-center text-[10px] font-medium tabular-nums text-foreground"
+                  style={{ bottom: `calc(${pct}% + 2px)` }}
+                >
+                  {valueLabel(d.value)}
+                </span>
+              )}
               {d.value > 0 && (
                 <div
                   // `rounded-t-md` and not one of the four radius roles: the
@@ -216,12 +236,32 @@ export function ColumnBars({
           );
         })}
       </div>
-      <div className="flex gap-1 text-[10px] text-muted-foreground">
-        {data.map((d) => (
-          <span key={d.label} className="flex-1 truncate text-center">
-            {d.label}
-          </span>
-        ))}
+      {/* Every other label on a narrow card when there are many (pm C13):
+          twelve weekly labels in a 300px card were cut to "19…", "2…",
+          which is twelve labels saying nothing. Counted from the last, so
+          the current period always keeps its name; the hidden ones keep
+          their place, so every label still sits under its own column.
+          The whole series is in the chart's accessible summary either
+          way. */}
+      <div className="@container">
+        <div className="flex gap-1 text-[10px] text-muted-foreground">
+          {data.map((d, i) => (
+            <span
+              key={d.label}
+              className={cn(
+                "flex-1 truncate text-center",
+                data.length > 6 &&
+                  ((lastIndex - i) % 2 === 1
+                    ? "@max-sm:invisible"
+                    : // The shown label may spill into its hidden
+                      // neighbours' room, centred on its own column.
+                      "@max-sm:flex @max-sm:justify-center @max-sm:overflow-visible"),
+              )}
+            >
+              {d.label}
+            </span>
+          ))}
+        </div>
       </div>
       {partialLast && (
         // Not `aria-hidden`: the same fact is in the chart's own summary, but

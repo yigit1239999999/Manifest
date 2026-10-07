@@ -23,8 +23,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { Printer } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { ownerLabel } from "@/lib/pet-label";
+import { invoiceLineText } from "@/components/invoices/line-text";
 
 export default async function InvoicePage({
   params,
@@ -34,12 +37,14 @@ export default async function InvoicePage({
   const fmt = await getFormatContext();
   const { id } = await params;
   const session = await requireSession();
-  const [invoice, t, tCommon, tStatus, tMethod] = await Promise.all([
+  const [invoice, t, tCommon, tStatus, tMethod, tKind, tVisitType] = await Promise.all([
     getInvoiceById(session.user.clinicId, id),
     getTranslations("invoice"),
     getTranslations("common"),
     getTranslations("enum.invoiceStatus"),
     getTranslations("enum.paymentMethod"),
+    getTranslations("enum.invoiceLineKind"),
+    getTranslations("enum.visitType"),
   ]);
   if (!invoice) notFound();
 
@@ -64,6 +69,24 @@ export default async function InvoicePage({
   );
   const remaining = invoice.totalCents - paidSoFar;
 
+  const lineWords = {
+    kind: (kind: Parameters<typeof tKind>[0]) => tKind(kind),
+    visitType: (type: string) => tVisitType(type as never),
+    date: (date: Date) => formatDate(fmt, date),
+  };
+  // The "from the visit" link once per visit, on its first line: a visit
+  // billed as six lines would otherwise say so six times.
+  const firstLineOfVisit = new Set<string>();
+  {
+    const seen = new Set<string>();
+    for (const l of invoice.lines) {
+      if (l.visit && !seen.has(l.visit.id)) {
+        seen.add(l.visit.id);
+        firstLineOfVisit.add(l.id);
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/invoices" label={tCommon("back")} />
@@ -79,6 +102,15 @@ export default async function InvoicePage({
           />
         }
       >
+        {/* A clean printed copy: the invoice, and with its payments the
+            receipt the owner takes home (job #17). */}
+        <Link
+          href={`/print/invoices/${invoice.id}`}
+          className={buttonVariants({ variant: "secondary" })}
+        >
+          <Printer />
+          {t("print.button")}
+        </Link>
         {canWrite && invoice.status === "DRAFT" && (
           <MarkSentButton
             action={markInvoiceSentAction.bind(null, invoice.id)}
@@ -151,7 +183,7 @@ export default async function InvoicePage({
                 {invoice.lines.map((l) => (
                   <tr key={l.id}>
                     <td className="px-4 py-3">
-                      {l.description}
+                      {invoiceLineText(l, lineWords)}
                       {/* The two hidden columns, riding along. Hidden at
                           `@sm`, the breakpoint their columns arrive at,
                           so between them they are always on screen once
@@ -174,7 +206,7 @@ export default async function InvoicePage({
                           smallest honest version so the column is not
                           filled and invisible, which is the same as not
                           having it. */}
-                      {l.visit && (
+                      {l.visit && firstLineOfVisit.has(l.id) && (
                         <Link
                           href={`/visits/${l.visit.id}`}
                           className="mt-0.5 block text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
@@ -210,7 +242,9 @@ export default async function InvoicePage({
               <dd className="text-end tabular-nums">
                 {formatMoney(fmt, invoice.subtotalCents, currency)}
               </dd>
-              <dt className="text-end text-muted-foreground">{t("tax")}</dt>
+              <dt className="text-end text-muted-foreground">
+                {invoice.taxRate !== null ? t("taxAt", { rate: invoice.taxRate }) : t("tax")}
+              </dt>
               <dd className="text-end tabular-nums">
                 {formatMoney(fmt, invoice.taxCents, currency)}
               </dd>
@@ -228,22 +262,45 @@ export default async function InvoicePage({
         </Card>
 
         <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("outstanding")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold tabular-nums">
-                {formatMoney(fmt, Math.max(0, remaining), currency)}
-              </p>
-              <p className="mt-1 text-xs tabular-nums text-muted-foreground">
-                {t("paidAt")}: {formatMoney(fmt, paidSoFar, currency)} /{" "}
-                {formatMoney(fmt, invoice.totalCents, currency)}
-              </p>
-            </CardContent>
-          </Card>
+          {/* What the money stands at, in the words that fit it (C7):
+              "Ödenmemiş" only while nothing is paid, "Kalan" once some
+              is, and no "₺0,00 unpaid" box on a settled invoice -- that
+              said "unpaid" about an invoice that was paid. A draft is not
+              owed yet and a void one never will be. */}
+          {invoice.status === "PAID" || (invoice.status !== "VOID" && invoice.status !== "DRAFT" && remaining <= 0) ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("settledTitle")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {formatMoney(fmt, invoice.totalCents, currency)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {invoice.paidAt
+                    ? t("settledOn", { date: formatDate(fmt, invoice.paidAt) })
+                    : t("settled")}
+                </p>
+              </CardContent>
+            </Card>
+          ) : invoice.status === "VOID" || invoice.status === "DRAFT" ? null : (
+            <Card>
+              <CardHeader>
+                <CardTitle>{paidSoFar > 0 ? t("remaining") : t("outstanding")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {formatMoney(fmt, Math.max(0, remaining), currency)}
+                </p>
+                <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+                  {t("paidAt")}: {formatMoney(fmt, paidSoFar, currency)} /{" "}
+                  {formatMoney(fmt, invoice.totalCents, currency)}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-          {canRecordPayment && invoice.status !== "PAID" && invoice.status !== "VOID" && (
+          {canRecordPayment && invoice.status !== "PAID" && invoice.status !== "VOID" && remaining > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>{t("recordPayment")}</CardTitle>

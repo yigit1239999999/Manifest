@@ -13,6 +13,7 @@ import {
   Receipt,
   Settings,
   Stethoscope,
+  Syringe,
   Upload,
   UserCog,
   Users,
@@ -36,12 +37,14 @@ import type { Permission } from "@/lib/permissions";
 // beside the locked one. A list rather than a new `import.write`
 // permission, because the endpoint invented none either and two names for
 // one rule is how they drift apart.
-const NAV: {
+export type NavItem = {
   href: string;
   key: string;
   icon: typeof Home;
   permission?: Permission | readonly Permission[];
-}[] = [
+};
+
+export const NAV: NavItem[] = [
   { href: "/", key: "dashboard", icon: Home },
   { href: "/clients", key: "clients", icon: Users },
   { href: "/pets", key: "pets", icon: PawPrint },
@@ -49,6 +52,8 @@ const NAV: {
   { href: "/appointments", key: "appointments", icon: CalendarClock },
   { href: "/prescriptions", key: "prescriptions", icon: Pill },
   { href: "/reminders", key: "reminders", icon: ClipboardList },
+  // Beside the reminders it feeds: the list of whom to call this week.
+  { href: "/recalls", key: "recalls", icon: Syringe },
   { href: "/invoices", key: "invoices", icon: Receipt },
   // Under the day's work and above the history, because that is what it
   // is: not something a vet opens between patients, and not a record of
@@ -66,6 +71,26 @@ const NAV: {
     permission: "settings.manage",
   },
 ];
+
+/** The entries this role may open, in rail order. */
+export function navItemsFor(permissions: readonly Permission[]): NavItem[] {
+  return NAV.filter((item) => {
+    if (!item.permission) return true;
+    // `every`, so a list is an AND. The other reading -- any one of them
+    // opens the door -- is the one that would be wrong here and wrong
+    // quietly: the page behind it would still refuse, and the rail would
+    // have promised.
+    const needed =
+      typeof item.permission === "string" ? [item.permission] : item.permission;
+    return needed.every((p) => permissions.includes(p));
+  });
+}
+
+export function isActiveHref(pathname: string, href: string): boolean {
+  return href === "/"
+    ? pathname === "/"
+    : pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function Sidebar({
   permissions,
@@ -88,24 +113,14 @@ export function Sidebar({
   const tApp = useTranslations("app");
   const pathname = usePathname();
 
-  const items = NAV.filter((item) => {
-    if (!item.permission) return true;
-    // `every`, so a list is an AND. The other reading -- any one of them
-    // opens the door -- is the one that would be wrong here and wrong
-    // quietly: the page behind it would still refuse, and the rail would
-    // have promised.
-    const needed =
-      typeof item.permission === "string" ? [item.permission] : item.permission;
-    return needed.every((p) => permissions.includes(p));
-  });
-
-  const isActive = (href: string) =>
-    href === "/"
-      ? pathname === "/"
-      : pathname === href || pathname.startsWith(`${href}/`);
+  const items = navItemsFor(permissions);
+  const isActive = (href: string) => isActiveHref(pathname, href);
 
   return (
-    <aside className="sticky top-0 flex h-screen w-16 shrink-0 flex-col gap-6 border-r border-border bg-card px-3 py-5 md:w-60 md:px-4">
+    // Hidden below `md`, where `BottomNav` takes over: the 56px rail of
+    // unlabelled icons was a row of riddles on a phone (pm B15, the vet:
+    // "mobil kenar menü yalnız ikon"). From `md` up nothing changed.
+    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-6 border-r border-border bg-card px-4 py-5 md:flex">
       <Link href="/" className="flex items-center gap-2.5 px-1.5">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-tile bg-primary text-primary-foreground">
           <PawPrint className="size-5" />

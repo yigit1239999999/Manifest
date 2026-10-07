@@ -35,6 +35,8 @@ import {
 } from "@/modules/notifications/actions";
 import { NotificationActions } from "@/components/notification-actions";
 import { ownerLabel } from "@/lib/pet-label";
+import { clientBalance } from "@/modules/invoices/queries";
+import { OwnerBalance } from "@/components/invoices/owner-balance";
 
 export default async function AppointmentPage({
   params,
@@ -66,6 +68,9 @@ export default async function AppointmentPage({
       listMessagesForAppointment(session.user.clinicId, id),
     ]);
   if (!appointment) notFound();
+  // What the owner still owes, beside their name: an appointment page is
+  // what is open when they arrive at the counter.
+  const ownerBalance = await clientBalance(session.user.clinicId, appointment.client.id);
 
   // The service decides what "closed" means; the screen only reflects it,
   // so the card cannot offer a send the server would refuse.
@@ -230,12 +235,15 @@ export default async function AppointmentPage({
               {
                 label: tPet("owner"),
                 value: (
-                  <Link
-                    href={`/clients/${appointment.client.id}`}
-                    className="text-primary hover:underline"
-                  >
-                    {ownerLabel(appointment.client)}
-                  </Link>
+                  <span className="flex flex-wrap items-baseline gap-x-2">
+                    <Link
+                      href={`/clients/${appointment.client.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {ownerLabel(appointment.client)}
+                    </Link>
+                    <OwnerBalance clientId={appointment.client.id} balance={ownerBalance} fmt={fmt} compact />
+                  </span>
                 ),
               },
               {
@@ -293,7 +301,12 @@ export default async function AppointmentPage({
               <p className="text-sm text-muted-foreground">
                 {appointment.status === "COMPLETED"
                   ? t("notifications.completedNotice")
-                  : isAppointmentClosed(appointment.status)
+                  : // Not "iptal edildiği için": a no-show and a
+                    // cancellation are different facts, and the owner
+                    // of one did not tell anybody anything.
+                    appointment.status === "NO_SHOW"
+                    ? t("notifications.noShowNotice")
+                    : isAppointmentClosed(appointment.status)
                     ? t("notifications.cancelledNotice")
                     : // Still `SCHEDULED`, but the day has gone by. Saying
                       // "cancelled" here would be a second false statement on

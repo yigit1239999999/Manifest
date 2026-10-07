@@ -8,7 +8,8 @@ import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { getVisitById } from "@/modules/visits/queries";
 import { countPets } from "@/modules/pets/queries";
-import { getInvoiceForVisit } from "@/modules/invoices/queries";
+import { clientBalance, getInvoiceForVisit } from "@/modules/invoices/queries";
+import { OwnerBalance } from "@/components/invoices/owner-balance";
 import { vaccineOffersForPet } from "@/modules/vaccinations/queries";
 import {
   archiveVisitAction,
@@ -43,6 +44,7 @@ import {
   formatDateTime,
   formatDecimal,
   formatMoney,
+  toDateInput,
 } from "@/lib/format";
 import { ownerLabel } from "@/lib/pet-label";
 
@@ -69,6 +71,7 @@ export default async function VisitPage({
     tDiag,
     tPet,
     tInvoiceStatus,
+    tCheck,
     currency,
   ] = await Promise.all([
     getVisitById(clinicId, id),
@@ -81,6 +84,7 @@ export default async function VisitPage({
     getTranslations("diagnostic"),
     getTranslations("pet"),
     getTranslations("enum.invoiceStatus"),
+    getTranslations("allergyCheck"),
     getClinicCurrency(clinicId),
   ]);
 
@@ -126,13 +130,18 @@ export default async function VisitPage({
   // permission, so the condition could never be false and would read
   // as a rule that exists (`app/route-states.test.ts` refuses one, and
   // it caught this one being written).
-  const billedAs = await getInvoiceForVisit(clinicId, visit.id);
+  // The owner's open balance rides in the same round trip: they are at the
+  // counter, and "they still owe for March" is said now or not at all.
+  const [billedAs, ownerBalance] = await Promise.all([
+    getInvoiceForVisit(clinicId, visit.id),
+    clientBalance(clinicId, visit.client.id),
+  ]);
   const canAddPrescription = can(session.user.role, "prescriptions.write");
   const canAddTreatment = can(session.user.role, "treatments.write");
 
   // Needs the animal's species, so it follows the load rather than joining
   // it. See `/pets/[id]`, which renders the same form.
-  const { offers: vaccineOffers, priorDoses } = await vaccineOffersForPet(
+  const { offers: vaccineOffers, priorDoses, openSeries } = await vaccineOffersForPet(
     clinicId,
     visit.petId,
     visit.pet.species,
@@ -307,7 +316,12 @@ export default async function VisitPage({
         </CardHeader>
         <CardContent>
           <DescriptionList
-            layout="row"
+            // Stacked, label over value (pm C9). In `row` layout each pair
+            // pushed its value to the end of a 300px cell, so at 1366 the
+            // label sat at the left of the cell and the value at the far
+            // right, nearer the next label than its own. Stacked, the two
+            // are read as one; the grid keeps the card to two short rows.
+            //
             // A grid so a pair stays a pair. In one column across 976px
             // the label sits at the left edge and the value at the
             // right, and reading one of them is a journey the eye makes
@@ -320,7 +334,7 @@ export default async function VisitPage({
             // A grid that reorders shows one sequence to the eye and
             // reads another to a screen reader, and "identity first"
             // would then be true only for people who can see it (ux).
-            className="grid gap-x-8 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+            className="grid gap-x-8 gap-y-4 sm:grid-cols-3 xl:grid-cols-5"
             items={[
               // The animal and the owner first, and this is error
               // catching rather than tidiness: identity is what a
@@ -344,12 +358,15 @@ export default async function VisitPage({
               {
                 label: tPet("owner"),
                 value: (
-                  <Link
-                    href={`/clients/${visit.client.id}`}
-                    className="text-primary hover:underline"
-                  >
-                    {ownerLabel(visit.client)}
-                  </Link>
+                  <span className="flex flex-wrap items-baseline gap-x-2">
+                    <Link
+                      href={`/clients/${visit.client.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {ownerLabel(visit.client)}
+                    </Link>
+                    <OwnerBalance clientId={visit.client.id} balance={ownerBalance} fmt={fmt} compact />
+                  </span>
                 ),
               },
               { label: t("vet"), value: visit.vet?.name },
@@ -537,6 +554,8 @@ export default async function VisitPage({
                   visitId={visit.id}
                   offers={vaccineOffers}
                   priorDoses={priorDoses}
+                  openSeries={openSeries}
+                  birthDate={visit.pet.birthDate ? toDateInput(visit.pet.birthDate) : null}
                 />
               </div>
             </details>
@@ -556,7 +575,19 @@ export default async function VisitPage({
               {visit.prescriptions.map((p) => (
                 <li key={p.id} className="text-sm">
                   • <strong>{p.medicationName}</strong> · {p.dosage} ·{" "}
-                  {p.frequency}
+                  {p.frequency}{" "}
+                  <Link
+                    href={`/print/prescriptions/${p.id}`}
+                    className="ms-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                    aria-label={`${tRx("print")}: ${p.medicationName}`}
+                  >
+                    {tRx("print")}
+                  </Link>
+                  {p.overrideReason && (
+                    <p className="ms-3 text-xs text-destructive">
+                      {tCheck("overridden", { reason: p.overrideReason })}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>
@@ -594,6 +625,11 @@ export default async function VisitPage({
                   {t.code && (
                     <span className="text-muted-foreground"> · {t.code}</span>
                   )}
+                  {t.overrideReason && (
+                    <p className="ms-3 text-xs text-destructive">
+                      {tCheck("overridden", { reason: t.overrideReason })}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>
@@ -605,7 +641,11 @@ export default async function VisitPage({
                 {tTreatment("new")}
               </summary>
               <div className="mt-3">
-                <TreatmentForm petId={visit.petId} visitId={visit.id} />
+                <TreatmentForm
+                  petId={visit.petId}
+                  visitId={visit.id}
+                  alerts={visit.pet.alerts}
+                />
               </div>
             </details>
           )}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { surface } from "@/components/ui/card";
 import {
+  ArrowRight,
   CalendarClock,
   ClipboardList,
   PhoneOff,
@@ -15,14 +16,21 @@ import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
-import { telHref } from "@/lib/phone";
-import { dashboardInsights } from "@/modules/dashboard/queries";
+import {
+  dashboardInsights,
+  setupProgress,
+  todayAppointments,
+} from "@/modules/dashboard/queries";
+import { SetupStepsCard } from "@/components/setup-steps-card";
 import { blockedReminders } from "@/modules/notifications/queries";
 import { unreadDiagnostics } from "@/modules/diagnostics/queries";
 import { getClinicCurrency, getClinicSettings } from "@/modules/clinics/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
+import { UPCOMING_WINDOW_DAYS } from "@/modules/vaccinations/queries";
+import { PhoneLink } from "@/components/phone-link";
 import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
 import { FirstStepCard } from "@/components/first-step-card";
+import { TodayStrip } from "@/components/today-strip";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -34,6 +42,8 @@ import {
 import { ColumnBars, HorizontalBars } from "@/components/charts";
 import {
   currencySymbol,
+  dayKey,
+  dayRange,
   firstName,
   formatDate,
   formatDateTime,
@@ -45,6 +55,7 @@ import { newAppointmentHref } from "@/modules/appointments/prefill";
 
 export default async function DashboardPage() {
   const session = await requireSession();
+  const now = new Date();
   const [
     t,
     tCommon,
@@ -58,6 +69,7 @@ export default async function DashboardPage() {
     clinicSettings,
     currency,
     fmt,
+    today,
   ] = await Promise.all([
       getTranslations("dashboard"),
       getTranslations("common"),
@@ -77,6 +89,14 @@ export default async function DashboardPage() {
       getClinicSettings(session.user.clinicId),
       getClinicCurrency(session.user.clinicId),
       getFormatContext(),
+      // The clinic's day, not the server's: the range needs the clinic's
+      // zone, which the (request-cached) format context already read.
+      getFormatContext().then(async (f) => {
+        const range = dayRange(dayKey(now, f.timeZone), f.timeZone);
+        return range
+          ? { range, items: await todayAppointments(session.user.clinicId, range) }
+          : null;
+      }),
     ]);
 
   const weekFmt = new Intl.DateTimeFormat(intlLocale(fmt.locale), {
@@ -185,7 +205,9 @@ export default async function DashboardPage() {
             icon: PhoneOff,
             value: blocked.unreachedTotal,
             href: "/reminders?status=blocked&group=unreached",
-            hint: undefined,
+            // The heading alone ("ULAŞMAYACAK") read as a verdict with no
+            // subject (pm C2): it says which messages, and what to do.
+            hint: t("unreachedHint") as string | undefined,
           },
         ]
       : []),
@@ -200,6 +222,15 @@ export default async function DashboardPage() {
   // whether there is money elsewhere, and two reads of the same thing is
   // how they stop agreeing.
   const revenueOtherCurrencies = insights.revenueOtherCurrencies;
+
+  const compactFormat = new Intl.NumberFormat(fmt.locale === "tr" ? "tr-TR" : "en-US", {
+    style: "currency",
+    currency,
+    notation: "compact",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  });
+  const compactMoney = (cents: number) => compactFormat.format(cents / 100);
 
   const revenueLast6MonthsData = insights.revenueLast6Months.map((m) => ({
     label: monthFmt.format(m.monthStart),
@@ -259,6 +290,18 @@ export default async function DashboardPage() {
     can(session.user.role, "clients.write") &&
     can(session.user.role, "pets.write");
   const canBook = can(session.user.role, "appointments.write");
+  // The server refuses the close to anyone else; a button that can only
+  // fail is worse than none.
+  const canDismissDue = can(session.user.role, "vaccinations.write");
+
+  const canManageSettings = can(session.user.role, "settings.manage");
+  const canManageUsers = can(session.user.role, "users.manage");
+  // Read only for somebody who could act on it, and never on the
+  // first-run screen, which has its own two doors.
+  const setup =
+    !firstRun && (canManageSettings || canManageUsers)
+      ? await setupProgress(session.user.clinicId)
+      : null;
 
   if (firstRun) {
     return (
@@ -289,7 +332,7 @@ export default async function DashboardPage() {
       // right when there is something to read in order, and that branch
       // has its own test saying so.
       <div className="flex min-h-[calc(100vh-10rem)] flex-col items-center justify-center pb-16">
-        <div className="flex w-full max-w-lg flex-col gap-8">
+        <div className={cn("flex w-full flex-col gap-8", canImport ? "max-w-3xl" : "max-w-lg")}>
           {/* Not `subtitle` ("today's summary"), which is a lie on day
               zero. The key stays for the other states.
 
@@ -316,56 +359,22 @@ export default async function DashboardPage() {
             description={t("readyFor", { clinic: clinicName })}
           />
 
-          {/* The one fully present thing on the screen: full contrast,
-              its own shadow. The focus is built by holding everything
-              else back rather than by making this bigger.
+          {/* Two equal doors to the same place -- a clinic with records
+              in it -- and the user's call that they are equal (pm B14).
+              The spreadsheet used to be a footnote under the visit card,
+              and a clinic arriving with ten years of records read the
+              footnote as "you will be typing all of this". A first visit
+              is the work the vet came for; the file is the history they
+              already have. Neither is the other's fallback.
 
-              `visit`, not `client`, and the difference is the whole
-              first-run idea: a clinic with nothing at all is asked for
-              the thing it came to do, and the owner and animal it needs
-              get made on the way there. The card falls back to the
-              client ask by itself for anyone who cannot write a visit. */}
-          <FirstStepCard need="visit" size="page" />
-
-          {/* The other way to do the SAME job, and that is the whole of
-              what it is allowed to be.
-
-              `first-step-card.tsx` says the card has exactly two states and
-              that a third line would turn it into a setup wizard, naming
-              the shape it would take: "now switch on reminders", "now add
-              your staff". A spreadsheet is not one of those. It is not new
-              work -- it is the work the card is already asking for,
-              arriving by the door of somebody who has the records already
-              (ux). So the rule this screen now holds is narrower than "at
-              most three blocks": there may be one alternative, and it may
-              only lead where the ask leads. `first-run-screen.test.ts`
-              checks the destination for that reason.
-
-              A footnote, not a second invitation. The card keeps the
-              weight: no emphasis here, and the sentence is the vet's
-              choice to ignore. The whole of it is the link rather than a
-              word inside it -- with the emphasis gone, a coloured phrase
-              in a muted line would leave COLOUR as the only thing saying
-              it can be clicked, and the underline only arrives on hover
-              (ux). `sign-up-form.tsx` already writes it this way.
-
-              Not centred, though the pattern it copies is: the column is
-              one `max-w-lg` box so the greeting and the card share a left
-              edge, and a centred third line puts a second alignment on a
-              screen that has one.
-
-              Only while the clinic is empty. The first-run screen stops
-              being the first-run screen the evening the first visit is
-              written, which is exactly why `/import` is in the sidebar as
-              well -- the second spreadsheet arrives months later, and a
-              door that exists only on day one is shut by the end of it. */}
-          {canImport && (
-            <p className="text-sm text-muted-foreground">
-              <Link href="/import" className="text-primary hover:underline">
-                {t("importInvite")}
-              </Link>
-            </p>
-          )}
+              Same component, same `page` size, side by side from `sm` and
+              stacked under it, so the two cannot drift apart in weight.
+              Only the visit card for someone who cannot import: the
+              screen then has one job, and it is placed as one. */}
+          <div className={cn("grid gap-4", canImport && "sm:grid-cols-2")}>
+            {canImport && <FirstStepCard need="import" size="page" />}
+            <FirstStepCard need="visit" size="page" />
+          </div>
         </div>
       </div>
     );
@@ -379,6 +388,33 @@ export default async function DashboardPage() {
       />
 
       {firstStep && <FirstStepCard need={firstStep} size="inline" />}
+
+      {/* After the records are in, what is left to set up (pm B14).
+          Only for whoever can do it, and only once the chain above has
+          nothing missing: one card of next steps at a time. */}
+      {!firstStep && setup && !setup.hidden && (
+        <SetupStepsCard
+          steps={{
+            messaging: canManageSettings && !setup.messagingDecided,
+            team: canManageUsers && !setup.hasTeam,
+          }}
+        />
+      )}
+
+      {/* First, above the counts: the page is opened at the start of the
+          day to see who is coming, and a vet answered "where do I see
+          today?" with the appointments tab, two clicks away (pm B3). */}
+      {today && (
+        <TodayStrip
+          items={today.items}
+          fmt={fmt}
+          now={now}
+          dayStart={today.range.from}
+          canMark={canBook}
+          canStartVisit={can(session.user.role, "visits.write")}
+          canBook={canBook}
+        />
+      )}
 
       {/* Two across on a phone: eight full-width figures took ~600px
           before anything a vet acts on. */}
@@ -544,7 +580,7 @@ export default async function DashboardPage() {
             appears. Above the upcoming card on purpose: a backlog is
             read before a plan. */}
         {(insights.overdueVaccinationCount > 0 || insights.overdueOlderVaccinationCount > 0) && (
-          <Card className="lg:col-span-2">
+          <Card id="overdue-vaccinations" className="scroll-mt-20 lg:col-span-2">
             <CardHeader>
               <CardTitle>{t("sections.overdueVaccinations")}</CardTitle>
               {/* The count, not the row count: the list shows five and
@@ -564,20 +600,13 @@ export default async function DashboardPage() {
                 {insights.overdueVaccinations.map((v) => (
                   <li
                     key={v.id}
-                    className="flex items-center justify-between gap-2 rounded-control px-2 py-2"
+                    className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-control px-2 py-2"
                   >
-                    {/* The animal is a link for the same reason it is one on a
-                        reminder row: somebody reading which vaccinations
-                        are overdue wants to go to the animal, and the card
-                        was making them find it by hand. Half of what this
-                        card is for is getting them there.
-
-                        Both lists on this page, not just the one that was
-                        reported: the same gap, and one linked card beside
-                        one unlinked card is a worse answer than neither. */}
+                    {/* The animal is a link: somebody reading which
+                        vaccinations are overdue wants to go to the animal. */}
                     <span className="text-sm font-medium">
-                      <Link href={`/pets/${v.pet.id}`} className="hover:underline">
-                        {v.pet.name}
+                      <Link href={`/pets/${v.petId}`} className="hover:underline">
+                        {v.petName}
                       </Link>{" "}
                       · {v.name}
                     </span>
@@ -585,66 +614,73 @@ export default async function DashboardPage() {
                       <span className="text-xs text-muted-foreground">
                         {formatDate(fmt, v.nextDueAt)}
                       </span>
-                      {/* The two things an overdue line leads to: ringing
-                          the owner and booking the animal in. They used
-                          to be two pages away. */}
-                      {telHref(v.pet.owner?.phone) && (
-                        <a
-                          href={telHref(v.pet.owner?.phone) ?? undefined}
-                          className="whitespace-nowrap text-xs text-muted-foreground hover:underline"
-                        >
-                          {v.pet.owner?.phone}
-                        </a>
-                      )}
-                      {/* Booked as the vaccine it is for. No day: it
-                          is already overdue, so the form offers the
-                          next slot the clinic is open. */}
-                      {canBook && (
+                      <PhoneLink phone={v.ownerPhone} className="text-xs text-muted-foreground" />
+                      {/* Booked already: the row says when, and the
+                          recall query has sorted it below the rows still
+                          waiting for a call (pm B2). */}
+                      {v.apptId && v.apptStartsAt ? (
                         <Link
-                          href={newAppointmentHref({
-                            petId: v.pet.id,
-                            type: "VACCINATION",
-                            reason: v.name,
-                          })}
+                          href={`/appointments/${v.apptId}`}
                           className="whitespace-nowrap text-xs font-medium text-primary hover:underline"
                         >
-                          {t("overdueVaccinationsBook")}
+                          {t("overdueVaccinationsBooked", {
+                            when: formatDateTime(fmt, v.apptStartsAt),
+                          })}
                         </Link>
+                      ) : (
+                        canBook && (
+                          <Link
+                            href={newAppointmentHref({
+                              petId: v.petId,
+                              type: "VACCINATION",
+                              reason: v.name,
+                            })}
+                            className="whitespace-nowrap text-xs font-medium text-primary hover:underline"
+                          >
+                            {t("overdueVaccinationsBook")}
+                          </Link>
+                        )
                       )}
-                      <VaccinationDueDismissButton
-                        action={setVaccinationDueDismissedAction.bind(null, v.id)}
-                        label={t("overdueVaccinationsDismiss")}
-                        // `actionFor`, the same pattern every named row
-                        // action on `/reminders` uses -- "Close: Zeytin ·
-                        // Karma aşı". Ten rows carry ten buttons reading
-                        // "Close", and by voice they are one button ten
-                        // times over unless the row is in the name.
-                        //
-                        // It replaces a key of its own, which had put the
-                        // word "aşı" after a vaccine name that already
-                        // ended in it. Building the sentence out of the
-                        // shared pattern instead of writing a new one
-                        // also means no new place for a Turkish suffix to
-                        // go wrong: `actionFor` joins with a colon and
-                        // inflects nothing.
-                        name={tCommon("actionFor", {
-                          action: t("overdueVaccinationsDismiss"),
-                          subject: `${v.pet.name} · ${v.name}`,
-                        })}
-                        undoLabel={t("overdueVaccinationsUndo")}
-                        undoneLabel={t("overdueVaccinationsDismissed")}
-                      />
+                      {canDismissDue && (
+                        <VaccinationDueDismissButton
+                          action={setVaccinationDueDismissedAction.bind(null, v.id)}
+                          label={t("overdueVaccinationsDismiss")}
+                          // Named with the row: ten rows would otherwise be
+                          // ten identical buttons by voice.
+                          name={tCommon("actionFor", {
+                            action: t("overdueVaccinationsDismiss"),
+                            subject: `${v.petName} · ${v.name}`,
+                          })}
+                          undoLabel={t("overdueVaccinationsUndo")}
+                          undoneLabel={t("overdueVaccinationsDismissed")}
+                        />
+                      )}
                     </span>
                   </li>
                 ))}
               </ul>
+              {/* Where the count leads. The card is five rows of a
+                  backlog that can run to a thousand, and it had no way
+                  to the rest (pm B1). */}
+              <Link
+                href="/recalls"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+              >
+                {t("seeAll", { count: insights.overdueVaccinationCount })}
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
             </CardContent>
           </Card>
         )}
 
-        <Card className="lg:col-span-2">
+        <Card id="upcoming-vaccinations" className="scroll-mt-20 lg:col-span-2">
           <CardHeader>
             <CardTitle>{t("sections.upcomingVaccinations")}</CardTitle>
+            {/* The window, said: the card had none and listed a booster
+                due in 2027 as "upcoming" (pm C1). */}
+            <p className="text-sm text-muted-foreground">
+              {t("upcomingWindow", { days: UPCOMING_WINDOW_DAYS })}
+            </p>
           </CardHeader>
           <CardContent>
             {insights.upcomingVaccinations.length === 0 ? (
@@ -675,6 +711,15 @@ export default async function DashboardPage() {
                   </li>
                 ))}
               </ul>
+            )}
+            {insights.upcomingVaccinationCount > insights.upcomingVaccinations.length && (
+              <Link
+                href="/recalls?view=upcoming"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+              >
+                {t("seeAll", { count: insights.upcomingVaccinationCount })}
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
             )}
           </CardContent>
         </Card>
@@ -729,6 +774,8 @@ export default async function DashboardPage() {
                   : t("empty.revenue")
               }
               formatValue={(v) => formatMoney(fmt, v, currency)}
+              // The amount on each bar, compact so six fit at 390px.
+              valueLabel={(v) => compactMoney(v)}
               partialLast={{
                 note: t("chart.partialPeriod"),
                 inProgress: t("chart.inProgress"),

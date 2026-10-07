@@ -49,6 +49,7 @@ const SHOWN: Record<string, string> = {
   ReminderStatus: "reminderStatus",
   InvoiceStatus: "invoiceStatus",
   PaymentMethod: "paymentMethod",
+  InvoiceLineKind: "invoiceLineKind",
   MessageChannel: "messageChannel",
   MessageKind: "messageKind",
   MessageStatus: "messageStatus",
@@ -102,6 +103,15 @@ describe("every enum member a screen can draw has words for it", () => {
     // came in by, stamped by the code and read only when someone asks for
     // the proof. No screen prints it today; the day one does, it moves up
     // into `SHOWN` with its words.
-    expect(undeclared).toEqual(["ConsentSource", "DueSource", "MessageDeliveryStatus"]);
+    //
+    // `RecallOutcome` is not drawn as a label: the recall list prints a
+    // sentence per outcome ("Arandı · Selin · 7 Eki", "3 kez denendi,
+    // ulaşılamadı"), and the buttons that make one are verbs, not states.
+    expect(undeclared).toEqual([
+      "ConsentSource",
+      "DueSource",
+      "RecallOutcome",
+      "MessageDeliveryStatus",
+    ]);
   });
 });

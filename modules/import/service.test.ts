@@ -2,23 +2,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    client: { findMany: vi.fn() },
+    client: { findMany: vi.fn(), count: vi.fn() },
     customSpecies: { findMany: vi.fn() },
     clinic: { findUnique: vi.fn() },
-    vaccination: { findMany: vi.fn() },
+    vaccination: { findMany: vi.fn(), count: vi.fn() },
     importBatch: { findFirst: vi.fn() },
+    pet: { count: vi.fn(), findMany: vi.fn() },
     $transaction: vi.fn(),
   },
 }));
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/lib/errors";
-import { commitImport, planImport, undoImport, type ImportAnswers } from "./service";
+import { commitImport, planImport, previewUndoImport, undoImport, type ImportAnswers } from "./service";
 
 const admin = { clinicId: "clinic-1", userId: "u-1", userName: "A", userRole: "ADMIN" };
 // VET_TECH is the role that can record treatments but not create
 // clients: half the permission an import needs, which is none of it.
 const vetTech = { ...admin, userRole: "VET_TECH" };
+// Can run an import (clients.write + pets.write) but not take one back.
+const receptionist = { ...admin, userRole: "RECEPTIONIST" };
+const vet = { ...admin, userRole: "VETERINARIAN" };
 
 /**
  * A transaction client that records what the import asked it to do, so the
@@ -63,11 +67,17 @@ function fakeTx(overrides: Record<string, unknown> = {}) {
       createManyAndReturn: petCreate,
       count: vi.fn().mockResolvedValue(0),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     vaccination: {
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      count: vi.fn().mockResolvedValue(0),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      // `recomputeSuperseded` reads the animals' doses after a write.
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+    clinic: { findUnique: vi.fn().mockResolvedValue({ settings: {} }) },
     auditLog: { create: vi.fn().mockResolvedValue({}) },
     ...overrides,
   };
@@ -516,15 +526,29 @@ describe("undo", () => {
     await expect(undoImport("batch-1", admin)).rejects.toBeInstanceOf(AppError);
   });
 
-  it("leaves behind every animal the clinic has since worked on", async () => {
+  it("is for admins only: a receptionist or a vet who can run an import cannot take one back (A5)", async () => {
+    for (const ctx of [receptionist, vet]) {
+      await expect(undoImport("batch-1", ctx)).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(previewUndoImport("batch-1", ctx)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    }
+    expect(prisma.importBatch.findFirst).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("leaves behind every animal the clinic has since worked on, and every record edited since", async () => {
     // Undo is for regretting an import, not for erasing a morning. The
     // guard is in the statement rather than in a loop, so it holds for a
     // file of five thousand rows as cheaply as for one of five.
+    const completedAt = new Date("2026-10-07T09:00:00Z");
     vi.mocked(prisma.importBatch.findFirst).mockResolvedValue({
       id: "batch-1",
       undoneAt: null,
+      createdAt: new Date("2026-10-07T08:59:00Z"),
+      completedAt,
+      fileName: "liste.xlsx",
     } as never);
     const tx = fakeTx();
+    tx.vaccination.count.mockResolvedValue(4);
     tx.pet.count.mockResolvedValue(10);
     tx.pet.deleteMany.mockResolvedValue({ count: 8 });
     tx.client.count.mockResolvedValue(5);
@@ -539,24 +563,79 @@ describe("undo", () => {
       petCount: 8,
       keptClients: 1,
       keptPets: 2,
+      keptVaccinations: 1,
     });
-    // The run's own vaccinations go first, by batch: they are what it wrote,
-    // and the animals they hang on are only "unused" once they are gone.
+    // The run's own vaccinations go first, by batch, and only the ones
+    // nobody has touched since the import finished.
     expect(tx.vaccination.deleteMany.mock.calls[0][0].where).toEqual({
       clinicId: "clinic-1",
       importBatchId: "batch-1",
+      updatedAt: { lte: completedAt },
     });
     expect(tx.vaccination.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
       tx.pet.deleteMany.mock.invocationCallOrder[0],
     );
     const petWhere = tx.pet.deleteMany.mock.calls[0][0].where;
     expect(petWhere).toMatchObject({ clinicId: "clinic-1", importBatchId: "batch-1" });
+    expect(petWhere.updatedAt).toEqual({ lte: completedAt });
     expect(petWhere.visits).toEqual({ none: {} });
     expect(petWhere.invoiceLines).toEqual({ none: {} });
     const clientWhere = tx.client.deleteMany.mock.calls[0][0].where;
-    expect(clientWhere.pets).toEqual({ none: {} });
+    expect(clientWhere.updatedAt).toEqual({ lte: completedAt });
+    expect(clientWhere.pets).toEqual({ every: petWhere });
     expect(clientWhere.invoices).toEqual({ none: {} });
     expect(tx.importBatch.update).toHaveBeenCalled();
+    // The audit row carries the counts, not just "deleted ImportBatch".
+    expect(tx.auditLog.create.mock.calls[0][0].data.metadata).toMatchObject({
+      undo: true,
+      clientCount: 4,
+      petCount: 8,
+      vaccinationCount: 3,
+      keptPets: 2,
+    });
+  });
+
+  it("reads a cutoff for batches written before completedAt existed", async () => {
+    vi.mocked(prisma.importBatch.findFirst).mockResolvedValue({
+      id: "batch-1",
+      undoneAt: null,
+      createdAt: new Date("2026-10-01T10:00:00Z"),
+      completedAt: null,
+      fileName: "eski.xlsx",
+    } as never);
+    const tx = fakeTx();
+    await undoImport("batch-1", admin);
+    const cutoff = tx.vaccination.deleteMany.mock.calls[0][0].where.updatedAt.lte as Date;
+    expect(cutoff.getTime()).toBeGreaterThan(new Date("2026-10-01T10:02:00Z").getTime());
+    expect(cutoff.getTime()).toBeLessThan(new Date("2026-10-01T10:05:00Z").getTime());
+  });
+
+  it("previews the same counts the delete uses, and names what was edited", async () => {
+    vi.mocked(prisma.importBatch.findFirst).mockResolvedValue({
+      id: "batch-1",
+      undoneAt: null,
+      createdAt: new Date("2026-10-07T08:59:00Z"),
+      completedAt: new Date("2026-10-07T09:00:00Z"),
+      fileName: "liste.xlsx",
+    } as never);
+    vi.mocked(prisma.vaccination.count).mockResolvedValueOnce(5).mockResolvedValueOnce(4);
+    vi.mocked(prisma.pet.count).mockResolvedValueOnce(10).mockResolvedValueOnce(7);
+    vi.mocked(prisma.client.count).mockResolvedValueOnce(6).mockResolvedValueOnce(5);
+    vi.mocked(prisma.pet.findMany).mockResolvedValue([{ name: "Boncuk" }] as never);
+    vi.mocked(prisma.client.findMany).mockResolvedValue([{ firstName: "Ada", lastName: "Kaya" }] as never);
+
+    const preview = await previewUndoImport("batch-1", admin);
+    expect(preview).toEqual({
+      vaccinationCount: 4,
+      petCount: 7,
+      clientCount: 5,
+      keptVaccinations: 1,
+      keptPets: 3,
+      keptClients: 1,
+      editedPets: ["Boncuk"],
+      editedClients: ["Ada Kaya"],
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
 
@@ -666,6 +745,152 @@ describe("vaccinations", () => {
     const rows = tx.vaccination.createMany.mock.calls[0][0].data;
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ petId: "p1", name: "Karma" });
+  });
+});
+
+describe("re-importing an owner with two animals of one name (A4)", () => {
+  // Ayşe has a dog AND a cat called Boncuk. The file names both, each with
+  // its own rabies date. Matching by name took the first Boncuk for both
+  // rows, so the cat's date was written to the dog.
+  const MAP: ImportAnswers["mapping"] = {
+    0: "client.firstName",
+    1: "client.phone",
+    2: "pet.name",
+    3: "pet.species",
+    4: "vaccine.column",
+  };
+  const FILE = [
+    ["Ayşe Yılmaz", "0532 411 22 33", "Boncuk", "Köpek", "01.03.2025"],
+    ["Ayşe Yılmaz", "0532 411 22 33", "Boncuk", "Kedi", "15.06.2025"],
+  ];
+  const owner = (pets: unknown[]) => [
+    {
+      id: "c1",
+      firstName: "Ayşe Yılmaz",
+      lastName: null,
+      phone: "0532 411 22 33",
+      secondaryPhone: null,
+      pets,
+    },
+  ];
+  const boncuk = (id: string, species: string) => ({
+    id,
+    name: "Boncuk",
+    species,
+    customSpeciesId: null,
+    sex: "UNKNOWN",
+    birthDate: null,
+    microchipId: null,
+    breed: null,
+  });
+  const reAnswers = (over: Partial<ImportAnswers> = {}) =>
+    answers({
+      mapping: { ...MAP },
+      dateOrders: { 4: "dayFirst" },
+      vaccineNames: { "4": "Kuduz" },
+      species: {
+        Köpek: { target: { kind: "builtIn", key: "DOG" } },
+        Kedi: { target: { kind: "builtIn", key: "CAT" } },
+      },
+      ...over,
+    });
+
+  it("writes each date to its own Boncuk, by species", async () => {
+    // The dog is listed first: the old matcher sent both dates to it.
+    vi.mocked(prisma.client.findMany).mockResolvedValue(owner([boncuk("dog", "DOG"), boncuk("cat", "CAT")]) as never);
+    const tx = fakeTx();
+    await commitImport(FILE, reAnswers(), admin);
+    expect(tx.pet.createMany).not.toHaveBeenCalled();
+    const rows = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(rows.map((r: { petId: string; administeredAt: Date }) => [r.petId, r.administeredAt.toISOString().slice(0, 10)])).toEqual([
+      ["dog", "2025-03-01"],
+      ["cat", "2025-06-15"],
+    ]);
+  });
+
+  it("asks which Boncuk when the file gives no species, and refuses to write until answered", async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue(owner([boncuk("dog", "DOG"), boncuk("cat", "CAT")]) as never);
+    const noSpecies = FILE.map((r) => [r[0], r[1], r[2], "", r[4]]);
+    const summary = await planImport(noSpecies, reAnswers(), admin);
+    expect(summary.petQuestions.map((q) => [q.row, q.candidates.map((c) => c.id)])).toEqual([
+      [1, ["dog", "cat"]],
+      [2, ["dog", "cat"]],
+    ]);
+    expect(summary.rows.filter((r) => r.status === "decision").map((r) => r.question)).toEqual(["pet", "pet"]);
+
+    fakeTx();
+    await expect(commitImport(noSpecies, reAnswers(), admin)).rejects.toBeInstanceOf(AppError);
+
+    const tx = fakeTx();
+    await commitImport(noSpecies, reAnswers({ pets: { "1": "cat", "2": "dog" } }), admin);
+    const rows = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(rows.map((r: { petId: string }) => r.petId)).toEqual(["cat", "dog"]);
+  });
+
+  it("treats an answer naming an animal the question did not offer as no answer", async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue(owner([boncuk("dog", "DOG"), boncuk("cat", "CAT")]) as never);
+    const noSpecies = FILE.map((r) => [r[0], r[1], r[2], "", r[4]]);
+    fakeTx();
+    await expect(
+      commitImport(noSpecies, reAnswers({ pets: { "1": "someone-elses-pet", "2": "dog" } }), admin),
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it("adds the cat as a new animal when the clinic only has the dog", async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue(owner([boncuk("dog", "DOG")]) as never);
+    const tx = fakeTx();
+    await commitImport(FILE, reAnswers(), admin);
+    const pets = tx.pet.createMany.mock.calls[0][0].data;
+    expect(pets).toHaveLength(1);
+    expect(pets[0]).toMatchObject({ name: "Boncuk", species: "CAT" });
+    const rows = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(rows.map((r: { petId: string }) => r.petId)).toEqual(["dog", "new-1"]);
+  });
+});
+
+describe("the file-level questions about dates (B13)", () => {
+  const MAP: ImportAnswers["mapping"] = {
+    0: "client.firstName",
+    1: "client.phone",
+    2: "pet.name",
+    3: "pet.birthDate",
+    4: "vaccine.column",
+    5: "vaccine.column",
+  };
+  // Past Karma, then a Karma dated after today: a planned second dose.
+  const FILE = [["Ayşe Yılmaz", "0532 411 22 33", "Pamuk", "2021", "01.03.2025", "01.03.2099"]];
+  const ans = (over: Partial<ImportAnswers> = {}) =>
+    answers({
+      mapping: { ...MAP },
+      dateOrders: { 4: "dayFirst", 5: "dayFirst" },
+      vaccineNames: { "4": "Karma", "5": "Karma" },
+      ...over,
+    });
+
+  it("says how many future dates there are and how many animals have a year alone", async () => {
+    const summary = await planImport(FILE, ans(), admin);
+    expect(summary.futureDates).toEqual({ anchored: 1, unanchored: 0 });
+    expect(summary.birthYearOnly).toBe(1);
+  });
+
+  it("writes the future date as the next dose and the year as an estimate when both are answered yes", async () => {
+    const tx = fakeTx();
+    await commitImport(FILE, ans({ futureAsNextDue: true, estimateBirthYear: true }), admin);
+    const pet = tx.pet.createMany.mock.calls[0][0].data[0];
+    expect(pet.birthDate.toISOString().slice(0, 10)).toBe("2021-01-01");
+    expect(pet.birthDateEstimated).toBe(true);
+    const [dose] = tx.vaccination.createMany.mock.calls[0][0].data;
+    expect(dose.nextDueAt.toISOString().slice(0, 10)).toBe("2099-03-01");
+    expect(dose.nextDueSource).toBe("MANUAL");
+  });
+
+  it("leaves both alone when unanswered", async () => {
+    const tx = fakeTx();
+    await commitImport(FILE, ans(), admin);
+    const pet = tx.pet.createMany.mock.calls[0][0].data[0];
+    expect(pet.birthDate).toBeNull();
+    expect(pet.birthDateEstimated).toBe(false);
+    expect(pet.notes).toContain("Karma: 01.03.2099");
   });
 });
 

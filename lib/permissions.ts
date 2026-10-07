@@ -17,6 +17,14 @@ export type Permission =
   | "clients.read"
   | "clients.write"
   | "clients.archive"
+  /**
+   * Folding one client record into another: every animal, visit,
+   * appointment, invoice, reminder, note and message moves, and the
+   * emptied record is archived. Administrators only -- it rewrites whose
+   * history is whose, and the person who decides that is the one who
+   * answers for the books.
+   */
+  | "clients.merge"
   | "pets.read"
   | "pets.write"
   | "pets.archive"
@@ -50,6 +58,13 @@ export type Permission =
   | "invoices.void"
   | "payments.write"
   | "audit.read"
+  /**
+   * Taking a spreadsheet import back. It deletes, in one press, every
+   * record the run made that nobody has used since -- the clinic's whole
+   * client list on a first import -- so it sits with the people who
+   * manage the clinic rather than with everyone who may run one.
+   */
+  | "imports.undo"
   | "users.manage"
   | "settings.manage";
 
@@ -58,6 +73,7 @@ const PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     "clients.read",
     "clients.write",
     "clients.archive",
+    "clients.merge",
     "pets.read",
     "pets.write",
     "pets.archive",
@@ -77,6 +93,7 @@ const PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     "invoices.void",
     "payments.write",
     "audit.read",
+    "imports.undo",
     "users.manage",
     "settings.manage",
   ]),

@@ -534,8 +534,16 @@ export function Combobox({
       setMoved(true);
       setActive((a) => Math.max(a - 1, 0));
     } else if (e.key === "Enter") {
-      if (!open || rows.length === 0) return;
+      // Never the form's submit button. With nothing to pick (a name not
+      // in the catalogue, typed in full) the browser's default was to
+      // submit, and Enter meant "I am done typing", not "save". Here it
+      // closes the list and keeps what was typed; saving is a press of
+      // the button.
       e.preventDefault();
+      if (!open || rows.length === 0) {
+        setOpen(false);
+        return;
+      }
       const row = rows[Math.min(active, rows.length - 1)];
       if (row.kind === "add") selectCustom();
       else if (row.kind === "create") {
