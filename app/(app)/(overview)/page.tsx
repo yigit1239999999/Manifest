@@ -16,13 +16,14 @@ import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { telHref } from "@/lib/phone";
-import { dashboardInsights } from "@/modules/dashboard/queries";
+import { dashboardInsights, todayAppointments } from "@/modules/dashboard/queries";
 import { blockedReminders } from "@/modules/notifications/queries";
 import { unreadDiagnostics } from "@/modules/diagnostics/queries";
 import { getClinicCurrency, getClinicSettings } from "@/modules/clinics/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
 import { VaccinationDueDismissButton } from "@/components/vaccination-due-dismiss-button";
 import { FirstStepCard } from "@/components/first-step-card";
+import { TodayStrip } from "@/components/today-strip";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -34,6 +35,8 @@ import {
 import { ColumnBars, HorizontalBars } from "@/components/charts";
 import {
   currencySymbol,
+  dayKey,
+  dayRange,
   firstName,
   formatDate,
   formatDateTime,
@@ -45,6 +48,7 @@ import { newAppointmentHref } from "@/modules/appointments/prefill";
 
 export default async function DashboardPage() {
   const session = await requireSession();
+  const now = new Date();
   const [
     t,
     tCommon,
@@ -58,6 +62,7 @@ export default async function DashboardPage() {
     clinicSettings,
     currency,
     fmt,
+    today,
   ] = await Promise.all([
       getTranslations("dashboard"),
       getTranslations("common"),
@@ -77,6 +82,14 @@ export default async function DashboardPage() {
       getClinicSettings(session.user.clinicId),
       getClinicCurrency(session.user.clinicId),
       getFormatContext(),
+      // The clinic's day, not the server's: the range needs the clinic's
+      // zone, which the (request-cached) format context already read.
+      getFormatContext().then(async (f) => {
+        const range = dayRange(dayKey(now, f.timeZone), f.timeZone);
+        return range
+          ? { range, items: await todayAppointments(session.user.clinicId, range) }
+          : null;
+      }),
     ]);
 
   const weekFmt = new Intl.DateTimeFormat(intlLocale(fmt.locale), {
@@ -379,6 +392,21 @@ export default async function DashboardPage() {
       />
 
       {firstStep && <FirstStepCard need={firstStep} size="inline" />}
+
+      {/* First, above the counts: the page is opened at the start of the
+          day to see who is coming, and a vet answered "where do I see
+          today?" with the appointments tab, two clicks away (pm B3). */}
+      {today && (
+        <TodayStrip
+          items={today.items}
+          fmt={fmt}
+          now={now}
+          dayStart={today.range.from}
+          canMark={canBook}
+          canStartVisit={can(session.user.role, "visits.write")}
+          canBook={canBook}
+        />
+      )}
 
       {/* Two across on a phone: eight full-width figures took ~600px
           before anything a vet acts on. */}

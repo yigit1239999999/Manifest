@@ -164,7 +164,22 @@
     "draftInvoices": "{count, plural, one {# taslak gönderilmedi} other {# taslak gönderilmedi}}",
     "overdueVaccinationsDismissed": "Aşı satırı kapatıldı.",
     "overdueVaccinationsUndo": "Geri al",
-    "overdueVaccinationsOlder": "Ayrıca {count, plural, one {# aşı} other {# aşı}} 6 aydan uzun süredir gecikmiş; her biri hayvanın sayfasında."
+    "overdueVaccinationsOlder": "Ayrıca {count, plural, one {# aşı} other {# aşı}} 6 aydan uzun süredir gecikmiş; her biri hayvanın sayfasında.",
+    "today": {
+      "title": "Bugün",
+      "summary": "{total, plural, one {# randevu} other {# randevu}} · {here} içeride · {waiting} bekleniyor",
+      "dayPlan": "Gün planı",
+      "empty": "Bugün için randevu yok.",
+      "book": "Randevu verin",
+      "now": "Şimdi {time}",
+      "arrived": "Geldi",
+      "noShow": "Gelmedi",
+      "markedArrived": "{pet} geldi olarak işaretlendi.",
+      "markedNoShow": "{pet} gelmedi olarak işaretlendi.",
+      "undo": "Geri al",
+      "startVisit": "Vizite başla",
+      "openVisit": "Viziti aç"
+    }
   },
   "client": {
     "createNamed": "\"{name}\" adıyla yeni müşteri aç",
@@ -1252,7 +1267,9 @@
       "timezoneUnknown": "Geçersiz saat dilimi.",
       "noteTarget": "Bir hayvan veya müşteri belirtmelisiniz.",
       "importDuplicatesUnanswered": "Aynı kişi olabilecek kayıtlar için karar verilmeden içe aktarma tamamlanamaz.",
-      "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış."
+      "importAlreadyUndone": "Bu içe aktarma zaten geri alınmış.",
+      "appointmentNotWaiting": "Bu randevunun durumu zaten değişmiş. Sayfayı yenileyin.",
+      "noShowBeforeStart": "Randevu saati gelmeden \"gelmedi\" işaretlenemez."
     },
     "form": {
       "required": "{field} gerekli.",

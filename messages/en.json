@@ -164,7 +164,22 @@
     "draftInvoices": "{count, plural, one {# draft not sent} other {# drafts not sent}}",
     "overdueVaccinationsDismissed": "Vaccination row closed.",
     "overdueVaccinationsUndo": "Undo",
-    "overdueVaccinationsOlder": "Also {count, plural, one {# vaccination has} other {# vaccinations have}} been overdue for more than 6 months; each is on the animal's page."
+    "overdueVaccinationsOlder": "Also {count, plural, one {# vaccination has} other {# vaccinations have}} been overdue for more than 6 months; each is on the animal's page.",
+    "today": {
+      "title": "Today",
+      "summary": "{total, plural, one {# appointment} other {# appointments}} · {here} in clinic · {waiting} expected",
+      "dayPlan": "Day plan",
+      "empty": "No appointments today.",
+      "book": "Book an appointment",
+      "now": "Now {time}",
+      "arrived": "Arrived",
+      "noShow": "No-show",
+      "markedArrived": "{pet} marked as arrived.",
+      "markedNoShow": "{pet} marked as a no-show.",
+      "undo": "Undo",
+      "startVisit": "Start visit",
+      "openVisit": "Open visit"
+    }
   },
   "client": {
     "createNamed": "Add \"{name}\" as a new client",
@@ -1252,7 +1267,9 @@
       "timezoneUnknown": "Unknown timezone.",
       "noteTarget": "Pick a pet or a client to attach the note to.",
       "importDuplicatesUnanswered": "The import cannot finish while rows that may be the same person are unanswered.",
-      "importAlreadyUndone": "This import has already been undone."
+      "importAlreadyUndone": "This import has already been undone.",
+      "appointmentNotWaiting": "This appointment's status has already changed. Refresh the page.",
+      "noShowBeforeStart": "An appointment cannot be marked as a no-show before its time."
     },
     "form": {
       "required": "{field} is required.",

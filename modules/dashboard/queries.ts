@@ -421,3 +421,48 @@ function advanceBucket(date: Date, unit: "week" | "month"): Date {
   next.setDate(next.getDate() + 7);
   return next;
 }
+
+/**
+ * Every appointment of the clinic's day, whatever its status.
+ *
+ * Deliberately not `upcomingAppointments`: that one is a plan and drops a
+ * row the moment its hour passes or the animal walks in, so the patient
+ * standing in the waiting room was the one the dashboard stopped showing
+ * (pm B3). The day's list keeps arrived, in-progress and finished rows in
+ * their place and lets their status say where they are.
+ *
+ * Cancelled ones are left out: they are not part of the day any more, and
+ * the appointments page still has them under its own filter. Capped well
+ * above any one clinic's day so a bad import cannot draw a thousand rows.
+ */
+export async function todayAppointments(
+  clinicId: string,
+  range: { from: Date; to: Date },
+  take = 60,
+) {
+  return prisma.appointment.findMany({
+    where: {
+      clinicId,
+      pet: { archivedAt: null },
+      client: { archivedAt: null },
+      startsAt: { gte: range.from, lte: range.to },
+      status: { not: "CANCELLED" },
+    },
+    orderBy: { startsAt: "asc" },
+    take,
+    select: {
+      id: true,
+      startsAt: true,
+      status: true,
+      type: true,
+      reason: true,
+      pet: { select: { id: true, name: true, species: true, alerts: true } },
+      client: {
+        select: { id: true, firstName: true, lastName: true, phone: true },
+      },
+      visit: { select: { id: true } },
+    },
+  });
+}
+
+export type TodayAppointment = Awaited<ReturnType<typeof todayAppointments>>[number];
