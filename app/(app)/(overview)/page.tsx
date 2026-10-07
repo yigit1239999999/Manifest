@@ -544,7 +544,7 @@ export default async function DashboardPage() {
             appears. Above the upcoming card on purpose: a backlog is
             read before a plan. */}
         {(insights.overdueVaccinationCount > 0 || insights.overdueOlderVaccinationCount > 0) && (
-          <Card className="lg:col-span-2">
+          <Card id="overdue-vaccinations" className="scroll-mt-20 lg:col-span-2">
             <CardHeader>
               <CardTitle>{t("sections.overdueVaccinations")}</CardTitle>
               {/* The count, not the row count: the list shows five and
@@ -642,7 +642,7 @@ export default async function DashboardPage() {
           </Card>
         )}
 
-        <Card className="lg:col-span-2">
+        <Card id="upcoming-vaccinations" className="scroll-mt-20 lg:col-span-2">
           <CardHeader>
             <CardTitle>{t("sections.upcomingVaccinations")}</CardTitle>
           </CardHeader>

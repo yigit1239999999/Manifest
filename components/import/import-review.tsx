@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, CalendarClock, CircleAlert, History } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -91,6 +92,7 @@ export function ImportReview({
   const t = useTranslations("import");
   const tSpecies = useTranslations("enum.species");
   const tSex = useTranslations("enum.sex");
+  const router = useRouter();
 
   const [phase, setPhase] = React.useState<Phase>({ kind: "planning", summary: null });
   const [duplicates, setDuplicates] = React.useState<Record<string, DuplicateAnswer>>({});
@@ -210,6 +212,9 @@ export function ImportReview({
         skipped: summary.noOwnerRows + excluded.size,
       });
       window.scrollTo({ top: 0 });
+      // The list of earlier imports under this screen is server-drawn; it
+      // gains this run now rather than on the next visit (C3).
+      router.refresh();
     } catch (error) {
       setPhase({ kind: "saveFailed", summary, tooLarge: error instanceof TooLargeError });
     }
@@ -1101,9 +1106,7 @@ function ImportResult({
         >
           {t("resultTitle")}
         </h2>
-        <p className="text-base text-foreground">
-          {t("resultHeadline", { pets: result.petCount, clients: result.clientCount })}
-        </p>
+        <p className="text-base text-foreground">{resultHeadline(result, t)}</p>
         <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
           {result.vaccinationCount > 0 && <li>{t("resultVaccinations", { count: result.vaccinationCount })}</li>}
           {result.mergedCount > 0 && <li>{t("resultMerged", { count: result.mergedCount })}</li>}
@@ -1112,24 +1115,50 @@ function ImportResult({
         </ul>
       </div>
 
+      {/* What came in, each a way into its list (C3). A count the vet can
+          tap is the shortest route from "47 animals" to seeing them. */}
+      {(result.petCount > 0 || result.clientCount > 0 || result.vaccinationCount > 0) && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          {result.petCount > 0 && (
+            <ValueCard href="/pets" title={t("statPets", { count: result.petCount })} hint={t("resultGoPets")} tone="neutral" />
+          )}
+          {result.clientCount > 0 && (
+            <ValueCard
+              href="/clients"
+              title={t("statClients", { count: result.clientCount })}
+              hint={t("resultGoClients")}
+              tone="neutral"
+            />
+          )}
+          {result.vaccinationCount > 0 && (
+            <ValueCard
+              href="/pets"
+              title={t("statVaccinations", { count: result.vaccinationCount })}
+              hint={t("resultVaccinationsHint")}
+              tone="neutral"
+            />
+          )}
+        </div>
+      )}
+
       {result.vaccinationCount > 0 && (
         <section className="flex flex-col gap-3">
           <h3 className="text-base font-semibold text-foreground">{t("resultNowTitle")}</h3>
           {anyDue ? (
             <div className="grid gap-3 sm:grid-cols-3">
               {due.overdue > 0 && (
-                <ValueCard href="/" title={t("resultOverdue", { count: due.overdue })} hint={t("resultOverdueHint")} tone="attention" />
+                <ValueCard href="/#overdue-vaccinations" title={t("resultOverdue", { count: due.overdue })} hint={t("resultOverdueHint")} tone="attention" />
               )}
               {due.overdueOlder > 0 && (
                 <ValueCard
-                  href="/"
+                  href="/#overdue-vaccinations"
                   title={t("resultOverdueOlder", { count: due.overdueOlder })}
                   hint={t("resultOverdueOlderHint")}
                   tone="attention"
                 />
               )}
               {due.dueSoon > 0 && (
-                <ValueCard href="/" title={t("resultDueSoon", { count: due.dueSoon })} hint={t("resultDueSoonHint")} tone="neutral" />
+                <ValueCard href="/#upcoming-vaccinations" title={t("resultDueSoon", { count: due.dueSoon })} hint={t("resultDueSoonHint")} tone="neutral" />
               )}
             </div>
           ) : (
@@ -1161,6 +1190,20 @@ function ImportResult({
       </div>
     </div>
   );
+}
+
+/**
+ * The first sentence after an import, without "0 hayvan ve 0 sahip": a
+ * part that is zero is left out, and a run that made nobody says what it
+ * did do instead (C3).
+ */
+function resultHeadline(result: CommitResult, t: ReturnType<typeof useTranslations<"import">>): string {
+  const { petCount: pets, clientCount: clients, vaccinationCount: vaccinations } = result;
+  if (pets > 0 && clients > 0) return t("resultHeadline", { pets, clients });
+  if (pets > 0) return t("resultHeadlinePets", { pets });
+  if (clients > 0) return t("resultHeadlineClients", { clients });
+  if (vaccinations > 0) return t("resultHeadlineVaccinationsOnly", { count: vaccinations });
+  return t("resultHeadlineNothing");
 }
 
 function ValueCard({

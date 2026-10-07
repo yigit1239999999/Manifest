@@ -1064,7 +1064,12 @@
     "birthYearYes": "Evet, tahmini olarak alın",
     "birthYearNo": "Hayır, notta kalsın",
     "birthYearYesEffect": "Yaş hesaplanır; hayvanın sayfasında doğum tarihinin yanında \"tahmini\" yazar.",
-    "birthYearNoEffect": "Doğum tarihi boş kalır; yıl hayvanın notuna yazılır."
+    "birthYearNoEffect": "Doğum tarihi boş kalır; yıl hayvanın notuna yazılır.",
+    "resultHeadlinePets": "{pets, plural, one {# hayvan} other {# hayvan}} artık kliniğinizde.",
+    "resultHeadlineClients": "{clients, plural, one {# sahip} other {# sahip}} artık kliniğinizde.",
+    "resultHeadlineVaccinationsOnly": "Yeni hayvan ya da sahip eklenmedi; {count, plural, one {# aşı kaydı} other {# aşı kaydı}} kayıtlı hayvanlarınıza eklendi.",
+    "resultHeadlineNothing": "Bu dosyadan yeni kayıt eklenmedi; hepsi zaten kliniğinizde.",
+    "resultVaccinationsHint": "Her biri hayvanın sayfasında, aşılar altında."
   },
   "enum": {
     "species": {

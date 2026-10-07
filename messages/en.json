@@ -1064,7 +1064,12 @@
     "birthYearYes": "Yes, take it as estimated",
     "birthYearNo": "No, keep it in the notes",
     "birthYearYesEffect": "The age is worked out; the animal's page says \"estimated\" next to the birth date.",
-    "birthYearNoEffect": "The birth date stays empty; the year goes into the animal's notes."
+    "birthYearNoEffect": "The birth date stays empty; the year goes into the animal's notes.",
+    "resultHeadlinePets": "{pets, plural, one {# animal is} other {# animals are}} now in your clinic.",
+    "resultHeadlineClients": "{clients, plural, one {# owner is} other {# owners are}} now in your clinic.",
+    "resultHeadlineVaccinationsOnly": "No new animals or owners; {count, plural, one {# vaccination was} other {# vaccinations were}} added to animals you already have.",
+    "resultHeadlineNothing": "Nothing new came in from this file; it is all already in your clinic.",
+    "resultVaccinationsHint": "Each on its animal's page, under vaccinations."
   },
   "enum": {
     "species": {
