@@ -569,7 +569,9 @@
     "startAtFrom": "İlk doz {min}. haftadan sonra yapılır.",
     "noteInsideCombination": "Karma aşının içinde geliyor.",
     "noteTestFirst": "Önce test yapılır; şema yalnız sonuç negatifse geçerlidir.",
-    "noteByAgreement": "Her hayvana yapılmaz; sahibiyle konuşarak karar verilir."
+    "noteByAgreement": "Her hayvana yapılmaz; sahibiyle konuşarak karar verilir.",
+    "overdueBadge": "{count, plural, =0 {Gecikti · bugün} one {Gecikti · 1 gün} other {Gecikti · # gün}}",
+    "supersededNote": "sonraki doz yapıldı"
   },
   "prescription": {
     "title": "Reçeteler",

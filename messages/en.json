@@ -569,7 +569,9 @@
     "startAtFrom": "The first dose is given from week {min}.",
     "noteInsideCombination": "Comes inside the combination vaccine.",
     "noteTestFirst": "A test comes first; the schedule applies only if it is negative.",
-    "noteByAgreement": "Not given to every animal; decided with the owner."
+    "noteByAgreement": "Not given to every animal; decided with the owner.",
+    "overdueBadge": "{count, plural, =0 {Overdue · today} one {Overdue · 1 day} other {Overdue · # days}}",
+    "supersededNote": "next dose given"
   },
   "prescription": {
     "title": "Prescriptions",

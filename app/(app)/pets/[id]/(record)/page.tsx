@@ -13,6 +13,7 @@ import {
   vaccineOffersForPet,
 } from "@/modules/vaccinations/queries";
 import { setVaccinationDueDismissedAction } from "@/modules/vaccinations/actions";
+import { dueState } from "@/modules/vaccinations/due-state";
 import { listPrescriptionsForPet } from "@/modules/prescriptions/queries";
 import { listTreatmentsForPet } from "@/modules/treatments/queries";
 import { listDiagnosticsForPet } from "@/modules/diagnostics/queries";
@@ -363,18 +364,37 @@ export default async function PetPage({
                 <EmptyState size="inline" title={tVacc("empty")} />
               ) : (
                 <ul className="flex flex-col gap-2">
-                  {vaccinations.map((v) => (
+                  {vaccinations.map((v) => {
+                    const due = dueState(v);
+                    return (
                     <li
                       key={v.id}
-                      className="flex items-center justify-between rounded-control border border-border px-3 py-2 text-sm"
+                      className={
+                        // An overdue row looks overdue: the dashboard's
+                        // card says it in red, and the animal's own page
+                        // used to list the same row like any other.
+                        due.kind === "overdue"
+                          ? "flex flex-wrap items-center justify-between gap-2 rounded-control border border-destructive/40 px-3 py-2 text-sm"
+                          : "flex flex-wrap items-center justify-between gap-2 rounded-control border border-border px-3 py-2 text-sm"
+                      }
                     >
-                      <div>
-                        <p className="font-medium">{v.name}</p>
+                      <div className="min-w-0">
+                        <p className="flex flex-wrap items-center gap-2 font-medium">
+                          {v.name}
+                          {due.kind === "overdue" && (
+                            <Badge variant="destructive">
+                              {tVacc("overdueBadge", { count: due.days })}
+                            </Badge>
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {v.administeredDateOnly
                             ? formatDateOnly(fmt, v.administeredAt)
                             : formatDateTime(fmt, v.administeredAt)}
                           {v.nextDueAt && ` · → ${formatDate(fmt, v.nextDueAt)}`}
+                          {/* Not overdue, and saying why: a later dose of
+                              the same vaccine answered this date. */}
+                          {due.kind === "superseded" && ` · ${tVacc("supersededNote")}`}
                         </p>
                       </div>
                       {/* Closing an overdue vaccination on the dashboard
@@ -412,7 +432,8 @@ export default async function PetPage({
                         </span>
                       )}
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
               {canAddVaccination && (
