@@ -72,7 +72,7 @@ test.describe("Appointments day plan", () => {
     await expect(page.getByText(/\b(14:00|2:00 PM)\b/)).toHaveCount(0);
     await expect(page.getByText(/\b(08:00|8:00 AM)\b/)).toHaveCount(0);
     // The phone rides along for reception.
-    await expect(page.getByText("+905321112233").last()).toBeVisible();
+    await expect(page.getByText("0532 111 22 33").last()).toBeVisible();
 
     // Tomorrow, via the arrow, and the day stays in the URL.
     await page.getByRole("link", { name: /next day|sonraki gün/i }).click();
