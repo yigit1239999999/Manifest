@@ -19,7 +19,10 @@
     "settings": "Ayarlar",
     "audit": "İşlem geçmişi",
     "signOut": "Çıkış",
-    "recalls": "Aşı takibi"
+    "recalls": "Aşı takibi",
+    "search": "Ara",
+    "more": "Diğer",
+    "close": "Kapat"
   },
   "common": {
     "close": "Kapat",

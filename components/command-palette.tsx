@@ -38,6 +38,12 @@ interface SearchResults {
 
 const EMPTY: SearchResults = { clients: [], pets: [] };
 
+/**
+ * Opens the palette from elsewhere -- the phone's bottom bar has its own
+ * "Ara" tab, and one search with two doors beats two searches.
+ */
+export const OPEN_SEARCH_EVENT = "pettrack:open-search";
+
 export function CommandPalette() {
   const router = useRouter();
   const tCommon = useTranslations("common");
@@ -74,8 +80,16 @@ export function CommandPalette() {
         });
       }
     }
+    function onOpen() {
+      opener.current = document.activeElement as HTMLElement | null;
+      setOpen(true);
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_SEARCH_EVENT, onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_SEARCH_EVENT, onOpen);
+    };
   }, []);
 
   useEffect(() => {

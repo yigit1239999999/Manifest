@@ -19,7 +19,10 @@
     "settings": "Settings",
     "audit": "Audit log",
     "signOut": "Sign out",
-    "recalls": "Vaccine recalls"
+    "recalls": "Vaccine recalls",
+    "search": "Search",
+    "more": "More",
+    "close": "Close"
   },
   "common": {
     "close": "Close",
