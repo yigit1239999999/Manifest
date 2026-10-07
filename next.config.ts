@@ -15,6 +15,13 @@ const nextConfig: NextConfig = {
   // one — twice. Set NEXT_DIST_DIR to give the production build its own
   // directory (`NEXT_DIST_DIR=.next-prod npm run build && … npm start`).
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // `forbidden()` and `forbidden.tsx`, so a page a role may not open
+  // answers 403 instead of drawing its refusal under a 200 (pm C14;
+  // `components/ui/forbidden-state.tsx`). Experimental in Next 16 and
+  // documented as such in `node_modules/next/dist/docs`.
+  experimental: {
+    authInterrupts: true,
+  },
 };
 
 export default withSentryConfig(withNextIntl(nextConfig), {

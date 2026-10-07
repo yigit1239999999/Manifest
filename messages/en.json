@@ -22,7 +22,8 @@
     "recalls": "Vaccine recalls",
     "search": "Search",
     "more": "More",
-    "close": "Close"
+    "close": "Close",
+    "searchHint": "Type a client's name, a phone number, an animal's name or an invoice number; or add a new record below."
   },
   "common": {
     "close": "Close",
@@ -567,7 +568,7 @@
       "timezoneHint": "Dates and times in messages use this timezone.",
       "providerConnected": "{channel} is connected ({transport}).",
       "providerConnectedSending": "Scheduled messages go out over this connection.",
-      "providerMissing": "{channel} is not connected yet, so nothing is sent automatically. Until then, messages are copied from the appointment page and sent by hand. The connection cannot be set up from inside the app; your clinic administrator has to configure the provider.",
+      "providerMissing": "{channel} is not connected yet, so nothing is sent automatically. Until then, messages are copied from the appointment page and sent by hand. The connection is not set up on this screen: PetTrack support configures your messaging provider account (e.g. Netgsm), and this card says \"connected\" once it is.",
       "preview": "Message preview",
       "previewConfirmation": "Confirmation",
       "previewReminder": "Reminder",

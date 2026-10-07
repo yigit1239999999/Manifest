@@ -216,12 +216,32 @@ export function ColumnBars({
           );
         })}
       </div>
-      <div className="flex gap-1 text-[10px] text-muted-foreground">
-        {data.map((d) => (
-          <span key={d.label} className="flex-1 truncate text-center">
-            {d.label}
-          </span>
-        ))}
+      {/* Every other label on a narrow card when there are many (pm C13):
+          twelve weekly labels in a 300px card were cut to "19…", "2…",
+          which is twelve labels saying nothing. Counted from the last, so
+          the current period always keeps its name; the hidden ones keep
+          their place, so every label still sits under its own column.
+          The whole series is in the chart's accessible summary either
+          way. */}
+      <div className="@container">
+        <div className="flex gap-1 text-[10px] text-muted-foreground">
+          {data.map((d, i) => (
+            <span
+              key={d.label}
+              className={cn(
+                "flex-1 truncate text-center",
+                data.length > 6 &&
+                  ((lastIndex - i) % 2 === 1
+                    ? "@max-sm:invisible"
+                    : // The shown label may spill into its hidden
+                      // neighbours' room, centred on its own column.
+                      "@max-sm:flex @max-sm:justify-center @max-sm:overflow-visible"),
+              )}
+            >
+              {d.label}
+            </span>
+          ))}
+        </div>
       </div>
       {partialLast && (
         // Not `aria-hidden`: the same fact is in the chart's own summary, but

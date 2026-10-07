@@ -221,6 +221,9 @@ export async function quickSearchPets(
       customSpecies: { select: { name: true } },
       ownerId: true,
       owner: { select: { firstName: true, lastName: true } },
+      // For telling two Zeytins apart in the palette: species, age, owner.
+      birthDate: true,
+      deceased: true,
     },
   });
   const items = rows.slice(0, take);

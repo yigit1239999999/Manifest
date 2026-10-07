@@ -307,7 +307,12 @@ export default async function VisitPage({
         </CardHeader>
         <CardContent>
           <DescriptionList
-            layout="row"
+            // Stacked, label over value (pm C9). In `row` layout each pair
+            // pushed its value to the end of a 300px cell, so at 1366 the
+            // label sat at the left of the cell and the value at the far
+            // right, nearer the next label than its own. Stacked, the two
+            // are read as one; the grid keeps the card to two short rows.
+            //
             // A grid so a pair stays a pair. In one column across 976px
             // the label sits at the left edge and the value at the
             // right, and reading one of them is a journey the eye makes
@@ -320,7 +325,7 @@ export default async function VisitPage({
             // A grid that reorders shows one sequence to the eye and
             // reads another to a screen reader, and "identity first"
             // would then be true only for people who can see it (ux).
-            className="grid gap-x-8 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+            className="grid gap-x-8 gap-y-4 sm:grid-cols-3 xl:grid-cols-5"
             items={[
               // The animal and the owner first, and this is error
               // catching rather than tidiness: identity is what a

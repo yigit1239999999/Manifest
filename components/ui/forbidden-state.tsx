@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
+import { forbidden } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/ui/empty-state";
 import { buttonVariants } from "@/components/ui/button";
@@ -33,7 +34,25 @@ import { buttonVariants } from "@/components/ui/button";
  * the shared sentence honest is in `messages/messages.test.ts`: it may not
  * claim who the section belongs to.
  */
-export async function ForbiddenState() {
+/**
+ * What a page returns for a role it does not serve: `return
+ * <ForbiddenState />`, the pattern every guarded route already uses.
+ *
+ * It answers with HTTP 403 now (pm C14) rather than drawing the screen
+ * itself under a 200: rendering it calls Next's `forbidden()`
+ * (`experimental.authInterrupts`), and `app/(app)/forbidden.tsx` draws
+ * `ForbiddenView` in the page's place. A 200 told every tool reading the
+ * response -- a monitor, a crawler, the browser's own history -- that the
+ * page had been served, and pm's sweep counted refusals as successes.
+ * Kept as a component so the eleven call sites and the route-state tests
+ * that look for it did not have to change.
+ */
+export function ForbiddenState(): never {
+  forbidden();
+}
+
+/** The refusal itself, drawn by `app/(app)/forbidden.tsx`. */
+export async function ForbiddenView() {
   const t = await getTranslations("error");
 
   return (

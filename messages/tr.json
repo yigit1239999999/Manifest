@@ -22,7 +22,8 @@
     "recalls": "Aşı takibi",
     "search": "Ara",
     "more": "Diğer",
-    "close": "Kapat"
+    "close": "Kapat",
+    "searchHint": "Müşteri adı, telefon, hayvan adı veya fatura numarası yazın; ya da aşağıdan yeni kayıt ekleyin."
   },
   "common": {
     "close": "Kapat",
@@ -567,7 +568,7 @@
       "timezoneHint": "Mesajlardaki tarih ve saatler bu saat dilimine göre yazılır.",
       "providerConnected": "{channel} bağlantısı aktif ({transport}).",
       "providerConnectedSending": "Zamanlanmış mesajlar bu bağlantıdan gönderilir.",
-      "providerMissing": "{channel} bağlantısı henüz yapılmadı; otomatik mesaj gönderilmez. Bu süre içinde mesajlar randevu sayfasından kopyalanıp elle iletilir. Bağlantıyı uygulama içinden kuramazsınız, klinik yöneticinizin sağlayıcı bilgilerini tanımlaması gerekir.",
+      "providerMissing": "{channel} bağlantısı henüz yapılmadı; otomatik mesaj gönderilmez. Bu süre içinde mesajlar randevu sayfasından kopyalanıp elle iletilir. Bağlantı bu ekrandan kurulmaz: mesaj sağlayıcı hesabınız (ör. Netgsm) PetTrack destek ekibi tarafından tanımlanır, tanımlandığında bu kartta \"bağlantısı aktif\" yazar.",
       "preview": "Mesaj önizlemesi",
       "previewConfirmation": "Onay mesajı",
       "previewReminder": "Hatırlatma mesajı",

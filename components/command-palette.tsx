@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { surface } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
-import { Title as DialogTitle } from "@radix-ui/react-dialog";
+import {
+  Description as DialogDescription,
+  Title as DialogTitle,
+} from "@radix-ui/react-dialog";
 import {
   CalendarClock,
   PawPrint,
@@ -15,28 +18,35 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
-import { ownerLabel } from "@/lib/pet-label";
 
+// Worded on the server (`app/api/search/route.ts`): the species, the age
+// and the money need the clinic's catalogue and locale.
 interface ClientResult {
   id: string;
-  firstName: string;
-  lastName: string;
-  email: string | null;
+  label: string;
+  phone: string | null;
 }
 
 interface PetResult {
   id: string;
   name: string;
-  species: string;
-  owner: { firstName: string; lastName: string };
+  /** "Kedi · 3 yaş · Ayşe Tekin": what tells two Zeytins apart. */
+  detail: string;
+}
+
+interface InvoiceResult {
+  id: string;
+  number: string;
+  detail: string;
 }
 
 interface SearchResults {
   clients: ClientResult[];
   pets: PetResult[];
+  invoices: InvoiceResult[];
 }
 
-const EMPTY: SearchResults = { clients: [], pets: [] };
+const EMPTY: SearchResults = { clients: [], pets: [], invoices: [] };
 
 /**
  * Opens the palette from elsewhere -- the phone's bottom bar has its own
@@ -103,7 +113,7 @@ export function CommandPalette() {
       signal: controller.signal,
     })
       .then((r) => (r.ok ? r.json() : EMPTY))
-      .then((data: SearchResults) => setResults(data))
+      .then((data: Partial<SearchResults>) => setResults({ ...EMPTY, ...data }))
       .catch(() => undefined)
       .finally(() => setPending(false));
     return () => controller.abort();
@@ -181,6 +191,10 @@ export function CommandPalette() {
         {/* cmdk renders a Radix Dialog under the hood, which requires a
             DialogTitle for screen readers. Keep it visually hidden. */}
         <DialogTitle className="sr-only">{tCommon("search")}</DialogTitle>
+        {/* And a description, which Radix warns about on every open when
+            it is missing (pm C4) -- and which is worth having: it tells a
+            screen reader what the box can find before anything is typed. */}
+        <DialogDescription className="sr-only">{tNav("searchHint")}</DialogDescription>
         <button
           type="button"
           aria-label="Close"
@@ -230,12 +244,12 @@ export function CommandPalette() {
                     onSelect={() => go(`/clients/${c.id}`)}
                   >
                     <Users className="size-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      {ownerLabel(c)}
-                    </span>
-                    {c.email && (
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {c.email}
+                    <span className="text-sm font-medium">{c.label}</span>
+                    {/* The phone, not the e-mail: it is what the person at
+                        the counter is reading out. */}
+                    {c.phone && (
+                      <span className="ms-auto whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                        {c.phone}
                       </span>
                     )}
                   </PaletteItem>
@@ -253,8 +267,26 @@ export function CommandPalette() {
                   >
                     <PawPrint className="size-4 text-muted-foreground" />
                     <span className="text-sm font-medium">{p.name}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {ownerLabel(p.owner)}
+                    <span className="ms-auto min-w-0 truncate text-xs text-muted-foreground">
+                      {p.detail}
+                    </span>
+                  </PaletteItem>
+                ))}
+              </Command.Group>
+            )}
+
+            {visibleResults.invoices.length > 0 && (
+              <Command.Group heading={tNav("invoices")}>
+                {visibleResults.invoices.map((i) => (
+                  <PaletteItem
+                    key={i.id}
+                    value={`invoice-${i.id}`}
+                    onSelect={() => go(`/invoices/${i.id}`)}
+                  >
+                    <Receipt className="size-4 text-muted-foreground" />
+                    <span className="text-sm font-medium tabular-nums">{i.number}</span>
+                    <span className="ms-auto min-w-0 truncate text-xs text-muted-foreground">
+                      {i.detail}
                     </span>
                   </PaletteItem>
                 ))}
