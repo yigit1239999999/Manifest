@@ -164,3 +164,49 @@ export async function getInvoiceForVisit(clinicId: string, visitId: string) {
   });
   return line?.invoice ?? null;
 }
+
+export type ClientBalance = {
+  /** What is still owed, per currency the invoices were issued in. */
+  owed: Array<{ currency: string; cents: number }>;
+  /** How many issued invoices still have something left to pay. */
+  invoiceCount: number;
+};
+
+/**
+ * What one owner still owes: every issued invoice (`SENT`, `PARTIAL`) less
+ * the payments on it that were not voided -- the same rule as the list's
+ * "remaining" column and the dashboard's outstanding figure, so the three
+ * never disagree about one person.
+ *
+ * Two queries whatever the owner's history: their open invoices, then one
+ * `groupBy` over those ids. An owner with years of paid invoices costs the
+ * same as one with none, because only the open ones are read.
+ *
+ * Per currency rather than one sum: an invoice keeps the currency it was
+ * issued in, and adding lira to euros is a number that means nothing.
+ */
+export async function clientBalance(clinicId: string, clientId: string): Promise<ClientBalance> {
+  const open = await prisma.invoice.findMany({
+    where: { clinicId, clientId, status: { in: ["SENT", "PARTIAL"] } },
+    select: { id: true, totalCents: true, currency: true },
+  });
+  if (open.length === 0) return { owed: [], invoiceCount: 0 };
+  const sums = await prisma.payment.groupBy({
+    by: ["invoiceId"],
+    where: { invoiceId: { in: open.map((i) => i.id) }, voidedAt: null },
+    _sum: { amountCents: true },
+  });
+  const paid = new Map(sums.map((s) => [s.invoiceId, s._sum.amountCents ?? 0]));
+  const byCurrency = new Map<string, number>();
+  let invoiceCount = 0;
+  for (const inv of open) {
+    const left = Math.max(0, inv.totalCents - (paid.get(inv.id) ?? 0));
+    if (left === 0) continue;
+    invoiceCount += 1;
+    byCurrency.set(inv.currency, (byCurrency.get(inv.currency) ?? 0) + left);
+  }
+  return {
+    owed: [...byCurrency].map(([currency, cents]) => ({ currency, cents })),
+    invoiceCount,
+  };
+}

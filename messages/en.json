@@ -757,7 +757,11 @@
       "reference": "Reference",
       "notes": "Notes",
       "submit": "Record"
-    }
+    },
+    "ownerBalance": "Owes {amount} · {count, plural, one {# invoice} other {# invoices}}",
+    "ownerBalanceOpen": "Show the invoices",
+    "filteredClient": "Invoices for {name}",
+    "filteredClientClear": "All clients"
   },
   "timeline": {
     "openVisit": "Open visit",

@@ -10,7 +10,7 @@ import {
   UNPAID_FILTER,
   invoiceStatusesForFilter,
 } from "@/modules/invoices/schema";
-import { countClients } from "@/modules/clients/queries";
+import { countClients, getClientLabel } from "@/modules/clients/queries";
 import { MissingLink } from "@/components/missing-link";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -25,7 +25,7 @@ import { ownerLabel } from "@/lib/pet-label";
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string }>;
+  searchParams: Promise<{ page?: string; status?: string; clientId?: string }>;
 }) {
   const fmt = await getFormatContext();
   const session = await requireSession();
@@ -34,23 +34,27 @@ export default async function InvoicesPage({
   // looks like it did nothing. The permission is the same one the service
   // enforces, read from one place (`lib/permissions.ts`).
   const canCreate = can(session.user.role, "invoices.write");
-  const { page: pageParam, status: statusParam } = await searchParams;
+  const { page: pageParam, status: statusParam, clientId } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   // `unpaid` is two statuses, SENT and PARTIAL: the dashboard's
   // outstanding tile links here with it. A value that names nothing is
   // dropped, so it neither selects a tab nor claims the list is filtered.
   const statuses = invoiceStatusesForFilter(statusParam);
   const status = statuses ? statusParam : undefined;
-  const [t, tCommon, tStatus, tClient, result] = await Promise.all([
+  const [t, tCommon, tStatus, tClient, result, clientName] = await Promise.all([
     getTranslations("invoice"),
     getTranslations("common"),
     getTranslations("enum.invoiceStatus"),
     getTranslations("client"),
     listInvoicesPage({
       clinicId: session.user.clinicId,
+      clientId: clientId || null,
       statuses,
       page,
     }),
+    // Arrived from an owner's "Toplam borç" line: their name, so the list
+    // says whose invoices these are and how to see everyone's again.
+    clientId ? getClientLabel(session.user.clinicId, clientId) : undefined,
   ]);
 
   // An invoice is raised against a client and nothing more: the line
@@ -84,6 +88,7 @@ export default async function InvoicesPage({
         param="status"
         label={t("status")}
         active={status}
+        params={{ clientId: clientName ? clientId : undefined }}
         allLabel={tCommon("all")}
         // First after "all": "who has not paid?" is the question this
         // list is opened with at the end of the day.
@@ -96,10 +101,22 @@ export default async function InvoicesPage({
         ]}
       />
 
+      {clientName && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-foreground">
+          <span>{t("filteredClient", { name: clientName })}</span>
+          <Link
+            href={status ? `/invoices?status=${status}` : "/invoices"}
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
+            {t("filteredClientClear")}
+          </Link>
+        </p>
+      )}
+
       {result.items.length === 0 ? (
         // See the same branch in /visits: "no unpaid invoices" and "no
         // invoices at all" are opposite pieces of news (TEAM.md #19).
-        status ? (
+        status || clientName ? (
           <EmptyState
             icon={Receipt}
             title={tCommon("emptyFiltered")}
@@ -226,7 +243,7 @@ export default async function InvoicesPage({
             total={result.total}
             page={result.page}
             perPage={result.perPage}
-            params={{ status }}
+            params={{ status, clientId: clientName ? clientId : undefined }}
           />
         </>
       )}

@@ -757,7 +757,11 @@
       "reference": "Referans",
       "notes": "Notlar",
       "submit": "Kaydet"
-    }
+    },
+    "ownerBalance": "Toplam borç {amount} · {count} fatura",
+    "ownerBalanceOpen": "Faturaları gösterin",
+    "filteredClient": "{name} adına kesilen faturalar",
+    "filteredClientClear": "Bütün müşteriler"
   },
   "timeline": {
     "openVisit": "Viziti aç",
