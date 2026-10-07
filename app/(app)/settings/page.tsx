@@ -184,7 +184,8 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      {/* `id`: the dashboard's "SMS'i bağlayın" step links straight here. */}
+      <Card id="notifications" className="scroll-mt-6">
         <CardHeader>
           <CardTitle>{t("notifications.title")}</CardTitle>
           <CardDescription>{t("notifications.hint")}</CardDescription>

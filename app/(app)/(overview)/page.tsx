@@ -16,7 +16,12 @@ import { getTranslations } from "next-intl/server";
 import { getFormatContext } from "@/lib/format-context";
 import { requireSession } from "@/lib/session";
 import { can } from "@/lib/permissions";
-import { dashboardInsights, todayAppointments } from "@/modules/dashboard/queries";
+import {
+  dashboardInsights,
+  setupProgress,
+  todayAppointments,
+} from "@/modules/dashboard/queries";
+import { SetupStepsCard } from "@/components/setup-steps-card";
 import { blockedReminders } from "@/modules/notifications/queries";
 import { unreadDiagnostics } from "@/modules/diagnostics/queries";
 import { getClinicCurrency, getClinicSettings } from "@/modules/clinics/queries";
@@ -280,6 +285,15 @@ export default async function DashboardPage() {
   // fail is worse than none.
   const canDismissDue = can(session.user.role, "vaccinations.write");
 
+  const canManageSettings = can(session.user.role, "settings.manage");
+  const canManageUsers = can(session.user.role, "users.manage");
+  // Read only for somebody who could act on it, and never on the
+  // first-run screen, which has its own two doors.
+  const setup =
+    !firstRun && (canManageSettings || canManageUsers)
+      ? await setupProgress(session.user.clinicId)
+      : null;
+
   if (firstRun) {
     return (
       // Placed rather than stacked, and only on this branch.
@@ -309,7 +323,7 @@ export default async function DashboardPage() {
       // right when there is something to read in order, and that branch
       // has its own test saying so.
       <div className="flex min-h-[calc(100vh-10rem)] flex-col items-center justify-center pb-16">
-        <div className="flex w-full max-w-lg flex-col gap-8">
+        <div className={cn("flex w-full flex-col gap-8", canImport ? "max-w-3xl" : "max-w-lg")}>
           {/* Not `subtitle` ("today's summary"), which is a lie on day
               zero. The key stays for the other states.
 
@@ -336,56 +350,22 @@ export default async function DashboardPage() {
             description={t("readyFor", { clinic: clinicName })}
           />
 
-          {/* The one fully present thing on the screen: full contrast,
-              its own shadow. The focus is built by holding everything
-              else back rather than by making this bigger.
+          {/* Two equal doors to the same place -- a clinic with records
+              in it -- and the user's call that they are equal (pm B14).
+              The spreadsheet used to be a footnote under the visit card,
+              and a clinic arriving with ten years of records read the
+              footnote as "you will be typing all of this". A first visit
+              is the work the vet came for; the file is the history they
+              already have. Neither is the other's fallback.
 
-              `visit`, not `client`, and the difference is the whole
-              first-run idea: a clinic with nothing at all is asked for
-              the thing it came to do, and the owner and animal it needs
-              get made on the way there. The card falls back to the
-              client ask by itself for anyone who cannot write a visit. */}
-          <FirstStepCard need="visit" size="page" />
-
-          {/* The other way to do the SAME job, and that is the whole of
-              what it is allowed to be.
-
-              `first-step-card.tsx` says the card has exactly two states and
-              that a third line would turn it into a setup wizard, naming
-              the shape it would take: "now switch on reminders", "now add
-              your staff". A spreadsheet is not one of those. It is not new
-              work -- it is the work the card is already asking for,
-              arriving by the door of somebody who has the records already
-              (ux). So the rule this screen now holds is narrower than "at
-              most three blocks": there may be one alternative, and it may
-              only lead where the ask leads. `first-run-screen.test.ts`
-              checks the destination for that reason.
-
-              A footnote, not a second invitation. The card keeps the
-              weight: no emphasis here, and the sentence is the vet's
-              choice to ignore. The whole of it is the link rather than a
-              word inside it -- with the emphasis gone, a coloured phrase
-              in a muted line would leave COLOUR as the only thing saying
-              it can be clicked, and the underline only arrives on hover
-              (ux). `sign-up-form.tsx` already writes it this way.
-
-              Not centred, though the pattern it copies is: the column is
-              one `max-w-lg` box so the greeting and the card share a left
-              edge, and a centred third line puts a second alignment on a
-              screen that has one.
-
-              Only while the clinic is empty. The first-run screen stops
-              being the first-run screen the evening the first visit is
-              written, which is exactly why `/import` is in the sidebar as
-              well -- the second spreadsheet arrives months later, and a
-              door that exists only on day one is shut by the end of it. */}
-          {canImport && (
-            <p className="text-sm text-muted-foreground">
-              <Link href="/import" className="text-primary hover:underline">
-                {t("importInvite")}
-              </Link>
-            </p>
-          )}
+              Same component, same `page` size, side by side from `sm` and
+              stacked under it, so the two cannot drift apart in weight.
+              Only the visit card for someone who cannot import: the
+              screen then has one job, and it is placed as one. */}
+          <div className={cn("grid gap-4", canImport && "sm:grid-cols-2")}>
+            {canImport && <FirstStepCard need="import" size="page" />}
+            <FirstStepCard need="visit" size="page" />
+          </div>
         </div>
       </div>
     );
@@ -399,6 +379,18 @@ export default async function DashboardPage() {
       />
 
       {firstStep && <FirstStepCard need={firstStep} size="inline" />}
+
+      {/* After the records are in, what is left to set up (pm B14).
+          Only for whoever can do it, and only once the chain above has
+          nothing missing: one card of next steps at a time. */}
+      {!firstStep && setup && !setup.hidden && (
+        <SetupStepsCard
+          steps={{
+            messaging: canManageSettings && !setup.messagingDecided,
+            team: canManageUsers && !setup.hasTeam,
+          }}
+        />
+      )}
 
       {/* First, above the counts: the page is opened at the start of the
           day to see who is coming, and a vet answered "where do I see

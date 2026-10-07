@@ -105,7 +105,6 @@
     "greeting": "Hi, {name}",
     "subtitle": "Here's what's happening today.",
     "readyFor": "{clinic} is ready.",
-    "importInvite": "Already have your records in a spreadsheet? Upload your file.",
     "metrics": {
       "clients": "Clients",
       "pets": "Pets",
@@ -142,7 +141,7 @@
     },
     "firstStep": {
       "visit": {
-        "title": "Write up a visit for an animal you have seen.",
+        "title": "Open your first visit.",
         "hint": "The animal and its owner go on the same form."
       },
       "client": {
@@ -156,6 +155,11 @@
       "waiting": {
         "title": "Your work starts with the first records.",
         "hint": "Your clinic administrator can add the first client and animal."
+      },
+      "import": {
+        "title": "Bring your records over.",
+        "hint": "Import your clients, animals and vaccinations from an Excel file; we match the columns.",
+        "action": "Upload an Excel file"
       }
     },
     "unreachedRemindersCount": "{count, plural, one {1 did not arrive} other {# did not arrive}}",
@@ -184,7 +188,21 @@
     "overdueVaccinationsBooked": "Booked · {when}",
     "seeAll": "See all · {count, number}",
     "upcomingWindow": "Next {days} days",
-    "unreachedHint": "The reminder did not reach the owner; call them instead."
+    "unreachedHint": "The reminder did not reach the owner; call them instead.",
+    "setupSteps": {
+      "title": "Next steps",
+      "hide": "Hide",
+      "hidden": "Next steps hidden.",
+      "undo": "Undo",
+      "messaging": {
+        "title": "Connect SMS",
+        "hint": "Let vaccination and appointment reminders reach owners on their own."
+      },
+      "team": {
+        "title": "Add your team",
+        "hint": "Give vets and reception their own sign-in."
+      }
+    }
   },
   "client": {
     "createNamed": "Add \"{name}\" as a new client",

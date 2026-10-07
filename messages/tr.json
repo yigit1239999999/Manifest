@@ -105,7 +105,6 @@
     "greeting": "Merhaba {name}",
     "subtitle": "Bugünün özeti.",
     "readyFor": "{clinic} için her şey hazır.",
-    "importInvite": "Kayıtlarınız Excel'de mi? Dosyanızı yükleyin.",
     "metrics": {
       "clients": "Müşteri",
       "pets": "Hayvan",
@@ -142,7 +141,7 @@
     },
     "firstStep": {
       "visit": {
-        "title": "Baktığınız bir hayvanın vizitini yazınız.",
+        "title": "İlk vizitinizi açın.",
         "hint": "Hayvanı ve sahibini aynı formda yazarsınız."
       },
       "client": {
@@ -156,6 +155,11 @@
       "waiting": {
         "title": "İşiniz ilk kayıtlarla başlar.",
         "hint": "İlk müşteri ve hayvan kaydını klinik yöneticiniz açabilir."
+      },
+      "import": {
+        "title": "Kayıtlarınızı getirin.",
+        "hint": "Müşteri, hayvan ve aşı listenizi Excel dosyasından aktarın; sütunları biz eşleştiririz.",
+        "action": "Excel dosyası yükleyin"
       }
     },
     "unreachedRemindersCount": "{count, plural, one {1 tanesi ulaşmadı} other {# tanesi ulaşmadı}}",
@@ -184,7 +188,21 @@
     "overdueVaccinationsBooked": "Randevu var · {when}",
     "seeAll": "Tümünü gör · {count, number}",
     "upcomingWindow": "Önümüzdeki {days} gün",
-    "unreachedHint": "Hatırlatma mesajı sahibine ulaşmadı; telefonla arayın."
+    "unreachedHint": "Hatırlatma mesajı sahibine ulaşmadı; telefonla arayın.",
+    "setupSteps": {
+      "title": "Sıradaki adımlar",
+      "hide": "Gizle",
+      "hidden": "Sıradaki adımlar gizlendi.",
+      "undo": "Geri al",
+      "messaging": {
+        "title": "SMS'i bağlayın",
+        "hint": "Aşı ve randevu hatırlatmaları sahiplere kendiliğinden gitsin."
+      },
+      "team": {
+        "title": "Ekibinizi ekleyin",
+        "hint": "Veteriner hekim ve resepsiyon kendi hesabıyla girsin."
+      }
+    }
   },
   "client": {
     "createNamed": "\"{name}\" adıyla yeni müşteri aç",

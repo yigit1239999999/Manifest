@@ -352,7 +352,10 @@ test.describe("First run", () => {
     // `first()` rather than a count, so a crowded screen cannot make
     // this fail as a strict-mode error about the tooling. If the wrong
     // element is ever first, the URL assertion below is what says so.
-    await asks.first().click();
+    //
+    // Since pm B14 the screen has two equal asks, the spreadsheet first,
+    // so the visit is found by where it leads rather than by position.
+    await main.locator('a[href="/visits/new"]').click();
     await expect(page).toHaveURL(/\/visits\/new(\?|$)/);
 
     await page.goto("/clients/new");
@@ -488,8 +491,14 @@ test.describe("First run", () => {
     // the card's ask comes first, the footnote second. The test above
     // depends on that too -- it clicks `asks.first()` and expects the
     // visit form -- so if the two ever swap, this line is where it shows.
+    //
+    // pm B14 changed the rule on purpose: two equal cards, "bring your
+    // records" and "open your first visit", the spreadsheet first. Still
+    // two asks and still no third -- a "set up reminders" card here
+    // would make three.
     await expect(asks).toHaveCount(2);
-    await expect(asks.nth(1)).toHaveAttribute("href", "/import");
+    await expect(asks.nth(0)).toHaveAttribute("href", "/import");
+    await expect(asks.nth(1)).toHaveAttribute("href", "/visits/new");
   });
 
   // 390px, because the dashboard's chart card produced 140px of sideways

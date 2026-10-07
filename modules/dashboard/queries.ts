@@ -20,6 +20,7 @@ import {
 import { listRecalls, type RecallRow } from "@/modules/vaccinations/recall";
 import { OPEN_REMINDER_STATUSES } from "@/modules/reminders/queries";
 import { getClinicCurrency } from "@/modules/clinics/queries";
+import { parseNotificationSettings } from "@/modules/notifications/settings";
 
 interface CountsRow {
   clients: number;
@@ -474,3 +475,31 @@ export async function todayAppointments(
 }
 
 export type TodayAppointment = Awaited<ReturnType<typeof todayAppointments>>[number];
+
+/**
+ * What a clinic that has records still has not set up: messaging, and a
+ * second person. Read only for the people who can do either.
+ *
+ * Messaging counts as done once somebody has decided -- on or off --
+ * because "we do not send messages" is an answer, and nagging a clinic
+ * that gave it is the card spending its meaning. A team counts as done
+ * at two active people.
+ */
+export async function setupProgress(clinicId: string) {
+  const clinic = await prisma.clinic.findUnique({
+    where: { id: clinicId },
+    select: {
+      settings: true,
+      firstStepHiddenAt: true,
+      _count: { select: { users: { where: { active: true } } } },
+    },
+  });
+  const notifications = parseNotificationSettings(
+    (clinic?.settings as { notifications?: unknown } | null)?.notifications,
+  );
+  return {
+    hidden: Boolean(clinic?.firstStepHiddenAt),
+    messagingDecided: notifications.whatsapp.enabled !== null,
+    hasTeam: (clinic?._count.users ?? 0) > 1,
+  };
+}

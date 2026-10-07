@@ -71,6 +71,22 @@ const STEPS = {
     namespace: "visit",
     permission: "visits.write",
   },
+  // The other first evening, and the user's own call that it stands
+  // beside the visit at the same weight rather than as a footnote under
+  // it (pm B14): a clinic that arrives with years of records in Excel is
+  // not going to type them, and the first thing it needs to see is that
+  // it does not have to. Two doors to the same place -- a clinic with
+  // records in it -- not a checklist; the next steps after it live in
+  // `SetupStepsCard`, which only appears once there is something in.
+  //
+  // Both permissions, because a row of the file is a client and an
+  // animal (`modules/import/request.ts` refuses either alone).
+  import: {
+    href: "/import",
+    namespace: "dashboard.firstStep",
+    labelKey: "import.action",
+    permission: ["clients.write", "pets.write"],
+  },
   client: {
     href: "/clients/new",
     namespace: "client",
@@ -174,7 +190,9 @@ export async function FirstStepCard({
       ? "client"
       : need;
   const step = STEPS[resolved];
-  const reachable = can(session.user.role, step.permission);
+  const needed: readonly string[] =
+    typeof step.permission === "string" ? [step.permission] : step.permission;
+  const reachable = needed.every((p) => can(session.user.role, p as never));
 
   const [t, tAction] = await Promise.all([
     getTranslations("dashboard.firstStep"),
@@ -182,7 +200,9 @@ export async function FirstStepCard({
   ]);
 
   const namespace = reachable ? resolved : WAITING;
-  const label = reachable ? tAction("new") : null;
+  const label = reachable
+    ? tAction(("labelKey" in step ? step.labelKey : "new") as never)
+    : null;
 
   // Vertical on the first-run screen, and this is a trap rather than a
   // taste: a `text-lg` heading and an `h-10` button in one
