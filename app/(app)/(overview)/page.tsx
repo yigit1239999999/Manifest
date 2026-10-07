@@ -201,6 +201,14 @@ export default async function DashboardPage() {
   // how they stop agreeing.
   const revenueOtherCurrencies = insights.revenueOtherCurrencies;
 
+  const compactFormat = new Intl.NumberFormat(fmt.locale === "tr" ? "tr-TR" : "en-US", {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
+  const compactMoney = (cents: number) => compactFormat.format(cents / 100);
+
   const revenueLast6MonthsData = insights.revenueLast6Months.map((m) => ({
     label: monthFmt.format(m.monthStart),
     value: m.cents,
@@ -729,6 +737,8 @@ export default async function DashboardPage() {
                   : t("empty.revenue")
               }
               formatValue={(v) => formatMoney(fmt, v, currency)}
+              // The amount on each bar, compact so six fit at 390px.
+              valueLabel={(v) => compactMoney(v)}
               partialLast={{
                 note: t("chart.partialPeriod"),
                 inProgress: t("chart.inProgress"),

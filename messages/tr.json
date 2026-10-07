@@ -122,7 +122,7 @@
       "petsBySpecies": "Türlere göre hayvanlar",
       "visitsByType": "Türlere göre vizitler",
       "visitsLast12Weeks": "Vizitler (son 12 hafta)",
-      "revenueLast6Months": "Ödenen faturalar (son 6 ay)",
+      "revenueLast6Months": "Tahsilat (son 6 ay)",
       "overdueVaccinations": "Geciken aşılar"
     },
     "chart": {
@@ -134,8 +134,8 @@
     "empty": {
       "appointments": "Yaklaşan randevu yok.",
       "pets": "Henüz hayvan yok.",
-      "revenue": "Bu dönemde ödenmiş fatura yok.",
-      "revenueCurrency": "Bu dönemde {currency} cinsinden ödenmiş fatura yok.",
+      "revenue": "Bu dönemde tahsilat yok.",
+      "revenueCurrency": "Bu dönemde {currency} cinsinden tahsilat yok.",
       "visits": "Henüz vizit yok.",
       "vaccinations": "Yaklaşan aşı yok."
     },
@@ -782,7 +782,40 @@
       "signature": "İmza / Kaşe",
       "printedAt": "Yazdırılma: {date}"
     },
-    "paidTotal": "Ödenen"
+    "paidTotal": "Ödenen",
+    "filterFrom": "Başlangıç",
+    "filterTo": "Bitiş",
+    "filterClient": "Müşteri (ad ya da telefon)",
+    "filterApply": "Süzün",
+    "rangeThisMonth": "Bu ay",
+    "rangeLastMonth": "Geçen ay",
+    "exportInvoices": "Faturaları indir (CSV)",
+    "exportPayments": "Tahsilatları indir (CSV)",
+    "totalsIssued": "Kesilen",
+    "totalsCollected": "Tahsil edilen",
+    "totalsRemaining": "Kalan",
+    "cashTitle": "Bu tarihlerde kasaya giren",
+    "cashNone": "Bu tarihlerde tahsilat yok.",
+    "cashCount": "{count} ödeme",
+    "csv": {
+      "date": "Tarih",
+      "time": "Saat",
+      "number": "Fatura no",
+      "client": "Müşteri",
+      "method": "Ödeme yöntemi",
+      "amount": "Tutar",
+      "currency": "Para birimi",
+      "reference": "Referans",
+      "status": "Durum",
+      "subtotal": "Ara toplam",
+      "vatRate": "KDV oranı (%)",
+      "vat": "KDV",
+      "total": "Toplam",
+      "paid": "Ödenen",
+      "remaining": "Kalan",
+      "fileInvoices": "faturalar",
+      "filePayments": "tahsilatlar"
+    }
   },
   "timeline": {
     "openVisit": "Viziti aç",
@@ -809,7 +842,40 @@
     "action": "İşlem",
     "entity": "Nesne",
     "when": "Zaman",
-    "emptyHint": "Ekibin yaptığı tüm değişiklikler (oluşturulan, düzenlenen veya arşivlenen kayıtlar) burada listelenir."
+    "emptyHint": "Ekibin yaptığı tüm değişiklikler (oluşturulan, düzenlenen veya arşivlenen kayıtlar) burada listelenir.",
+    "what": "Ne oldu",
+    "filterFrom": "Başlangıç",
+    "filterTo": "Bitiş",
+    "filterType": "Kayıt türü",
+    "filterApply": "Süzün",
+    "sentence": {
+      "paymentRecorded": "Ödeme alındı {amount}",
+      "paymentVoided": "Ödeme iptal edildi {amount}",
+      "invoiceCreated": "Fatura oluşturuldu {amount}",
+      "invoiceIssued": "Fatura kesildi",
+      "invoiceVoided": "Fatura iptal edildi",
+      "importCreated": "Excel'den aktarıldı: {clients} sahip, {pets} hayvan, {vaccinations} aşı",
+      "importUndone": "Aktarım geri alındı: {clients} sahip, {pets} hayvan, {vaccinations} aşı silindi",
+      "generic": "{entity} · {action}"
+    },
+    "entityType": {
+      "Client": "Müşteri",
+      "Pet": "Hayvan",
+      "Visit": "Vizit",
+      "Appointment": "Randevu",
+      "Vaccination": "Aşı",
+      "Prescription": "Reçete",
+      "Treatment": "Tedavi",
+      "Diagnostic": "Tetkik",
+      "Note": "Not",
+      "Reminder": "Hatırlatma",
+      "Invoice": "Fatura ve ödeme",
+      "ImportBatch": "Excel aktarımı",
+      "User": "Ekip",
+      "Clinic": "Klinik ayarları",
+      "CustomSpecies": "Tür",
+      "MessageLog": "Mesaj"
+    }
   },
   "import": {
     "title": "Excel'den aktarın",

@@ -122,7 +122,7 @@
       "petsBySpecies": "Pets by species",
       "visitsByType": "Visits by type",
       "visitsLast12Weeks": "Visits (last 12 weeks)",
-      "revenueLast6Months": "Paid invoices (last 6 months)",
+      "revenueLast6Months": "Money received (last 6 months)",
       "overdueVaccinations": "Overdue vaccinations"
     },
     "chart": {
@@ -134,8 +134,8 @@
     "empty": {
       "appointments": "No upcoming appointments.",
       "pets": "No animals yet.",
-      "revenue": "No paid invoices in this period.",
-      "revenueCurrency": "No invoices paid in {currency} in this period.",
+      "revenue": "No money received in this period.",
+      "revenueCurrency": "No money received in {currency} in this period.",
       "visits": "No visits yet.",
       "vaccinations": "No vaccinations due soon."
     },
@@ -782,7 +782,40 @@
       "signature": "Signature / Stamp",
       "printedAt": "Printed: {date}"
     },
-    "paidTotal": "Paid"
+    "paidTotal": "Paid",
+    "filterFrom": "From",
+    "filterTo": "To",
+    "filterClient": "Client (name or phone)",
+    "filterApply": "Filter",
+    "rangeThisMonth": "This month",
+    "rangeLastMonth": "Last month",
+    "exportInvoices": "Download invoices (CSV)",
+    "exportPayments": "Download payments (CSV)",
+    "totalsIssued": "Billed",
+    "totalsCollected": "Collected",
+    "totalsRemaining": "Remaining",
+    "cashTitle": "Money taken on these dates",
+    "cashNone": "No payments on these dates.",
+    "cashCount": "{count, plural, one {# payment} other {# payments}}",
+    "csv": {
+      "date": "Date",
+      "time": "Time",
+      "number": "Invoice no.",
+      "client": "Client",
+      "method": "Method",
+      "amount": "Amount",
+      "currency": "Currency",
+      "reference": "Reference",
+      "status": "Status",
+      "subtotal": "Subtotal",
+      "vatRate": "VAT rate (%)",
+      "vat": "VAT",
+      "total": "Total",
+      "paid": "Paid",
+      "remaining": "Remaining",
+      "fileInvoices": "invoices",
+      "filePayments": "payments"
+    }
   },
   "timeline": {
     "openVisit": "Open visit",
@@ -809,7 +842,40 @@
     "action": "Action",
     "entity": "Entity",
     "when": "When",
-    "emptyHint": "Everything staff change — records created, edited or archived — is listed here."
+    "emptyHint": "Everything staff change — records created, edited or archived — is listed here.",
+    "what": "What happened",
+    "filterFrom": "From",
+    "filterTo": "To",
+    "filterType": "Record type",
+    "filterApply": "Filter",
+    "sentence": {
+      "paymentRecorded": "Payment received {amount}",
+      "paymentVoided": "Payment voided {amount}",
+      "invoiceCreated": "Invoice created {amount}",
+      "invoiceIssued": "Invoice issued",
+      "invoiceVoided": "Invoice voided",
+      "importCreated": "Imported from a spreadsheet: {clients} owners, {pets} animals, {vaccinations} vaccinations",
+      "importUndone": "Import undone: {clients} owners, {pets} animals, {vaccinations} vaccinations deleted",
+      "generic": "{entity} · {action}"
+    },
+    "entityType": {
+      "Client": "Client",
+      "Pet": "Animal",
+      "Visit": "Visit",
+      "Appointment": "Appointment",
+      "Vaccination": "Vaccination",
+      "Prescription": "Prescription",
+      "Treatment": "Treatment",
+      "Diagnostic": "Test",
+      "Note": "Note",
+      "Reminder": "Reminder",
+      "Invoice": "Invoice and payment",
+      "ImportBatch": "Spreadsheet import",
+      "User": "Team",
+      "Clinic": "Clinic settings",
+      "CustomSpecies": "Species",
+      "MessageLog": "Message"
+    }
   },
   "import": {
     "title": "Import from Excel",
