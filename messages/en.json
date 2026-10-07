@@ -547,6 +547,8 @@
       "year": "{count, plural, one {1 year} other {# years}}"
     },
     "sourceList": "{interval}, from the list.",
+    "sourceSeries": "{interval} to dose {number} of the series, from the list.",
+    "proposalFilled": "Suggested date filled in; you can change it.",
     "sourceClinic": "{interval}, from your clinic's setting.",
     "sourceAsk": "No repeat date is proposed for this vaccine: the interval differs from vet to vet. Please set it yourself.",
     "seriesLine": "A starting series of {doses} doses, {min}-{max} weeks apart.",

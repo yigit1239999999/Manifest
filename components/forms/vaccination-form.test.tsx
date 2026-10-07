@@ -54,12 +54,21 @@ function fill(name: string, administered = "2026-09-23T10:00") {
 }
 
 describe("vaccination form", () => {
-  it("writes the dose and the source nobody touched", () => {
+  it("fills in the list's date as soon as the vaccine is chosen, and says so", () => {
     const view = mount();
-    fill("Karma");
+    fill("Kuduz");
 
-    expect(screen.getByText("1 yıl, listeden geldi.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /1 yıl sonra/ }));
+    // pm (B8): the date used to arrive only after pressing save.
+    expect(screen.getByText(/Önerilen tarih yazıldı/)).toBeTruthy();
+    expect(screen.getByText(/1 yıl, listeden geldi\./)).toBeTruthy();
+    const data = view.data();
+    expect(data.nextDueSource).toBe("LIST");
+    expect(String(data.nextDueAt)).toContain("2027-09-23");
+  });
+
+  it("writes the dose and the source nobody touched, for a puppy", () => {
+    const view = mount({ birthDate: "2026-07-29" });
+    fill("Karma");
 
     const data = view.data();
     expect(data.nextDueSource).toBe("LIST");
@@ -67,19 +76,43 @@ describe("vaccination form", () => {
     // the number the record gets.
     expect(data.doseNumber).toBe("1");
     expect(data.seriesOf).toBe("3");
-    expect(String(data.nextDueAt)).toContain("2027-09-2");
+    // Mid-series the next date is the next dose, three weeks on, not a
+    // year: 23 Sep + 3 weeks.
+    expect(String(data.nextDueAt)).toContain("2026-10-14");
+    expect(screen.getByText(/Serinin 2\. dozu için 3 hafta, listeden geldi\./)).toBeTruthy();
   });
 
-  it("proposes from the date already in the field", () => {
-    // The commonest path there is: today is already in the date field, so
-    // the vet touches the vaccine and nothing else. Before this the parent
-    // only heard about dates that were TYPED, so the pre-filled one reached
-    // it as nothing and the screen proposed nothing at all -- until the vet
-    // edited a field that was already right.
-    mount();
-    fireEvent.change(screen.getByLabelText(/^Aşı/), { target: { value: "Karma" } });
+  it("does not offer an adult's booster as the first dose of a series", () => {
+    // The vet's screenshot: "1 yıl, listeden geldi" and "3 dozluk serinin
+    // 1. dozu, dozlar arası 3-4 hafta" on the same adult dog.
+    const view = mount({ birthDate: "2022-01-01", priorDoses: { "dog.core": 1 } });
+    fill("Karma");
 
-    expect(screen.getByText("1 yıl, listeden geldi.")).toBeTruthy();
+    expect(screen.getByText(/1 yıl, listeden geldi\./)).toBeTruthy();
+    expect(screen.queryByText(/dozluk/)).toBeNull();
+    expect(screen.queryByLabelText(/^Kaçıncı doz/)).toBeNull();
+    expect(view.data().doseNumber).toBeUndefined();
+    expect(String(view.data().nextDueAt)).toContain("2027-09-23");
+  });
+
+  it("reads the age on the day of the dose, not today", () => {
+    // Born in March: a puppy on 1 June, whenever the dose is written up.
+    mount({ birthDate: "2026-03-20" });
+    fill("Karma", "2026-06-01T10:00");
+    expect(screen.getByText(/dozluk başlangıç serisi/)).toBeTruthy();
+  });
+
+  it("assumes no puppy series when the birth date is unknown", () => {
+    mount({ birthDate: null });
+    fill("Karma");
+    expect(screen.queryByText(/dozluk/)).toBeNull();
+  });
+
+  it("continues a series the record says is unfinished, whatever the age", () => {
+    const view = mount({ birthDate: null, openSeries: { "dog.core": { dose: 1, of: 3 } } });
+    fill("Karma");
+    expect(screen.getByText("Bu, bu hayvanın 3 dozluk serisindeki 2. dozu.")).toBeTruthy();
+    expect(view.data().doseNumber).toBe("2");
   });
 
   it("keeps the clinic's own interval apart from ours", () => {
@@ -90,8 +123,7 @@ describe("vaccination form", () => {
     const view = mount({ offers });
     fill("Karma");
 
-    expect(screen.getByText("3 yıl, kliniğinizin ayarından geldi.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /3 yıl sonra/ }));
+    expect(screen.getByText(/3 yıl, kliniğinizin ayarından geldi\./)).toBeTruthy();
     expect(view.data().nextDueSource).toBe("CLINIC");
   });
 
@@ -108,23 +140,36 @@ describe("vaccination form", () => {
   it("does not carry one vaccine's date onto another", () => {
     const view = mount();
     fill("Karma");
-    fireEvent.click(screen.getByRole("button", { name: /1 yıl sonra/ }));
     expect(view.data().nextDueSource).toBe("LIST");
 
-    fireEvent.change(screen.getByLabelText(/^Aşı/), { target: { value: "Kuduz" } });
+    fireEvent.change(screen.getByLabelText(/^Aşı/), { target: { value: "Köpek öksürüğü" } });
 
     // Karma's date would otherwise still be in the field, labelled LIST,
-    // on a Kuduz row -- a schedule nobody proposed for this vaccine.
+    // on a row the list proposes no date for.
     expect(view.data().nextDueAt).toBe("");
     expect(view.data().nextDueSource).toBeUndefined();
   });
 
+  it("keeps a date the vet typed, as theirs", () => {
+    const view = mount();
+    fill("Kuduz");
+    fireEvent.change(screen.getByLabelText(/^Sonraki/), { target: { value: "2027-01-05" } });
+    expect(view.data().nextDueSource).toBe("MANUAL");
+    expect(screen.getByRole("button", { name: /1 yıl sonra/ })).toBeTruthy();
+
+    // And the chip takes it back to the list's proposal.
+    fireEvent.click(screen.getByRole("button", { name: /1 yıl sonra/ }));
+    expect(view.data().nextDueSource).toBe("LIST");
+  });
+
   it("counts the dose the vet typed, not the one we proposed", () => {
-    mount({ priorDoses: { "dog.core": 1 } });
+    mount({ birthDate: "2026-07-15", priorDoses: { "dog.core": 1 } });
     fill("Karma");
 
     expect(screen.getByText("Bu, bu hayvanın 3 dozluk serisindeki 2. dozu.")).toBeTruthy();
     fireEvent.change(screen.getByLabelText(/^Kaçıncı doz/), { target: { value: "3" } });
     expect(screen.getByText("Bu, bu hayvanın 3 dozluk serisindeki 3. dozu.")).toBeTruthy();
+    // The last dose of the series is followed by the yearly booster.
+    expect(screen.getByText(/1 yıl, listeden geldi\./)).toBeTruthy();
   });
 });

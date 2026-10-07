@@ -5,6 +5,7 @@ import {
   clinicVaccineList,
   normalizeVaccineSettings,
   offerByName,
+  seriesFrom,
   type DoseRow,
   type VaccineOffer,
 } from "./catalogue";
@@ -282,6 +283,12 @@ export async function vaccineOffersForPet(
    * for data already in hand.
    */
   doses: DoseRow[];
+  /**
+   * Series this animal is part-way through, as its records state them.
+   * The form offers the series only here, or for a young animal; see
+   * `VaccinationForm`.
+   */
+  openSeries: Record<string, { dose: number; of: number }>;
 }> {
   const [clinic, history, given] = await Promise.all([
     prisma.clinic.findUnique({ where: { id: clinicId }, select: { settings: true } }),
@@ -312,7 +319,11 @@ export async function vaccineOffersForPet(
     if (!offer) continue;
     priorDoses[offer.key] = (priorDoses[offer.key] ?? 0) + 1;
   }
-  return { offers, priorDoses, doses: given };
+  const openSeries: Record<string, { dose: number; of: number }> = {};
+  for (const progress of seriesFrom(offers, given)) {
+    openSeries[progress.key] = { dose: progress.dose, of: progress.of };
+  }
+  return { offers, priorDoses, doses: given, openSeries };
 }
 
 /**

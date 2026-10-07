@@ -50,6 +50,7 @@ import {
   formatDecimal,
   formatShortDate,
   petAge,
+  toDateInput,
 } from "@/lib/format";
 import { ownerLabel, ownerPhone } from "@/lib/pet-label";
 
@@ -112,7 +113,7 @@ export default async function PetPage({
   // Needs the species, so it cannot join the batch above. One indexed read
   // of this clinic's own vaccination history; the form shows nothing at all
   // when it comes back empty (backlog 20).
-  const { offers: vaccineOffers, priorDoses, doses } = await vaccineOffersForPet(
+  const { offers: vaccineOffers, priorDoses, doses, openSeries } = await vaccineOffersForPet(
     clinicId,
     pet.id,
     pet.species,
@@ -425,6 +426,8 @@ export default async function PetPage({
                       petId={pet.id}
                       offers={vaccineOffers}
                       priorDoses={priorDoses}
+                      openSeries={openSeries}
+                      birthDate={pet.birthDate ? toDateInput(pet.birthDate) : null}
                     />
                   </div>
                 </details>

@@ -415,3 +415,9 @@ export function officialYearsFrom(
   }
   return { name: offer.name, years };
 }
+
+/** Whole weeks from birth to `on`, or null when the birth date is unknown. */
+export function ageInWeeks(birthDate: Date | null | undefined, on: Date = new Date()): number | null {
+  if (!birthDate) return null;
+  return Math.floor((on.getTime() - birthDate.getTime()) / (7 * 86_400_000));
+}

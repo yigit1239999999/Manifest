@@ -547,6 +547,8 @@
       "year": "{count, plural, one {1 yıl} other {# yıl}}"
     },
     "sourceList": "{interval}, listeden geldi.",
+    "sourceSeries": "Serinin {number}. dozu için {interval}, listeden geldi.",
+    "proposalFilled": "Önerilen tarih yazıldı; değiştirebilirsiniz.",
     "sourceClinic": "{interval}, kliniğinizin ayarından geldi.",
     "sourceAsk": "Bu aşı için tekrar tarihi önerilmiyor: aralık hekimden hekime değişiyor. Siz belirleyin.",
     "seriesLine": "{doses} dozluk başlangıç serisi, dozlar arası {min}-{max} hafta.",

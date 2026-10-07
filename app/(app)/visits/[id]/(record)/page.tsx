@@ -43,6 +43,7 @@ import {
   formatDateTime,
   formatDecimal,
   formatMoney,
+  toDateInput,
 } from "@/lib/format";
 import { ownerLabel } from "@/lib/pet-label";
 
@@ -134,7 +135,7 @@ export default async function VisitPage({
 
   // Needs the animal's species, so it follows the load rather than joining
   // it. See `/pets/[id]`, which renders the same form.
-  const { offers: vaccineOffers, priorDoses } = await vaccineOffersForPet(
+  const { offers: vaccineOffers, priorDoses, openSeries } = await vaccineOffersForPet(
     clinicId,
     visit.petId,
     visit.pet.species,
@@ -539,6 +540,8 @@ export default async function VisitPage({
                   visitId={visit.id}
                   offers={vaccineOffers}
                   priorDoses={priorDoses}
+                  openSeries={openSeries}
+                  birthDate={visit.pet.birthDate ? toDateInput(visit.pet.birthDate) : null}
                 />
               </div>
             </details>
