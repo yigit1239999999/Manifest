@@ -350,6 +350,12 @@
       "vaccinations": "Vaccinations",
       "prescriptions": "Prescriptions",
       "documents": "Documents"
+    },
+    "ownerChange": {
+      "title": "The owner will change",
+      "body": "{pet} will be registered to {to} instead of {from}. Its open reminders and upcoming appointments move to the new owner; past visits and invoices stay with {from}. Both clients' histories get a note.",
+      "confirm": "Yes, change the owner",
+      "note": "Owner changed ({pet}): {from} → {to}"
     }
   },
   "visit": {
@@ -1309,7 +1315,8 @@
       "noShowBeforeStart": "An appointment cannot be marked as a no-show before its time.",
       "recallOutcome": "Unknown call outcome.",
       "mergeSameClient": "A record cannot be merged with itself.",
-      "mergeIntoArchived": "Cannot merge into an archived record. Restore it first."
+      "mergeIntoArchived": "Cannot merge into an archived record. Restore it first.",
+      "ownerChangeUnconfirmed": "Confirm the change of owner: tick the box under the owner field."
     },
     "form": {
       "required": "{field} is required.",

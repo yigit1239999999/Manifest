@@ -8,6 +8,9 @@ vi.mock("@/lib/prisma", () => {
       update: vi.fn(),
     },
     client: { findFirst: vi.fn() },
+    note: { createMany: vi.fn() },
+    reminder: { updateMany: vi.fn() },
+    appointment: { updateMany: vi.fn() },
     customSpecies: { findFirst: vi.fn(), create: vi.fn() },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(),
@@ -237,6 +240,13 @@ describe("createPet", () => {
   });
 });
 
+const storedPet = {
+  id: "p-1",
+  name: "Fındık",
+  ownerId: "owner-1",
+  owner: { id: "owner-1", firstName: "Ayşe", lastName: "Tekin" },
+};
+
 describe("updatePet", () => {
   it("refuses to update a pet outside the clinic", async () => {
     vi.mocked(prisma.pet.findFirst).mockResolvedValue(null);
@@ -245,9 +255,9 @@ describe("updatePet", () => {
       AppError,
     );
 
-    expect(prisma.pet.findFirst).toHaveBeenCalledWith({
-      where: { id: "p-x", clinicId: "clinic-1" },
-      select: { id: true },
+    expect(vi.mocked(prisma.pet.findFirst).mock.calls[0][0]?.where).toEqual({
+      id: "p-x",
+      clinicId: "clinic-1",
     });
     expect(prisma.pet.update).not.toHaveBeenCalled();
   });
@@ -263,7 +273,7 @@ describe("updatePet", () => {
   });
 
   it("updates when both pet and owner belong to the clinic", async () => {
-    vi.mocked(prisma.pet.findFirst).mockResolvedValue({ id: "p-1" } as never);
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue(storedPet as never);
     vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: "owner-1" } as never);
     vi.mocked(prisma.pet.update).mockResolvedValue({ id: "p-1" } as never);
 
@@ -273,6 +283,88 @@ describe("updatePet", () => {
       where: { id: "p-1" },
       data: expect.objectContaining({ name: "Biscuit" }),
     });
+  });
+});
+
+// pm B12: an animal moved to another owner silently, and neither
+// client's page said so.
+describe("updatePet, changing the owner", () => {
+  const moved = { ...validInput, ownerId: "owner-2" };
+
+  beforeEach(() => {
+    vi.mocked(prisma.pet.findFirst).mockResolvedValue(storedPet as never);
+    vi.mocked(prisma.client.findFirst).mockResolvedValue({
+      id: "owner-2",
+      firstName: "Mehmet",
+      lastName: "Kaya",
+    } as never);
+    vi.mocked(prisma.pet.update).mockResolvedValue({ id: "p-1", ownerId: "owner-2" } as never);
+  });
+
+  it("is refused until somebody confirms it", async () => {
+    await expect(updatePet("p-1", moved, ctx)).rejects.toMatchObject({
+      code: "VALIDATION_FAILED",
+    });
+    expect(prisma.pet.update).not.toHaveBeenCalled();
+  });
+
+  it("writes the same sentence on both owners' timelines, the animal once", async () => {
+    await updatePet("p-1", moved, ctx, {
+      confirmed: true,
+      describe: ({ pet, from, to }) => `Sahip değişti (${pet}): ${from} → ${to}`,
+    });
+    expect(prisma.note.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          clinicId: "clinic-1",
+          clientId: "owner-1",
+          petId: null,
+          kind: "EVENT",
+          body: "Sahip değişti (Fındık): Ayşe Tekin → Mehmet Kaya",
+        }),
+        expect.objectContaining({
+          clientId: "owner-2",
+          petId: "p-1",
+          body: "Sahip değişti (Fındık): Ayşe Tekin → Mehmet Kaya",
+        }),
+      ],
+    });
+  });
+
+  it("moves what is still to come, and leaves the past with who it happened to", async () => {
+    await updatePet("p-1", moved, ctx, { confirmed: true });
+    expect(prisma.reminder.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ clinicId: "clinic-1", petId: "p-1", clientId: "owner-1" }),
+      data: { clientId: "owner-2" },
+    });
+    expect(prisma.appointment.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        clinicId: "clinic-1",
+        petId: "p-1",
+        startsAt: { gte: expect.any(Date) },
+        status: { in: ["SCHEDULED", "CONFIRMED"] },
+      }),
+      data: { clientId: "owner-2" },
+    });
+  });
+
+  it("names both owners in the audit entry", async () => {
+    await updatePet("p-1", moved, ctx, { confirmed: true });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        changes: expect.objectContaining({
+          owner: {
+            from: { id: "owner-1", name: "Ayşe Tekin" },
+            to: { id: "owner-2", name: "Mehmet Kaya" },
+          },
+        }),
+      }),
+    });
+  });
+
+  it("leaves no trace when the owner did not change", async () => {
+    await updatePet("p-1", validInput, ctx);
+    expect(prisma.note.createMany).not.toHaveBeenCalled();
   });
 });
 

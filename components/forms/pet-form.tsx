@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
+import { Callout } from "@/components/ui/callout";
 import { SpeciesPicker, type HiddenSpecies } from "@/components/species-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { searchClientsAction } from "@/modules/clients/actions";
@@ -138,6 +139,7 @@ export function PetForm({
       : pet.species
     : "";
   const [speciesKey, setSpeciesKey] = useState<string>(initialSpeciesKey);
+  const [newOwner, setNewOwner] = useState<{ id: string; label: string } | null>(null);
 
   const speciesChoices = useMemo(() => {
     // Enabled built-ins, plus the pet's own species if it was hidden later.
@@ -264,8 +266,31 @@ export function PetForm({
                     router.push(createHref("/clients/new", typed, errand))
             }
             createLabel={(typed) => tClient("createNamed", { name: typed })}
+            onValueChange={(value, option) =>
+              setNewOwner(value ? { id: value, label: option?.label ?? value } : null)
+            }
           />
         </Field>
+        {/* Asked, not assumed (pm B12, the vet's job 14): moving an
+            animal to another owner moves its reminders and its history
+            with it, and a slip in a long picker is how it happens by
+            accident. The box is `required`, so the form will not send
+            without it, and the server asks again if it does. */}
+        {pet && newOwner && newOwner.id !== pet.ownerId && (
+          <Callout variant="warning" live title={t("ownerChange.title")}>
+            <p className="text-foreground">
+              {t("ownerChange.body", {
+                pet: pet.name,
+                from: defaultOwnerLabel ?? ownerOptions.find((o) => o.value === pet.ownerId)?.label ?? "",
+                to: newOwner.label,
+              })}
+            </p>
+            <label className="mt-2 flex min-h-6 items-center gap-2 py-1 text-sm text-foreground">
+              <input type="checkbox" name="confirmOwnerChange" required className="size-4" />
+              {t("ownerChange.confirm")}
+            </label>
+          </Callout>
+        )}
 
         <Field label={t("name")} error={state.fieldErrors?.name} required>
           <Input

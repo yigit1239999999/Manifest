@@ -350,6 +350,12 @@
       "vaccinations": "Aşılar",
       "prescriptions": "Reçeteler",
       "documents": "Belgeler"
+    },
+    "ownerChange": {
+      "title": "Sahip değişecek",
+      "body": "{pet} artık {from} yerine {to} adına kayıtlı olacak. Açık hatırlatmaları ve ileri tarihli randevuları yeni sahibine geçer; geçmiş vizitler ve faturalar {from} kaydında kalır. İki müşterinin geçmişine de not düşülür.",
+      "confirm": "Evet, sahibini değiştir",
+      "note": "Sahip değişti ({pet}): {from} → {to}"
     }
   },
   "visit": {
@@ -1309,7 +1315,8 @@
       "noShowBeforeStart": "Randevu saati gelmeden \"gelmedi\" işaretlenemez.",
       "recallOutcome": "Bilinmeyen arama sonucu.",
       "mergeSameClient": "Bir kayıt kendisiyle birleştirilemez.",
-      "mergeIntoArchived": "Arşivdeki bir kayda birleştirilemez. Önce o kaydı geri alın."
+      "mergeIntoArchived": "Arşivdeki bir kayda birleştirilemez. Önce o kaydı geri alın.",
+      "ownerChangeUnconfirmed": "Sahip değişikliğini onaylayın: sahip alanının altındaki kutuyu işaretleyin."
     },
     "form": {
       "required": "{field} gerekli.",

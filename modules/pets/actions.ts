@@ -50,7 +50,11 @@ export const updatePetAction = action(
     const parsed = parse(petSchema, formData);
     if (!parsed.ok) return { fieldErrors: parsed.fieldErrors };
 
-    const pet = await updatePet(id, parsed.data, ctx);
+    const t = await getTranslations("pet.ownerChange");
+    const pet = await updatePet(id, parsed.data, ctx, {
+      confirmed: Boolean(formData.get("confirmOwnerChange")),
+      describe: (names) => t("note", names),
+    });
     revalidatePath("/pets");
     revalidatePath(`/pets/${id}`);
     revalidatePath(`/clients/${pet.ownerId}`);

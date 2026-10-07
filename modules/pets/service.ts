@@ -7,6 +7,8 @@ import type { Species } from "@/generated/prisma/enums";
 import { fold } from "@/lib/search";
 import { SPECIES, type PetInput } from "./schema";
 import { builtInSpeciesNamed } from "./species-names";
+import { ownerLabel } from "@/lib/pet-label";
+import { OPEN_REMINDER_STATUSES } from "@/modules/reminders/queries";
 
 async function assertOwnerInClinic(ownerId: string, clinicId: string) {
   const owner = await prisma.client.findFirst({
@@ -140,17 +142,53 @@ export async function createPet(input: PetInput, ctx: ActionContext) {
   );
 }
 
-export async function updatePet(id: string, input: PetInput, ctx: ActionContext) {
+export interface OwnerChangeOptions {
+  /** The person saving said yes to moving the animal to another owner. */
+  confirmed?: boolean;
+  /**
+   * The sentence each owner's history gets, in the language of the
+   * person who made the change: "Sahip değişti: A → B".
+   */
+  describe?: (args: { pet: string; from: string; to: string }) => string;
+}
+
+export async function updatePet(
+  id: string,
+  input: PetInput,
+  ctx: ActionContext,
+  ownerChange: OwnerChangeOptions = {},
+) {
   requirePermission(ctx.userRole, "pets.write");
   const existing = await prisma.pet.findFirst({
     where: { id, clinicId: ctx.clinicId },
-    select: { id: true },
+    select: {
+      id: true,
+      name: true,
+      ownerId: true,
+      owner: { select: { id: true, firstName: true, lastName: true } },
+    },
   });
   if (!existing) throw notFound("pet", id);
 
   await assertOwnerInClinic(input.ownerId, ctx.clinicId);
   const { species: rawSpecies, ...rest } = input;
   const { species, customSpeciesId } = await resolveSpecies(rawSpecies, ctx);
+
+  // A change of owner is asked about and leaves a trace (pm B12). Before
+  // this it happened silently: the animal, its reminders and its history
+  // moved to somebody else and neither client's page said so.
+  const ownerChanged = input.ownerId !== existing.ownerId;
+  if (ownerChanged && !ownerChange.confirmed) {
+    throw validationFailed({ ownerId: ["error.validation.ownerChangeUnconfirmed"] });
+  }
+  const newOwner = ownerChanged
+    ? await prisma.client.findFirst({
+        where: { id: input.ownerId, clinicId: ctx.clinicId },
+        select: { id: true, firstName: true, lastName: true },
+      })
+    : null;
+  const from = ownerLabel(existing.owner);
+  const to = newOwner ? ownerLabel(newOwner) : "";
 
   return withAudited(
     {
@@ -159,13 +197,71 @@ export async function updatePet(id: string, input: PetInput, ctx: ActionContext)
       action: "UPDATE",
       entityType: "Pet",
       entityId: id,
-      changes: redact(input),
+      // The names beside the ids, so the audit log reads "Ayşe Tekin →
+      // Mehmet Kaya" and not two cuids nobody can check by eye.
+      changes: ownerChanged
+        ? {
+            ...(redact(input) as Record<string, unknown>),
+            owner: {
+              from: { id: existing.ownerId, name: from },
+              to: { id: input.ownerId, name: to },
+            },
+          }
+        : redact(input),
     },
-    (tx) =>
-      tx.pet.update({
+    async (tx) => {
+      const pet = await tx.pet.update({
         where: { id },
         data: { ...rest, species, customSpeciesId },
-      }),
+      });
+      if (ownerChanged) {
+        // What is still to come follows the animal: the open reminders
+        // and the bookings ahead would otherwise go to, and be confirmed
+        // with, somebody who no longer owns it. What already happened --
+        // visits, invoices, past appointments -- stays with the owner it
+        // happened to, who is who paid.
+        await tx.reminder.updateMany({
+          where: {
+            clinicId: ctx.clinicId,
+            petId: id,
+            clientId: existing.ownerId,
+            status: { in: [...OPEN_REMINDER_STATUSES] },
+          },
+          data: { clientId: input.ownerId },
+        });
+        await tx.appointment.updateMany({
+          where: {
+            clinicId: ctx.clinicId,
+            petId: id,
+            clientId: existing.ownerId,
+            startsAt: { gte: new Date() },
+            status: { in: ["SCHEDULED", "CONFIRMED"] },
+          },
+          data: { clientId: input.ownerId },
+        });
+        const body =
+          ownerChange.describe?.({ pet: existing.name, from, to }) ??
+          `${existing.name}: ${from} → ${to}`;
+        // One entry on each owner's timeline: the old owner's history
+        // says where the animal went, the new one's where it came from --
+        // the same sentence, so the two can be matched. Only the second
+        // carries the animal, so the animal's own timeline (which reads
+        // notes by `petId`) shows the change once, not twice.
+        await tx.note.createMany({
+          data: [
+            { clientId: existing.ownerId, petId: null as string | null },
+            { clientId: input.ownerId, petId: id },
+          ].map((link) => ({
+            clinicId: ctx.clinicId,
+            ...link,
+            authorId: ctx.userId,
+            kind: "EVENT" as const,
+            body,
+          })),
+        });
+      }
+      return pet;
+    },
   );
 }
 
