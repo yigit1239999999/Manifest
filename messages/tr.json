@@ -588,7 +588,8 @@
     "complete": "Tamamlandı olarak işaretle",
     "cancel": "İptal et",
     "durationShort": "{count} gün",
-    "emptyHint": "Reçete bir vizit ya da hayvan sayfası içinden yazılır; yazdıklarınız en yenisi başta olmak üzere burada görünür."
+    "emptyHint": "Reçete bir vizit ya da hayvan sayfası içinden yazılır; yazdıklarınız en yenisi başta olmak üzere burada görünür.",
+    "print": "Yazdır"
   },
   "treatment": {
     "title": "Tedaviler ve işlemler",
@@ -765,7 +766,23 @@
     "numberAssigned": "Kaydedince sıradaki numara verilir.",
     "vatRate": "KDV oranı",
     "vatOption": "%{rate}",
-    "taxAt": "KDV (%{rate})"
+    "taxAt": "KDV (%{rate})",
+    "print": {
+      "button": "Yazdır",
+      "back": "Geri dönün",
+      "title": "Fatura",
+      "prescriptionTitle": "Reçete",
+      "number": "No: {number}",
+      "issued": "Düzenlenme: {date}",
+      "due": "Vade: {date}",
+      "billedTo": "Müşteri",
+      "animal": "Hayvan",
+      "vet": "Veteriner hekim",
+      "payments": "Tahsilat",
+      "signature": "İmza / Kaşe",
+      "printedAt": "Yazdırılma: {date}"
+    },
+    "paidTotal": "Ödenen"
   },
   "timeline": {
     "openVisit": "Viziti aç",

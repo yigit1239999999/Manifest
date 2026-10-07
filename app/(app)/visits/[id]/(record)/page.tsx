@@ -565,7 +565,14 @@ export default async function VisitPage({
               {visit.prescriptions.map((p) => (
                 <li key={p.id} className="text-sm">
                   • <strong>{p.medicationName}</strong> · {p.dosage} ·{" "}
-                  {p.frequency}
+                  {p.frequency}{" "}
+                  <Link
+                    href={`/print/prescriptions/${p.id}`}
+                    className="ms-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                    aria-label={`${tRx("print")}: ${p.medicationName}`}
+                  >
+                    {tRx("print")}
+                  </Link>
                 </li>
               ))}
             </ul>

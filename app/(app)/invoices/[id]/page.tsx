@@ -23,6 +23,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { Printer } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { ownerLabel } from "@/lib/pet-label";
 import { invoiceLineText } from "@/components/invoices/line-text";
@@ -100,6 +102,15 @@ export default async function InvoicePage({
           />
         }
       >
+        {/* A clean printed copy: the invoice, and with its payments the
+            receipt the owner takes home (job #17). */}
+        <Link
+          href={`/print/invoices/${invoice.id}`}
+          className={buttonVariants({ variant: "secondary" })}
+        >
+          <Printer />
+          {t("print.button")}
+        </Link>
         {canWrite && invoice.status === "DRAFT" && (
           <MarkSentButton
             action={markInvoiceSentAction.bind(null, invoice.id)}

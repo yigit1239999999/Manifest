@@ -322,3 +322,24 @@
 [data-spotlight] {
   background-color: var(--accent);
 }
+
+/* Printed documents (`app/(print)`): black on white paper whatever the
+   screen theme, so a vet in dark mode does not print a page of ink. Only
+   the sheet is touched, and only in print; on screen it keeps the theme's
+   tokens like every other surface. */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  .print-sheet,
+  .print-sheet * {
+    color: #000 !important;
+    background-color: transparent !important;
+    border-color: #9a9a9a !important;
+    box-shadow: none !important;
+  }
+}

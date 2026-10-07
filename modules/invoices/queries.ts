@@ -120,7 +120,15 @@ export async function getInvoiceById(clinicId: string, id: string) {
           // a visit is named: an invoice can gather several visits, and
           // a single link in the header would have to pick one of them
           // and be wrong about the rest.
-          visit: { select: { id: true, visitedAt: true, type: true } },
+          visit: {
+            select: {
+              id: true,
+              visitedAt: true,
+              type: true,
+              // For the printed copy: the vet who saw the animal.
+              vet: { select: { name: true, role: true } },
+            },
+          },
         },
       },
       // Voided payments too: they stay on the invoice, struck through,

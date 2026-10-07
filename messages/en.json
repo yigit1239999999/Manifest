@@ -588,7 +588,8 @@
     "complete": "Mark completed",
     "cancel": "Cancel",
     "durationShort": "{count} days",
-    "emptyHint": "A prescription is written from inside a visit or a pet's page; the ones you write appear here, the newest first."
+    "emptyHint": "A prescription is written from inside a visit or a pet's page; the ones you write appear here, the newest first.",
+    "print": "Print"
   },
   "treatment": {
     "title": "Treatments and procedures",
@@ -765,7 +766,23 @@
     "numberAssigned": "The next number in sequence is given when you save.",
     "vatRate": "VAT rate",
     "vatOption": "{rate}%",
-    "taxAt": "VAT ({rate}%)"
+    "taxAt": "VAT ({rate}%)",
+    "print": {
+      "button": "Print",
+      "back": "Go back",
+      "title": "Invoice",
+      "prescriptionTitle": "Prescription",
+      "number": "No. {number}",
+      "issued": "Issued: {date}",
+      "due": "Due: {date}",
+      "billedTo": "Billed to",
+      "animal": "Animal",
+      "vet": "Veterinarian",
+      "payments": "Payments received",
+      "signature": "Signature / Stamp",
+      "printedAt": "Printed: {date}"
+    },
+    "paidTotal": "Paid"
   },
   "timeline": {
     "openVisit": "Open visit",
